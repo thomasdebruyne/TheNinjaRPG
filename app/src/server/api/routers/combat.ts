@@ -722,6 +722,43 @@ export const combatRouter = createTRPCRouter({
         "SHRINE_WAR",
       );
     }),
+  /**
+   * List all ongoing battles, optionally filtered by battleType.
+   * Defaults to RANKED_PVP if not specified.
+   */
+  listOngoingBattles: protectedProcedure
+    .input(z.object({ battleType: z.enum(BattleTypes).default("RANKED_PVP") }))
+    .query(async ({ ctx, input }) => {
+      // Query
+      const battles = (await ctx.drizzle.query.battle.findMany({
+        where: eq(battle.battleType, input.battleType),
+        columns: {
+          id: true,
+          battleType: true,
+          createdAt: true,
+          usersState: true,
+          round: true,
+          updatedAt: true,
+        },
+        orderBy: [desc(battle.createdAt)],
+      })) as CompleteBattle[];
+      // Filter down to only usernames involved in the battle
+      const filteredBattles = battles.map((battle) => {
+        return {
+          id: battle.id,
+          battleType: battle.battleType,
+          createdAt: battle.createdAt,
+          round: battle.round,
+          updatedAt: battle.updatedAt,
+          users: battle.usersState.map((user) => ({
+            userId: user.userId,
+            username: user.username,
+            avatar: user.avatar,
+          })),
+        };
+      });
+      return filteredBattles;
+    }),
 });
 
 /***********************************************
