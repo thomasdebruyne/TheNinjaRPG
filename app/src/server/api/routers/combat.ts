@@ -729,34 +729,51 @@ export const combatRouter = createTRPCRouter({
   listOngoingBattles: protectedProcedure
     .input(z.object({ battleType: z.enum(BattleTypes).default("RANKED_PVP") }))
     .query(async ({ ctx, input }) => {
-      // Query
-      const battles = (await ctx.drizzle.query.battle.findMany({
-        where: eq(battle.battleType, input.battleType),
-        columns: {
-          id: true,
-          battleType: true,
-          createdAt: true,
-          usersState: true,
-          round: true,
-          updatedAt: true,
-        },
-        orderBy: [desc(battle.createdAt)],
-      })) as CompleteBattle[];
-      // Filter down to only usernames involved in the battle
-      const filteredBattles = battles.map((battle) => {
+      // Optimized: fetch only userId, username, avatar from usersState JSON
+      const results = await ctx.drizzle.execute(
+        sql`
+          SELECT 
+            id, battleType, createdAt, round, updatedAt,
+            JSON_EXTRACT(usersState, '$[*].userId') as userIds,
+            JSON_EXTRACT(usersState, '$[*].username') as usernames,
+            JSON_EXTRACT(usersState, '$[*].avatar') as avatars
+          FROM Battle
+          WHERE battleType = ${input.battleType}
+          ORDER BY createdAt DESC
+        `,
+      );
+
+      // Type the raw results from drizzle execute
+      interface RawBattleRow {
+        id: string;
+        battleType: BattleType;
+        createdAt: Date;
+        round: number;
+        updatedAt: Date;
+        userIds: string[] | null;
+        usernames: string[] | null;
+        avatars: string[] | null;
+      }
+
+      // Map the results to the expected format with proper type safety
+      const filteredBattles = (results.rows as unknown as RawBattleRow[]).map((row) => {
+        const users =
+          row?.userIds?.map((userId, i) => ({
+            userId: userId ?? null,
+            username: row?.usernames?.[i] ?? null,
+            avatar: row?.avatars?.[i] ?? null,
+          })) ?? [];
+
         return {
-          id: battle.id,
-          battleType: battle.battleType,
-          createdAt: battle.createdAt,
-          round: battle.round,
-          updatedAt: battle.updatedAt,
-          users: battle.usersState.map((user) => ({
-            userId: user.userId,
-            username: user.username,
-            avatar: user.avatar,
-          })),
+          id: row.id,
+          battleType: row.battleType,
+          createdAt: row.createdAt,
+          round: row.round,
+          updatedAt: row.updatedAt,
+          users,
         };
       });
+
       return filteredBattles;
     }),
 });
