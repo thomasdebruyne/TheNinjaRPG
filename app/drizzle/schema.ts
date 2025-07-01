@@ -210,6 +210,10 @@ export const battle = mysqlTable(
   (table) => {
     return {
       idVersionKey: uniqueIndex("Battle_id_version_key").on(table.id, table.version),
+      battleTypeCreatedAt: index("Battle_battleType_createdAt_idx").on(
+        table.battleType,
+        table.createdAt,
+      ),
     };
   },
 );

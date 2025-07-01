@@ -727,7 +727,13 @@ export const combatRouter = createTRPCRouter({
    * Defaults to RANKED_PVP if not specified.
    */
   listOngoingBattles: protectedProcedure
-    .input(z.object({ battleType: z.enum(BattleTypes).default("RANKED_PVP") }))
+    .input(
+      z.object({
+        battleType: z.enum(BattleTypes).default("RANKED_PVP"),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       // Optimized: fetch only userId, username, avatar from usersState JSON
       const results = await ctx.drizzle.execute(
@@ -740,6 +746,7 @@ export const combatRouter = createTRPCRouter({
           FROM Battle
           WHERE battleType = ${input.battleType}
           ORDER BY createdAt DESC
+          LIMIT ${input.limit} OFFSET ${input.offset}
         `,
       );
 
