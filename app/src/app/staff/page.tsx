@@ -75,29 +75,6 @@ export default function Staff() {
                 expectedLength={2}
               />
             </div>
-            <div className="bg-orange-500 p-1 rounded-lg font-bold relative">
-              Event Admin
-              <UserList
-                users={users.filter((user) => user.role === "EVENT-ADMIN")}
-                expectedLength={1}
-              />
-              <Information hoverEffect="hover:fill-purple-700">
-                Main responsibility is to oversee and manage all in-game content to
-                enhance player engagement and ensure a high-quality experience. Working
-                with content & event members, supervising the creation, review, and
-                implementation of new game elements such as quests, items, jutsus,
-                bloodlines, events etc.
-              </Information>
-            </div>
-            <div className="bg-orange-600 p-1 rounded-lg font-bold">
-              Event
-              <UserList
-                users={users.filter((user) => user.role === "EVENT")}
-                expectedLength={5}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
             <div className="bg-purple-500 p-1 rounded-lg font-bold relative">
               Content Admin
               <UserList
@@ -117,6 +94,29 @@ export default function Staff() {
               <UserList
                 users={users.filter((user) => user.role === "CONTENT")}
                 expectedLength={6}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="bg-orange-500 p-1 rounded-lg font-bold relative">
+              Event Admin
+              <UserList
+                users={users.filter((user) => user.role === "EVENT-ADMIN")}
+                expectedLength={1}
+              />
+              <Information hoverEffect="hover:fill-purple-700">
+                Main responsibility is to oversee and manage all in-game content to
+                enhance player engagement and ensure a high-quality experience. Working
+                with content & event members, supervising the creation, review, and
+                implementation of new game elements such as quests, items, jutsus,
+                bloodlines, events etc.
+              </Information>
+            </div>
+            <div className="bg-orange-600 p-1 rounded-lg font-bold">
+              Event
+              <UserList
+                users={users.filter((user) => user.role === "EVENT")}
+                expectedLength={5}
               />
             </div>
           </div>
