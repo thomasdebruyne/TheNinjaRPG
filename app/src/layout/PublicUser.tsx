@@ -96,6 +96,7 @@ import {
   canClearUserNindo,
   canEditQuests,
   canDeleteReferral,
+  canChangeUserRolesTo,
 } from "@/utils/permissions";
 
 interface PublicUserComponentProps {
@@ -1197,6 +1198,7 @@ const EditUserComponent: React.FC<EditUserComponentProps> = ({ userId, profile }
     canEditItems: canEditItems(userRole),
     canEditStaffAccountFlag: canEditStaffAccountFlag(userRole),
     canEditQuests: canEditQuests(userRole),
+    canEditUserRoles: canChangeUserRolesTo(userRole),
   } as const;
 
   const canEditSomething = Object.values(perms).some(Boolean);
@@ -1243,6 +1245,7 @@ const EditUserComponent: React.FC<EditUserComponentProps> = ({ userId, profile }
       canEditJutsus: perms.canEditJutsus,
       canEditItems: perms.canEditItems,
       canEditStaffAccountFlag: perms.canEditStaffAccountFlag,
+      canEditUserRoles: perms.canEditUserRoles,
     },
   );
 

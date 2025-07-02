@@ -53,9 +53,9 @@ export const canAdministrateWars = (role: UserRole) => {
   );
 };
 
-export const canChangeUserRolesTo = (role: UserRole) => {
+export const canChangeUserRolesTo = (role: UserRole): UserRole[] => {
   if (role === "CODING-ADMIN") {
-    return UserRoles;
+    return UserRoles as unknown as UserRole[];
   } else if (role === "CONTENT-ADMIN") {
     return ["USER", "CONTENT", "CONTENT-ADMIN"];
   } else if (role === "EVENT-ADMIN") {

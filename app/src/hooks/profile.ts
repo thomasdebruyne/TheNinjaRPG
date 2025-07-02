@@ -5,9 +5,9 @@ import { api } from "@/app/_trpc/client";
 import { UserRanks } from "@/drizzle/constants";
 import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
 import { updateUserSchema } from "@/validators/user";
-import { canChangeUserRolesTo } from "@/utils/permissions";
 import type { UpdateUserSchema } from "@/validators/user";
 import type { FormEntry } from "@/layout/EditContent";
+import type { UserRole } from "@/drizzle/constants";
 
 export interface EditUserPermissions {
   canEditUsername?: boolean;
@@ -18,6 +18,7 @@ export interface EditUserPermissions {
   canEditJutsus?: boolean;
   canEditItems?: boolean;
   canEditStaffAccountFlag?: boolean;
+  canEditUserRoles?: UserRole[];
 }
 
 export const useUserEditForm = (
@@ -44,6 +45,7 @@ export const useUserEditForm = (
     canEditJutsus = true,
     canEditItems = true,
     canEditStaffAccountFlag = true,
+    canEditUserRoles = [],
   } = permissions || {};
 
   // Conditional queries based on permissions
@@ -94,8 +96,6 @@ export const useUserEditForm = (
     (errors) => showFormErrorsToast(errors),
   );
 
-  const availableRoles = user && canChangeUserRolesTo(user.role);
-
   // Build formData based on permissions
   const formData: FormEntry<keyof UpdateUserSchema>[] = [];
 
@@ -105,8 +105,8 @@ export const useUserEditForm = (
   if (canEditCustomTitle) {
     formData.push({ id: "customTitle", type: "text" });
   }
-  if (availableRoles && availableRoles.length > 0)
-    formData.push({ id: "role", type: "str_array", values: availableRoles });
+  if (canEditUserRoles && canEditUserRoles.length > 0)
+    formData.push({ id: "role", type: "str_array", values: canEditUserRoles });
   if (canEditRank) {
     formData.push({ id: "rank", type: "str_array", values: UserRanks });
   }
