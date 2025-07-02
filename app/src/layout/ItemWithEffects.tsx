@@ -226,7 +226,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                   <Link href={`/manual/${showEdit}/edit/${item.id}`}>
                     <SquarePen className="h-6 w-6 hover:text-popover-foreground/50" />
                   </Link>
-                  {onDelete && canChangeCombatBgScheme(userData.role) && (
+                  {onDelete && canChangeContent(userData.role) && (
                     <Confirm2
                       title="Confirm Deletion"
                       button={
@@ -237,7 +237,8 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                         if (onDelete) onDelete(item.id);
                       }}
                     >
-                      You are about to delete this. Are you sure?
+                      You are about to delete this. Are you sure? This will affect ALL
+                      USERS WHO HAS THE CONTENT IN QUESTION.
                     </Confirm2>
                   )}
                 </>
