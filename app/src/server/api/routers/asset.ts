@@ -163,7 +163,18 @@ export const gameAssetRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       const entry = await fetchgameAsset(ctx.drizzle, input.id);
       if (entry && canChangeContent(user.role)) {
-        await ctx.drizzle.delete(gameAsset).where(eq(gameAsset.id, input.id));
+        await Promise.all([
+          ctx.drizzle.delete(gameAsset).where(eq(gameAsset.id, input.id)),
+          ctx.drizzle.insert(actionLog).values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "gameAsset",
+            changes: [`Deleted: ${entry.name}`],
+            relatedId: entry.id,
+            relatedMsg: `Delete: ${entry.name}`,
+            relatedImage: entry.image,
+          }),
+        ]);
         return { success: true, message: `gameAsset deleted` };
       } else {
         return { success: false, message: `Not allowed to delete gameAsset` };

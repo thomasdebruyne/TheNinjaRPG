@@ -113,6 +113,15 @@ export const badgeRouter = createTRPCRouter({
         await Promise.all([
           ctx.drizzle.delete(badge).where(eq(badge.id, input.id)),
           ctx.drizzle.delete(userBadge).where(eq(userBadge.badgeId, input.id)),
+          ctx.drizzle.insert(actionLog).values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "badge",
+            changes: [`Deleted: ${entry.name}`],
+            relatedId: entry.id,
+            relatedMsg: `Delete: ${entry.name}`,
+            relatedImage: entry.image,
+          }),
         ]);
         return { success: true, message: `Badge deleted` };
       } else {

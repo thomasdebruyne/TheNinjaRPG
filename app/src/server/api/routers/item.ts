@@ -82,8 +82,19 @@ export const itemRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       const entry = await fetchItem(ctx.drizzle, input.id);
       if (entry && canChangeContent(user.role)) {
-        await ctx.drizzle.delete(item).where(eq(item.id, input.id));
-        await ctx.drizzle.delete(userItem).where(eq(userItem.itemId, input.id));
+        await Promise.all([
+          ctx.drizzle.delete(item).where(eq(item.id, input.id)),
+          ctx.drizzle.delete(userItem).where(eq(userItem.itemId, input.id)),
+          ctx.drizzle.insert(actionLog).values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "item",
+            changes: [`Deleted: ${entry.name}`],
+            relatedId: entry.id,
+            relatedMsg: `Delete: ${entry.name}`,
+            relatedImage: entry.image,
+          }),
+        ]);
         return { success: true, message: `Item deleted` };
       } else {
         return { success: false, message: `Not allowed to delete item` };

@@ -710,6 +710,15 @@ export const questsRouter = createTRPCRouter({
         await Promise.all([
           ctx.drizzle.delete(quest).where(eq(quest.id, input.id)),
           ctx.drizzle.delete(questHistory).where(eq(questHistory.questId, input.id)),
+          ctx.drizzle.insert(actionLog).values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "quest",
+            changes: [`Deleted: ${entry.name}`],
+            relatedId: entry.id,
+            relatedMsg: `Delete: ${entry.name}`,
+            relatedImage: entry.image,
+          }),
         ]);
         return { success: true, message: `Quest deleted` };
       } else {

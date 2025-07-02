@@ -221,6 +221,15 @@ export const bloodlineRouter = createTRPCRouter({
           .update(userData)
           .set({ bloodlineId: null })
           .where(eq(userData.bloodlineId, input.id)),
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "bloodline",
+          changes: [`Deleted: ${entry.name}`],
+          relatedId: entry.id,
+          relatedMsg: `Delete: ${entry.name}`,
+          relatedImage: entry.image,
+        }),
       ]);
       return { success: true, message: `Bloodline deleted` };
     }),
@@ -334,7 +343,9 @@ export const bloodlineRouter = createTRPCRouter({
       return errorResponse(`Cannot roll bloodline while ${user.status.toLowerCase()}`);
     }
     if (user.rank === "STUDENT") {
-      return errorResponse("Academy students cannot roll for bloodlines. You must graduate first.");
+      return errorResponse(
+        "Academy students cannot roll for bloodlines. You must graduate first.",
+      );
     }
     /**
      * Roll a bloodline. Defined like this to make testing of many rolls easier

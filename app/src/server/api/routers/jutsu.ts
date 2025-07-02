@@ -368,8 +368,19 @@ export const jutsuRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       const entry = await fetchJutsu(ctx.drizzle, input.id);
       if (entry && canChangeContent(user.role)) {
-        await ctx.drizzle.delete(jutsu).where(eq(jutsu.id, input.id));
-        await ctx.drizzle.delete(userJutsu).where(eq(userJutsu.jutsuId, input.id));
+        await Promise.all([
+          ctx.drizzle.delete(jutsu).where(eq(jutsu.id, input.id)),
+          ctx.drizzle.delete(userJutsu).where(eq(userJutsu.jutsuId, input.id)),
+          ctx.drizzle.insert(actionLog).values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "jutsu",
+            changes: [`Deleted: ${entry.name}`],
+            relatedId: entry.id,
+            relatedMsg: `Delete: ${entry.name}`,
+            relatedImage: entry.image,
+          }),
+        ]);
         return { success: true, message: `Jutsu deleted` };
       } else {
         return { success: false, message: `Not allowed to delete jutsu` };
