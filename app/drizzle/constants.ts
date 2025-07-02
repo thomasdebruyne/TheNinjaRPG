@@ -179,6 +179,7 @@ export const UserRoles = [
   "USER",
   "CODING-ADMIN",
   "CONTENT-ADMIN",
+  "EVENT-ADMIN",
   "MODERATOR-ADMIN",
   "HEAD_MODERATOR",
   "MODERATOR",

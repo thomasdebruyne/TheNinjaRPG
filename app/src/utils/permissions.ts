@@ -13,7 +13,7 @@ export const canChangeContent = (role: UserRole) => {
 };
 
 export const canPlayHiddenQuests = (role: UserRole) => {
-  return ["CONTENT", "EVENT", "CONTENT-ADMIN"].includes(role);
+  return ["CONTENT", "EVENT", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };
 
 export const canSubmitNotification = (role: UserRole) => {
@@ -26,6 +26,7 @@ export const canSubmitNotification = (role: UserRole) => {
     "CODING-ADMIN",
     "MODERATOR-ADMIN",
     "CONTENT-ADMIN",
+    "EVENT-ADMIN",
   ].includes(role);
 };
 
@@ -39,22 +40,26 @@ export const canUseMonitoringTests = (role: UserRole) => {
 };
 
 export const canModifyEventGains = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN"].includes(role);
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };
 
 export const canChangeDefaultAiProfile = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN"].includes(role);
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };
 
 export const canAdministrateWars = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN", "CONTENT", "EVENT"].includes(role);
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "CONTENT", "EVENT", "EVENT-ADMIN"].includes(
+    role,
+  );
 };
 
 export const canChangeUserRole = (role: UserRole) => {
   if (role === "CODING-ADMIN") {
     return UserRoles;
   } else if (role === "CONTENT-ADMIN") {
-    return ["USER", "CONTENT", "EVENT", "CONTENT-ADMIN"];
+    return ["USER", "CONTENT", "CONTENT-ADMIN"];
+  } else if (role === "EVENT-ADMIN") {
+    return ["USER", "EVENT", "EVENT-ADMIN"];
   } else if (role === "MODERATOR-ADMIN") {
     return ["USER", "HEAD_MODERATOR", "MODERATOR", "JR_MODERATOR"];
   }
@@ -98,6 +103,7 @@ export const canModifyUserBadges = (role: UserRole) => {
   return [
     "CODING-ADMIN",
     "CONTENT-ADMIN",
+    "EVENT-ADMIN",
     "EVENT",
     "CONTENT",
     "MODERATOR-ADMIN",
@@ -229,6 +235,7 @@ export const canClearUserNindo = (user: UserData) => {
 export const canEditPublicUser = (user: UserData) => {
   return [
     "CONTENT-ADMIN",
+    "EVENT-ADMIN",
     "CODING-ADMIN",
     "CONTENT",
     "EVENT",
@@ -237,11 +244,11 @@ export const canEditPublicUser = (user: UserData) => {
 };
 
 export const canAwardReputation = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN"].includes(role);
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };
 
 export const canChangeCombatBgScheme = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN"].includes(role);
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };
 
 export const canReviewLinkPromotions = (role: UserRole) => {
@@ -249,7 +256,13 @@ export const canReviewLinkPromotions = (role: UserRole) => {
 };
 
 export const canEditClans = (role: UserRole) => {
-  return ["CONTENT-ADMIN", "CODING-ADMIN", "MODERATOR-ADMIN", "CONTENT"].includes(role);
+  return [
+    "CONTENT-ADMIN",
+    "CODING-ADMIN",
+    "MODERATOR-ADMIN",
+    "CONTENT",
+    "EVENT-ADMIN",
+  ].includes(role);
 };
 
 export const canAddNonCustomPollOptions = (role: UserRole) => {
@@ -257,6 +270,7 @@ export const canAddNonCustomPollOptions = (role: UserRole) => {
     "CONTENT-ADMIN",
     "CODING-ADMIN",
     "MODERATOR-ADMIN",
+    "EVENT-ADMIN",
     "EVENT",
     "CONTENT",
   ].includes(role);
@@ -267,6 +281,7 @@ export const canCreatePolls = (role: UserRole) => {
     "CONTENT-ADMIN",
     "CODING-ADMIN",
     "MODERATOR-ADMIN",
+    "EVENT-ADMIN",
     "EVENT",
     "CONTENT",
   ].includes(role);
@@ -277,6 +292,7 @@ export const canEditPolls = (role: UserRole) => {
     "CONTENT-ADMIN",
     "CODING-ADMIN",
     "MODERATOR-ADMIN",
+    "EVENT-ADMIN",
     "EVENT",
     "CONTENT",
   ].includes(role);
@@ -287,6 +303,7 @@ export const canClosePolls = (role: UserRole) => {
     "CONTENT-ADMIN",
     "CODING-ADMIN",
     "MODERATOR-ADMIN",
+    "EVENT-ADMIN",
     "EVENT",
     "CONTENT",
   ].includes(role);
@@ -297,17 +314,25 @@ export const canDeletePollOptions = (role: UserRole) => {
     "CONTENT-ADMIN",
     "CODING-ADMIN",
     "MODERATOR-ADMIN",
+    "EVENT-ADMIN",
     "EVENT",
     "CONTENT",
   ].includes(role);
 };
 
 export const canViewFullBattleLog = (role: UserRole) => {
-  return ["CODER", "CONTENT", "EVENT", "CODING-ADMIN", "CONTENT-ADMIN "].includes(role);
+  return [
+    "CODER",
+    "CONTENT",
+    "EVENT",
+    "CODING-ADMIN",
+    "CONTENT-ADMIN",
+    "EVENT-ADMIN",
+  ].includes(role);
 };
 
 export const canCloneUser = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN"].includes(role);
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };
 
 export const canInteractWithPolls = (rank: UserRank) => {
@@ -315,7 +340,9 @@ export const canInteractWithPolls = (rank: UserRank) => {
 };
 
 export const canClearSectors = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN", "CONTENT", "EVENT"].includes(role);
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "CONTENT", "EVENT", "EVENT-ADMIN"].includes(
+    role,
+  );
 };
 
 export const canDeleteReferral = (role: UserRole) => {
