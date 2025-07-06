@@ -427,7 +427,11 @@ export const updateSubscription = async (input: {
         gte(paypalSubscription.updatedAt, secondsFromNow(-3600 * 24 * 31)),
       ),
     });
-    if (!otherActive) {
+    const otherIdx = otherActive
+      ? FederalStatuses.indexOf(otherActive.federalStatus)
+      : -1;
+    const newIdx = FederalStatuses.indexOf(input.federalStatus);
+    if (newIdx > otherIdx) {
       await tx
         .update(userData)
         .set({ federalStatus: input.federalStatus })
