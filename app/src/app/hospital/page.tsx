@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Table, { type ColumnDefinitionType } from "@/layout/Table";
-import { Clock, FastForward, Hand } from "lucide-react";
+import { Clock, FastForward, Hand, ScanHeart } from "lucide-react";
 import Countdown from "@/layout/Countdown";
 import Loader from "@/layout/Loader";
 import ContentBox from "@/layout/ContentBox";
@@ -15,9 +15,15 @@ import { useRequireInVillage } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { showUserRank } from "@/libs/profile";
 import { showMutationToast } from "@/libs/toast";
-import { calcHealFinish } from "@/libs/hospital/hospital";
-import { calcHealCost, calcChakraToHealth } from "@/libs/hospital/hospital";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
+import {
+  calcHealFinish,
+  calcMedninHealablePool,
+  calcMedninRank,
+} from "@/libs/hospital/hospital";
+import { calcHealCost, calcChakraToPools } from "@/libs/hospital/hospital";
 import { MEDNIN_MIN_RANK, IMG_BUILDING_HOSPITAL } from "@/drizzle/constants";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ArrayElement } from "@/utils/typeutils";
 import type { UserWithRelations } from "@/server/api/routers/profile";
 
@@ -31,7 +37,7 @@ export default function Hospital() {
   const boost = structureBoost("hospitalSpeedupPerLvl", userData?.village?.structures);
 
   // Mutations
-  const { mutate: heal, isPending } = api.hospital.heal.useMutation({
+  const { mutate: heal, isPending } = api.hospital.npcHeal.useMutation({
     onSuccess: async (result) => {
       showMutationToast(result);
       if (result.success && result.data) {
@@ -145,7 +151,7 @@ const HealOthersComponent: React.FC<HealOthersComponentProps> = (props) => {
 
   // Maximum heal capacity
   const [maxHeal, setMaxHeal] = useState(
-    calcChakraToHealth(
+    calcChakraToPools(
       userData,
       calcCurrent(
         userData.curChakra,
@@ -157,6 +163,8 @@ const HealOthersComponent: React.FC<HealOthersComponentProps> = (props) => {
       ).current,
     ),
   );
+  const pools = calcMedninHealablePool(userData);
+  const medninRank = calcMedninRank(userData);
 
   // tRPC utility
   const utils = api.useUtils();
@@ -166,7 +174,7 @@ const HealOthersComponent: React.FC<HealOthersComponentProps> = (props) => {
     const foo = () => {
       if (userData.curChakra < userData.maxChakra) {
         setMaxHeal(
-          calcChakraToHealth(
+          calcChakraToPools(
             userData,
             calcCurrent(
               userData.curChakra,
@@ -223,6 +231,7 @@ const HealOthersComponent: React.FC<HealOthersComponentProps> = (props) => {
               , Lvl. {user.level} {showUserRank(user)}
             </span>
             <StatusBar
+              key={`${user.curHealth}-${user.userId}`}
               title="HP"
               tooltip="Health"
               color="bg-red-500"
@@ -292,6 +301,16 @@ const HealOthersComponent: React.FC<HealOthersComponentProps> = (props) => {
   // Render
   return (
     <div>
+      <div className="p-2">
+        <Alert>
+          <ScanHeart className="w-6 h-6" />
+          <AlertTitle>Healing Capacity</AlertTitle>
+          <AlertDescription>
+            Your current medicial rank is {capitalizeFirstLetter(medninRank)}. You can
+            heal up to {maxHeal.toFixed(2)} {pools.join(", ")} at a time.
+          </AlertDescription>
+        </Alert>
+      </div>
       {allHospitalized && allHospitalized.length > 0 ? (
         <Table data={allHospitalized} columns={columns} />
       ) : (

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/app/_trpc/client";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { showMutationToast } from "@/libs/toast";
-import { calcChakraToHealth } from "@/libs/hospital/hospital";
+import { calcChakraToPools } from "@/libs/hospital/hospital";
 import { calcCurrent } from "@/layout/StatusBar";
 import { IMG_ICON_HEAL } from "@/drizzle/constants";
 import type { SectorUser } from "@/libs/travel/types";
@@ -100,7 +100,7 @@ const HealingPopover: React.FC<HealingPopoverProps> = ({
       timeDiff,
     ).current;
 
-    const maxHeal = calcChakraToHealth(userData, currentChakra);
+    const maxHeal = calcChakraToPools(userData, currentChakra);
     const missingHealth = user.maxHealth - user.curHealth;
     return { maxHeal, missingHealth };
   };

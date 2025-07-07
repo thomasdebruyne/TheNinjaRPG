@@ -12,6 +12,7 @@ import { structureBoost } from "@/utils/village";
 import { getNewTrackers } from "@/libs/quest";
 import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
 import { calcHealthToChakra } from "@/libs/hospital/hospital";
+import { calcHowMuchToHeal } from "@/libs/hospital/hospital";
 import { MEDNIN_MIN_RANK } from "@/drizzle/constants";
 import { MEDNIN_HEAL_TO_EXP } from "@/drizzle/constants";
 import { MEDNIN_HEALABLE_STATES } from "@/drizzle/constants";
@@ -101,7 +102,7 @@ export const hospitalRouter = createTRPCRouter({
       if (!u) return errorResponse("Your user was not found");
       if (!t) return errorResponse("Your target was not found");
       // Derived
-      const toHeal = t.maxHealth * (input.healPercentage / 100);
+      const { toHeal, pools } = calcHowMuchToHeal(u, t, input.healPercentage);
       const chakraCost = calcHealthToChakra(u, toHeal);
       const expGain = t.userId !== u.userId ? MEDNIN_HEAL_TO_EXP * toHeal : 0;
       // Guard
@@ -113,7 +114,7 @@ export const hospitalRouter = createTRPCRouter({
       if (!MEDNIN_HEALABLE_STATES.find((s) => s === t.status)) {
         return errorResponse("Target user must be awake or hospitalized");
       }
-      if (t.maxHealth - t.curHealth <= 0) {
+      if (toHeal <= 0) {
         return errorResponse("User did not need this healing anymore");
       }
       if (!hasRequiredRank(u.rank, MEDNIN_MIN_RANK)) {
@@ -143,7 +144,15 @@ export const hospitalRouter = createTRPCRouter({
         const tResult = await ctx.drizzle
           .update(userData)
           .set({
-            curHealth: sql`LEAST(${t.curHealth + toHeal}, ${t.maxHealth})`,
+            ...(pools.includes("Health")
+              ? { curHealth: sql`LEAST(${t.curHealth + toHeal}, ${t.maxHealth})` }
+              : {}),
+            ...(pools.includes("Chakra")
+              ? { curChakra: sql`LEAST(${t.curChakra + toHeal}, ${t.maxChakra})` }
+              : {}),
+            ...(pools.includes("Stamina")
+              ? { curStamina: sql`LEAST(${t.curStamina + toHeal}, ${t.maxStamina})` }
+              : {}),
             regenAt: new Date(),
             status: "AWAKE",
           })
@@ -151,7 +160,7 @@ export const hospitalRouter = createTRPCRouter({
         if (tResult.rowsAffected === 1) {
           void pusher.trigger(t.userId, "event", {
             type: "userMessage",
-            message: `You've been healed for ${toHeal}HP by ${u.username}`,
+            message: `You've been healed for ${toHeal} ${pools.join(", ")} by ${u.username}`,
             route: "/profile",
             routeText: "To profile",
           });
@@ -170,7 +179,7 @@ export const hospitalRouter = createTRPCRouter({
       }
     }),
   // Pay to heal & get out of hospital
-  heal: protectedProcedure
+  npcHeal: protectedProcedure
     .input(z.object({ villageId: z.string().nullish() }))
     .output(
       baseServerResponse.extend({
