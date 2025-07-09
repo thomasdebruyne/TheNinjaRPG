@@ -15,7 +15,10 @@ import { useAwake } from "@/utils/routing";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";
 import { structureBoost } from "@/utils/village";
-import { ANBU_ITEMSHOP_DISCOUNT_PERC } from "@/drizzle/constants";
+import {
+  ANBU_ITEMSHOP_DISCOUNT_PERC,
+  MEDNIN_HEAL_ITEM_DISCOUNT_PERC,
+} from "@/drizzle/constants";
 import type { ItemType, Item } from "@/drizzle/schema";
 import type { UserWithRelations } from "@/server/api/routers/profile";
 
@@ -92,7 +95,18 @@ const Shop: React.FC<ShopProps> = (props) => {
   // Discount factors
   const sDiscount = structureBoost("itemDiscountPerLvl", userData.village?.structures);
   const aDiscount = userData.anbuId ? ANBU_ITEMSHOP_DISCOUNT_PERC : 0;
-  const factor = (100 - sDiscount - aDiscount) / 100;
+  const hDiscount = item?.effects?.find((e) => e.type === "heal")
+    ? MEDNIN_HEAL_ITEM_DISCOUNT_PERC
+    : 0;
+  const factor = (100 - sDiscount - aDiscount - hDiscount) / 100;
+
+  // Collect discount information for UI
+  const discounts = [
+    ...(sDiscount > 0 ? [{ label: "village structures", value: sDiscount }] : []),
+    ...(aDiscount > 0 ? [{ label: "ANBU membership", value: aDiscount }] : []),
+    ...(hDiscount > 0 ? [{ label: "medic-nin item", value: hDiscount }] : []),
+  ];
+  const totalDiscount = discounts.reduce((acc, d) => acc + d.value, 0);
 
   // Can user afford selected item
   const ryoCost = Math.ceil((item?.cost ?? 0) * stacksize * factor);
@@ -116,6 +130,7 @@ const Shop: React.FC<ShopProps> = (props) => {
       ? [`${seichiSilverCost - userData.seichiSilver} more seichi silver`]
       : []),
   ];
+  // Simple cost string for the purchase button
   const costString = "Buy for " + costs.join(", ");
   const missingString = "Need " + missing.join(", ");
 
@@ -196,10 +211,51 @@ const Shop: React.FC<ShopProps> = (props) => {
                       : "bg-red-600 text-white hover:bg-red-700"
                   }
                 >
-                  <p className="pb-3">
-                    You have {userData.money} ryo in your pocket and{" "}
-                    {userData.reputationPoints} reputation points.
-                  </p>
+                  <div className="pb-3 space-y-2">
+                    <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3">
+                      <h4 className="font-semibold text-sm mb-2">Your Currency</h4>
+                      <div className="grid grid-cols-1 gap-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Ryo:</span>
+                          <span className="font-mono">
+                            {userData.money.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Reputation Points:</span>
+                          <span className="font-mono">
+                            {userData.reputationPoints.toLocaleString()}
+                          </span>
+                        </div>
+                        {userData.seichiSilver > 0 && (
+                          <div className="flex justify-between">
+                            <span>Seichi Silver:</span>
+                            <span className="font-mono">
+                              {userData.seichiSilver.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {discounts.length > 0 && (
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                        <h4 className="font-semibold text-sm mb-2 text-green-800 dark:text-green-200">
+                          Active Discounts ({totalDiscount}% total)
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          {discounts.map((discount, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between text-green-700 dark:text-green-300"
+                            >
+                              <span className="capitalize">{discount.label}:</span>
+                              <span className="font-mono">{discount.value}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   {!isPurchasing && (
                     <>
                       <ItemWithEffects

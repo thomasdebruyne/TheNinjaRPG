@@ -7,7 +7,10 @@ import { FED_EVENT_ITEMS_SILVER } from "@/drizzle/constants";
 import { FED_EVENT_ITEMS_GOLD } from "@/drizzle/constants";
 import { FED_EVENT_ITEMS_DEFAULT } from "@/drizzle/constants";
 import { structureBoost } from "@/utils/village";
-import { ANBU_ITEMSHOP_DISCOUNT_PERC } from "@/drizzle/constants";
+import {
+  ANBU_ITEMSHOP_DISCOUNT_PERC,
+  MEDNIN_HEAL_ITEM_DISCOUNT_PERC,
+} from "@/drizzle/constants";
 import type {
   Item,
   UserItemWithItem,
@@ -103,7 +106,10 @@ export const calcItemSellingPrice = (
   const bDiscount = 80;
   const sDiscount = structureBoost("itemDiscountPerLvl", structures);
   const aDiscount = user.anbuId ? ANBU_ITEMSHOP_DISCOUNT_PERC : 0;
-  const discount = Math.min(bDiscount + sDiscount + aDiscount, 95);
+  const hDiscount = useritem.item.effects.find((e) => e.type === "heal")
+    ? MEDNIN_HEAL_ITEM_DISCOUNT_PERC
+    : 0;
+  const discount = Math.min(bDiscount + sDiscount + aDiscount + hDiscount, 95);
   const factor = (100 - discount) / 100;
   const isEventItem = useritem.item.isEventItem;
   const cost = isEventItem ? 0 : useritem.item.cost * useritem.quantity * factor;

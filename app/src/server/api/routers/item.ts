@@ -14,7 +14,10 @@ import { callDiscordContent } from "@/libs/discord";
 import { effectFilters } from "@/libs/train";
 import { structureBoost } from "@/utils/village";
 import { calcItemSellingPrice } from "@/libs/item";
-import { ANBU_ITEMSHOP_DISCOUNT_PERC } from "@/drizzle/constants";
+import {
+  ANBU_ITEMSHOP_DISCOUNT_PERC,
+  MEDNIN_HEAL_ITEM_DISCOUNT_PERC,
+} from "@/drizzle/constants";
 import { nonCombatConsume } from "@/libs/item";
 import { getRandomElement } from "@/utils/array";
 import { calcMaxItems, calcMaxEventItems } from "@/libs/item";
@@ -544,7 +547,10 @@ export const itemRouter = createTRPCRouter({
         useritems?.filter((ui) => ui.item.isEventItem && !ui.storedAtHome).length || 0;
       const sDiscount = structureBoost("itemDiscountPerLvl", structures);
       const aDiscount = user.anbuId ? ANBU_ITEMSHOP_DISCOUNT_PERC : 0;
-      const factor = (100 - sDiscount - aDiscount) / 100;
+      const hDiscount = info?.effects.find((e) => e.type === "heal")
+        ? MEDNIN_HEAL_ITEM_DISCOUNT_PERC
+        : 0;
+      const factor = (100 - sDiscount - aDiscount - hDiscount) / 100;
       // Guard
       if (user.villageId !== input.villageId) return errorResponse("Wrong village");
       if (!info) return errorResponse("Item not found");

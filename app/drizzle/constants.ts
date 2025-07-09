@@ -569,6 +569,7 @@ export const SENSEI_RANKS = ["JONIN", "ELITE JONIN", "ELDER"];
 export const SENSEI_STUDENT_RYO_PER_MISSION = 100;
 
 // Medical Ninja config
+export const MEDNIN_HEAL_ITEM_DISCOUNT_PERC = 30;
 export const MEDNIN_HEALABLE_STATES = ["HOSPITALIZED", "AWAKE"] as const;
 export const MEDNIN_MIN_RANK = "GENIN";
 export const MEDNIN_RANKS = [
