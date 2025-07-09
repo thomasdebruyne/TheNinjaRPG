@@ -53,7 +53,7 @@ import { insertAiSchema } from "@/drizzle/schema";
 import { calcLevelRequirements } from "@/libs/profile";
 import { activityStreakRewards } from "@/libs/profile";
 import { calcHP, calcSP, calcCP } from "@/libs/profile";
-import { COST_CHANGE_USERNAME } from "@/drizzle/constants";
+import { COST_CHANGE_USERNAME, SENSEI_MAX_STUDENT_LEVEL } from "@/drizzle/constants";
 import { MAX_ATTRIBUTES } from "@/drizzle/constants";
 import { REGEN_SECONDS } from "@/drizzle/constants";
 import { createStatSchema } from "@/libs/combat/types";
@@ -287,6 +287,9 @@ export const profileRouter = createTRPCRouter({
         maxStamina: calcSP(newLevel),
         maxChakra: calcCP(newLevel),
         questData: trackers,
+        ...(newLevel > SENSEI_MAX_STUDENT_LEVEL && user.senseiId
+          ? { senseiId: null }
+          : {}),
       })
       .where(and(eq(userData.userId, ctx.userId), eq(userData.level, user.level)));
     if (result.rowsAffected > 0 && user.recruiterId) {

@@ -604,6 +604,12 @@ const JutsuTraining: React.FC<TrainingProps> = (props) => {
   );
   useInfinitePagination({ fetchNextPage, hasNextPage, lastElement });
 
+  // Get user students
+  const { data: students } = api.sensei.getStudents.useQuery(
+    { userId: userData?.userId || "" },
+    { enabled: !!userData },
+  );
+
   // User Jutsus
   const { data: userJutsus, isPending: isRefetchingUserJutsu } =
     api.jutsu.getUserJutsus.useQuery(getFilter(state), {
@@ -684,7 +690,7 @@ const JutsuTraining: React.FC<TrainingProps> = (props) => {
     getTimeLeftStr(
       ...getDaysHoursMinutesSeconds(calcJutsuTrainTime(jutsu, level, userData)),
     );
-  const cost = (jutsu && calcJutsuTrainCost(jutsu, level)) || 0;
+  const cost = (jutsu && calcJutsuTrainCost(jutsu, level, userData, students)) || 0;
   const okRank = checkJutsuRank(jutsu?.jutsuRank, userData.rank);
   const okVillage = checkJutsuVillage(jutsu, userData);
   const okBloodline = checkJutsuBloodline(jutsu, userData);

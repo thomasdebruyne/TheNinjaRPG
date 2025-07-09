@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { baseServerResponse, errorResponse } from "@/server/api/trpc";
-import { eq, asc, and, or, isNull } from "drizzle-orm";
+import { eq, asc, and, lte, or, isNull } from "drizzle-orm";
 import { userData, userRequest } from "@/drizzle/schema";
 import { getServerPusher } from "@/libs/pusher";
 import { fetchUser } from "@/routers/profile";
@@ -11,7 +11,7 @@ import {
   insertRequest,
   updateRequestState,
 } from "@/routers/sparring";
-import { SENSEI_RANKS } from "@/drizzle/constants";
+import { SENSEI_RANKS, SENSEI_MAX_STUDENT_LEVEL } from "@/drizzle/constants";
 import type { DrizzleClient } from "@/server/db";
 
 const pusher = getServerPusher();
@@ -184,7 +184,10 @@ export const senseiRouter = createTRPCRouter({
  */
 export const fetchStudents = async (client: DrizzleClient, userId: string) => {
   return await client.query.userData.findMany({
-    where: eq(userData.senseiId, userId),
+    where: and(
+      eq(userData.senseiId, userId),
+      lte(userData.level, SENSEI_MAX_STUDENT_LEVEL),
+    ),
     orderBy: asc(userData.level),
   });
 };

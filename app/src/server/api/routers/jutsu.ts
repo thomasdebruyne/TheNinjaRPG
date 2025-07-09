@@ -45,6 +45,7 @@ import type { JutsuFilteringSchema } from "@/validators/jutsu";
 import type { ZodAllTags } from "@/libs/combat/types";
 import type { DrizzleClient } from "@/server/db";
 import { TRPCError } from "@trpc/server";
+import { fetchStudents } from "@/routers/sensei";
 
 export const jutsuRouter = createTRPCRouter({
   getRecentTransfers: protectedProcedure.query(async ({ ctx }) => {
@@ -535,13 +536,14 @@ export const jutsuRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [data, info, userjutsus] = await Promise.all([
+      const [data, info, userjutsus, students] = await Promise.all([
         fetchUpdatedUser({
           client: ctx.drizzle,
           userId: ctx.userId,
         }),
         fetchJutsu(ctx.drizzle, input.jutsuId),
         fetchUserJutsus(ctx.drizzle, ctx.userId),
+        fetchStudents(ctx.drizzle, ctx.userId),
       ]);
       const { user } = data;
       if (!user) return errorResponse("User not found");
@@ -574,7 +576,7 @@ export const jutsuRouter = createTRPCRouter({
 
       // Time & cost
       const trainTime = calcJutsuTrainTime(info, level, user);
-      const trainCost = calcJutsuTrainCost(info, level);
+      const trainCost = calcJutsuTrainCost(info, level, user, students);
 
       // Quests
       let questData = user.questData;

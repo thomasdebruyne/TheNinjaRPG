@@ -20,6 +20,8 @@ import {
   type LetterRank,
   type QuestType,
   MAP_TOTAL_SECTORS,
+  SENSEI_STUDENT_MISSION_EXP_BOOST_PERC,
+  SENSEI_MAX_STUDENT_LEVEL,
 } from "@/drizzle/constants";
 import { SECTOR_WIDTH, SECTOR_HEIGHT } from "@/libs/travel/constants";
 import { getUnique } from "@/utils/grouping";
@@ -189,6 +191,17 @@ export const getReward = (
     rawRewards.reward_seichi_silver = Math.floor(
       rawRewards.reward_seichi_silver * factor,
     );
+
+    // Chunin mission experience bonus (≤ level 40)
+    if (
+      !!user.senseiId &&
+      user.level <= SENSEI_MAX_STUDENT_LEVEL &&
+      userQuest.quest.questType === "mission"
+    ) {
+      rawRewards.reward_exp = Math.floor(
+        rawRewards.reward_exp * (1 + SENSEI_STUDENT_MISSION_EXP_BOOST_PERC / 100),
+      );
+    }
   }
   // Final rewards (some need a bit pose-processing)
   const rewards = postProcessRewards(rawRewards);

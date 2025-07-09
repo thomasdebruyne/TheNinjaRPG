@@ -567,6 +567,11 @@ export const ANBU_DELAY_SECS = 24 * 3600;
 // Sensei config
 export const SENSEI_RANKS = ["JONIN", "ELITE JONIN", "ELDER"];
 export const SENSEI_STUDENT_RYO_PER_MISSION = 100;
+export const SENSEI_GENIN_TRAIN_EXP_BOOST_PERC = 5; // % extra stat training experience for Genin
+export const SENSEI_GENIN_MED_EXP_SHARE_PERC = 5; // % of medical exp shared to Genin student when sensei heals
+export const SENSEI_STUDENT_MISSION_EXP_BOOST_PERC = 3; // % extra mission experience for Chunin (<= lvl 40)
+export const SENSEI_MAX_STUDENT_LEVEL = 40;
+export const SENSEI_JUTSU_TRAIN_COST_REDUCTION_PERC = 5; // % reduced jutsu training cost for Chunin (<= lvl 40) and their senseis
 
 // Medical Ninja config
 export const MEDNIN_HEAL_ITEM_DISCOUNT_PERC = 30;

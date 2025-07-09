@@ -14,7 +14,11 @@ import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
 import { calcHealthToChakra } from "@/libs/hospital/hospital";
 import { calcHowMuchToHeal } from "@/libs/hospital/hospital";
 import { MEDNIN_MIN_RANK } from "@/drizzle/constants";
-import { MEDNIN_HEAL_TO_EXP } from "@/drizzle/constants";
+import {
+  MEDNIN_HEAL_TO_EXP,
+  SENSEI_GENIN_MED_EXP_SHARE_PERC,
+  SENSEI_MAX_STUDENT_LEVEL,
+} from "@/drizzle/constants";
 import { MEDNIN_HEALABLE_STATES } from "@/drizzle/constants";
 import type { ExecutedQuery } from "@planetscale/database";
 
@@ -139,24 +143,41 @@ export const hospitalRouter = createTRPCRouter({
           questData: trackers,
         })
         .where(and(eq(userData.userId, u.userId), gte(userData.curChakra, chakraCost)));
+      // Potential student exp share
+      const shareExp = Math.floor((expGain * SENSEI_GENIN_MED_EXP_SHARE_PERC) / 100);
       // If successful deduction
       if (uResult.rowsAffected === 1) {
-        const tResult = await ctx.drizzle
-          .update(userData)
-          .set({
-            ...(pools.includes("Health")
-              ? { curHealth: sql`LEAST(${t.curHealth + toHeal}, ${t.maxHealth})` }
-              : {}),
-            ...(pools.includes("Chakra")
-              ? { curChakra: sql`LEAST(${t.curChakra + toHeal}, ${t.maxChakra})` }
-              : {}),
-            ...(pools.includes("Stamina")
-              ? { curStamina: sql`LEAST(${t.curStamina + toHeal}, ${t.maxStamina})` }
-              : {}),
-            regenAt: new Date(),
-            status: "AWAKE",
-          })
-          .where(eq(userData.userId, t.userId));
+        const [tResult] = await Promise.all([
+          ctx.drizzle
+            .update(userData)
+            .set({
+              ...(pools.includes("Health")
+                ? { curHealth: sql`LEAST(${t.curHealth + toHeal}, ${t.maxHealth})` }
+                : {}),
+              ...(pools.includes("Chakra")
+                ? { curChakra: sql`LEAST(${t.curChakra + toHeal}, ${t.maxChakra})` }
+                : {}),
+              ...(pools.includes("Stamina")
+                ? { curStamina: sql`LEAST(${t.curStamina + toHeal}, ${t.maxStamina})` }
+                : {}),
+              regenAt: new Date(),
+              status: "AWAKE",
+            })
+            .where(eq(userData.userId, t.userId)),
+          shareExp > 0
+            ? ctx.drizzle
+                .update(userData)
+                .set({
+                  medicalExperience: sql`${userData.medicalExperience} + ${shareExp}`,
+                })
+                .where(
+                  and(
+                    eq(userData.senseiId, u.userId),
+                    lte(userData.level, SENSEI_MAX_STUDENT_LEVEL),
+                  ),
+                )
+            : null,
+        ]);
         if (tResult.rowsAffected === 1) {
           void pusher.trigger(t.userId, "event", {
             type: "userMessage",

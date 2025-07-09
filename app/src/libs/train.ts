@@ -5,6 +5,11 @@ import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
 import { FED_NORMAL_JUTSU_SLOTS } from "@/drizzle/constants";
 import { FED_SILVER_JUTSU_SLOTS } from "@/drizzle/constants";
 import { FED_GOLD_JUTSU_SLOTS } from "@/drizzle/constants";
+import {
+  SENSEI_GENIN_TRAIN_EXP_BOOST_PERC,
+  SENSEI_MAX_STUDENT_LEVEL,
+  SENSEI_JUTSU_TRAIN_COST_REDUCTION_PERC,
+} from "@/drizzle/constants";
 import { VILLAGE_REDUCED_GAINS_DAYS } from "@/drizzle/constants";
 import { MAX_EXTRA_JUTSU_SLOTS } from "@/drizzle/constants";
 import { VILLAGE_LEAVE_REQUIRED_RANK } from "@/drizzle/constants";
@@ -187,7 +192,12 @@ export const calcJutsuTrainTime = (jutsu: Jutsu, level: number, userdata: UserDa
   return trainTime;
 };
 
-export const calcJutsuTrainCost = (jutsu: Jutsu, level: number) => {
+export const calcJutsuTrainCost = (
+  jutsu: Jutsu,
+  level: number,
+  userdata?: UserData,
+  students?: UserData[],
+) => {
   let base = 50;
   if (jutsu.jutsuRank === "C") {
     base = 100;
@@ -199,7 +209,16 @@ export const calcJutsuTrainCost = (jutsu: Jutsu, level: number) => {
     base = 250;
   }
   base += jutsu.extraBaseCost || 0;
-  return Math.floor(Math.pow(base, 1 + level / 20));
+  let cost = Math.floor(Math.pow(base, 1 + level / 20));
+  // Convenience checks
+  const isStudent =
+    userdata && !!userdata.senseiId && userdata.level <= SENSEI_MAX_STUDENT_LEVEL;
+  const hasStudents = students && students.length > 0;
+  // Apply discount
+  if (isStudent || hasStudents) {
+    cost = Math.floor(cost * (1 - SENSEI_JUTSU_TRAIN_COST_REDUCTION_PERC / 100));
+  }
+  return cost;
 };
 
 export const calcJutsuEquipLimit = (userdata: UserData) => {
@@ -293,16 +312,26 @@ export const trainingMultiplier = (user: UserData) => {
   const factor = reducedDays > 0 ? 0.5 : 1;
   switch (user.trainingSpeed) {
     case "15min":
-      return 0.01 * factor;
+      return 0.01 * factor * getRankTrainingMultiplierBoost(user);
     case "1hr":
-      return 0.04 * factor;
+      return 0.04 * factor * getRankTrainingMultiplierBoost(user);
     case "4hrs":
-      return 0.16 * factor;
+      return 0.16 * factor * getRankTrainingMultiplierBoost(user);
     case "8hrs":
-      return 0.32 * factor;
+      return 0.32 * factor * getRankTrainingMultiplierBoost(user);
     default:
       throw Error("Invalid training speed");
   }
+};
+
+/**
+ * Extra multiplier based on rank perks
+ */
+const getRankTrainingMultiplierBoost = (user: UserData) => {
+  if (user.rank === "GENIN" && !!user.senseiId) {
+    return 1 + SENSEI_GENIN_TRAIN_EXP_BOOST_PERC / 100;
+  }
+  return 1;
 };
 
 /**
