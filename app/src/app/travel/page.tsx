@@ -99,6 +99,12 @@ export default function Travel() {
       return ["VILLAGE", "SAFEZONE"].includes(v.type);
     }
   });
+  
+  // Fetch tracked bounties for map display
+  const { data: trackedBounties } = api.bounty.getTrackedBounties.useQuery(
+    undefined,
+    { enabled: !!userData }
+  );
   const sectorVillage = villages?.find((v) => v.sector === userData?.sector);
 
   // Consumable items
@@ -416,6 +422,7 @@ export default function Travel() {
           <Map
             intersection={true}
             highlights={villages}
+            usersHighlighted={trackedBounties}
             userLocation={true}
             highlightedSector={highlightedSector}
             showOwnership={showOwnership}

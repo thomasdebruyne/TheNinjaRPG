@@ -693,6 +693,13 @@ const Combat: React.FC<CombatProps> = (props) => {
               {result.strength > 0 && <p>Strength: {result.strength.toFixed(2)}</p>}
               {result.willpower > 0 && <p>Willpower: {result.willpower.toFixed(2)}</p>}
               {result.speed > 0 && <p>Speed: {result.speed.toFixed(2)}</p>}
+              {result.bountiesClaimed.map((bounty, i) => {
+                return (
+                  <p key={`bounty-${i}`}>
+                    Bounty claimed: {bounty.amountRyo.toFixed(2)} Ryo
+                  </p>
+                );
+              })}
               {Object.entries(result.townhallInfo).map(([villageName, change]) => {
                 const key = `${villageName}-${change}`;
                 if (change > 0) {

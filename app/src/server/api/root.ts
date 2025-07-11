@@ -40,6 +40,7 @@ import { backgroundSchemaRouter } from "./routers/backgroundSchema";
 import { linkPromotionRouter } from "./routers/linkpromotion";
 import { warRouter } from "./routers/war";
 import { pvpRankRouter } from "./routers/pvprank";
+import { bountyRouter } from "./routers/bounty";
 
 /**
  * This is the primary router for your server.
@@ -88,6 +89,7 @@ export const appRouter = createTRPCRouter({
   linkPromotion: linkPromotionRouter,
   war: warRouter,
   pvpRank: pvpRankRouter,
+  bounty: bountyRouter,
 });
 
 // export type definition of API

@@ -12,6 +12,7 @@ import {
   villageStructure,
   warKill,
   war,
+  bounty,
 } from "@/drizzle/schema";
 import { kageDefendedChallenges, village, clan, anbuSquad } from "@/drizzle/schema";
 import { dataBattleAction } from "@/drizzle/schema";
@@ -496,6 +497,27 @@ export const updateUser = async (
     }
     // Update user & user items
     await Promise.all([
+      // Update bounties
+      ...(result.bountiesClaimed.length > 0
+        ? [
+            client
+              .update(bounty)
+              .set({
+                status: "CLAIMED",
+                claimedAt: new Date(),
+                claimedByUserId: userId,
+              })
+              .where(
+                and(
+                  inArray(
+                    bounty.id,
+                    result.bountiesClaimed.map((b) => b.bountyId),
+                  ),
+                  eq(bounty.status, "OPEN"),
+                ),
+              ),
+          ]
+        : []),
       // Delete items
       ...(deleteItems.length > 0
         ? [client.delete(userItem).where(inArray(userItem.id, deleteItems))]

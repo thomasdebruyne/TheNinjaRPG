@@ -42,6 +42,12 @@ import type { HexagonalFaceMesh } from "@/libs/hexgrid";
 
 interface MapProps {
   highlights?: Village[];
+  usersHighlighted?: {
+    userId: string;
+    sector: number;
+    avatar: string | null;
+    avatarLight: string | null;
+  }[];
   userLocation?: boolean;
   highlightedSector?: number;
   intersection: boolean;
@@ -206,6 +212,23 @@ const Map: React.FC<MapProps> = (props) => {
         }
       }
 
+      // Add highlighted users (bounty targets) to the map
+      if (props.usersHighlighted) {
+        props.usersHighlighted.forEach((user) => {
+          const sector = hexasphere?.tiles[user.sector]?.c;
+          if (sector) {
+            const userAvatarGroup = createUserAvatarSprite({
+              userData: user,
+              sector,
+              borderColor: "red",
+              distance: 0.0,
+              showLine: false,
+            });
+            group_highlights.add(userAvatarGroup);
+          }
+        });
+      }
+
       // Next we add highlights
       if (props.highlights) {
         // Loop through the highlights
@@ -297,7 +320,13 @@ const Map: React.FC<MapProps> = (props) => {
       // Add user avatar sprite instead of coloring the hexagon
       const userSector = userData && hexasphere?.tiles[userData.sector]?.c;
       if (userSector) {
-        const userAvatarGroup = createUserAvatarSprite(userData, userSector);
+        const userAvatarGroup = createUserAvatarSprite({
+          userData,
+          sector: userSector,
+          borderColor: "white",
+          distance: 0.5,
+          showLine: true,
+        });
         group_highlights.add(userAvatarGroup);
       }
 
@@ -519,6 +548,7 @@ const Map: React.FC<MapProps> = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     props.highlights,
+    props.usersHighlighted,
     props.intersection,
     highlightedSector,
     showOwnership,

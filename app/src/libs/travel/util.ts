@@ -99,25 +99,39 @@ export const setRaycasterFromMouse = (
 /**
  * Create a user avatar sprite for the global map
  */
-export const createUserAvatarSprite = (
-  userData: UserWithRelations,
-  sector: GlobalPoint,
-) => {
+export const createUserAvatarSprite = (info: {
+  userData: {
+    userId: string;
+    sector: number;
+    avatar: string | null;
+    avatarLight: string | null;
+  };
+  sector: GlobalPoint;
+  showLine: boolean;
+  borderColor: string;
+  distance: number;
+}) => {
+  const { userData, sector, borderColor = "white", distance } = info;
   if (!userData) return new Group();
 
   const group = new Group();
 
+  // Distance from the surface
+  const d = 3 - distance;
+
   // Create the line connecting to the surface
-  const points = [];
-  points.push(new Vector3(sector.x / 3, sector.y / 3, sector.z / 3));
-  points.push(new Vector3(sector.x / 2.5, sector.y / 2.5, sector.z / 2.5));
-  const lineMaterial = new LineBasicMaterial({
-    color: "#000000",
-    linewidth: 1,
-  });
-  const geometry = new BufferGeometry().setFromPoints(points);
-  const line = new LineSegments(geometry, lineMaterial);
-  group.add(line);
+  if (info.showLine) {
+    const points = [];
+    points.push(new Vector3(sector.x / 3, sector.y / 3, sector.z / 3));
+    points.push(new Vector3(sector.x / d, sector.y / d, sector.z / d));
+    const lineMaterial = new LineBasicMaterial({
+      color: "#000000",
+      linewidth: 1,
+    });
+    const geometry = new BufferGeometry().setFromPoints(points);
+    const line = new LineSegments(geometry, lineMaterial);
+    group.add(line);
+  }
 
   // Create white circular border sprite
   const borderCanvas = document.createElement("canvas");
@@ -137,7 +151,7 @@ export const createUserAvatarSprite = (
 
     borderContext.beginPath();
     borderContext.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    borderContext.fillStyle = "white";
+    borderContext.fillStyle = borderColor;
     borderContext.fill();
   }
 
@@ -152,7 +166,7 @@ export const createUserAvatarSprite = (
   });
   const borderSprite = new Sprite(borderMaterial);
   borderSprite.scale.set(1.2, 1.2, 1.2); // Slightly larger than avatar
-  borderSprite.position.set(sector.x / 2.5, sector.y / 2.5, sector.z / 2.5);
+  borderSprite.position.set(sector.x / d, sector.y / d, sector.z / d);
   group.add(borderSprite);
 
   // User avatar sprite
@@ -169,7 +183,7 @@ export const createUserAvatarSprite = (
   });
   const avatarSprite = new Sprite(avatarMaterial);
   avatarSprite.scale.set(1, 1, 1);
-  avatarSprite.position.set(sector.x / 2.5, sector.y / 2.5, sector.z / 2.5);
+  avatarSprite.position.set(sector.x / d, sector.y / d, sector.z / d);
   group.add(avatarSprite);
 
   return group;

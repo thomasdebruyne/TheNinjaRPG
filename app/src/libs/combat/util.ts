@@ -524,7 +524,10 @@ export const maskBattle = (battle: Battle, userId: string) => {
 /**
  * Figure out if user is still in battle, and if not whether the user won or lost
  */
-export const calcBattleResult = (battle: CompleteBattle, userId: string) => {
+export const calcBattleResult = (
+  battle: CompleteBattle,
+  userId: string,
+): CombatResult | null => {
   const battleType = battle.battleType;
   const users = battle.usersState;
   const user = users.find((u) => u.userId === userId);
@@ -880,6 +883,29 @@ export const calcBattleResult = (battle: CompleteBattle, userId: string) => {
         return user.pvpStreak;
       };
 
+      // Check if any bounties were claimed
+      const bountiesClaimed: {
+        bountyId: string;
+        hunterId: string;
+        amountRyo: number;
+      }[] = [];
+      if (battleType === "COMBAT" && didWin) {
+        user.bountySignups?.forEach((signup) => {
+          targets
+            .filter((t) => t.bounties?.find((b) => b.id === signup.bountyId))
+            .forEach((t) => {
+              const bounty = t.bounties?.find((b) => b.id === signup.bountyId);
+              if (bounty) {
+                bountiesClaimed.push({
+                  bountyId: bounty.id,
+                  hunterId: user.userId,
+                  amountRyo: bounty.amountRyo,
+                });
+              }
+            });
+        });
+      }
+
       // Result object
       const result: CombatResult = {
         outcome: outcome,
@@ -914,6 +940,7 @@ export const calcBattleResult = (battle: CompleteBattle, userId: string) => {
         townhallInfo: townhallInfo,
         clanPoints: clanPoints * battle.rewardScaling,
         notifications: [],
+        bountiesClaimed: bountiesClaimed,
       };
 
       // Things to reward for non-spars

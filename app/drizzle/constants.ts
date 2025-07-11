@@ -1278,3 +1278,8 @@ export const HomeTypeDetails = {
   LARGE_ESTATE: { regen: 200, storage: 40, cost: 100000000, name: "Large Estate" },
 } as const;
 export type HomeTypeDetails = (typeof HomeTypeDetails)[keyof typeof HomeTypeDetails];
+
+// Bounty system constants
+export const BOUNTY_STATUSES = ["OPEN", "CLAIMED", "EXPIRED", "CANCELLED"] as const;
+export type BountyStatus = (typeof BOUNTY_STATUSES)[number];
+export const MAX_BOUNTY_CLAIMS = 3;

@@ -32,7 +32,7 @@ import { fetchUpdatedUser, fetchUser } from "./profile";
 import { performAIaction } from "@/libs/combat/ai_v2";
 import { userData, questHistory, quest, gameSetting, jutsu } from "@/drizzle/schema";
 import { battle, battleAction, battleHistory, war, item } from "@/drizzle/schema";
-import { villageAlliance, village, tournamentMatch } from "@/drizzle/schema";
+import { villageAlliance, village, tournamentMatch, bounty } from "@/drizzle/schema";
 import { performActionSchema, statSchema } from "@/libs/combat/types";
 import { performBattleAction } from "@/libs/combat/actions";
 import { availableUserActions } from "@/libs/combat/actions";
@@ -921,6 +921,13 @@ export const initiateBattle = async (
           where: gte(questHistory.completed, 1),
         },
         aiProfile: true,
+        bounties: {
+          columns: { id: true, status: true, amountRyo: true },
+          where: eq(bounty.status, "OPEN"),
+        },
+        bountySignups: {
+          columns: { id: true, bountyId: true },
+        },
       },
       where: or(inArray(userData.userId, userIds), inArray(userData.userId, targetIds)),
     }),

@@ -15,6 +15,7 @@ import type { UserJutsu, UserItem, UserData, AiProfile } from "@/drizzle/schema"
 import type { TerrainHex } from "@/libs/hexgrid";
 import type { BattleType } from "@/drizzle/constants";
 import type { WarAlly } from "@/drizzle/schema";
+import type { BountyStatus } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
 
 export type BattleWar = War & {
@@ -67,6 +68,8 @@ export type BattleUserState = Omit<NonNullable<UserWithRelations>, "items"> & {
   hex?: TerrainHex;
   clan?: Clan | null;
   keystoneName?: string | null;
+  bounties?: { id: string; status: BountyStatus; amountRyo: number }[];
+  bountySignups?: { id: string; bountyId: string }[];
 };
 
 // Create type for battle, which contains information on user current state
@@ -135,6 +138,7 @@ export type CombatResult = {
   shrineInfo: Record<number, number>;
   clanPoints: number;
   notifications: string[];
+  bountiesClaimed: { bountyId: string; hunterId: string; amountRyo: number }[];
 };
 
 export type CombatAction = {

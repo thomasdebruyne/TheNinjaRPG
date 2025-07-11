@@ -1699,6 +1699,8 @@ export const userDataRelations = relations(userData, ({ one, many }) => ({
     fields: [userData.userId],
     references: [rankedPvpQueue.userId],
   }),
+  bounties: many(bounty, { relationName: "bounties" }),
+  bountySignups: many(bountySignup),
 }));
 
 export const userActivityEvent = mysqlTable("UserActivityEvent", {
@@ -2993,3 +2995,79 @@ export const userUploadRelations = relations(userUpload, ({ one }) => ({
 }));
 
 export type UserUpload = InferSelectModel<typeof userUpload>;
+
+export const bounty = mysqlTable(
+  "Bounty",
+  {
+    id: varchar("id", { length: 191 }).primaryKey().notNull(),
+    targetUserId: varchar("targetUserId", { length: 191 }).notNull(),
+    creatorUserId: varchar("creatorUserId", { length: 191 }).notNull(),
+    amountRyo: bigint("amountRyo", { mode: "number" }).notNull(),
+    status: mysqlEnum("status", consts.BOUNTY_STATUSES).default("OPEN").notNull(),
+    claimedByUserId: varchar("claimedByUserId", { length: 191 }), // Only one person can claim the prize
+    collectedAt: datetime("collectedAt", { mode: "date", fsp: 3 }),
+    claimedAt: datetime("claimedAt", { mode: "date", fsp: 3 }),
+    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      targetIdx: index("Bounty_targetUserId_idx").on(table.targetUserId),
+      creatorIdx: index("Bounty_creatorUserId_idx").on(table.creatorUserId),
+      statusIdx: index("Bounty_status_idx").on(table.status),
+    };
+  },
+);
+export type Bounty = InferSelectModel<typeof bounty>;
+
+export const bountyRelations = relations(bounty, ({ one, many }) => ({
+  target: one(userData, {
+    fields: [bounty.targetUserId],
+    references: [userData.userId],
+    relationName: "bounties",
+  }),
+  creator: one(userData, {
+    fields: [bounty.creatorUserId],
+    references: [userData.userId],
+  }),
+  claimedBy: one(userData, {
+    fields: [bounty.claimedByUserId],
+    references: [userData.userId],
+  }),
+  hunters: many(bountySignup),
+}));
+
+export const bountySignup = mysqlTable(
+  "BountySignup",
+  {
+    id: varchar("id", { length: 191 }).primaryKey().notNull(),
+    bountyId: varchar("bountyId", { length: 191 }).notNull(),
+    hunterUserId: varchar("hunterUserId", { length: 191 }).notNull(),
+    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      bountyHunterKey: uniqueIndex("BountySignup_bounty_hunter_key").on(
+        table.bountyId,
+        table.hunterUserId,
+      ),
+      bountyIdx: index("BountySignup_bountyId_idx").on(table.bountyId),
+      hunterIdx: index("BountySignup_hunterUserId_idx").on(table.hunterUserId),
+    };
+  },
+);
+export type BountySignup = InferSelectModel<typeof bountySignup>;
+
+export const bountySignupRelations = relations(bountySignup, ({ one }) => ({
+  bounty: one(bounty, {
+    fields: [bountySignup.bountyId],
+    references: [bounty.id],
+  }),
+  hunter: one(userData, {
+    fields: [bountySignup.hunterUserId],
+    references: [userData.userId],
+  }),
+}));
