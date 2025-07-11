@@ -559,7 +559,7 @@ export const VILLAGE_SYNDICATE_ID = "ryBk0qD4EgvPPyav2K4OC";
 // ANBU config
 export const ANBU_MEMBER_RANK_REQUIREMENT = "CHUNIN";
 export const ANBU_LEADER_RANK_REQUIREMENT = "JONIN";
-export const ANBU_MAX_MEMBERS = 20;
+export const ANBU_MAX_MEMBERS = 4;
 export const ANBU_HOSPITAL_DISCOUNT_PERC = 5;
 export const ANBU_ITEMSHOP_DISCOUNT_PERC = 5;
 export const ANBU_DELAY_SECS = 24 * 3600;

@@ -101,13 +101,21 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     return "light";
   });
 
-  const [localAudioOn, setLocalAudioOn] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("audioOn");
-      return saved !== null ? (JSON.parse(saved) as boolean) : true;
+  // Initial value is derived only from server-side props to avoid hydration mismatches.
+  // We later synchronize with client-side localStorage once the component is mounted.
+  const [localAudioOn, setLocalAudioOn] = useState<boolean>(
+    userData ? userData.audioOn : true,
+  );
+
+  // After mount, sync audio preference from localStorage (if present).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const saved = localStorage.getItem("audioOn");
+    if (saved !== null) {
+      setLocalAudioOn(JSON.parse(saved) as boolean);
     }
-    return true;
-  });
+  }, []);
 
   const toggleLocalAudio = () => {
     setLocalAudioOn((prev) => {
@@ -116,6 +124,12 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
       return newState;
     });
   };
+
+  useEffect(() => {
+    if (userData) {
+      setLocalAudioOn(userData.audioOn);
+    }
+  }, [userData]);
 
   const pathname = usePathname();
 
@@ -307,13 +321,13 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
         onClick={userData ? () => toggleAudioMutation() : toggleLocalAudio}
         aria-label="Toggle Audio"
       >
-        {(userData ? userData.audioOn : localAudioOn) ? (
+        {localAudioOn ? (
           <>
             <Volume2 className="h-5 w-5" />
             <audio autoPlay loop src={MUSIC_DEFAULT}></audio>
           </>
         ) : (
-          <VolumeX className="h-5 w-5" />
+          <VolumeX className="h-5 w-5" suppressHydrationWarning />
         )}
       </div>
       <Eclipse
