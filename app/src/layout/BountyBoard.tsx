@@ -15,7 +15,7 @@ import { showMutationToast } from "@/libs/toast";
 import { createBountySchema } from "@/validators/bounty";
 import { getSearchValidator } from "@/validators/register";
 import { showUserRank } from "@/libs/profile";
-import { Eye, Trophy } from "lucide-react";
+import { Eye, Trophy, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { ColumnDefinitionType } from "@/layout/Table";
 import {
@@ -95,6 +95,14 @@ export default function BountyBoard({ userData }: BountyBoardProps) {
 
   const { mutate: collectBounty, isPending: isCollecting } =
     api.bounty.collect.useMutation({
+      onSuccess: async (d) => {
+        showMutationToast(d);
+        await util.bounty.board.invalidate();
+      },
+    });
+
+  const { mutate: retractBounty, isPending: isRetracting } =
+    api.bounty.retract.useMutation({
       onSuccess: async (d) => {
         showMutationToast(d);
         await util.bounty.board.invalidate();
@@ -220,6 +228,20 @@ export default function BountyBoard({ userData }: BountyBoardProps) {
           ),
           hunters: `${b.huntersCount} / 3`,
           actionButton: (() => {
+            // User can retract if they created the bounty and it's still open
+            if (b.creatorUserId === userData?.userId && b.status === "OPEN") {
+              return (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => retractBounty({ bountyId: b.id })}
+                  disabled={isRetracting}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Retract
+                </Button>
+              );
+            }
             // User can collect if they're tracking and bounty is claimed but not yet collected
             if (b.youSignedUp && b.status === "CLAIMED" && !b.collectedAt) {
               return (

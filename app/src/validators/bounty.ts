@@ -22,6 +22,11 @@ export const resignBountySchema = z.object({
 });
 export type ResignBountySchema = z.infer<typeof resignBountySchema>;
 
+export const retractBountySchema = z.object({
+  bountyId: z.string().min(1),
+});
+export type RetractBountySchema = z.infer<typeof retractBountySchema>;
+
 export const bountyBoardFilterSchema = z.object({
   cursor: z.number().nullish(),
   limit: z.number().min(1).max(100).default(30),

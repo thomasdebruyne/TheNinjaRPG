@@ -1,11 +1,16 @@
 import { nanoid } from "nanoid";
 import { and, eq, sql, gte, desc, inArray } from "drizzle-orm";
 import { bounty, bountySignup, userData } from "@/drizzle/schema";
-import { MAX_BOUNTY_CLAIMS, RANKS_RESTRICTED_FROM_PVP } from "@/drizzle/constants";
+import {
+  BOUNTY_MAX_HUNTERS,
+  RANKS_RESTRICTED_FROM_PVP,
+  BOUNTY_MIN_AMOUNT,
+} from "@/drizzle/constants";
 import {
   createBountySchema,
   signupBountySchema,
   resignBountySchema,
+  retractBountySchema,
   bountyBoardFilterSchema,
   collectBountySchema,
 } from "@/validators/bounty";
@@ -34,6 +39,7 @@ export const bountyRouter = createTRPCRouter({
           claimedAt: true,
           targetUserId: true,
           claimedByUserId: true,
+          creatorUserId: true, // Always include, will be filtered below
         },
         with: {
           target: {
@@ -59,6 +65,9 @@ export const bountyRouter = createTRPCRouter({
       // Transform results to include claim counts and user signup status
       const transformedResults = results.map((bountyItem) => ({
         ...bountyItem,
+        // Only include creatorUserId if the current user created this bounty
+        creatorUserId:
+          bountyItem.creatorUserId === userId ? bountyItem.creatorUserId : undefined,
         huntersCount: bountyItem.hunters.length,
         youSignedUp: bountyItem.hunters.some((h) => h.hunterUserId === userId),
         targetUser: bountyItem.target,
@@ -84,6 +93,7 @@ export const bountyRouter = createTRPCRouter({
       if (!creator || !target) return errorResponse("User not found");
       if (RANKS_RESTRICTED_FROM_PVP.includes(target.rank))
         return errorResponse("Target too low rank for PvP");
+      if (amountRyo < BOUNTY_MIN_AMOUNT) return errorResponse("Bounty amount too low");
       if (creator.money < amountRyo) return errorResponse("Not enough ryo");
       // Mutation 1
       const result = await ctx.drizzle
@@ -133,7 +143,7 @@ export const bountyRouter = createTRPCRouter({
         return errorResponse("Your rank cannot engage in PvP");
       if (curSignups?.find((c) => c.hunterUserId === ctx.userId))
         return errorResponse("Already sign up");
-      if (curSignups && curSignups.length >= MAX_BOUNTY_CLAIMS)
+      if (curSignups && curSignups.length >= BOUNTY_MAX_HUNTERS)
         return errorResponse("Maximum hunters signed up already");
       if (userSignups) return errorResponse("Already tracking a bounty.");
       // Sign up for the bounty hunt
@@ -208,6 +218,46 @@ export const bountyRouter = createTRPCRouter({
       ]);
 
       return { success: true, message: "Bounty claimed successfully" };
+    }),
+
+  retract: protectedProcedure
+    .input(retractBountySchema)
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      // Query
+      const curBounty = await ctx.drizzle.query.bounty.findFirst({
+        where: eq(bounty.id, input.bountyId),
+      });
+      // Guards
+      if (!curBounty) return errorResponse("Bounty not found");
+      if (curBounty.creatorUserId !== ctx.userId)
+        return errorResponse("Not your bounty");
+      if (curBounty.status !== "OPEN") return errorResponse("Bounty not open");
+      // First disable the bounty and check the result
+      const result = await ctx.drizzle
+        .update(bounty)
+        .set({ status: "CANCELLED" })
+        .where(
+          and(
+            eq(bounty.id, input.bountyId),
+            eq(bounty.creatorUserId, ctx.userId),
+            eq(bounty.status, "OPEN"),
+          ),
+        );
+      if (result?.rowsAffected === 0) return errorResponse("Bounty not found");
+      // Execute mutations in parallel
+      await Promise.all([
+        // Remove all hunter signups for this bounty
+        ctx.drizzle
+          .delete(bountySignup)
+          .where(eq(bountySignup.bountyId, input.bountyId)),
+        // Refund the bounty amount to the creator
+        ctx.drizzle
+          .update(userData)
+          .set({ money: sql`${userData.money} + ${curBounty.amountRyo}` })
+          .where(eq(userData.userId, ctx.userId)),
+      ]);
+      return { success: true, message: "Bounty retracted successfully" };
     }),
 
   // Get user's tracked bounties for map display

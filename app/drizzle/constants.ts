@@ -1283,4 +1283,5 @@ export type HomeTypeDetails = (typeof HomeTypeDetails)[keyof typeof HomeTypeDeta
 // Bounty system constants
 export const BOUNTY_STATUSES = ["OPEN", "CLAIMED", "EXPIRED", "CANCELLED"] as const;
 export type BountyStatus = (typeof BOUNTY_STATUSES)[number];
-export const MAX_BOUNTY_CLAIMS = 3;
+export const BOUNTY_MAX_HUNTERS = 3;
+export const BOUNTY_MIN_AMOUNT = 100000;
