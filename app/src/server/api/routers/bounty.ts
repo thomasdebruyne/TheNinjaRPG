@@ -17,6 +17,7 @@ import {
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { baseServerResponse, errorResponse } from "../trpc";
 import { fetchUser } from "@/routers/profile";
+import { canSeeHiddenBountyInfo } from "@/utils/permissions";
 
 export const bountyRouter = createTRPCRouter({
   // Get open bounty board
@@ -27,50 +28,83 @@ export const bountyRouter = createTRPCRouter({
       const offset = (input.cursor ?? 0) * limit;
       const userId = ctx.userId;
 
-      // Get open bounties with target user info and calculate claims
-      const results = await ctx.drizzle.query.bounty.findMany({
-        where: inArray(bounty.status, ["OPEN", "CLAIMED"]),
-        columns: {
-          id: true,
-          amountRyo: true,
-          createdAt: true,
-          status: true,
-          collectedAt: true,
-          claimedAt: true,
-          targetUserId: true,
-          claimedByUserId: true,
-          creatorUserId: true, // Always include, will be filtered below
-        },
-        with: {
-          target: {
-            columns: {
-              username: true,
-              avatar: true,
-              level: true,
-              rank: true,
-              isOutlaw: true,
+      // Fetch user info and bounty data in parallel for efficiency
+      const [currentUser, results] = await Promise.all([
+        fetchUser(ctx.drizzle, userId),
+        ctx.drizzle.query.bounty.findMany({
+          where: inArray(bounty.status, ["OPEN", "CLAIMED"]),
+          columns: {
+            id: true,
+            amountRyo: true,
+            createdAt: true,
+            status: true,
+            collectedAt: true,
+            claimedAt: true,
+            targetUserId: true,
+            claimedByUserId: true,
+            creatorUserId: true,
+          },
+          with: {
+            target: {
+              columns: {
+                username: true,
+                avatar: true,
+                level: true,
+                rank: true,
+                isOutlaw: true,
+              },
+            },
+            hunters: {
+              columns: {
+                hunterUserId: true,
+              },
+              with: {
+                hunter: {
+                  columns: {
+                    username: true,
+                    avatar: true,
+                    level: true,
+                    rank: true,
+                    isOutlaw: true,
+                  },
+                },
+              },
+            },
+            creator: {
+              columns: {
+                username: true,
+                avatar: true,
+                level: true,
+                rank: true,
+                isOutlaw: true,
+              },
             },
           },
-          hunters: {
-            columns: {
-              hunterUserId: true,
-            },
-          },
-        },
-        orderBy: desc(bounty.createdAt),
-        limit,
-        offset,
-      });
+          orderBy: desc(bounty.createdAt),
+          limit,
+          offset,
+        }),
+      ]);
 
-      // Transform results to include claim counts and user signup status
+      const canSeeHiddenInfo = currentUser
+        ? canSeeHiddenBountyInfo(currentUser.role)
+        : false;
+
+      // Transform results and filter based on permissions
       const transformedResults = results.map((bountyItem) => ({
         ...bountyItem,
-        // Only include creatorUserId if the current user created this bounty
+        // Only include creatorUserId if the current user created this bounty OR has permission
         creatorUserId:
-          bountyItem.creatorUserId === userId ? bountyItem.creatorUserId : undefined,
+          bountyItem.creatorUserId === userId || canSeeHiddenInfo
+            ? bountyItem.creatorUserId
+            : undefined,
         huntersCount: bountyItem.hunters.length,
         youSignedUp: bountyItem.hunters.some((h) => h.hunterUserId === userId),
         targetUser: bountyItem.target,
+        creatorUser: canSeeHiddenInfo ? bountyItem.creator : undefined,
+        huntingUsers: canSeeHiddenInfo
+          ? bountyItem.hunters.map((h) => h.hunter).filter(Boolean)
+          : undefined,
       }));
 
       const nextCursor = results.length < limit ? null : (input.cursor ?? 0) + 1;

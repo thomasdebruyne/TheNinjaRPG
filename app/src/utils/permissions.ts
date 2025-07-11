@@ -460,3 +460,7 @@ export const canEditQuests = (role: UserRole) => {
 export const canEditStaffAccountFlag = (role: UserRole) => {
   return role === "CODING-ADMIN" || role === "CONTENT-ADMIN" || role === "EVENT-ADMIN";
 };
+
+export const canSeeHiddenBountyInfo = (role: UserRole) => {
+  return role !== "USER";
+};

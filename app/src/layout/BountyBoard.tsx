@@ -142,6 +142,24 @@ export default function BountyBoard({ userData }: BountyBoardProps) {
       header: "Hunters",
       type: "jsx",
     },
+    ...(data?.data.some((b) => b.creatorUser)
+      ? [
+          {
+            key: "creatorInfo",
+            header: "Creator",
+            type: "jsx" as const,
+          },
+        ]
+      : []),
+    ...(data?.data.some((b) => b.huntingUsers)
+      ? [
+          {
+            key: "huntingInfo",
+            header: "Hunting",
+            type: "jsx" as const,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -227,6 +245,37 @@ export default function BountyBoard({ userData }: BountyBoardProps) {
             </div>
           ),
           hunters: `${b.huntersCount} / 3`,
+          creatorInfo: b.creatorUser ? (
+            <div>
+              <p className="font-bold">{b.creatorUser.username}</p>
+              <p>
+                Lvl. {b.creatorUser.level}{" "}
+                {showUserRank({
+                  rank: b.creatorUser.rank,
+                  isOutlaw: b.creatorUser.isOutlaw,
+                })}
+              </p>
+            </div>
+          ) : undefined,
+          huntingInfo: b.huntingUsers ? (
+            <div className="space-y-1">
+              {b.huntingUsers.map((hunter, idx) => (
+                <div key={idx} className="text-sm">
+                  <p className="font-medium">{hunter.username}</p>
+                  <p className="text-xs text-gray-600">
+                    Lvl. {hunter.level}{" "}
+                    {showUserRank({
+                      rank: hunter.rank,
+                      isOutlaw: hunter.isOutlaw,
+                    })}
+                  </p>
+                </div>
+              ))}
+              {b.huntingUsers.length === 0 && (
+                <p className="text-sm text-gray-500">No hunters yet</p>
+              )}
+            </div>
+          ) : undefined,
           actionButton: (() => {
             // User can retract if they created the bounty and it's still open
             if (b.creatorUserId === userData?.userId && b.status === "OPEN") {
