@@ -28,7 +28,7 @@ import {
   IMG_BATTLEFIELD_TOMBSTONE,
   IMG_BATTLEFIELD_STAR,
 } from "@/drizzle/constants";
-import type { GameAsset } from "@/drizzle/schema";
+import type { GameAsset, UserData } from "@/drizzle/schema";
 import type { Grid } from "honeycomb-grid";
 import type { Scene, Object3D, Raycaster } from "three";
 import type { TerrainHex, HexagonalFaceMesh } from "../hexgrid";
@@ -554,9 +554,10 @@ export const drawCombatUsers = (info: {
   users: ReturnedUserState[];
   grid: Grid<TerrainHex>;
   playerId: string | undefined;
+  userData: UserData;
 }) => {
   // Destruct
-  const { users, group_users, grid, playerId } = info;
+  const { users, group_users, grid, playerId, userData } = info;
   // Draw the users
   const drawnIds = new Set<string>();
   users.forEach((user) => {
@@ -568,6 +569,12 @@ export const drawCombatUsers = (info: {
       // Fetch / create the user mesh
       let userMesh = group_users.getObjectByName(user.userId) as Group | undefined;
       if (!userMesh && hex) {
+        // Always unhide current user
+        if (user.userId === userData.userId) {
+          user.avatar = userData.avatar;
+          user.avatarLight = userData.avatarLight;
+          user.username = userData.username;
+        }
         userMesh = createUserSprite(user, hex, playerId);
         if (userMesh) group_users.add(userMesh);
       }

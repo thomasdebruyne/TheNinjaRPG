@@ -240,6 +240,7 @@ export const travelRouter = createTRPCRouter({
             updatedAt: true,
             villageId: true,
             battleId: true,
+            anbuId: true,
           },
           where: and(
             eq(userData.sector, user.sector),
@@ -249,6 +250,16 @@ export const travelRouter = createTRPCRouter({
               eq(userData.userId, ctx.userId),
             ),
           ),
+          with: {
+            anbuSquad: {
+              columns: {
+                id: true,
+                name: true,
+                image: true,
+                villageId: true,
+              },
+            },
+          },
         }),
         ctx.drizzle.query.village.findFirst({
           where: and(
@@ -270,7 +281,21 @@ export const travelRouter = createTRPCRouter({
           },
         }),
       ]);
-      return { users, village: villageData, sectorData, warData };
+
+      // Anonymize enemy ANBU squad members
+      const processedUsers = users.map((u) => {
+        if (u.anbuSquad && u.anbuSquad.villageId !== user.villageId) {
+          return {
+            ...u,
+            username: `ANBU Member`,
+            avatar: u.anbuSquad.image,
+            avatarLight: u.anbuSquad.image,
+          };
+        }
+        return u;
+      });
+
+      return { users: processedUsers, village: villageData, sectorData, warData };
     }),
   // Get village & alliance information for a given sector
   getVillageInSector: protectedProcedure

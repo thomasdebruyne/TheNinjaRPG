@@ -12,6 +12,7 @@ import type { publicState } from "@/libs/combat/constants";
 import type { StatNames, GenNames } from "@/libs/combat/constants";
 import type { Jutsu, Item, VillageAlliance, Clan, War } from "@/drizzle/schema";
 import type { UserJutsu, UserItem, UserData, AiProfile } from "@/drizzle/schema";
+import type { AnbuSquad } from "@/drizzle/schema";
 import type { TerrainHex } from "@/libs/hexgrid";
 import type { BattleType } from "@/drizzle/constants";
 import type { WarAlly } from "@/drizzle/schema";
@@ -67,6 +68,7 @@ export type BattleUserState = Omit<NonNullable<UserWithRelations>, "items"> & {
   usedActions: { id: string; type: "jutsu" | "item" | "basic" | "bloodline" }[];
   hex?: TerrainHex;
   clan?: Clan | null;
+  anbuSquad?: AnbuSquad | null;
   keystoneName?: string | null;
   bounties?: { id: string; status: BountyStatus; amountRyo: number }[];
   bountySignups?: { id: string; bountyId: string }[];

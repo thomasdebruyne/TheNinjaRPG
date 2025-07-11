@@ -899,6 +899,7 @@ export const initiateBattle = async (
         village: { with: { structures: true } },
         loadout: { columns: { jutsuIds: true } },
         clan: true,
+        anbuSquad: true,
         items: {
           with: { item: true },
           where: (items) => and(gt(items.quantity, 0), ne(items.equipped, "NONE")),

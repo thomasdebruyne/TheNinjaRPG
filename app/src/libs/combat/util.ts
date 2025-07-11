@@ -1392,6 +1392,20 @@ export const processUsersForBattle = (info: {
       }
     }
 
+    // Hide ANBU members attacker
+    if (
+      user.anbuId &&
+      user.anbuSquad &&
+      battleType === "COMBAT" &&
+      !leftSideUserIds?.includes(user.userId)
+    ) {
+      user.username = "ANBU Member";
+      user.avatar = user.anbuSquad.image;
+      user.avatarLight = user.anbuSquad.image;
+      user.longitude = 0;
+      user.latitude = 0;
+    }
+
     // By default the ones inserted initially are original
     user.isOriginal = true;
     user.isSummon = false;
