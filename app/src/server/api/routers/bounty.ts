@@ -93,7 +93,10 @@ export const bountyRouter = createTRPCRouter({
       if (!creator || !target) return errorResponse("User not found");
       if (RANKS_RESTRICTED_FROM_PVP.includes(target.rank))
         return errorResponse("Target too low rank for PvP");
-      if (amountRyo < BOUNTY_MIN_AMOUNT) return errorResponse("Bounty amount too low");
+      if (amountRyo < BOUNTY_MIN_AMOUNT)
+        return errorResponse(
+          `Bounty amount too low. Must be at least ${BOUNTY_MIN_AMOUNT.toLocaleString()} Ryo`,
+        );
       if (creator.money < amountRyo) return errorResponse("Not enough ryo");
       // Mutation 1
       const result = await ctx.drizzle
