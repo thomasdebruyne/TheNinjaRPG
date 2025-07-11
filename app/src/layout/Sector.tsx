@@ -233,6 +233,9 @@ const Sector: React.FC<SectorProps> = (props) => {
                   if (users.current[idx]) {
                     users.current[idx] = {
                       ...data,
+                      avatar: users.current[idx].avatar,
+                      avatarLight: users.current[idx].avatarLight,
+                      username: users.current[idx].username,
                       allianceStatus,
                       longitude: tile.col,
                       latitude: tile.row,
