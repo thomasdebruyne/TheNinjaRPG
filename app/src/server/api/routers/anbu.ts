@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, gte } from "drizzle-orm";
 import { anbuSquad, userData, historicalAvatar } from "@/drizzle/schema";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { errorResponse, baseServerResponse } from "@/server/api/trpc";
 import { fetchVillage } from "@/routers/village";
+import { fetchClans } from "@/routers/clan";
+import { createConvo } from "@/routers/comments";
 import { fetchUser, fetchUpdatedUser, updateNindo } from "@/routers/profile";
 import { getServerPusher } from "@/libs/pusher";
 import { anbuCreateSchema } from "@/validators/anbu";
@@ -23,6 +25,14 @@ import {
   IMG_AVATAR_DEFAULT,
   ANBU_DELAY_SECS,
   KAGE_ANBU_DELETE_COST,
+  ANBU_MAX_ESPIONAGE_LEVEL,
+  ANBU_MAX_STEALTH_LEVEL,
+  ANBU_ESPIONAGE_UPGRADE_COST,
+  ANBU_STEALTH_UPGRADE_COST,
+  ANBU_ESPIONAGE_BASE_CHANCE_PERC,
+  ANBU_ESPIONAGE_CHANGE_PER_LEVEL,
+  ANBU_ESPIONAGE_PRESTIGE_COST,
+  ANBU_ESPIONAGE_POINTS_COST,
 } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
 import type { AnbuSquad } from "@/drizzle/schema";
@@ -423,6 +433,219 @@ export const anbuRouter = createTRPCRouter({
       const orderId = input.type === "KAGE" ? squad.kageOrderId : squad.leaderOrderId;
       // Update
       return updateNindo(ctx.drizzle, orderId, input.content, "anbuOrder");
+    }),
+  purchaseEspionageUpgrade: protectedProcedure
+    .input(z.object({ squadId: z.string() }))
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      // Fetch
+      const [updatedUser, squad] = await Promise.all([
+        fetchUpdatedUser({
+          client: ctx.drizzle,
+          userId: ctx.userId,
+        }),
+        fetchSquad(ctx.drizzle, input.squadId),
+      ]);
+      // Derived
+      const { user } = updatedUser;
+      const { isLeader } = getConvenienceStatus(user, squad);
+      // Guards
+      if (!user) return errorResponse("User not found");
+      if (!squad) return errorResponse("Squad not found");
+      if (!isLeader) return errorResponse("Not squad leader");
+      if (user.anbuId !== squad.id) return errorResponse("Not in this squad");
+      if (squad.points < ANBU_ESPIONAGE_UPGRADE_COST) {
+        return errorResponse("Not enough squad points");
+      }
+      if (squad.espionageLevel >= ANBU_MAX_ESPIONAGE_LEVEL) {
+        return errorResponse("Max espionage level reached");
+      }
+      // Mutate
+      const result = await ctx.drizzle
+        .update(anbuSquad)
+        .set({
+          espionageLevel: sql`${anbuSquad.espionageLevel} + 1`,
+          points: sql`${anbuSquad.points} - ${ANBU_ESPIONAGE_UPGRADE_COST}`,
+        })
+        .where(
+          and(
+            eq(anbuSquad.id, squad.id),
+            gte(anbuSquad.points, ANBU_ESPIONAGE_UPGRADE_COST),
+          ),
+        );
+      if (result.rowsAffected === 0) {
+        return { success: false, message: "Not enough squad points" };
+      }
+      return { success: true, message: "Espionage level upgraded" };
+    }),
+  purchaseStealthUpgrade: protectedProcedure
+    .input(z.object({ squadId: z.string() }))
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      // Fetch
+      const [updatedUser, squad] = await Promise.all([
+        fetchUpdatedUser({
+          client: ctx.drizzle,
+          userId: ctx.userId,
+        }),
+        fetchSquad(ctx.drizzle, input.squadId),
+      ]);
+      // Derived
+      const { user } = updatedUser;
+      const { isLeader } = getConvenienceStatus(user, squad);
+      // Guards
+      if (!user) return errorResponse("User not found");
+      if (!squad) return errorResponse("Squad not found");
+      if (!isLeader) return errorResponse("Not squad leader");
+      if (user.anbuId !== squad.id) return errorResponse("Not in this squad");
+      if (squad.points < ANBU_STEALTH_UPGRADE_COST) {
+        return errorResponse("Not enough squad points");
+      }
+      if (squad.stealthLevel >= ANBU_MAX_STEALTH_LEVEL) {
+        return errorResponse("Max stealth level reached");
+      }
+      // Mutate
+      const result = await ctx.drizzle
+        .update(anbuSquad)
+        .set({
+          stealthLevel: sql`${anbuSquad.stealthLevel} + 1`,
+          points: sql`${anbuSquad.points} - ${ANBU_STEALTH_UPGRADE_COST}`,
+        })
+        .where(
+          and(
+            eq(anbuSquad.id, squad.id),
+            gte(anbuSquad.points, ANBU_STEALTH_UPGRADE_COST),
+          ),
+        );
+      if (result.rowsAffected === 0) {
+        return { success: false, message: "Not enough squad points" };
+      }
+      return { success: true, message: "Stealth level upgraded" };
+    }),
+  performEspionage: protectedProcedure
+    .input(z.object({ villageId: z.string(), anbuId: z.string() }))
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      // Fetch
+      const [updatedUser, targetVillage, userSquad] = await Promise.all([
+        fetchUpdatedUser({
+          client: ctx.drizzle,
+          userId: ctx.userId,
+        }),
+        fetchVillage(ctx.drizzle, input.villageId),
+        fetchSquad(ctx.drizzle, input.anbuId),
+      ]);
+
+      // Derived
+      const { user } = updatedUser;
+
+      // Guards
+      if (!user) return errorResponse("User not found");
+      if (!targetVillage) return errorResponse("Target village not found");
+      if (!userSquad) return errorResponse("ANBU squad not found");
+      if (user.anbuId !== input.anbuId) {
+        return errorResponse("You don't belong to this ANBU squad");
+      }
+      if (user.villageId === targetVillage.id) {
+        return errorResponse("Cannot spy on your own village");
+      }
+      if (user.villagePrestige < ANBU_ESPIONAGE_PRESTIGE_COST) {
+        return errorResponse("Not enough village prestige");
+      }
+      if (userSquad.points < ANBU_ESPIONAGE_POINTS_COST) {
+        return errorResponse("ANBU squad doesn't have enough points");
+      }
+
+      // Calculate success chance
+      const successChance =
+        ANBU_ESPIONAGE_BASE_CHANCE_PERC +
+        userSquad.espionageLevel * ANBU_ESPIONAGE_CHANGE_PER_LEVEL;
+
+      const rollResult = Math.random() * 100;
+      const success = rollResult < successChance;
+
+      // Deduct costs regardless of success
+      await Promise.all([
+        ctx.drizzle
+          .update(userData)
+          .set({
+            villagePrestige: sql`${userData.villagePrestige} - ${ANBU_ESPIONAGE_PRESTIGE_COST}`,
+          })
+          .where(eq(userData.userId, user.userId)),
+        ctx.drizzle
+          .update(anbuSquad)
+          .set({
+            points: sql`${anbuSquad.points} - ${ANBU_ESPIONAGE_POINTS_COST}`,
+          })
+          .where(eq(anbuSquad.id, userSquad.id)),
+      ]);
+
+      if (!success) {
+        return { success: false, message: "Espionage mission failed" };
+      }
+
+      // Gather intelligence on target village
+      const [anbuSquads, clans] = await Promise.all([
+        fetchSquads(ctx.drizzle, targetVillage.id),
+        fetchClans(ctx.drizzle, targetVillage.id),
+      ]);
+
+      // Create intelligence report
+      const structureReportHtml = targetVillage.structures
+        .map((structure) => {
+          const healthPercentage = Math.round(
+            (structure.curSp / structure.maxSp) * 100,
+          );
+          return `<li>${structure.name} (Level ${structure.level}) - ${healthPercentage}% Health</li>`;
+        })
+        .join("");
+
+      const intelligenceReport = `
+<div>
+  <h2 style="margin-bottom:0.5em;">📋 <strong>ESPIONAGE REPORT - ${targetVillage.name}</strong></h2>
+  <section style="margin-bottom:1em;">
+  <br />
+    <h3 style="margin-bottom:0.25em;">🏰 <strong>Village Status:</strong></h3>
+    <ul style="margin:0 0 0 1em; padding:0;">
+      <li>Village Tokens: <strong>${targetVillage.tokens.toLocaleString()}</strong></li>
+      <li>ANBU Squads: <strong>${anbuSquads.length}</strong></li>
+      <li>Active Clans: <strong>${clans.length}</strong></li>
+    </ul>
+  </section>
+  <section style="margin-bottom:1em;">
+  <br />
+    <h3 style="margin-bottom:0.25em;">🏗️ <strong>Structure Status:</strong></h3>
+    <ul style="margin:0 0 0 1em; padding:0;">
+      ${structureReportHtml}
+    </ul>
+  </section>
+  <br />
+  <hr style="margin:1em 0;" />
+  <br />
+  <div style="font-size:0.95em; color:#555;">
+    <em>Intelligence gathered by ${user.username}<br/>
+    Mission conducted with ${successChance}% success rate</em>
+    <p style="margin-top:0.5em;">
+      This information is classified ANBU-only. Share at your own discretion with the village.
+    </p>
+  </div>
+</div>
+      `.trim();
+
+      // Send message to all ANBU squad members
+      const squadMemberIds = userSquad.members.map((member) => member.userId);
+      await createConvo(
+        ctx.drizzle,
+        ctx.userId,
+        squadMemberIds.filter((id) => id !== ctx.userId),
+        `🕵️ Espionage Report: ${targetVillage.name}`,
+        intelligenceReport,
+      );
+
+      return {
+        success: true,
+        message: "Espionage mission successful - intelligence report sent to squad",
+      };
     }),
 });
 

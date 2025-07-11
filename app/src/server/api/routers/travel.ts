@@ -26,6 +26,8 @@ import {
   ROBBING_STOLLEN_AMOUNT,
   ROBBING_VILLAGE_PRESTIGE_GAIN,
   ROBBING_IMMUNITY_DURATION,
+  ANBU_STEALTH_BASE_CHANCE_PERC,
+  ANBU_STEALTH_CHANGE_PER_LEVEL,
 } from "@/drizzle/constants";
 import { fetchSector } from "@/routers/village";
 import * as map from "@/data/hexasphere.json";
@@ -457,7 +459,11 @@ export const travelRouter = createTRPCRouter({
         { x: longitude, y: latitude },
       );
       // Optimistic update & query simultaneously
-      const [result, sectorVillage] = await Promise.all([
+      const [user, result, sectorVillage] = await Promise.all([
+        ctx.drizzle.query.userData.findFirst({
+          where: eq(userData.userId, userId),
+          with: { anbuSquad: true },
+        }),
         ctx.drizzle
           .update(userData)
           .set({ longitude, latitude, location })
@@ -494,8 +500,21 @@ export const travelRouter = createTRPCRouter({
           ];
           const relation = findRelationship(relations, userVillage, sectorVillage.id);
           if (relation?.status === "ENEMY") {
+            // Chance of getting attacked by village protector
             const chance = structureBoost("patrolsPerLvl", sectorVillage.structures);
             if (Math.random() < (travelLength * chance) / 100) {
+              // Chance of ANBU squad avoiding attack
+              const anbuChance = user?.anbuId
+                ? ANBU_STEALTH_BASE_CHANCE_PERC +
+                  (user?.anbuSquad?.stealthLevel ?? 0) * ANBU_STEALTH_CHANGE_PER_LEVEL
+                : 0;
+              if (Math.random() < anbuChance / 100) {
+                return {
+                  success: true,
+                  message: "ANBU stealth prevented guard attack",
+                };
+              }
+              // Attack village protector
               const battle = await initiateBattle(
                 {
                   longitude: longitude,

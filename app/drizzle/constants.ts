@@ -564,6 +564,16 @@ export const ANBU_MAX_MEMBERS = 4;
 export const ANBU_HOSPITAL_DISCOUNT_PERC = 5;
 export const ANBU_ITEMSHOP_DISCOUNT_PERC = 5;
 export const ANBU_DELAY_SECS = 24 * 3600;
+export const ANBU_MAX_ESPIONAGE_LEVEL = 10;
+export const ANBU_ESPIONAGE_BASE_CHANCE_PERC = 10;
+export const ANBU_ESPIONAGE_CHANGE_PER_LEVEL = 5;
+export const ANBU_ESPIONAGE_UPGRADE_COST = 200;
+export const ANBU_ESPIONAGE_PRESTIGE_COST = 10000;
+export const ANBU_ESPIONAGE_POINTS_COST = 100;
+export const ANBU_MAX_STEALTH_LEVEL = 10;
+export const ANBU_STEALTH_BASE_CHANCE_PERC = 10;
+export const ANBU_STEALTH_CHANGE_PER_LEVEL = 5;
+export const ANBU_STEALTH_UPGRADE_COST = 200;
 
 // Sensei config
 export const SENSEI_RANKS = ["JONIN", "ELITE JONIN", "ELDER"];
@@ -1284,4 +1294,4 @@ export type HomeTypeDetails = (typeof HomeTypeDetails)[keyof typeof HomeTypeDeta
 export const BOUNTY_STATUSES = ["OPEN", "CLAIMED", "EXPIRED", "CANCELLED"] as const;
 export type BountyStatus = (typeof BOUNTY_STATUSES)[number];
 export const BOUNTY_MAX_HUNTERS = 3;
-export const BOUNTY_MIN_AMOUNT = 100000;
+export const BOUNTY_MIN_AMOUNT = 1000000;

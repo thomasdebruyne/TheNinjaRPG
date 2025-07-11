@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, use } from "react";
+import { useEffect, use, useState } from "react";
 import { parseHtml } from "@/utils/parse";
 import BanInfo from "@/layout/BanInfo";
 import Table, { type ColumnDefinitionType } from "@/layout/Table";
@@ -18,9 +18,23 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { showMutationToast } from "@/libs/toast";
 import { useRequireInVillage } from "@/utils/UserContext";
-import { SendHorizontal, DoorOpen, FilePenLine } from "lucide-react";
+import { SendHorizontal, DoorOpen, FilePenLine, TrendingUp, Eye } from "lucide-react";
 import { Trash2, ArrowBigUpDash } from "lucide-react";
 import {
   Form,
@@ -34,6 +48,18 @@ import { UploadButton } from "@/utils/uploadthing";
 import { anbuRenameSchema } from "@/validators/anbu";
 import { hasRequiredRank } from "@/libs/train";
 import { ANBU_MEMBER_RANK_REQUIREMENT } from "@/drizzle/constants";
+import {
+  ANBU_MAX_ESPIONAGE_LEVEL,
+  ANBU_MAX_STEALTH_LEVEL,
+  ANBU_ESPIONAGE_UPGRADE_COST,
+  ANBU_STEALTH_UPGRADE_COST,
+  ANBU_ESPIONAGE_BASE_CHANCE_PERC,
+  ANBU_ESPIONAGE_CHANGE_PER_LEVEL,
+  ANBU_STEALTH_BASE_CHANCE_PERC,
+  ANBU_STEALTH_CHANGE_PER_LEVEL,
+  ANBU_ESPIONAGE_PRESTIGE_COST,
+  ANBU_ESPIONAGE_POINTS_COST,
+} from "@/drizzle/constants";
 import type { UserRank } from "@/drizzle/constants";
 import type { ArrayElement } from "@/utils/typeutils";
 import type { BaseServerResponse } from "@/server/api/trpc";
@@ -41,6 +67,7 @@ import type { AnbuRenameSchema } from "@/validators/anbu";
 import type { MutateContentSchema } from "@/validators/comments";
 import type { UserNindo } from "@/drizzle/schema";
 import type { AnbuRouter } from "@/routers/anbu";
+import type { UserWithRelations } from "@/server/api/routers/profile";
 
 export default function ANBUDetails(props: { params: Promise<{ anbuid: string }> }) {
   const params = use(props.params);
@@ -80,6 +107,7 @@ export default function ANBUDetails(props: { params: Promise<{ anbuid: string }>
         userId={userData.userId}
         squadId={squadId}
         squad={squad}
+        userData={userData}
       />
       {/* ANBU ORDERS */}
       <AnbuOrders
@@ -120,17 +148,25 @@ interface AnbuMembersProps {
   userId: string;
   squadId: string;
   squad: NonNullable<AnbuRouter["get"]>;
+  userData: NonNullable<UserWithRelations>;
 }
 
 const AnbuMembers: React.FC<AnbuMembersProps> = (props) => {
   // Destructure
-  const { userId, squad, squadId, isKage, isElder, isLeader, inSquad } = props;
+  const { userId, squad, squadId, isKage, isElder, isLeader, inSquad, userData } =
+    props;
 
   // Get router
   const router = useRouter();
 
   // Get react query utility
   const utils = api.useUtils();
+
+  // Get villages for espionage
+  const { data: villages } = api.village.getAll.useQuery();
+
+  // State for espionage
+  const [selectedVillage, setSelectedVillage] = useState<string>("");
 
   // Mutations
   const onSuccess = async (data: BaseServerResponse) => {
@@ -145,6 +181,12 @@ const AnbuMembers: React.FC<AnbuMembersProps> = (props) => {
   const { mutate: edit } = api.anbu.editSquad.useMutation({ onSuccess });
   const { mutate: kick } = api.anbu.kickMember.useMutation({ onSuccess });
   const { mutate: promote } = api.anbu.promoteMember.useMutation({ onSuccess });
+  const { mutate: upgradeEspionage, isPending: isUpgradingEspionage } =
+    api.anbu.purchaseEspionageUpgrade.useMutation({ onSuccess });
+  const { mutate: upgradeStealth, isPending: isUpgradingStealth } =
+    api.anbu.purchaseStealthUpgrade.useMutation({ onSuccess });
+  const { mutate: performEspionage, isPending: isPerformingEspionage } =
+    api.anbu.performEspionage.useMutation({ onSuccess });
   const { mutate: leave } = api.anbu.leaveSquad.useMutation({
     onSuccess: async (data) => {
       await onSuccess(data);
@@ -239,8 +281,7 @@ const AnbuMembers: React.FC<AnbuMembersProps> = (props) => {
               proceed_label="Submit"
               button={
                 <Button id="rename-anbu-squad">
-                  <FilePenLine className="mr-2 h-5 w-5" />
-                  Edit
+                  <FilePenLine className="h-5 w-5" />
                 </Button>
               }
               isValid={renameForm.formState.isValid}
@@ -289,10 +330,218 @@ const AnbuMembers: React.FC<AnbuMembersProps> = (props) => {
               </Form>
             </Confirm2>
           )}
+          {isLeader && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button id="upgrade-anbu-squad">
+                  <TrendingUp className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Squad Upgrades</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Current Squad Points: {squad.points}
+                  </div>
+
+                  {/* Espionage Upgrade */}
+                  <div className="p-4 border rounded-lg">
+                    <h3 className="font-semibold mb-2">Espionage Level</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Improves intelligence gathering capabilities against enemy
+                      villages during wars.
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Current Level: {squad.espionageLevel} / {ANBU_MAX_ESPIONAGE_LEVEL}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Success Rate:{" "}
+                      {ANBU_ESPIONAGE_BASE_CHANCE_PERC +
+                        squad.espionageLevel * ANBU_ESPIONAGE_CHANGE_PER_LEVEL}
+                      %
+                      {squad.espionageLevel < ANBU_MAX_ESPIONAGE_LEVEL && (
+                        <span className="text-green-600">
+                          {" "}
+                          →{" "}
+                          {ANBU_ESPIONAGE_BASE_CHANCE_PERC +
+                            (squad.espionageLevel + 1) *
+                              ANBU_ESPIONAGE_CHANGE_PER_LEVEL}
+                          %
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upgrade Cost: {ANBU_ESPIONAGE_UPGRADE_COST} points
+                    </p>
+                    <Button
+                      onClick={() => upgradeEspionage({ squadId })}
+                      disabled={
+                        isUpgradingEspionage ||
+                        squad.espionageLevel >= ANBU_MAX_ESPIONAGE_LEVEL ||
+                        squad.points < ANBU_ESPIONAGE_UPGRADE_COST
+                      }
+                      className="w-full"
+                    >
+                      {isUpgradingEspionage ? "Upgrading..." : "Upgrade Espionage"}
+                    </Button>
+                  </div>
+
+                  {/* Stealth Upgrade */}
+                  <div className="p-4 border rounded-lg">
+                    <h3 className="font-semibold mb-2">Stealth Level</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Reduces the chance of being detected by guards when infiltrating
+                      enemy villages.
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Current Level: {squad.stealthLevel} / {ANBU_MAX_STEALTH_LEVEL}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Success Rate:{" "}
+                      {ANBU_STEALTH_BASE_CHANCE_PERC +
+                        squad.stealthLevel * ANBU_STEALTH_CHANGE_PER_LEVEL}
+                      %
+                      {squad.stealthLevel < ANBU_MAX_STEALTH_LEVEL && (
+                        <span className="text-green-600">
+                          {" "}
+                          →{" "}
+                          {ANBU_STEALTH_BASE_CHANCE_PERC +
+                            (squad.stealthLevel + 1) * ANBU_STEALTH_CHANGE_PER_LEVEL}
+                          %
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upgrade Cost: {ANBU_STEALTH_UPGRADE_COST} points
+                    </p>
+                    <Button
+                      onClick={() => upgradeStealth({ squadId })}
+                      disabled={
+                        isUpgradingStealth ||
+                        squad.stealthLevel >= ANBU_MAX_STEALTH_LEVEL ||
+                        squad.points < ANBU_STEALTH_UPGRADE_COST
+                      }
+                      className="w-full"
+                    >
+                      {isUpgradingStealth ? "Upgrading..." : "Upgrade Stealth"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          {inSquad && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button id="espionage-anbu-squad">
+                  <Eye className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Perform Espionage</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Select a village to gather intelligence on.
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    Success Rate:{" "}
+                    {ANBU_ESPIONAGE_BASE_CHANCE_PERC +
+                      squad.espionageLevel * ANBU_ESPIONAGE_CHANGE_PER_LEVEL}
+                    %
+                  </div>
+
+                  {/* Cost Requirements */}
+                  <div className="space-y-2 p-3 bg-muted rounded-lg">
+                    <div className="text-sm font-medium">Mission Requirements:</div>
+                    <div className="space-y-1">
+                      <div
+                        className={`text-sm flex items-center justify-between ${
+                          userData.villagePrestige >= ANBU_ESPIONAGE_PRESTIGE_COST
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <span>Village Prestige:</span>
+                        <span>
+                          {userData.villagePrestige.toLocaleString()} /{" "}
+                          {ANBU_ESPIONAGE_PRESTIGE_COST.toLocaleString()}
+                          {userData.villagePrestige >= ANBU_ESPIONAGE_PRESTIGE_COST
+                            ? " ✓"
+                            : " ✗"}
+                        </span>
+                      </div>
+                      <div
+                        className={`text-sm flex items-center justify-between ${
+                          squad.points >= ANBU_ESPIONAGE_POINTS_COST
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <span>Squad Points:</span>
+                        <span>
+                          {squad.points} / {ANBU_ESPIONAGE_POINTS_COST}
+                          {squad.points >= ANBU_ESPIONAGE_POINTS_COST ? " ✓" : " ✗"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Target Village:</label>
+                    <Select value={selectedVillage} onValueChange={setSelectedVillage}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a village to spy on" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {villages
+                          ?.filter(
+                            (village) =>
+                              village.type === "VILLAGE" &&
+                              village.id !== squad.villageId,
+                          )
+                          .map((village) => (
+                            <SelectItem key={village.id} value={village.id}>
+                              {village.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      if (selectedVillage) {
+                        performEspionage({
+                          villageId: selectedVillage,
+                          anbuId: squadId,
+                        });
+                        setSelectedVillage("");
+                      }
+                    }}
+                    disabled={
+                      isPerformingEspionage ||
+                      !selectedVillage ||
+                      squad.points < ANBU_ESPIONAGE_POINTS_COST ||
+                      userData.villagePrestige < ANBU_ESPIONAGE_PRESTIGE_COST
+                    }
+                    className="w-full"
+                  >
+                    {isPerformingEspionage
+                      ? "Performing Espionage..."
+                      : "Conduct Espionage Mission"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
           {inSquad && (
             <Button id="send" onClick={() => leave({ squadId })}>
-              <DoorOpen className="h-5 w-5 mr-2" />
-              Leave
+              <DoorOpen className="h-5 w-5" />
             </Button>
           )}
           {(isKage || isElder) && (
