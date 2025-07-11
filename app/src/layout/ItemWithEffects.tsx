@@ -735,6 +735,13 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                             <b>Reward Clanpoints</b>: {parsedEffect.reward_clanpoints}
                           </p>
                         )}
+                      {"reward_anbupoints" in parsedEffect &&
+                        parsedEffect.reward_anbupoints &&
+                        parsedEffect.reward_anbupoints > 0 && (
+                          <p>
+                            <b>Reward Anbu Points</b>: {parsedEffect.reward_anbupoints}
+                          </p>
+                        )}
                       {"reward_exp" in parsedEffect &&
                         parsedEffect.reward_exp &&
                         parsedEffect.reward_exp > 0 && (

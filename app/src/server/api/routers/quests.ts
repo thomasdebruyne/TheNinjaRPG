@@ -15,6 +15,7 @@ import {
 import { inArray, lte, isNull, sql, asc, gte } from "drizzle-orm";
 import { like, eq, or, and, getTableColumns } from "drizzle-orm";
 import {
+  anbuSquad,
   item,
   jutsu,
   badge,
@@ -229,8 +230,8 @@ export const questsRouter = createTRPCRouter({
       missions.forEach((r) => controlShownQuestLocationInformation(r));
       return missions.filter((e) => isAvailableUserQuests(e, user, true).check);
     }),
-  storyQuests: protectedProcedure
-    .input(z.object({ level: z.number() }))
+  specificQuests: protectedProcedure
+    .input(z.object({ level: z.number(), questType: z.enum(["story", "anbu"]) }))
     .query(async ({ ctx, input }) => {
       // Query
       const [{ user }, quests] = await Promise.all([
@@ -250,7 +251,7 @@ export const questsRouter = createTRPCRouter({
           )
           .where(
             and(
-              eq(quest.questType, "story"),
+              eq(quest.questType, input.questType),
               lte(quest.requiredLevel, input.level ?? 0),
               gte(quest.maxLevel, input.level ?? 0),
             ),
@@ -449,6 +450,23 @@ export const questsRouter = createTRPCRouter({
         if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
           return errorResponse(
             `Already ${QUESTS_CONCURRENT_LIMIT} active story quests; ${current
+              .map((c) => c.quest.name)
+              .join(", ")}. Abandon one to start this quest.`,
+          );
+        }
+      } else if (questData.questType === "anbu") {
+        if (!canAccessStructure(user, "/anbu", sectorVillage)) {
+          return errorResponse("Must be in the Anbu page to start anbu quests");
+        }
+        if (!user.anbuId) {
+          return errorResponse("You are not in an anbu squad");
+        }
+        const current = user.userQuests?.filter(
+          (q) => q.quest.questType === "anbu" && !q.endAt,
+        );
+        if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
+          return errorResponse(
+            `Already ${QUESTS_CONCURRENT_LIMIT} active anbu quests; ${current
               .map((c) => c.quest.name)
               .join(", ")}. Abandon one to start this quest.`,
           );
@@ -684,6 +702,7 @@ export const questsRouter = createTRPCRouter({
             reward_seichi_silver: 0,
             reward_money: 0,
             reward_clanpoints: 0,
+            reward_anbupoints: 0,
             reward_exp: 0,
             reward_tokens: 0,
             reward_prestige: 0,
@@ -1128,6 +1147,13 @@ export const updateRewards = async (info: {
           .update(clan)
           .set({ points: sql`${clan.points} + ${rewards.reward_clanpoints}` })
           .where(eq(clan.id, user.clanId))
+      : undefined,
+    // Update anbu points
+    rewards.reward_anbupoints > 0 && user.anbuId
+      ? client
+          .update(anbuSquad)
+          .set({ points: sql`${anbuSquad.points} + ${rewards.reward_anbupoints}` })
+          .where(eq(anbuSquad.id, user.anbuId))
       : undefined,
     // Insert items & jutsus
     ...[

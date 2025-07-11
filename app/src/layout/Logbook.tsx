@@ -379,9 +379,15 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
       options={
         <div className="ml-3">
           <div className="mt-2 flex flex-row items-center ">
-            {["mission", "crime", "event", "errand", "story", "medical"].includes(
-              quest.questType,
-            ) && (
+            {[
+              "mission",
+              "crime",
+              "event",
+              "errand",
+              "story",
+              "medical",
+              "anbu",
+            ].includes(quest.questType) && (
               <Confirm2
                 title="Confirm deleting quest"
                 button={
@@ -551,6 +557,7 @@ export const useCheckRewards = () => {
             rewards.reward_money > 0 ||
             rewards.reward_seichi_silver > 0 ||
             rewards.reward_clanpoints > 0 ||
+            rewards.reward_anbupoints > 0 ||
             rewards.reward_exp > 0 ||
             rewards.reward_tokens > 0 ||
             rewards.reward_prestige > 0 ||
@@ -571,7 +578,7 @@ export const useCheckRewards = () => {
           utils.quests.getQuestHistory.invalidate(),
           utils.quests.allianceBuilding.invalidate(),
           utils.quests.missionHall.invalidate(),
-          utils.quests.storyQuests.invalidate(),
+          utils.quests.specificQuests.invalidate(),
         ]);
       },
     });

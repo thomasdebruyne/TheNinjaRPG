@@ -364,6 +364,7 @@ export const QuestTypes = [
   "daily",
   "achievement",
   "story",
+  "anbu",
   "medical",
 ] as const;
 export type QuestType = (typeof QuestTypes)[number];

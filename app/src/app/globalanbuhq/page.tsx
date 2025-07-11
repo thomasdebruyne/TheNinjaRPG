@@ -5,7 +5,7 @@ import { getInfiniteThreads } from "@/routers/forum";
 import { fetchUser } from "@/routers/profile";
 import { drizzleDB } from "@/server/db";
 import { IMG_BUILDING_GLOBALANBU } from "@/drizzle/constants";
-import StoryQuests from "./StoryQuests";
+import StoryQuests from "@/layout/StoryQuests";
 
 export default async function GlobalAnbuHQ() {
   // Session information

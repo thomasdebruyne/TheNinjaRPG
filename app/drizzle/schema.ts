@@ -150,6 +150,9 @@ export const anbuSquad = mysqlTable(
     villageId: varchar("villageId", { length: 191 }).notNull(),
     pvpActivity: int("pvpActivity").default(0).notNull(),
     kageOrderId: varchar("kageOrderId", { length: 191 }).notNull(),
+    points: int("points").default(0).notNull(),
+    espionageLevel: int("espionageLevel").default(0).notNull(),
+    stealthLevel: int("stealthLevel").default(0).notNull(),
     leaderOrderId: varchar("leaderOrderId", { length: 191 }).notNull(),
     createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)

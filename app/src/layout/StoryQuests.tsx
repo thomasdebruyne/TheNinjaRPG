@@ -18,8 +18,9 @@ export default function StoryQuests() {
 
   const { userData } = useRequireInVillage("/globalanbuhq");
 
-  const { data: storyQuests } = api.quests.storyQuests.useQuery({
+  const { data: storyQuests } = api.quests.specificQuests.useQuery({
     level: userData?.level ?? 0,
+    questType: "story",
   });
 
   const { mutate: startQuest, isPending } = api.quests.startQuest.useMutation({
@@ -27,7 +28,7 @@ export default function StoryQuests() {
       showMutationToast(data);
       await Promise.all([
         util.profile.getUser.invalidate(),
-        util.quests.storyQuests.invalidate(),
+        util.quests.specificQuests.invalidate(),
       ]);
     },
   });

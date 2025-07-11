@@ -147,6 +147,11 @@ export const showRewardToast = (
               <b>Clan points:</b> {rewards.reward_clanpoints}
             </span>
           )}
+          {rewards.reward_anbupoints > 0 && (
+            <span>
+              <b>Anbu points:</b> {rewards.reward_anbupoints}
+            </span>
+          )}
           {rewards.reward_exp > 0 && (
             <span>
               <b>Experience:</b> {rewards.reward_exp}

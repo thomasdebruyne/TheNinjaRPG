@@ -141,6 +141,9 @@ export const getReward = (
         if (objective.reward_clanpoints) {
           rawRewards.reward_clanpoints += objective.reward_clanpoints;
         }
+        if (objective.reward_anbupoints) {
+          rawRewards.reward_anbupoints += objective.reward_anbupoints;
+        }
         if (objective.reward_exp) {
           rawRewards.reward_exp += objective.reward_exp;
         }
@@ -181,6 +184,7 @@ export const getReward = (
       missionLike && user.dailyMissions > 9 ? ADDITIONAL_MISSION_REWARD_MULTIPLIER : 1;
     rawRewards.reward_money = Math.floor(rawRewards.reward_money * factor);
     rawRewards.reward_clanpoints = Math.floor(rawRewards.reward_clanpoints * factor);
+    rawRewards.reward_anbupoints = Math.floor(rawRewards.reward_anbupoints * factor);
     rawRewards.reward_exp = Math.floor(rawRewards.reward_exp * factor);
     rawRewards.reward_tokens = Math.floor(rawRewards.reward_tokens * factor);
     rawRewards.reward_prestige = Math.floor(rawRewards.reward_prestige * factor);
@@ -242,6 +246,7 @@ export const collapseRewards = (
     reward_money: 0,
     reward_seichi_silver: 0,
     reward_clanpoints: 0,
+    reward_anbupoints: 0,
     reward_exp: 0,
     reward_tokens: 0,
     reward_prestige: 0,
@@ -259,6 +264,7 @@ export const collapseRewards = (
     collapsed.reward_money += reward.reward_money;
     collapsed.reward_seichi_silver += reward.reward_seichi_silver;
     collapsed.reward_clanpoints += reward.reward_clanpoints;
+    collapsed.reward_anbupoints += reward.reward_anbupoints;
     collapsed.reward_exp += reward.reward_exp;
     collapsed.reward_tokens += reward.reward_tokens;
     collapsed.reward_prestige += reward.reward_prestige;
@@ -862,24 +868,14 @@ export const isAvailableUserQuests = (
   const medicalRankCheck = !requiredRankIndex || userRankIndex >= requiredRankIndex;
 
   // Event specific tests
+  const previousCheckTypes = ["event", "story", "anbu"];
   const eventCompletedCheck =
-    questAndUserQuestInfo.questType !== "event" ||
+    !previousCheckTypes.includes(questAndUserQuestInfo.questType) ||
     !questAndUserQuestInfo.previousCompletes ||
     questAndUserQuestInfo.previousCompletes < maxCompletes;
   const eventAttemptsCheck =
     ignorePreviousAttempts ||
-    questAndUserQuestInfo.questType !== "event" ||
-    !questAndUserQuestInfo.previousAttempts ||
-    questAndUserQuestInfo.previousAttempts < maxAttempts;
-
-  // Story specific checks
-  const storyCompletedCheck =
-    questAndUserQuestInfo.questType !== "story" ||
-    !questAndUserQuestInfo.previousCompletes ||
-    questAndUserQuestInfo.previousCompletes < maxCompletes;
-  const storyAttemptsCheck =
-    ignorePreviousAttempts ||
-    questAndUserQuestInfo.questType !== "story" ||
+    !previousCheckTypes.includes(questAndUserQuestInfo.questType) ||
     !questAndUserQuestInfo.previousAttempts ||
     questAndUserQuestInfo.previousAttempts < maxAttempts;
 
@@ -900,8 +896,6 @@ export const isAvailableUserQuests = (
     eventAttemptsCheck &&
     villageCheck &&
     prerequisiteCheck &&
-    storyCompletedCheck &&
-    storyAttemptsCheck &&
     medicalRankCheck;
 
   // If quest is not available, return the reason
@@ -912,8 +906,6 @@ export const isAvailableUserQuests = (
   if (!eventAttemptsCheck) message += "Quest has been attempted too many times\n";
   if (!villageCheck) message += "Quest is not available in your village\n";
   if (!prerequisiteCheck) message += "You must complete the prerequisite quest first\n";
-  if (!storyCompletedCheck) message += "Story quest already completed\n";
-  if (!storyAttemptsCheck) message += "Story quest has been attempted too many times\n";
   if (!medicalRankCheck) message += `Quest requires medical rank ${questMedRank}\n`;
   // Returned detailed info on all the checks
   return { check, message };

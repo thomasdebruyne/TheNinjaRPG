@@ -131,6 +131,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
             reward_money: data.reward_money,
             reward_seichi_silver: data.reward_seichi_silver,
             reward_clanpoints: data.reward_clanpoints,
+            reward_anbupoints: data.reward_anbupoints,
             reward_exp: data.reward_exp,
             reward_medical_experience: data.reward_medical_experience,
             reward_tokens: data.reward_tokens,
@@ -207,7 +208,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
     },
   ];
 
-  if (questType === "event" || questType === "story") {
+  if (questType === "event" || questType === "story" || questType === "anbu") {
     formData.push({ id: "maxAttempts", type: "number", label: "Max Attempts" });
     formData.push({ id: "maxCompletes", type: "number", label: "Max Completes" });
     formData.push({ id: "retryDelay", type: "str_array", values: RetryQuestDelays });
@@ -244,6 +245,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
   formData.push({ id: "reward_money", type: "number" });
   formData.push({ id: "reward_seichi_silver", type: "number" });
   formData.push({ id: "reward_clanpoints", type: "number" });
+  formData.push({ id: "reward_anbupoints", type: "number" });
   formData.push({ id: "reward_exp", type: "number" });
   formData.push({ id: "reward_tokens", type: "number" });
   formData.push({ id: "reward_prestige", type: "number" });

@@ -76,7 +76,10 @@ export const getObjectiveImage = (objective: AllObjectivesType) => {
     case "medical_experience":
       return { image: IMG_BADGE_MEDICAL_EXPERIENCE, title: "Medical Experience" };
     case "medical_experience_gained":
-      return { image: IMG_BADGE_MEDICAL_EXPERIENCE, title: "Medical Experience Gained" };
+      return {
+        image: IMG_BADGE_MEDICAL_EXPERIENCE,
+        title: "Medical Experience Gained",
+      };
     case "move_to_location":
       return { image: IMG_BADGE_MOVE_TO_LOCATION, title: "Travel" };
     case "collect_item":
@@ -392,6 +395,9 @@ export const getRewardArray = (reward?: ObjectiveRewardType) => {
   }
   if (questReward.reward_clanpoints) {
     rewards.push(`${questReward.reward_clanpoints} clan points`);
+  }
+  if (questReward.reward_anbupoints) {
+    rewards.push(`${questReward.reward_anbupoints} anbu points`);
   }
   if (questReward.reward_exp) {
     rewards.push(`${questReward.reward_exp} exp`);

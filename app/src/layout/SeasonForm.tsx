@@ -130,6 +130,7 @@ export default function SeasonForm({
       { id: "reward_money", type: "number" },
       { id: "reward_seichi_silver", type: "number" },
       { id: "reward_clanpoints", type: "number" },
+      { id: "reward_anbupoints", type: "number" },
       { id: "reward_exp", type: "number" },
       { id: "reward_tokens", type: "number" },
       { id: "reward_prestige", type: "number" },
