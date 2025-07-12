@@ -415,10 +415,10 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({ userData }) => {
       <div className="text-center py-8">
         <div className="text-6xl mb-4">🔒</div>
         <h3 className="text-xl font-semibold mb-2">Skill Tree Locked</h3>
-        <p className="text-gray-600">
+        <div className="text-gray-600">
           Reach <Badge variant="secondary">Chunin</Badge> rank to unlock the skill tree
           and start earning skill points!
-        </p>
+        </div>
       </div>
     );
   }

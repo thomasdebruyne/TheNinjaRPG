@@ -138,32 +138,21 @@ export default function ManualSkillTree() {
         )}
 
         {totalLoading && <Loader explanation="Loading data" />}
-        {!showGraph && (
-          <div className="space-y-4">
-            {allSkills.map((skill, i) => (
-              <div
-                key={skill.id}
-                ref={i === allSkills.length - 1 ? setLastElement : null}
-                className={`border rounded-lg p-4 ${skill.hidden ? "bg-gray-100" : "bg-white"}`}
-              >
-                <ItemWithEffects
-                  item={skill}
-                  key={skill.id}
-                  showEdit={
-                    userData && canChangeContent(userData.role)
-                      ? "skillTree"
-                      : undefined
-                  }
-                  onDelete={
-                    userData && canChangeContent(userData.role)
-                      ? (id: string) => deleteSkill({ id })
-                      : undefined
-                  }
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        {!showGraph &&
+          allSkills.map((skill, i) => (
+            <ItemWithEffects
+              key={skill.id}
+              item={skill}
+              showEdit={
+                userData && canChangeContent(userData.role) ? "skillTree" : undefined
+              }
+              onDelete={
+                userData && canChangeContent(userData.role)
+                  ? (id: string) => deleteSkill({ id })
+                  : undefined
+              }
+            />
+          ))}
       </ContentBox>
     </>
   );
