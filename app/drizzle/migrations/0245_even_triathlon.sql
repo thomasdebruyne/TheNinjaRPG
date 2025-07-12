@@ -24,9 +24,10 @@ CREATE TABLE `UserSkill` (
 );
 
 ALTER TABLE `UserData` ADD `skillPoints` int DEFAULT 0 NOT NULL;
-UPDATE `UserData` SET `skillPoints` = LEAST(20, `level` - 20) WHERE `level` > 20;
 CREATE INDEX `SkillTree_tier_idx` ON `SkillTree` (`tier`);
 CREATE INDEX `SkillTree_hidden_idx` ON `SkillTree` (`hidden`);
 CREATE INDEX `UserSkill_userId_idx` ON `UserSkill` (`userId`);
 CREATE INDEX `UserSkill_skillId_idx` ON `UserSkill` (`skillId`);
 
+
+UPDATE `UserData` SET `skillPoints` = LEAST(20, `level` - 20) WHERE `level` > 20;
