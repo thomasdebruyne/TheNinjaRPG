@@ -1667,10 +1667,12 @@ export const userData = mysqlTable(
 export const insertAiSchema = createInsertSchema(userData)
   .omit({
     trainingStartedAt: true,
+    occupationSignupAt: true,
     currentlyTraining: true,
     deletionAt: true,
     travelFinishAt: true,
     questData: true,
+    occupation: true,
   })
   .merge(
     z.object({
