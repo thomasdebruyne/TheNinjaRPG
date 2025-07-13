@@ -2,11 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "https://theninja-rpg.com",
     name: "TheNinja-RPG",
     short_name: "TNR",
     description: "A free browser game with ninja set in the world of Seichi",
     start_url: "/",
     display: "standalone",
+    display_override: ["standalone", "window-controls-overlay", "browser"],
     background_color: "#ffffff",
     theme_color: "#ce7e00",
     orientation: "portrait-primary",
@@ -102,5 +104,22 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     related_applications: [],
     prefer_related_applications: false,
+    shortcuts: [
+      {
+        name: "Training",
+        url: "/traininggrounds",
+        description: "Train character and jutsus",
+      },
+      {
+        name: "Battle Arena",
+        url: "/battlearena#PVP%20Rank",
+        description: "Participate in ranked PvP seasons",
+      },
+      {
+        name: "Tavern",
+        url: "/tavern",
+        description: "Chat and plan with fellow ninjas",
+      },
+    ],
   };
 }
