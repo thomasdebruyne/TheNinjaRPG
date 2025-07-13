@@ -5,3 +5,4 @@ scripts/clerk_migration.ipynb
 scripts/discord_analysis.ipynb
 scripts/user_segmentation.ipynb
 *.pem
+assets/pwa/*
