@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TheNinja-RPG - Offline</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+          Arial, sans-serif;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        color: #ffffff;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 500px;
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .ninja-logo {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      h1 {
+        color: #ce7e00;
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+        opacity: 0.9;
+        font-weight: 300;
+      }
+
+      .description {
+        margin-bottom: 40px;
+        line-height: 1.6;
+        opacity: 0.8;
+      }
+
+      .retry-btn {
+        background: linear-gradient(45deg, #ce7e00, #ff9500);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(206, 126, 0, 0.3);
+      }
+
+      .retry-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 126, 0, 0.4);
+      }
+
+      .features {
+        margin-top: 40px;
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .feature {
+        flex: 1;
+        min-width: 120px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .feature-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+      }
+
+      .feature-text {
+        font-size: 0.9rem;
+        opacity: 0.8;
+      }
+
+      .network-status {
+        margin-top: 30px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+
+      .status-offline {
+        background: #ff4444;
+      }
+
+      .status-online {
+        background: #00ff44;
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          padding: 30px 20px;
+        }
+
+        .ninja-logo {
+          font-size: 3rem;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .subtitle {
+          font-size: 1rem;
+        }
+
+        .features {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="ninja-logo">🥷</div>
+      <h1>You're Offline</h1>
+      <div class="subtitle">The ninja world awaits your return</div>
+
+      <div class="description">
+        <p>
+          Your connection to the ninja world has been severed. Check your internet
+          connection and return to continue your journey as a legendary ninja.
+        </p>
+      </div>
+
+      <button class="retry-btn" onclick="window.location.reload()">
+        🔄 Reconnect to the Ninja World
+      </button>
+
+      <div class="network-status">
+        <span class="status-indicator status-offline"></span>
+        <span id="connection-status">Connection Status: Offline</span>
+      </div>
+    </div>
+
+    <script>
+      // Monitor online/offline status
+      function updateConnectionStatus() {
+        const statusElement = document.getElementById("connection-status");
+        const indicator = document.querySelector(".status-indicator");
+
+        if (navigator.onLine) {
+          statusElement.textContent = "Connection Status: Online - Reconnecting...";
+          indicator.className = "status-indicator status-online";
+
+          // Auto-reload when back online
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          statusElement.textContent = "Connection Status: Offline";
+          indicator.className = "status-indicator status-offline";
+        }
+      }
+
+      // Listen for connection changes
+      window.addEventListener("online", updateConnectionStatus);
+      window.addEventListener("offline", updateConnectionStatus);
+
+      // Initial status check
+      updateConnectionStatus();
+
+      // Periodic connection check
+      setInterval(() => {
+        if (navigator.onLine) {
+          // Try to fetch a small resource to verify connection
+          fetch("/favicon.ico", { mode: "no-cors" })
+            .then(() => {
+              window.location.reload();
+            })
+            .catch(() => {
+              // Still offline
+            });
+        }
+      }, 5000);
+    </script>
+  </body>
+</html>

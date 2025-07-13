@@ -319,7 +319,6 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
     if (activeObjective?.sceneBackground) {
       assetIds.push(activeObjective.sceneBackground);
     } else if (quest.content.sceneBackground) {
-      console.log("Using quest background");
       assetIds.push(quest.content.sceneBackground);
     }
     if (
