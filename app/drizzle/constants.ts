@@ -1,3 +1,9 @@
+export const OCCUPATIONS = ["GATHERING", "HUNTER", "CRAFTING"] as const;
+export type OccupationType = (typeof OCCUPATIONS)[number];
+
+// Occupation config
+export const OCCUPATION_CHANGE_COOLDOWN_DAYS = 3;
+
 export const PollOptionTypes = ["text", "user"] as const;
 export type PollOptionType = (typeof PollOptionTypes)[number];
 
@@ -835,6 +841,13 @@ export const DRACO_ENCODER_URL =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJGexpLZRfoVrha0LP4mAS5KM7wtiZbUNXJxdC";
 
 // Images
+export const IMG_OCCUPATION_GATHERING =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJePgzrqyV3OvUJQExAi0bGoIZDF74LqSnHRdp";
+export const IMG_OCCUPATION_HUNTER =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJ2xooNenMXlcRpYmJ5do0zKw4Qx6PVEtBa9b8";
+export const IMG_OCCUPATION_CRAFTING =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJ7YhkcAXKPBOUWGyFuM4DlL1v5HNTZhkte0z6";
+
 export const IMG_FRONTPAGE_SCREENSHOT_COMBAT =
   "https://utfs.io/f/Hzww9EQvYURJmap513HE4IMO5Goa7cgLxPJ0VC6lU8vbt1Ap";
 export const IMG_FRONTPAGE_SCREENSHOT_JUTSUS =

@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import Image from "next/image";
 import { Atom, Bug, User, Globe2, BookOpenText } from "lucide-react";
 import { Paintbrush, MessagesSquare, Newspaper, Scale, Receipt } from "lucide-react";
-import { Inbox, Flag, ShieldHalf } from "lucide-react";
+import { Inbox, Flag, ShieldHalf, Briefcase } from "lucide-react";
 import { calcIsInVillage } from "./travel/controls";
 import { api } from "@/app/_trpc/client";
 import { findVillageUserRelationship } from "@/utils/alliance";
@@ -120,10 +120,10 @@ export const useGameMenu = (userData: UserWithRelations) => {
       icon: <ShieldHalf key="items" className="h-6 w-6" />,
     },
     {
-      id: "tutorial-rules",
-      href: "/rules",
-      name: "Rules",
-      icon: <Scale key="rules" className="h-6 w-6" />,
+      id: "tutorial-jobs",
+      href: "/occupation",
+      name: "Jobs",
+      icon: <Briefcase key="jobs" className="h-6 w-6" />,
     },
   ];
 

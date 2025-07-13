@@ -1638,6 +1638,8 @@ export const userData = mysqlTable(
     rankedWins: int("rankedWins").default(0).notNull(),
     rankedStreak: int("rankedStreak").default(0).notNull(),
     skillPoints: int("skillPoints").default(0).notNull(),
+    occupation: mysqlEnum("occupation", consts.OCCUPATIONS),
+    occupationSignupAt: datetime("occupationSignupAt", { mode: "date", fsp: 3 }),
   },
   (table) => {
     return {
