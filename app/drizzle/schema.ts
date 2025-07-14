@@ -1021,8 +1021,10 @@ export const item = mysqlTable(
     maxEquips: int("maxEquips").default(1).notNull(),
     preventBattleUsage: boolean("preventBattleUsage").default(false).notNull(),
     requiredLevel: int("requiredLevel").default(1).notNull(),
-    craftable: boolean("craftable").default(false).notNull(),
+    canBeCrafted: boolean("canBeCrafted").default(false).notNull(),
     canBeImbued: boolean("canBeImbued").default(false).notNull(),
+    canBeHunted: boolean("canBeHunted").default(false).notNull(),
+    canBeGathered: boolean("canBeGathered").default(false).notNull(),
   },
   (table) => {
     return {
@@ -1643,6 +1645,8 @@ export const userData = mysqlTable(
     senseiId: varchar("senseiId", { length: 191 }),
     medicalExperience: int("medicalExperience").default(0).notNull(),
     craftingExperience: int("craftingExperience").default(0).notNull(),
+    huntingExperience: int("huntingExperience").default(0).notNull(),
+    gatheringExperience: int("gatheringExperience").default(0).notNull(),
     // Settings
     preferredStat: mysqlEnum("preferredStat", consts.StatTypes),
     preferredGeneral1: mysqlEnum("preferredGeneral1", consts.GeneralTypes),

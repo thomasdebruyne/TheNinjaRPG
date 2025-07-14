@@ -24,7 +24,7 @@ import { nanoid } from "nanoid";
 export const occupationRouter = createTRPCRouter({
   getCraftableItems: protectedProcedure.query(async ({ ctx }) => {
     return await ctx.drizzle.query.item.findMany({
-      where: eq(item.craftable, true),
+      where: eq(item.canBeCrafted, true),
       with: {
         craftingRequirements: {
           with: {
@@ -98,7 +98,7 @@ export const occupationRouter = createTRPCRouter({
       if (itemWithRequirements.hidden) {
         return errorResponse("This item is hidden and cannot be crafted");
       }
-      if (!itemWithRequirements.craftable) {
+      if (!itemWithRequirements.canBeCrafted) {
         return errorResponse("This item is not craftable");
       }
       if (itemWithRequirements.craftingRequirements.length === 0) {

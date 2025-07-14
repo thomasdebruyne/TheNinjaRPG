@@ -1060,21 +1060,21 @@ const SuperRefineItem = (data: ItemValidatorType, ctx: z.RefinementCtx) => {
   const hasNonCombatConsumeReward = data.effects.find(
     (e) => e.type === "noncombatconsumereward",
   );
-  
+
   // Cost validation - exactly one cost type must be set
   const costTypes = [
     { name: "ryo", value: data.cost },
     { name: "reputation", value: data.repsCost },
-    { name: "seichi silver", value: data.seichiSilverCost }
-  ].filter(cost => cost.value > 0);
-  
+    { name: "seichi silver", value: data.seichiSilverCost },
+  ].filter((cost) => cost.value > 0);
+
   if (costTypes.length === 0) {
     addIssue(ctx, "Must have either a ryo, reputation points, or seichi silver cost");
   } else if (costTypes.length > 1) {
-    const costNames = costTypes.map(c => c.name).join(", ");
+    const costNames = costTypes.map((c) => c.name).join(", ");
     addIssue(ctx, `Cannot have multiple cost types. Found: ${costNames}`);
   }
-  
+
   if (data.itemType === "CONSUMABLE" && data.destroyOnUse === 0) {
     addIssue(ctx, "Consumable items must be destroyed on use");
   }
@@ -1248,7 +1248,9 @@ export const ItemValidatorRawSchema = z.object({
     .nullable(),
   effects: z.array(AllTags).superRefine(SuperRefineEffects),
   canBeImbued: z.coerce.boolean().default(false),
-  craftable: z.coerce.boolean().default(false),
+  canBeCrafted: z.coerce.boolean().default(false),
+  canBeHunted: z.coerce.boolean().default(false),
+  canBeGathered: z.coerce.boolean().default(false),
   craftingRequirements: z
     .array(
       z.object({

@@ -621,6 +621,125 @@ export const MEDNIN_REQUIRED_EXP: Record<MEDNIN_RANK, number> = {
   LEGENDARY: 600000,
 };
 
+// Hunting config
+export const HUNTING_RANKS = [
+  "D RANK",
+  "C RANK",
+  "B RANK",
+  "A RANK",
+  "S RANK",
+] as const;
+export type HUNTING_RANK = (typeof HUNTING_RANKS)[number];
+export const HUNTING_REQUIRED_EXP: Record<HUNTING_RANK, number> = {
+  "D RANK": 0,
+  "C RANK": 30000,
+  "B RANK": 76000,
+  "A RANK": 90000,
+  "S RANK": 120000,
+};
+export const HUNTING_EXPERIENCE_GAIN: Record<UserRank, number> = {
+  NONE: 200,
+  STUDENT: 200,
+  GENIN: 200,
+  CHUNIN: 300,
+  JONIN: 400,
+  "ELITE JONIN": 500,
+  ELDER: 600,
+};
+export const HUNTING_ITEM_DROP_CHANCES: Record<
+  HUNTING_RANK,
+  Record<ItemRarity, number>
+> = {
+  "D RANK": {
+    COMMON: 15,
+    RARE: 10,
+    EPIC: 0,
+    LEGENDARY: 0,
+  },
+  "C RANK": {
+    COMMON: 20,
+    RARE: 15,
+    EPIC: 5,
+    LEGENDARY: 11,
+  },
+  "B RANK": {
+    COMMON: 25,
+    RARE: 20,
+    EPIC: 10,
+    LEGENDARY: 2,
+  },
+  "A RANK": {
+    COMMON: 30,
+    RARE: 25,
+    EPIC: 15,
+    LEGENDARY: 5,
+  },
+  "S RANK": {
+    COMMON: 40,
+    RARE: 30,
+    EPIC: 20,
+    LEGENDARY: 10,
+  },
+};
+
+// Gathering config
+export const CATHERING_RANKS = [
+  "D RANK",
+  "C RANK",
+  "B RANK",
+  "A RANK",
+  "S RANK",
+] as const;
+export type CATHERING_RANK = (typeof CATHERING_RANKS)[number];
+export const CATHERING_REQUIRED_EXP: Record<CATHERING_RANK, number> = {
+  "D RANK": 0,
+  "C RANK": 30000,
+  "B RANK": 76000,
+  "A RANK": 90000,
+  "S RANK": 120000,
+};
+export const CATHERING_EXPERIENCE_GAIN: Record<ItemRarity, number> = {
+  COMMON: 200,
+  RARE: 300,
+  EPIC: 400,
+  LEGENDARY: 500,
+};
+export const CATHERING_ITEM_DROP_CHANCES: Record<
+  CATHERING_RANK,
+  Record<ItemRarity, number>
+> = {
+  "D RANK": {
+    COMMON: 15,
+    RARE: 10,
+    EPIC: 0,
+    LEGENDARY: 0,
+  },
+  "C RANK": {
+    COMMON: 20,
+    RARE: 15,
+    EPIC: 5,
+    LEGENDARY: 11,
+  },
+  "B RANK": {
+    COMMON: 25,
+    RARE: 20,
+    EPIC: 10,
+    LEGENDARY: 2,
+  },
+  "A RANK": {
+    COMMON: 30,
+    RARE: 25,
+    EPIC: 15,
+    LEGENDARY: 5,
+  },
+  "S RANK": {
+    COMMON: 40,
+    RARE: 30,
+    EPIC: 20,
+    LEGENDARY: 10,
+  },
+};
+
 // Crafting config
 export const CRAFTING_RANKS = [
   "NOVICE",

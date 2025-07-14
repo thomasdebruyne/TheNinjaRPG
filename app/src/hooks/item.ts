@@ -83,15 +83,15 @@ export const useItemEditForm = (
     name: "image",
   });
 
-  // Watch for changes to craftable
-  const craftable = useWatch({
+  // Watch for changes to canBeCrafted
+  const canBeCrafted = useWatch({
     control: form.control,
-    name: "craftable",
+    name: "canBeCrafted",
   });
 
-  // Query for items if this item is craftable
+  // Query for items if this item is canBeCrafted
   const { data: itemsData } = api.item.getAllNames.useQuery(undefined, {
-    enabled: craftable,
+    enabled: canBeCrafted,
   });
 
   // Object for form values
@@ -127,12 +127,14 @@ export const useItemEditForm = (
     { id: "isEventItem", type: "boolean" },
     { id: "inShop", type: "boolean" },
     { id: "preventBattleUsage", type: "boolean" },
-    { id: "craftable", type: "boolean" },
+    { id: "canBeHunted", type: "boolean" },
+    { id: "canBeGathered", type: "boolean" },
+    { id: "canBeCrafted", type: "boolean" },
     { id: "canBeImbued", type: "boolean" },
     { id: "expireFromStoreAt", type: "date", label: "Remove from store at" },
   ];
 
-  if (craftable) {
+  if (canBeCrafted) {
     formData.push({
       id: "craftingRequirements",
       doubleWidth: true,
