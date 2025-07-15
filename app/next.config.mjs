@@ -106,6 +106,9 @@ export default withSentryConfig(withBundleAnalyzer(config), {
   // https://docs.sentry.io/product/crons/
   // https://vercel.com/docs/cron-jobs
   automaticVercelMonitors: true,
+
+  autoInstrumentAppDirectory: true,
+  autoInstrumentMiddleware: true,
 });
 
 // https://securityheaders.com

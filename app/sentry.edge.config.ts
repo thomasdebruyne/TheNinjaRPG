@@ -11,8 +11,15 @@ Sentry.init({
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: 0.001,
 
+  // Error sample rate
+  sampleRate: 1.0,
+
   // Set the environment
   environment: process.env.NODE_ENV,
+
+  // Adds request headers and IP for users, for more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
+  sendDefaultPii: true,
 
   // Only on production URLs
   // allowUrls: [/https?:\/\/(www\.)?theninja-rpg\.com.*/],

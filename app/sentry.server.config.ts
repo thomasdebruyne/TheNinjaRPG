@@ -10,11 +10,18 @@ Sentry.init({
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: 0.001,
 
+  // Error sample rate
+  sampleRate: 1.0,
+
   // Which errors to ignore from frontend
   ignoreErrors: ["Unauthorized for tRPC endpoint"],
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
+
+  // Adds request headers and IP for users, for more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
+  sendDefaultPii: true,
 
   // Set the environment
   environment: process.env.NODE_ENV,
