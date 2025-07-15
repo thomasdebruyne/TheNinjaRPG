@@ -69,7 +69,9 @@ export const QuestHelper: React.FC<QuestHelperProps> = (props) => {
 
             {renderHuntingTips(quest)}
 
-            {quest.questType !== "hunting" && (
+            {renderGatheringTips(quest)}
+
+            {quest.questType !== "hunting" && quest.questType !== "gathering" && (
               <div className="p-3 bg-gray-50 rounded-lg border text-center">
                 <p className="text-sm text-gray-600">
                   No specific tips available for this quest type yet.
@@ -137,6 +139,64 @@ const renderHuntingTips = (quest: DeepPartial<ZodCombinedQuest>) => {
             Add multiple attackers with random encounter chances. Set the{" "}
             <code className="bg-orange-100 px-1 rounded">attackers_max_per_battle</code>{" "}
             to limit how many can attack at a time.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Renders the tips for gathering quests
+ * @param quest - The quest to render the tips for
+ * @returns The tips for gathering quests
+ */
+const renderGatheringTips = (quest: DeepPartial<ZodCombinedQuest>) => {
+  if (quest.questType !== "gathering") return null;
+
+  return (
+    <div className="space-y-4">
+      <Alert>
+        <HelpCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Gathering Quest Tips:</strong>
+        </AlertDescription>
+      </Alert>
+
+      <div className="space-y-3 text-sm">
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 className="font-medium text-blue-900 mb-2">Objective Type</h4>
+          <p className="text-blue-800">
+            Use the <code className="bg-blue-100 px-1 rounded">collect_item</code>{" "}
+            objective to set up gathering requirements.
+          </p>
+        </div>
+
+        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <h4 className="font-medium text-green-900 mb-2">Reward Configuration</h4>
+          <p className="text-green-800">
+            Toggle the{" "}
+            <code className="bg-green-100 px-1 rounded">reward_gathering_items</code>{" "}
+            either on the quest or objective to reward random drops based on gathering
+            rank.
+          </p>
+        </div>
+
+        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+          <h4 className="font-medium text-purple-900 mb-2">Random Drops</h4>
+          <p className="text-purple-800">
+            Do not set{" "}
+            <code className="bg-purple-100 px-1 rounded">collectItemIds</code> if you
+            only want random drops from gathering activities.
+          </p>
+        </div>
+
+        <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+          <h4 className="font-medium text-orange-900 mb-2">Collection Time</h4>
+          <p className="text-orange-800">
+            Set the{" "}
+            <code className="bg-orange-100 px-1 rounded">collect_time_minutes</code> to
+            configure how long each collection action takes.
           </p>
         </div>
       </div>
