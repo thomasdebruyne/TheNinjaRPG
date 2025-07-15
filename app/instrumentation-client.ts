@@ -26,6 +26,7 @@ Sentry.init({
     "Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
     "GME Provider is disconnected or locked", // timeout error
     "Connection closed", // timeout error
+    "The play method is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.", // audio permission denied
   ],
 
   // Only enable Sentry in production
