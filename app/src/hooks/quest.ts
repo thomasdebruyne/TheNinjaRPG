@@ -95,6 +95,8 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
         if (objective.task === "move_to_location" && data.image) {
           objective.image = data.image;
         } else if (objective.task === "collect_item") {
+          objective.image = IMG_AVATAR_DEFAULT;
+          objective.item_name = "Unknown";
           const subset = items?.filter((i) => objective.collectItemIds.includes(i.id));
           if (subset && subset.length > 0) {
             objective.image = subset?.[0]?.image || IMG_AVATAR_DEFAULT;
@@ -145,6 +147,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
             reward_badges: data.reward_badges,
             reward_items: data.reward_items,
             reward_hunter_items: data.reward_hunter_items,
+            reward_gathering_items: data.reward_gathering_items,
             reward_rank: data.reward_rank,
             reward_bloodlines: data.reward_bloodlines,
           },
@@ -254,6 +257,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
 
   // Rewards
   formData.push({ id: "reward_hunter_items", type: "boolean" });
+  formData.push({ id: "reward_gathering_items", type: "boolean" });
   formData.push({ id: "reward_money", type: "number" });
   formData.push({ id: "reward_seichi_silver", type: "number" });
   formData.push({ id: "reward_clanpoints", type: "number" });

@@ -163,7 +163,7 @@ export default function Occupations() {
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm text-orange-600 font-medium">
                   <span>You can change occupations in</span>
                   {userData.occupationSignupAt && (
-                    <span className="font-mono bg-orange-50 rounded px-2 py-0.5">
+                    <span className="font-mono bg-popover rounded px-2 py-0.5">
                       <Countdown
                         targetDate={
                           new Date(

@@ -5,13 +5,15 @@ import Countdown from "@/layout/Countdown";
 import Modal2 from "@/layout/Modal2";
 import { CircleHelp, RotateCcw } from "lucide-react";
 import { getObjectiveImage } from "@/libs/objectives";
-import { X, Check, Gift } from "lucide-react";
+import { X, Check, Gift, Loader2 } from "lucide-react";
 import { hasReward } from "@/validators/objectives";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { getObjectiveSchema } from "@/validators/objectives";
 import { isObjectiveComplete } from "@/libs/objectives";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";
+import { secondsFromDate } from "@/utils/time";
+
 import { Button } from "@/components/ui/button";
 import type { Quest } from "@/drizzle/schema";
 import type { AllObjectivesType, ObjectiveRewardType } from "@/validators/objectives";
@@ -27,8 +29,9 @@ interface ObjectiveProps {
   hideIfNoRewards?: boolean | null;
 }
 export const Objective: React.FC<ObjectiveProps> = (props) => {
+  const utils = api.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
-  const { data: userData } = useRequiredUserData();
+  const { data: userData, timeDiff } = useRequiredUserData();
   const { objective, tier, tracker, titlePrefix, checkRewards } = props;
   const { image, title } = getObjectiveImage(objective);
 
@@ -49,10 +52,25 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
     api.quests.retryBattle.useMutation({
       onSuccess: async (data) => {
         showMutationToast(data);
-        // Refresh user data to update quest state
-        window.location.reload();
+        await utils.profile.getUser.invalidate();
       },
     });
+
+  const isTimeEventCountdown =
+    "collect_time_minutes" in parsed &&
+    parsed.collect_time_minutes > 0 &&
+    status?.timestamp ? (
+      <Countdown
+        timeDiff={timeDiff}
+        targetDate={secondsFromDate(
+          parsed.collect_time_minutes * 60,
+          new Date(status.timestamp),
+        )}
+        onFinish={async () => {
+          checkRewards();
+        }}
+      />
+    ) : null;
 
   // Indicator icon
   const indicatorIcons = done ? (
@@ -69,7 +87,10 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
         ))}
     </div>
   ) : (
-    <X className="h-10 w-10 stroke-red-500" />
+    <>
+      <X className="h-10 w-10 stroke-red-500" />
+      {isTimeEventCountdown && <Loader2 className="h-10 w-10 animate-spin" />}
+    </>
   );
 
   // If future objectives are hidden, hide future objectives
@@ -78,13 +99,15 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
   // Show the objective
   return (
     <div className={`flex flex-row ${props.grayedOut ? "grayscale opacity-30" : ""}`}>
-      <Image
-        className="self-start basis-1/4"
-        alt={parsed.task}
-        src={image}
-        width={60}
-        height={60}
-      />
+      <div className="basis-1/4 flex items-center justify-center">
+        <Image
+          className="self-start max-w-30 w-full"
+          alt={parsed.task}
+          src={image}
+          width={60}
+          height={60}
+        />
+      </div>
       <div className="basis-3/4">
         <div className="flex flex-row">
           <p className="font-bold pl-2 grow">
@@ -145,6 +168,11 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
                   </div>
                 )}
                 <Reward info={parsed} />
+                {isTimeEventCountdown && (
+                  <div>
+                    <b>Time left:</b> {isTimeEventCountdown}
+                  </div>
+                )}
               </div>
               <div>{indicatorIcons}</div>
             </div>

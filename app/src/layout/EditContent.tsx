@@ -161,6 +161,10 @@ export const EditContent = <
   //     },
   //   });
 
+  // If this is a quest, deduce the quest-type
+  const questType =
+    props.type === "quest" ? form.getValues("questType" as Path<S>) : undefined;
+
   // const load = isLoading || load1 || load2 || load3;
   return (
     <Form {...form}>
@@ -172,6 +176,14 @@ export const EditContent = <
       >
         {formData
           .filter((formEntry) => formEntry.type !== "avatar3d")
+          .filter((formEntry) => {
+            return formEntry.id !== "reward_hunter_items" || questType === "hunting";
+          })
+          .filter((formEntry) => {
+            return (
+              formEntry.id !== "reward_gathering_items" || questType === "gathering"
+            );
+          })
           .sort((a, b) => {
             if (["dialog_options", "db_values_with_number"].includes(a.type)) return 1;
             if (["dialog_options", "db_values_with_number"].includes(b.type)) return -1;

@@ -386,6 +386,7 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
               "story",
               "medical",
               "hunting",
+              "gathering",
               "anbu",
             ].includes(quest.questType) && (
               <Confirm2
@@ -435,7 +436,7 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
             <Image
               src={background}
               alt="SceneBackground"
-              className="w-full relative rounded-lg"
+              className="w-full relative"
               width={512}
               height={341}
             />
@@ -488,33 +489,40 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
           </div>
         )}
 
-        <div
-          className={cn(
-            "grid grid-cols-1 gap-4",
-            tierOrDaily ? "sm:grid-cols-1" : "sm:grid-cols-2",
-            showScene ? "px-3 pb-3" : "",
-          )}
-        >
-          {quest.content.objectives?.map((objective, i) => {
-            // Clean up the shown objectives a bit to hide dialog
-            const status = tracker?.goals.find((g) => g.id === objective.id);
-            const hideIfNoRewards =
-              objective.task === "dialog" ||
-              (activeObjective && objective.id !== activeObjective?.id) ||
-              (allDone && !status?.done);
-            return (
-              <Objective
-                objective={objective}
-                tracker={tracker}
-                checkRewards={() => checkRewards({ questId: quest.id })}
-                key={i}
-                titlePrefix={quest.consecutiveObjectives ? "Objective: " : `${i + 1}. `}
-                grayedOut={!isQuestObjectiveAvailable(quest, tracker, i)}
-                hideIfNoRewards={hideIfNoRewards}
-              />
-            );
-          })}
-        </div>
+        {quest.content.objectives && (
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-4",
+              tierOrDaily || quest.content.objectives.length === 1
+                ? "sm:grid-cols-1"
+                : "sm:grid-cols-2",
+              showScene ? "px-3 pb-3" : "",
+            )}
+          >
+            {quest.content.objectives.map((objective, i) => {
+              // Clean up the shown objectives a bit to hide dialog
+              const status = tracker?.goals.find((g) => g.id === objective.id);
+              const hideIfNoRewards =
+                objective.task === "dialog" ||
+                (activeObjective && objective.id !== activeObjective?.id) ||
+                (allDone && !status?.done);
+              return (
+                <Objective
+                  objective={objective}
+                  tracker={tracker}
+                  checkRewards={() => checkRewards({ questId: quest.id })}
+                  key={i}
+                  titlePrefix={
+                    quest.consecutiveObjectives ? "Objective: " : `${i + 1}. `
+                  }
+                  grayedOut={!isQuestObjectiveAvailable(quest, tracker, i)}
+                  hideIfNoRewards={hideIfNoRewards}
+                />
+              );
+            })}
+          </div>
+        )}
+
         {allDone && userData?.status === "AWAKE" && (
           <div className={cn("grow w-full", showScene ? "p-3" : "")}>
             <Button

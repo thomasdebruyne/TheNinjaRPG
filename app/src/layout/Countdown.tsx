@@ -16,6 +16,7 @@ const Countdown: React.FC<CountdownProps> = (props) => {
   if (props.timeDiff) {
     targetTime += props.timeDiff;
   }
+  const [hasCalledOnFinish, setHasCalledOnFinish] = useState(false);
   const [countDown, setCountDown] = useState(targetTime - new Date().getTime());
   const [countString, setCountString] = useState<string | null>(null);
 
@@ -40,11 +41,13 @@ const Countdown: React.FC<CountdownProps> = (props) => {
       }, 500);
       return () => clearInterval(interval);
     } else {
-      if (props.onFinish) {
+      if (props.onFinish && !hasCalledOnFinish) {
+        setHasCalledOnFinish(true);
         // NOTE: Careful with this one to avoid infinite loop on re-render
         props.onFinish();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countDown, countString, targetTime, props]);
 
   if (countString === "Done" && props.onEndShow) {

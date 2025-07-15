@@ -117,6 +117,7 @@ export const getReward = (
   let rawRewards = ObjectiveReward.parse({});
   const { trackers, notifications, consequences } = getNewTrackers(user, [
     { task: "any" },
+    { task: "collect_item" },
     { task: "dialog", contentId: dialogNextObjectiveId },
   ]);
   const userQuest = user.userQuests.find((uq) => uq.questId === questId);
@@ -284,6 +285,7 @@ export const collapseRewards = (
     reward_badges: [],
     reward_rank: "NONE",
     reward_hunter_items: false,
+    reward_gathering_items: false,
   };
 
   rewards.forEach((reward) => {
@@ -304,6 +306,11 @@ export const collapseRewards = (
     // Only set reward hunter items to true if any of the rewards have it
     if (reward.reward_hunter_items) {
       collapsed.reward_hunter_items = true;
+    }
+
+    // Only set reward gathering items to true if any of the rewards have it
+    if (reward.reward_gathering_items) {
+      collapsed.reward_gathering_items = true;
     }
 
     // Concatenate array rewards
@@ -589,12 +596,34 @@ export const getNewTrackers = (
                   "collectItemIds" in objective &&
                   objective.collectItemIds
                 ) {
-                  notifications.push(`Got ${objective.item_name} for ${quest.name}.`);
-                  consequences.push({
-                    type: "add_item",
-                    ids: objective.collectItemIds,
-                  });
-                  status.done = true;
+                  let doCollect = true;
+                  if (
+                    "collect_time_minutes" in objective &&
+                    objective.collect_time_minutes
+                  ) {
+                    if ("timestamp" in status && status.timestamp) {
+                      const minutesPassed =
+                        secondsPassed(new Date(status.timestamp)) / 60;
+                      if (minutesPassed < objective.collect_time_minutes) {
+                        doCollect = false;
+                      }
+                    } else {
+                      notifications.push(
+                        `You started collecting. This will take ${objective.collect_time_minutes} minutes.`,
+                      );
+                      status.timestamp = new Date().toISOString();
+                      doCollect = false;
+                    }
+                  }
+                  if (doCollect) {
+                    consequences.push({
+                      type: "add_item",
+                      ids: objective.collectItemIds,
+                    });
+                    status.done = true;
+                  } else {
+                    questIdsUpdated.push(quest.id);
+                  }
                 } else if (
                   task === "deliver_item" &&
                   "item_name" in objective &&
@@ -707,7 +736,6 @@ export const getNewTrackers = (
           if (status.done) {
             questIdsUpdated.push(quest.id);
           }
-
           return status;
         });
         return questTracker;

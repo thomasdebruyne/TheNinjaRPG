@@ -384,6 +384,7 @@ export const QuestTypes = [
   "anbu",
   "medical",
   "hunting",
+  "gathering",
 ] as const;
 export type QuestType = (typeof QuestTypes)[number];
 export const QUESTS_CONCURRENT_LIMIT = 4;
@@ -687,6 +688,7 @@ export const HUNTING_ITEM_DROP_CHANCES: Record<
 
 // Gathering config
 export const GATHERING_RANKS = [
+  "NONE",
   "D RANK",
   "C RANK",
   "B RANK",
@@ -694,7 +696,8 @@ export const GATHERING_RANKS = [
   "S RANK",
 ] as const;
 export type GATHERING_RANK = (typeof GATHERING_RANKS)[number];
-export const CATHERING_REQUIRED_EXP: Record<GATHERING_RANK, number> = {
+export const GATHERING_REQUIRED_EXP: Record<GATHERING_RANK, number> = {
+  NONE: 0,
   "D RANK": 0,
   "C RANK": 30000,
   "B RANK": 76000,
@@ -711,6 +714,12 @@ export const GATHERING_ITEM_DROP_CHANCES: Record<
   GATHERING_RANK,
   Record<ItemRarity, number>
 > = {
+  NONE: {
+    COMMON: 0,
+    RARE: 0,
+    EPIC: 0,
+    LEGENDARY: 0,
+  },
   "D RANK": {
     COMMON: 15,
     RARE: 10,

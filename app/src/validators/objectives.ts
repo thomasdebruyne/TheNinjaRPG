@@ -77,6 +77,7 @@ export const idsWithNumberField = z
 
 export const rewardFields = {
   reward_hunter_items: z.boolean().default(false),
+  reward_gathering_items: z.boolean().default(false),
   reward_seichi_silver: z.coerce.number().default(0),
   reward_money: z.coerce.number().default(0),
   reward_clanpoints: z.coerce.number().default(0),
@@ -118,7 +119,8 @@ export const hasReward = (reward: ObjectiveRewardType) => {
     parsedReward.reward_jutsus.length > 0 ||
     parsedReward.reward_bloodlines.length > 0 ||
     parsedReward.reward_badges.length > 0 ||
-    parsedReward.reward_hunter_items
+    parsedReward.reward_hunter_items ||
+    parsedReward.reward_gathering_items
   );
 };
 
@@ -243,6 +245,7 @@ export const CollectItem = z.object({
   item_name: z.string().min(3).default("Secret scroll"),
   collectItemIds: z.array(z.string()).default([]),
   delete_on_complete: z.coerce.boolean().default(false),
+  collect_time_minutes: z.coerce.number().min(0).max(60).default(0),
   ...complexObjectiveFields,
 });
 export type CollectItemType = z.infer<typeof CollectItem>;
@@ -294,6 +297,7 @@ export const ObjectiveTracker = z.object({
   longitude: z.coerce.number().min(0).optional(),
   latitude: z.coerce.number().min(0).optional(),
   selectedNextObjectiveId: z.string().optional(),
+  timestamp: z.string().datetime().optional(),
   recentlyDied: z.boolean().default(false),
 });
 export type ObjectiveTrackerType = z.infer<typeof ObjectiveTracker>;

@@ -837,6 +837,13 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                             {parsedEffect.reward_hunter_items ? "yes" : "no"}
                           </p>
                         )}
+                      {"reward_gathering_items" in parsedEffect &&
+                        parsedEffect.reward_gathering_items && (
+                          <p>
+                            <b>Reward Gathering Items</b>:{" "}
+                            {parsedEffect.reward_gathering_items ? "yes" : "no"}
+                          </p>
+                        )}
                       {"direction" in parsedEffect &&
                         parsedEffect.direction &&
                         (effect.type === "increasestat" ||

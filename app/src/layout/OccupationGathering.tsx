@@ -1,19 +1,159 @@
 "use client";
 
-import React from "react";
 import ContentBox from "@/layout/ContentBox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Star, Info, Zap } from "lucide-react";
+import { useRequiredUserData } from "@/utils/UserContext";
+import {
+  GATHERING_RANKS,
+  GATHERING_REQUIRED_EXP,
+  GATHERING_ITEM_DROP_CHANCES,
+} from "@/drizzle/constants";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
+import {
+  getGatheringRank,
+  getNextRankExperience,
+  getGatheringRankProgress,
+} from "@/libs/gathering";
+import QuestPicker from "@/layout/QuestPicker";
 
 export default function OccupationGathering() {
+  // State
+  const { data: userData } = useRequiredUserData();
+
+  // Guard
+  if (userData?.occupation !== "GATHERING") return null;
+
+  // Derived data
+  const gatheringRank = getGatheringRank(userData.gatheringExperience);
+  const rankProgress = getGatheringRankProgress(userData.gatheringExperience);
+  const nextRankExp = getNextRankExperience(gatheringRank);
+
   return (
-    <ContentBox 
-      title="Gathering" 
-      subtitle="Gather resources from the world"
-      initialBreak
-    >
-      <p className="text-muted-foreground">
-        This is a placeholder component for the Gathering occupation. 
-        Functionality will be implemented later.
-      </p>
-    </ContentBox>
+    <>
+      <QuestPicker
+        questType="gathering"
+        title="Gathering Quests"
+        subtitle="Gather resources"
+      />
+      <ContentBox title="Overview" subtitle="Your experience and rank" initialBreak>
+        <div className="space-y-6">
+          {/* Gathering Rank */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5" />
+                Gathering Rank: {capitalizeFirstLetter(gatheringRank)}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>
+                    Experience: {userData.gatheringExperience.toLocaleString()}
+                  </span>
+                  {rankProgress.nextRank && nextRankExp && (
+                    <span>Next: {nextRankExp.toLocaleString()}</span>
+                  )}
+                </div>
+                <Progress value={rankProgress.progress} className="h-2" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Drop Chances */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Item Drop Chances
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Your current drop chances for {gatheringRank}:
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.entries(GATHERING_ITEM_DROP_CHANCES[gatheringRank]).map(
+                    ([rarity, chance]) => (
+                      <div key={rarity} className="text-center">
+                        <Badge variant="outline" className="mb-2 capitalize">
+                          {rarity.toLowerCase()}
+                        </Badge>
+                        <div className="text-lg font-bold">{chance}%</div>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gathering Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5" />
+                Gathering Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Gathering Ranks & Requirements</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    {GATHERING_RANKS.map((rank) => (
+                      <div key={rank}>
+                        <Badge variant="outline" className="mb-2">
+                          {rank} ({GATHERING_REQUIRED_EXP[rank].toLocaleString()}+ exp)
+                        </Badge>
+                        <div className="space-y-1 text-muted-foreground ml-2">
+                          <div>Drop Chances:</div>
+                          <ul className="space-y-1">
+                            {Object.entries(GATHERING_ITEM_DROP_CHANCES[rank]).map(
+                              ([rarity, chance]) => (
+                                <li key={rarity} className="flex justify-between">
+                                  <span>
+                                    • {capitalizeFirstLetter(rarity.toLowerCase())}:
+                                  </span>
+                                  <span>{chance}%</span>
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">How Gathering Works</h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>
+                      • Complete gathering quests to gain experience and materials
+                    </li>
+                    <li>
+                      • Higher gathering ranks increase drop chances for rare materials
+                    </li>
+                    <li>• Experience is gained from successful gathering activities</li>
+                    <li>
+                      • Your user rank affects how much gathering experience you gain
+                    </li>
+                    <li>
+                      • Different material rarities have different drop rates per rank
+                    </li>
+                    <li>• Gathering materials can be used for crafting and trading</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </ContentBox>
+    </>
   );
 }

@@ -428,5 +428,11 @@ export const getRewardArray = (reward?: ObjectiveRewardType) => {
   if (questReward.reward_gathering_experience) {
     rewards.push(`${questReward.reward_gathering_experience} gathering experience`);
   }
+  if (questReward.reward_hunter_items) {
+    rewards.push(`drop hunter materials`);
+  }
+  if (questReward.reward_gathering_items) {
+    rewards.push(`drop gathering materials`);
+  }
   return rewards;
 };

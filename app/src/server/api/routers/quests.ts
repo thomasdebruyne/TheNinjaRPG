@@ -25,6 +25,7 @@ import {
   bloodlineRolls,
 } from "@/drizzle/schema";
 import { getHuntingItemDrops } from "@/libs/hunting";
+import { getGatheringItemDrops } from "@/libs/gathering";
 import { userJutsu, userItem, userData, userBadge } from "@/drizzle/schema";
 import { quest, questHistory, actionLog, village, userRewards } from "@/drizzle/schema";
 import { QuestValidator } from "@/validators/objectives";
@@ -458,9 +459,26 @@ export const questsRouter = createTRPCRouter({
         const current = user.userQuests?.filter(
           (q) => q.quest.questType === "hunting" && !q.endAt,
         );
+        if (user.occupation !== "HUNTER") {
+          return errorResponse("You are not a hunter");
+        }
         if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
           return errorResponse(
             `Already ${QUESTS_CONCURRENT_LIMIT} active hunting quests; ${current
+              .map((c) => c.quest.name)
+              .join(", ")}. Abandon one to start this quest.`,
+          );
+        }
+      } else if (questData.questType === "gathering") {
+        const current = user.userQuests?.filter(
+          (q) => q.quest.questType === "gathering" && !q.endAt,
+        );
+        if (user.occupation !== "GATHERING") {
+          return errorResponse("You are not a gatherer");
+        }
+        if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
+          return errorResponse(
+            `Already ${QUESTS_CONCURRENT_LIMIT} active gathering quests; ${current
               .map((c) => c.quest.name)
               .join(", ")}. Abandon one to start this quest.`,
           );
@@ -556,6 +574,7 @@ export const questsRouter = createTRPCRouter({
           "errand",
           "story",
           "hunting",
+          "gathering",
           "medical",
         ].includes(current.questType)
       ) {
@@ -720,6 +739,7 @@ export const questsRouter = createTRPCRouter({
             reward_items: [],
             reward_rank: "NONE",
             reward_hunter_items: false,
+            reward_gathering_items: false,
           },
         },
       });
@@ -1054,70 +1074,89 @@ export const updateRewards = async (info: {
   // Destructure
   const { client, user, rewards, questCounterField, reason } = info;
   // Fetch names from the database
-  const [hunterItems, items, jutsus, bloodlines, badges] = await Promise.all([
-    // Fetch hunter items if needed
-    rewards.reward_hunter_items && user.occupation === "HUNTER"
-      ? client
-          .select({ id: item.id, name: item.name, rarity: item.rarity })
-          .from(item)
-          .where(eq(item.canBeHunted, true))
-      : undefined,
-    // Fetch names from the database
-    rewards.reward_items.length > 0
-      ? client
-          .select({ id: item.id, name: item.name, rarity: item.rarity })
-          .from(item)
-          .where(inArray(item.id, rewards.reward_items))
-      : [],
-    rewards.reward_jutsus.length > 0
-      ? client
-          .select({ id: jutsu.id, name: jutsu.name })
-          .from(jutsu)
-          .leftJoin(
-            userJutsu,
-            and(eq(jutsu.id, userJutsu.jutsuId), eq(userJutsu.userId, user.userId)),
-          )
-          .where(
-            and(inArray(jutsu.id, rewards.reward_jutsus), isNull(userJutsu.userId)),
-          )
-      : [],
-    rewards.reward_bloodlines.length > 0
-      ? client
-          .select({ id: bloodline.id, name: bloodline.name, rank: bloodline.rank })
-          .from(bloodline)
-          .leftJoin(
-            bloodlineRolls,
-            and(
-              eq(bloodline.id, bloodlineRolls.bloodlineId),
-              eq(bloodlineRolls.userId, user.userId),
-            ),
-          )
-          .where(
-            and(
-              inArray(bloodline.id, rewards.reward_bloodlines),
-              isNull(bloodlineRolls.userId),
-            ),
-          )
-      : [],
-    rewards.reward_badges.length > 0
-      ? client
-          .select({ id: badge.id, name: badge.name, image: badge.image })
-          .from(badge)
-          .leftJoin(
-            userBadge,
-            and(eq(badge.id, userBadge.badgeId), eq(userBadge.userId, user.userId)),
-          )
-          .where(
-            and(inArray(badge.id, rewards.reward_badges), isNull(userBadge.userId)),
-          )
-      : [],
-  ]);
+  const [hunterItems, gatheringItems, items, jutsus, bloodlines, badges] =
+    await Promise.all([
+      // Fetch hunter items if needed
+      rewards.reward_hunter_items && user.occupation === "HUNTER"
+        ? client
+            .select({ id: item.id, name: item.name, rarity: item.rarity })
+            .from(item)
+            .where(eq(item.canBeHunted, true))
+        : undefined,
+      // Fetch gathering items if needed
+      rewards.reward_gathering_items && user.occupation === "GATHERING"
+        ? client
+            .select({ id: item.id, name: item.name, rarity: item.rarity })
+            .from(item)
+            .where(eq(item.canBeGathered, true))
+        : undefined,
+      // Fetch names from the database
+      rewards.reward_items.length > 0
+        ? client
+            .select({ id: item.id, name: item.name, rarity: item.rarity })
+            .from(item)
+            .where(inArray(item.id, rewards.reward_items))
+        : [],
+      rewards.reward_jutsus.length > 0
+        ? client
+            .select({ id: jutsu.id, name: jutsu.name })
+            .from(jutsu)
+            .leftJoin(
+              userJutsu,
+              and(eq(jutsu.id, userJutsu.jutsuId), eq(userJutsu.userId, user.userId)),
+            )
+            .where(
+              and(inArray(jutsu.id, rewards.reward_jutsus), isNull(userJutsu.userId)),
+            )
+        : [],
+      rewards.reward_bloodlines.length > 0
+        ? client
+            .select({ id: bloodline.id, name: bloodline.name, rank: bloodline.rank })
+            .from(bloodline)
+            .leftJoin(
+              bloodlineRolls,
+              and(
+                eq(bloodline.id, bloodlineRolls.bloodlineId),
+                eq(bloodlineRolls.userId, user.userId),
+              ),
+            )
+            .where(
+              and(
+                inArray(bloodline.id, rewards.reward_bloodlines),
+                isNull(bloodlineRolls.userId),
+              ),
+            )
+        : [],
+      rewards.reward_badges.length > 0
+        ? client
+            .select({ id: badge.id, name: badge.name, image: badge.image })
+            .from(badge)
+            .leftJoin(
+              userBadge,
+              and(eq(badge.id, userBadge.badgeId), eq(userBadge.userId, user.userId)),
+            )
+            .where(
+              and(inArray(badge.id, rewards.reward_badges), isNull(userBadge.userId)),
+            )
+        : [],
+    ]);
 
   // If we are rewarding hunter items, only select based on hunter rank
-  const droppedItems = getHuntingItemDrops(user.huntingExperience, hunterItems || []);
+  const droppedHunterItems = getHuntingItemDrops(
+    user.huntingExperience,
+    hunterItems || [],
+  );
+  const droppedGatheringItems = getGatheringItemDrops(
+    user.gatheringExperience,
+    gatheringItems || [],
+  );
 
   // Total items to insert
-  const itemsToInsert = [...items, ...(droppedItems || [])];
+  const itemsToInsert = [
+    ...items,
+    ...(droppedHunterItems || []),
+    ...(droppedGatheringItems || []),
+  ];
 
   // Update userdata
   const getNewRank = rewards.reward_rank !== "NONE";
