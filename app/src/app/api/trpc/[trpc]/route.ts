@@ -63,7 +63,7 @@ export const logError = (
  * There is a potential bug in Sentry that throws an exception when flushing times out, causing API endpoints to fail.
  * @see https://github.com/getsentry/sentry/issues/26870
  */
-export const flushSafe = async (timeout: number = 2000): Promise<boolean> => {
+export const flushSafe = async (timeout = 2000): Promise<boolean> => {
   try {
     return await Sentry.flush(timeout);
   } catch (e) {
