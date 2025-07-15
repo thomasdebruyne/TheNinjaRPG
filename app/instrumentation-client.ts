@@ -29,7 +29,7 @@ Sentry.init({
   ],
 
   // Only enable Sentry in production
-  enabled: process.env.NODE_ENV !== "development",
+  environment: process.env.NODE_ENV,
 
   // Only on production URLs
   // allowUrls: [/https?:\/\/(www\.)?theninja-rpg\.com.*/],

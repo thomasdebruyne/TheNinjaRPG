@@ -11,8 +11,8 @@ Sentry.init({
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: 0.001,
 
-  // Only enable Sentry in production
-  enabled: process.env.NODE_ENV !== "development",
+  // Set the environment
+  environment: process.env.NODE_ENV,
 
   // Only on production URLs
   // allowUrls: [/https?:\/\/(www\.)?theninja-rpg\.com.*/],

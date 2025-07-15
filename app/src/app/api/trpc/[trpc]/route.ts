@@ -19,15 +19,34 @@ const handler = async (req: NextRequest) => {
     createContext() {
       return createAppTRPCContext({ req, readHeaders, readCookies });
     },
-    onError: ({ error, path, input }) => {
+    onError: ({ error, path, input, ctx }) => {
       if (!["UNAUTHORIZED", "TOO_MANY_REQUESTS"].includes(error.code)) {
-        console.error(
+        logError(
+          error,
           `❌ tRPC failed with ${error.code} on ${path ?? "<no-path>"}. Message: ${error.message}. Input: ${JSON.stringify(input)}. Stack: ${error.stack}`,
+          { input, path, error, ctx },
         );
-        Sentry.captureException(error);
       }
     },
   });
 };
 
 export { handler as GET, handler as POST };
+
+/**
+ * @param error - The error to log
+ * @param message - The message to log
+ * @param attributes - The attributes to log
+ */
+export const logError = (
+  error: unknown,
+  message: string,
+  attributes: Record<string, unknown> = {},
+) => {
+  Sentry.captureException(error, {
+    extra: {
+      message,
+      ...attributes,
+    },
+  });
+};
