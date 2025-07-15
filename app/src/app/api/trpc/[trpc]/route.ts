@@ -43,6 +43,7 @@ export const logError = (
   message: string,
   attributes: Record<string, unknown> = {},
 ) => {
+  console.error(error);
   Sentry.captureException(error, {
     extra: {
       message,
