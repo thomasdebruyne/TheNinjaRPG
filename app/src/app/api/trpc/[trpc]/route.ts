@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import { createAppTRPCContext } from "@/api/trpc";
 import type { NextRequest } from "next/server";
 import { appRouter } from "@/api/root";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/node";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
