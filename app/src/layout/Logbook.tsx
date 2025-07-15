@@ -19,6 +19,7 @@ import { parseHtml } from "@/utils/parse";
 import { isQuestObjectiveAvailable } from "@/libs/objectives";
 import { isQuestComplete } from "@/libs/objectives";
 import {
+  IMG_AVATAR_DEFAULT,
   MISSIONS_PER_DAY,
   ADDITIONAL_MISSION_REWARD_MULTIPLIER,
   IMG_SCENE_BACKGROUND,
@@ -177,9 +178,9 @@ const LogbookBattles: React.FC = () => {
     attackerUsername: e.attacker.username,
     attackerUserId: e.attacker.userId,
     attackerAvatar: e.attacker.avatar,
-    defenderUsername: e.defender.username,
-    defenderUserId: e.defender.userId,
-    defenderAvatar: e.defender.avatar,
+    defenderUsername: e.defender?.username || "Deleted User",
+    defenderUserId: e.defender?.userId || "Deleted User",
+    defenderAvatar: e.defender?.avatar || IMG_AVATAR_DEFAULT,
     battleId: e.battleId,
     createdAt: e.createdAt,
   }));
