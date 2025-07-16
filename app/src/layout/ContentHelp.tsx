@@ -11,9 +11,11 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { findPredecessor } from "@/libs/objectives";
 import type { ZodCombinedQuest } from "@/hooks/quest";
 import type { ZodItemType } from "@/libs/combat/types";
 import type { DeepPartial } from "@/utils/typeutils";
+import type { AllObjectivesType } from "@/validators/objectives";
 
 export interface QuestHelperProps {
   quest: DeepPartial<ZodCombinedQuest>;
@@ -76,13 +78,17 @@ export const QuestHelper: React.FC<QuestHelperProps> = (props) => {
 
             {renderGatheringTips(quest)}
 
-            {quest.questType !== "hunting" && quest.questType !== "gathering" && (
-              <div className="p-3 bg-gray-50 rounded-lg border text-center">
-                <p className="text-sm text-gray-600">
-                  No specific tips available for this quest type yet.
-                </p>
-              </div>
-            )}
+            {renderBattlePyramidTips(quest)}
+
+            {quest.questType !== "hunting" &&
+              quest.questType !== "gathering" &&
+              quest.questType !== "battlepyramid" && (
+                <div className="p-3 bg-gray-50 rounded-lg border text-center">
+                  <p className="text-sm text-gray-600">
+                    No specific tips available for this quest type yet.
+                  </p>
+                </div>
+              )}
           </div>
         </SheetContent>
       </Sheet>
@@ -259,6 +265,149 @@ const renderGatheringTips = (quest: DeepPartial<ZodCombinedQuest>) => {
             Set the{" "}
             <code className="bg-orange-100 px-1 rounded">collect_time_minutes</code> to
             configure how long each collection action takes.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Renders the tips for battle pyramid quests
+ * @param quest - The quest to render the tips for
+ * @returns The tips for battle pyramid quests
+ */
+const renderBattlePyramidTips = (quest: DeepPartial<ZodCombinedQuest>) => {
+  if (quest.questType !== "battlepyramid") return null;
+
+  // Find the first objective (the one with no predecessors)
+  const objectives = (quest.content?.objectives || []) as AllObjectivesType[];
+  const firstObjective = objectives.find((obj) => !findPredecessor(objectives, obj.id));
+
+  // Check for invalid objective types
+  const allowedTypes = ["dialog", "start_battle", "reset_quest"];
+  const invalidObjectives = objectives.filter(
+    (obj) => !allowedTypes.includes(obj.task),
+  );
+
+  // Check start_battle objectives for proper failObjectiveId
+  const startBattleObjectives = objectives.filter((obj) => obj.task === "start_battle");
+  const resetQuestObjective = objectives.find((obj) => obj.task === "reset_quest");
+  const startBattleWithoutProperFail = startBattleObjectives.filter((obj) => {
+    const failId = (obj as { failObjectiveId?: string }).failObjectiveId;
+    return !failId || failId !== resetQuestObjective?.id;
+  });
+
+  return (
+    <div className="space-y-4">
+      <Alert>
+        <HelpCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Battle Pyramid Quest Tips:</strong>
+        </AlertDescription>
+      </Alert>
+
+      <div className="space-y-3 text-sm">
+        {/* Warning for first objective not being dialog */}
+        {firstObjective && firstObjective.task !== "dialog" && (
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+            <h4 className="font-medium text-red-900 mb-2">
+              ⚠️ First Objective Warning
+            </h4>
+            <p className="text-red-800">
+              The first objective should be a{" "}
+              <code className="bg-red-100 px-1 rounded">dialog</code> task to provide
+              context and introduction to the pyramid challenge. Currently, the first
+              objective is set to{" "}
+              <code className="bg-red-100 px-1 rounded">{firstObjective.task}</code>.
+            </p>
+          </div>
+        )}
+
+        {/* Warning for invalid objective types */}
+        {invalidObjectives.length > 0 && (
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+            <h4 className="font-medium text-red-900 mb-2">
+              ⚠️ Invalid Objective Types
+            </h4>
+            <p className="text-red-800">
+              Battle pyramid quests should only contain{" "}
+              <code className="bg-red-100 px-1 rounded">dialog</code>,
+              <code className="bg-red-100 px-1 rounded">start_battle</code>, or
+              <code className="bg-red-100 px-1 rounded">reset_quest</code> objectives.
+              Found invalid types:{" "}
+              {invalidObjectives.map((obj) => (
+                <code key={obj.id} className="bg-red-100 px-1 rounded mx-1">
+                  {obj.task}
+                </code>
+              ))}
+            </p>
+          </div>
+        )}
+
+        {/* Error for start_battle objectives without proper failObjectiveId */}
+        {startBattleWithoutProperFail.length > 0 && (
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+            <h4 className="font-medium text-red-900 mb-2">
+              🚨 Missing Failure Configuration
+            </h4>
+            <p className="text-red-800">
+              All <code className="bg-red-100 px-1 rounded">start_battle</code>{" "}
+              objectives must have a
+              <code className="bg-red-100 px-1 rounded">failObjectiveId</code> field
+              pointing to the
+              <code className="bg-red-100 px-1 rounded">reset_quest</code> objective.
+              {!resetQuestObjective && (
+                <span className="block mt-1">
+                  <strong>Additionally, no reset_quest objective was found.</strong>
+                </span>
+              )}
+              Objectives missing proper failure configuration:{" "}
+              {startBattleWithoutProperFail.map((obj) => (
+                <code key={obj.id} className="bg-red-100 px-1 rounded mx-1">
+                  {obj.id}
+                </code>
+              ))}
+            </p>
+          </div>
+        )}
+
+        {/* Warning for consecutiveObjectives */}
+        {quest.consecutiveObjectives !== true && (
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+            <h4 className="font-medium text-red-900 mb-2">⚠️ Configuration Warning</h4>
+            <p className="text-red-800">
+              The <code className="bg-red-100 px-1 rounded">consecutiveObjectives</code>{" "}
+              setting should be enabled (true) for battle pyramid quests to ensure
+              proper progression through the pyramid levels.
+            </p>
+          </div>
+        )}
+
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 className="font-medium text-blue-900 mb-2">Objective Structure</h4>
+          <p className="text-blue-800">
+            Battle pyramid quests work best with a series of{" "}
+            <code className="bg-blue-100 px-1 rounded">start_battle</code> objectives,
+            each representing a different level of the pyramid.
+          </p>
+        </div>
+
+        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <h4 className="font-medium text-green-900 mb-2">Failure Handling</h4>
+          <p className="text-green-800">
+            Configure all pyramid level objectives to point back to the first objective
+            on failure (or to a given checkpoint). This ensures players restart from the
+            checkpoint if they lose at any level, maintaining the pyramid challenge
+            structure.
+          </p>
+        </div>
+
+        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+          <h4 className="font-medium text-purple-900 mb-2">Progressive Difficulty</h4>
+          <p className="text-purple-800">
+            Each subsequent objective should represent a more challenging battle,
+            creating a progressive difficulty curve that defines the pyramid structure.
           </p>
         </div>
       </div>

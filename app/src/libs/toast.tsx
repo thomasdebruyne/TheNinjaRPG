@@ -61,32 +61,37 @@ export const showMutationToast = (data: {
  * @param errors
  */
 export const showFormErrorsToast = (errors: FieldErrors<any>) => {
-  const msgs = (
-    <>
-      {Object.keys(errors).map((key, i) => {
-        if (key) {
-          return (
-            <ErrorMessage
-              key={i}
-              errors={errors}
-              name={key}
-              render={({ message }: { message: string }) => (
-                <p>
-                  <b>{key}:</b> {message ? message : "See form for details"}
-                </p>
-              )}
-            />
-          );
-        } else {
-          return (
-            <p key={i}>
-              <b>Overall:</b> {errors[key]?.message as string}
-            </p>
-          );
-        }
-      })}
-    </>
-  );
+  // Recursively extract error messages from FieldErrors
+  const extractMessages = (
+    errs: FieldErrors<any>,
+    parentKey = "",
+  ): React.ReactNode[] => {
+    return Object.entries(errs).flatMap(([key, value], idx) => {
+      const fullKey = parentKey ? `${parentKey}.${key}` : key;
+      if (!value) return [];
+      if (typeof value.message === "string" && value.message) {
+        return (
+          <p key={fullKey}>
+            <b>{fullKey}:</b> {value.message}
+          </p>
+        );
+      }
+      // If value is an array (e.g. for field arrays), recurse into each item
+      if (Array.isArray(value)) {
+        return value.flatMap((item, i) =>
+          item ? extractMessages(item as FieldErrors<any>, `${fullKey}[${i}]`) : [],
+        );
+      }
+      // If value is an object, recurse into it
+      if (typeof value === "object") {
+        return extractMessages(value as FieldErrors<any>, fullKey);
+      }
+      return [];
+    });
+  };
+
+  const msgs = <>{extractMessages(errors)}</>;
+
   toast({
     variant: "destructive",
     title: "Form Validation Error",

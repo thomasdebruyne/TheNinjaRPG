@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useLocalStorage } from "@/hooks/localstorage";
-import NavTabs from "@/layout/NavTabs";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import BanInfo from "@/layout/BanInfo";
@@ -32,6 +31,7 @@ import { Swords } from "lucide-react";
 import { RankedArenaMain, RankedLoadoutSelector } from "@/layout/PvpRank";
 import { BATTLE_ARENA_DAILY_LIMIT } from "@/drizzle/constants";
 import { createStatSchema } from "@/libs/combat/types";
+import QuestPicker from "@/layout/QuestPicker";
 import {
   Form,
   FormControl,
@@ -48,7 +48,13 @@ import { useState } from "react";
 
 export default function Arena() {
   // Tab selection
-  const availableTabs = ["Arena", "Sparring", "Training", "PVP Rank"] as const;
+  const availableTabs = [
+    "Arena",
+    "Sparring",
+    "Training",
+    "PVP Rank",
+    "Battle Pyramid",
+  ] as const;
   type TabType = (typeof availableTabs)[number];
   const [tab, setTab] = useLocalStorage<TabType | null>("arenaTab", "Arena", true);
 
@@ -81,6 +87,9 @@ export default function Arena() {
     case "PVP Rank":
       subtitle = "Ranked PVP (Preview Feature)";
       break;
+    case "Battle Pyramid":
+      subtitle = "Climb the Battle Pyramid (Coming Soon)";
+      break;
   }
 
   return (
@@ -91,12 +100,23 @@ export default function Arena() {
         back_href="/village"
         padding={tab === "Arena"}
         topRightContent={
-          <NavTabs
-            id="arenaSelection"
-            current={tab}
-            options={availableTabs}
-            setValue={setTab}
-          />
+          <div className="w-48">
+            <Select
+              value={tab || "Arena"}
+              onValueChange={(value) => setTab(value as TabType)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select arena type" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTabs.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         }
       >
         {tab === "Arena" && <ChallengeAI aiId={aiId} />}
@@ -111,6 +131,7 @@ export default function Arena() {
             </p>
           </div>
         )}
+        {tab === "Battle Pyramid" && <BattlePyramid />}
       </ContentBox>
       {tab === "Arena" && <SelectAI aiId={aiId} setAiId={setAiId} />}
       {tab === "Sparring" && <ActiveChallenges />}
@@ -121,6 +142,14 @@ export default function Arena() {
         />
       )}
       {tab === "PVP Rank" && <RankedLoadoutSelector />}
+      {tab === "Battle Pyramid" && (
+        <QuestPicker
+          questType="battlepyramid"
+          title="Battle Pyramids"
+          subtitle="Select a tower to start"
+          unavailableText="No current battle pyramid quests available"
+        />
+      )}
     </>
   );
 }
@@ -573,5 +602,15 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
         </form>
       </Form>
     </ContentBox>
+  );
+};
+
+const BattlePyramid: React.FC = () => {
+  return (
+    <div className="p-3">
+      Test your skills against increasingly difficult opponents as you climb battle
+      pyramid towers. Each level brings new challenges and greater rewards for those
+      brave enough to ascend. You can only climb one tower at a time.
+    </div>
   );
 };

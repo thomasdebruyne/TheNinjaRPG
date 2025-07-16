@@ -18,6 +18,7 @@ interface QuestPickerProps {
   title: string;
   subtitle: string;
   introduction?: string;
+  unavailableText?: string;
 }
 
 const QuestPicker: React.FC<QuestPickerProps> = (props) => {
@@ -78,7 +79,9 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
         <div className="bg-popover">
           {availableQuests.length === 0 && (
             <p className="font-bold p-3">
-              No current {props.questType} quests available
+              {props.unavailableText
+                ? props.unavailableText
+                : `No current ${props.questType} quests available`}
             </p>
           )}
           {availableQuests.map((quest, i) => {

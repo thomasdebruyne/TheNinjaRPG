@@ -388,6 +388,7 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
               "medical",
               "hunting",
               "gathering",
+              "battlepyramid",
               "anbu",
             ].includes(quest.questType) && (
               <Confirm2

@@ -386,6 +386,7 @@ export const QuestTypes = [
   "medical",
   "hunting",
   "gathering",
+  "battlepyramid",
 ] as const;
 export type QuestType = (typeof QuestTypes)[number];
 export const QUESTS_CONCURRENT_LIMIT = 4;

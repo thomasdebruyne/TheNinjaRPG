@@ -208,6 +208,7 @@ export const battle = mysqlTable(
     rewardScaling: double("rewardScaling").default(1).notNull(),
     version: int("version").default(1).notNull(),
     round: int("round").default(1).notNull(),
+    forceKeepPools: boolean("forceKeepPools").default(false).notNull(),
     activeUserId: varchar("activeUserId", { length: 191 }),
   },
   (table) => {

@@ -351,6 +351,7 @@ export type QuestConsequence = {
   ids: string[];
   scaleStats?: boolean;
   scaleGains?: number;
+  forceKeepPools?: boolean;
 };
 
 /**
@@ -533,6 +534,7 @@ export const getNewTrackers = (
                 ids: opponentIds,
                 scaleStats: objective.opponent_scaled_to_user,
                 scaleGains: objective.scaleGains,
+                forceKeepPools: objective.keepOriginalPools ?? false,
               });
             }
           };
@@ -1017,6 +1019,12 @@ export const verifyQuestObjectiveFlow = (
           if (typeof id === "string") result.push(id);
         }
       }
+    }
+
+    // Also collect failObjectiveId if present
+    const failRef: unknown = (obj as { failObjectiveId?: unknown }).failObjectiveId;
+    if (typeof failRef === "string") {
+      result.push(failRef);
     }
 
     return result;

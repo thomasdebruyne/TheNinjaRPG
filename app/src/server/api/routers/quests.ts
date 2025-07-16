@@ -469,6 +469,15 @@ export const questsRouter = createTRPCRouter({
               .join(", ")}. Abandon one to start this quest.`,
           );
         }
+      } else if (questData.questType === "battlepyramid") {
+        const current = user.userQuests?.filter(
+          (q) => q.quest.questType === "battlepyramid" && !q.endAt,
+        );
+        if (current && current.length >= 1) {
+          return errorResponse(
+            `Already in active battle pyramid. Abandon if you want to restart.`,
+          );
+        }
       } else if (questData.questType === "gathering") {
         const current = user.userQuests?.filter(
           (q) => q.quest.questType === "gathering" && !q.endAt,
@@ -576,6 +585,7 @@ export const questsRouter = createTRPCRouter({
           "hunting",
           "gathering",
           "medical",
+          "battlepyramid",
         ].includes(current.questType)
       ) {
         throw serverError("PRECONDITION_FAILED", `Cannot abandon ${current.questType}`);
@@ -1649,6 +1659,7 @@ export const handleQuestConsequences = async (
                     client: client,
                     scaleTarget: opponent.scaleStats ? true : false,
                     asset: "ground",
+                    forceKeepPools: opponent.forceKeepPools ?? false,
                   },
                   opponent.type === "random_encounter" ? "RANDOM_ENCOUNTER" : "QUEST",
                   opponent.scaleGains ?? 1,

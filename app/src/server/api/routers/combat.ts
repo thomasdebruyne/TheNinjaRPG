@@ -832,6 +832,7 @@ export const initiateBattle = async (
     scaleTarget?: boolean;
     forceLoadouts?: RankedLoadout[];
     asset?: "ocean" | "ground" | "dessert" | "ice" | "arena" | "default";
+    forceKeepPools?: boolean;
   },
   battleType: BattleType,
   scaleGains = 1,
@@ -1276,6 +1277,7 @@ export const initiateBattle = async (
       updatedAt: startTime,
       roundStartAt: startTime,
       activeUserId: activeUserId,
+      forceKeepPools: info.forceKeepPools ?? false,
     }),
     client.insert(battleHistory).values(
       userIds.flatMap((i) =>

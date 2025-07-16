@@ -1,0 +1,3 @@
+ALTER TABLE `Quest` MODIFY COLUMN `questType` enum('mission','crime','event','exam','errand','tier','daily','achievement','story','anbu','medical','hunting','gathering','battlepyramid') NOT NULL;
+ALTER TABLE `QuestHistory` MODIFY COLUMN `questType` enum('mission','crime','event','exam','errand','tier','daily','achievement','story','anbu','medical','hunting','gathering','battlepyramid') NOT NULL;
+ALTER TABLE `Battle` ADD `forceKeepPools` boolean DEFAULT false NOT NULL;

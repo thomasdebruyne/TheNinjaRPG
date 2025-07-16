@@ -629,7 +629,8 @@ export const updateUser = async (
                 rank: sql`CASE WHEN ${userData.rank} = 'ELDER' THEN 'JONIN' ELSE ${userData.rank} END`,
               }
             : {}),
-          ...(result.curHealth <= 0 &&
+          ...(!curBattle.forceKeepPools &&
+          result.curHealth <= 0 &&
           !["SPARRING", "RANKED_PVP", "RANKED_SPARRING"].includes(curBattle.battleType)
             ? {
                 status: "HOSPITALIZED",

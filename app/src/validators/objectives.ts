@@ -169,13 +169,16 @@ export const InstantStartBattleObjective = z.object({
   ...baseObjectiveFields,
   failObjectiveId: z.string().optional(),
   task: z.literal("start_battle").default("start_battle"),
-  opponentAIs: idsWithNumberField,
+  opponentAIs: idsWithNumberField.refine((data) => data.length > 0, {
+    message: "At least one opponent AI is required",
+  }),
   opponent_scaled_to_user: z.coerce.boolean().default(false),
   completionOutcome: z.enum(["Win", "Lose", "Flee", "Draw", "Any"]).default("Win"),
   failDescription: z.string().default("You failed to defeat the opponent"),
   fleeDescription: z.string().default("You fled from the opponent"),
   drawDescription: z.string().default("The battle ended in a draw"),
   scaleGains: z.coerce.number().min(0).max(1).default(1),
+  keepOriginalPools: z.coerce.boolean().default(false),
   ...rewardFields,
 });
 
@@ -271,6 +274,7 @@ export const DefeatOpponents = z.object({
   fleeDescription: z.string().default("You fled from the opponent"),
   drawDescription: z.string().default("The battle ended in a draw"),
   scaleGains: z.coerce.number().min(0).max(1).default(1),
+  keepOriginalPools: z.coerce.boolean().default(false),
   ...complexObjectiveFields,
 });
 

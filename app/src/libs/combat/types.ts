@@ -99,6 +99,7 @@ export type CompleteBattle = {
   version: number;
   round: number;
   rewardScaling: number;
+  forceKeepPools: boolean;
 };
 
 /**

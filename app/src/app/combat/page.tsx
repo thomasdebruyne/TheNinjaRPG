@@ -59,8 +59,11 @@ export default function CombatPage() {
   useEffect(() => {
     if (data?.battle) {
       setBattleAtom(data.battle);
-      const newResult = results ? results : data?.result;
-      setBattleState({ battle: data?.battle, result: newResult, isPending: false });
+      setBattleState({
+        battle: data?.battle,
+        result: results && battle?.id === data.battle.id ? results : data?.result,
+        isPending: false,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
