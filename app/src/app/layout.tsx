@@ -13,7 +13,7 @@ import LayoutCore4 from "@/components/layout/core4_default";
 import { IMG_LOGO_FULL } from "@/drizzle/constants";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import PWAManager from "@/components/pwa/PWAManager";
-// import InstallPrompt from "@/components/pwa/InstallPrompt";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 import type { Viewport, Metadata } from "next";
 
 import "../styles/globals.css";
@@ -46,8 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Toaster />
                 <AcceptWarning />
                 <PWAManager />
-                {/* No install prompt for PWA untill we're in app stores */}
-                {/* <InstallPrompt /> */}
+                <InstallPrompt />
                 <SpeedInsights sampleRate={0.03} />
               </UserContextProvider>
             </TrpcClientProvider>
