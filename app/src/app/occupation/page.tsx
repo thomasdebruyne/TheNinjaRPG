@@ -168,7 +168,7 @@ export default function Occupations() {
                         targetDate={
                           new Date(
                             userData.occupationSignupAt.getTime() +
-                              changeStatusData.daysRemaining * 24 * 60 * 60 * 1000,
+                              OCCUPATION_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
                           )
                         }
                       />
