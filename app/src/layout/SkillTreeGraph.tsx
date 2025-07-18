@@ -71,12 +71,63 @@ export default function SkillTreeGraph({
     const skillHeight = 120; // Space for image + tier badge + cost
     const padding = 30;
 
+    // 1) Track x-positions of skills that have already been laid out so later tiers
+    //    can reference their prerequisite positions.
+    const prevTierX: Record<string, number> = {};
+
+    // 2) Build a map of how many other skills depend on a given skill.  This will
+    //    let us push completely isolated skills (no prereqs, no dependents) to
+    //    the end of a tier, reducing edge crossings.
+    const dependentsCount: Record<string, number> = {};
+    skills.forEach((s) => {
+      s.requiredSkillIds.forEach((reqId) => {
+        dependentsCount[reqId] = (dependentsCount[reqId] || 0) + 1;
+      });
+    });
+
     tiers.forEach((tier, tierIndex) => {
       const tierSkills = skillsByTier[tier];
       if (!tierSkills) return;
+
+      // Vertical position of this tier
       const tierY = tierIndex * (skillHeight + 80) + padding;
 
-      tierSkills.forEach((skill, skillIndex) => {
+      // Sort the skills inside this tier.  The sort key is the average x-position
+      // of its prerequisites (if any) that have already been positioned.  This
+      // tends to place a child directly below / above its parent(s) and thus
+      // reduces edge crossings.  Skills with no prerequisites fall back to
+      // their original order.
+      const sortedTierSkills = tierSkills.slice().sort((a, b) => {
+        const avgPos = (skill: SkillTree) => {
+          const prereqXs = skill.requiredSkillIds
+            .map((id) => prevTierX[id])
+            .filter((x): x is number => x !== undefined);
+          if (prereqXs.length === 0) return Number.POSITIVE_INFINITY;
+          return prereqXs.reduce((sum, x) => sum + x, 0) / prereqXs.length;
+        };
+
+        const aAvg = avgPos(a);
+        const bAvg = avgPos(b);
+
+        // Prefer skills with finite average (i.e. those with positioned parents)
+        const aFinite = Number.isFinite(aAvg);
+        const bFinite = Number.isFinite(bAvg);
+
+        if (aFinite && bFinite) return aAvg - bAvg;
+        if (aFinite) return -1;
+        if (bFinite) return 1;
+
+        // Both averages are Infinity => neither has prerequisites already placed.
+        // Use dependents count so parent-like nodes come first; isolated nodes last.
+        const depA = dependentsCount[a.id] || 0;
+        const depB = dependentsCount[b.id] || 0;
+        if (depA !== depB) return depB - depA; // more dependents earlier
+
+        return 0; // fallback to original order if all else equal
+      });
+
+      sortedTierSkills.forEach((skill, skillIndex) => {
+        // Basic horizontal spacing – the *order* comes from the sort above
         const skillX = skillIndex * tierWidth + padding + 150;
 
         // Check if skill can be purchased
@@ -97,6 +148,9 @@ export default function SkillTreeGraph({
           hasPrereqs,
           hasPoints,
         });
+
+        // Store the x-position so deeper tiers can align with it
+        prevTierX[skill.id] = skillX;
       });
     });
 
@@ -372,18 +426,25 @@ export default function SkillTreeGraph({
                       onClick={(e) => handleSkillClick(skill, e)}
                     />
 
-                    {/* Skill image - using circle with pattern fill for better compatibility */}
+                    {/* Skill image clipped to circle so it fills perfectly */}
+                    <defs>
+                      <clipPath id={`skillClip-${skill.id}`}>
+                        {/* Use slightly larger radius so image meets the outer stroke */}
+                        <circle cx={centerX} cy={centerY} r="36" />
+                      </clipPath>
+                    </defs>
 
-                    {/* Image circle */}
-                    <circle
-                      cx={centerX}
-                      cy={centerY}
-                      r="30"
-                      fill={`url(#skillImage-${skill.id})`}
-                      className={`
-                        transition-all duration-200
-                        ${isLocked || isUnaffordable ? "opacity-60" : ""}
-                      `}
+                    <image
+                      href={skill.image}
+                      x={centerX - 40}
+                      y={centerY - 40}
+                      width="80"
+                      height="80"
+                      clipPath={`url(#skillClip-${skill.id})`}
+                      preserveAspectRatio="xMidYMid slice"
+                      className={`transition-all duration-200 ${
+                        isLocked || isUnaffordable ? "opacity-60" : ""
+                      }`}
                       style={{
                         filter: isLocked || isUnaffordable ? "grayscale(100%)" : "none",
                         pointerEvents: "none",
