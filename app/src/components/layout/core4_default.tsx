@@ -914,7 +914,6 @@ const RightSideBar: React.FC<{
       </SideBannerTitle>
       <div className="mt-1 grid grid-cols-1 gap-3 lg:grid-cols-2">
         {systems.map((system, i) => {
-          console.log(system);
           const disabled = system.requireAwake && userData?.status !== "AWAKE";
           return (
             <Link

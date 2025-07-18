@@ -8,8 +8,6 @@ export default function PWAManager() {
     null,
   );
 
-  console.log(`PWAManager state: ${isSupported} - ${registration?.active?.state}`);
-
   useEffect(() => {
     // Check if service workers are supported
     if ("serviceWorker" in navigator) {
@@ -27,8 +25,6 @@ export default function PWAManager() {
       });
 
       setRegistration(reg);
-
-      console.log("Service Worker registered successfully:", reg);
 
       // Listen for updates
       reg.addEventListener("updatefound", () => {
