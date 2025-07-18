@@ -67,7 +67,7 @@
     "@tweenjs/tween.js": "25.0.0",
     "@types/draco3dgltf": "^1.4.3",
     "@types/node-fetch": "^2.6.12",
-    "@uploadthing/react": "^7.3.1",
+    "@uploadthing/react": "^7.3.2",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.35.0",
     "@vercel/og": "^0.6.8",
@@ -128,10 +128,11 @@
     "tailwindcss-animate": "^1.0.7",
     "text-to-svg": "^3.1.5",
     "three": "0.160.1",
-    "uploadthing": "7.7.2",
+    "uploadthing": "7.7.3",
     "zod": "3.24.2"
   },
   "devDependencies": {
+    "@types/bun": "^1.2.18",
     "@tailwindcss/postcss": "^4.1.8",
     "@tanstack/react-query-devtools": "5.80.6",
     "@testing-library/dom": "^10.4.0",
@@ -163,7 +164,7 @@
     "prettier-plugin-tailwindcss": "0.6.12",
     "tailwindcss": "4.1.8",
     "tsx": "4.19.4",
-    "typescript": "5.8.3",
+    "typescript": "5.9.0-beta",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.2"
   },

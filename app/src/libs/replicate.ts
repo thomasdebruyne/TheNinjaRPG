@@ -145,7 +145,9 @@ export const uploadToUT = async (url: string) => {
   const name = `${nanoid()}.${extension}`;
   if (!url.startsWith("http")) {
     const fileBuffer = await fs.promises.readFile(url);
-    const uploadedFile = await utapi.uploadFiles(new UTFile([fileBuffer], name));
+    const uploadedFile = await utapi.uploadFiles(
+      new UTFile([fileBuffer as BlobPart], name),
+    );
     return uploadedFile.data?.ufsUrl ?? null;
   } else {
     const uploadedFile = await utapi.uploadFilesFromUrl({ url, name });
@@ -311,7 +313,7 @@ export const uploadImageFromOpenAI = async (config: {
         .resize({ width, height, fit: "inside" })
         .webp({ quality: 70 })
         .toBuffer();
-      return new File([resultBuffer], `${prefix}-${idx}-${i}.webp`);
+      return new File([resultBuffer as BlobPart], `${prefix}-${idx}-${i}.webp`);
     }),
   );
   const uploadedFiles = await utapi.uploadFiles(resizedImages);
@@ -331,7 +333,7 @@ export const createThumbnail = async (url?: string | null) => {
     const res = await fetch(url);
     const blob = await res.arrayBuffer();
     const resultBuffer = await sharp(blob).resize(64, 64).toBuffer();
-    const thumbnail = new Blob([resultBuffer]) as FileEsque;
+    const thumbnail = new Blob([resultBuffer as BlobPart]) as FileEsque;
     thumbnail.name = "thumbnail.png";
     const utapi = new UTApi();
     const response = await utapi.uploadFiles(thumbnail);
