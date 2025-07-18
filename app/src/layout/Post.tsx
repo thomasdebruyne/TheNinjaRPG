@@ -235,7 +235,7 @@ const Post: React.FC<PostProps> = (props) => {
         </div>
       )}
       {props.href ? (
-        <Link className="hover:cursor-pointer" href={props.href}>
+        <Link className="hover:cursor-pointer w-full" href={props.href}>
           {content}
         </Link>
       ) : (

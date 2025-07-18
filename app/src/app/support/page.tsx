@@ -10,20 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Plus,
-  MessageCircle,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Tag,
-  Users,
-} from "lucide-react";
+import { Plus, AlertCircle, Tag, Users } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import { useInfinitePagination } from "@/libs/pagination";
 import { useRequiredUserData } from "@/utils/UserContext";
-import type { SupportTicketStatus } from "@/drizzle/constants";
 import SupportTicketFiltering, {
   useFiltering as useSupportTicketFiltering,
   getFilter as getSupportTicketFilter,
