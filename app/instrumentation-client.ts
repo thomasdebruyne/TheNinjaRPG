@@ -29,6 +29,7 @@ Sentry.init({
     "The play method is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.", // audio permission denied
     "TypeError: undefined is not an object (evaluating 'this.updateVisibleFocusableElements.bind')", // Cookiebot error: https://github.com/getsentry/sentry-javascript/issues/16850
     "Failed to read a named property 'Element' from 'Window': Blocked a frame with origin \"https://www.theninja-rpg.com\"", // Sentry iframe error?
+    "Cannot read properties of undefined (reading 'bind')", // Cookiebot error on resize
   ],
 
   // Only enable Sentry in production
