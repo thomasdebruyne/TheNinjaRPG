@@ -2,6 +2,7 @@
 
 import superjson from "superjson";
 import { useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TRPCClientError, httpBatchLink, loggerLink } from "@trpc/client";
 import { toast } from "@/components/ui/use-toast";
@@ -72,12 +73,14 @@ export default function TrpcClientProvider(props: { children: React.ReactNode })
 export const onError = (err: unknown) => {
   console.error("onerror", err);
   if (err instanceof TRPCClientError) {
+    Sentry.captureException(err, { extra: { message: "TRPC Client Error" } });
     toast({
       variant: "destructive",
       title: err?.data?.code ?? "Unknown", // eslint-disable-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       description: err.message,
     });
   } else if (err instanceof Error) {
+    Sentry.captureException(err, { extra: { message: "TRPC Frontend Error" } });
     toast({
       variant: "destructive",
       title: "Error",

@@ -27,6 +27,7 @@ Sentry.init({
     "GME Provider is disconnected or locked", // timeout error
     "Connection closed", // timeout error
     "The play method is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.", // audio permission denied
+    "TypeError: undefined is not an object (evaluating 'this.updateVisibleFocusableElements.bind')", // Cookiebot error: https://github.com/getsentry/sentry-javascript/issues/16850
   ],
 
   // Only enable Sentry in production
