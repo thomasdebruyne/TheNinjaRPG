@@ -3,6 +3,8 @@ import { userData } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { drizzleDB } from "@/server/db";
 
+export const revalidate = 60;
+
 export default async function PublicProfile(props: {
   params: Promise<{ username: string }>;
 }) {
