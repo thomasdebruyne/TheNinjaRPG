@@ -1,7 +1,5 @@
 import PublicUserComponent from "@/layout/PublicUser";
 
-export const revalidate = 60;
-
 export default async function PublicProfile(props: {
   params: Promise<{ userid: string }>;
 }) {

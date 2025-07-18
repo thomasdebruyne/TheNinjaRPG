@@ -63,24 +63,6 @@ const config = {
         source: "/:path*",
         headers: securityHeaders,
       },
-      {
-        source: "/userid/:userid",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "s-maxage=60, stale-while-revalidate=60",
-          },
-        ],
-      },
-      {
-        source: "/username/:username",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "s-maxage=60, stale-while-revalidate=60",
-          },
-        ],
-      },
     ];
   },
 };
