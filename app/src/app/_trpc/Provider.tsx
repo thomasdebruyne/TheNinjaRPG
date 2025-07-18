@@ -71,6 +71,13 @@ export default function TrpcClientProvider(props: { children: React.ReactNode })
 }
 
 export const onError = (err: unknown) => {
+  // Ignore "Unauthorized for tRPC endpoint", since this could be just the user logging out, thus queries failing
+  if (
+    err instanceof TRPCClientError &&
+    err.message.includes("Unauthorized for tRPC endpoint")
+  ) {
+    return;
+  }
   console.error("onerror", err);
   if (err instanceof TRPCClientError) {
     Sentry.captureException(err, { extra: { message: "TRPC Client Error" } });
