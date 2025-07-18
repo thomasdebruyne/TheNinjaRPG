@@ -1030,12 +1030,16 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
               </p>
               <p>
                 Leader:{" "}
-                <Link
-                  className="font-bold hover:text-orange-500"
-                  href={`/userid/${clanData.leader.userId}`}
-                >
-                  {clanData.leader.username}
-                </Link>
+                {clanData.leader ? (
+                  <Link
+                    className="font-bold hover:text-orange-500"
+                    href={`/userid/${clanData.leader.userId}`}
+                  >
+                    {clanData.leader.username}
+                  </Link>
+                ) : (
+                  "Unknown"
+                )}
               </p>
               <div className="flex flex-row items-center">
                 <p>Training boost: {clanData.trainingBoost}%</p>
