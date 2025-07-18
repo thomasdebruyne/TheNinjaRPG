@@ -1,7 +1,7 @@
 // TheNinja-RPG Progressive Web App Service Worker
 
-const CACHE_NAME = "theninja-rpg-v3";
-const STATIC_CACHE_NAME = "theninja-rpg-static-v3";
+const CACHE_NAME = "theninja-rpg-v4";
+const STATIC_CACHE_NAME = "theninja-rpg-static-v4";
 
 // Files to cache for offline functionality
 const STATIC_FILES = ["/manifest.json", "/favicon.ico", "/offline.html"];
@@ -9,10 +9,21 @@ const STATIC_FILES = ["/manifest.json", "/favicon.ico", "/offline.html"];
 // Install event - cache static files
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME).then((cache) => {
-      console.log("Caching static files");
-      return cache.addAll(STATIC_FILES);
-    }),
+    (async () => {
+      const cache = await caches.open(STATIC_CACHE_NAME);
+      // Attempt to cache each static asset individually so one missing file
+      // does not cause the entire installation to fail.
+      await Promise.all(
+        STATIC_FILES.map(async (url) => {
+          try {
+            await cache.add(url);
+          } catch (err) {
+            // Log the failure but continue
+            console.warn("ServiceWorker: failed to cache", url, err);
+          }
+        }),
+      );
+    })(),
   );
 
   // Force activation of new service worker
@@ -83,5 +94,3 @@ self.addEventListener("fetch", (event) => {
       }),
   );
 });
-
-console.log("TheNinja-RPG Service Worker loaded");
