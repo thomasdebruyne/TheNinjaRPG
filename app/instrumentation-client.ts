@@ -49,4 +49,31 @@ Sentry.init({
   debug: false,
 });
 
+// Register a single browser-side global error handler for Promise rejections and uncaught errors.
+declare global {
+  interface Window {
+    __TNR_GLOBAL_REJECTION_HANDLER__?: boolean;
+  }
+}
+
+function ensureBrowserErrorHandler() {
+  if (typeof window === "undefined") return;
+  if (window.__TNR_GLOBAL_REJECTION_HANDLER__) return;
+  window.__TNR_GLOBAL_REJECTION_HANDLER__ = true;
+
+  // Capture unhandled promise rejections
+  window.addEventListener("unhandledrejection", (event) => {
+    if (event.reason instanceof Error) {
+      Sentry.captureException(event.reason);
+    } else {
+      Sentry.captureException(
+        new Error(`UnhandledRejection: ${JSON.stringify(event.reason)}`),
+      );
+    }
+  });
+}
+
+// Ensure handlers are registered immediately after Sentry.init
+ensureBrowserErrorHandler();
+
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
