@@ -1807,6 +1807,13 @@
       "when": 1752901420329,
       "tag": "0257_unknown_spiral",
       "breakpoints": false
+    },
+    {
+      "idx": 258,
+      "version": "5",
+      "when": 1752922758603,
+      "tag": "0258_past_sugar_man",
+      "breakpoints": false
     }
   ]
 }

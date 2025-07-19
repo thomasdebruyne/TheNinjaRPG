@@ -984,6 +984,7 @@ export const historicalAvatar = mysqlTable(
       ),
       avatarKey: uniqueIndex("HistoricalAvatar_avatar_key").on(table.avatar),
       doneIdx: index("HistoricalAvatar_done_idx").on(table.done),
+      statusIdx: index("HistoricalAvatar_status_idx").on(table.status),
       userIdIdx: index("HistoricalAvatar_userId_idx").on(table.userId),
     };
   },
@@ -1718,7 +1719,6 @@ export const userData = mysqlTable(
   },
   (table) => {
     return {
-      userIdKey: uniqueIndex("UserData_userId_key").on(table.userId),
       isAiIdx: index("UserData_isAi_idx").on(table.isAi),
       isEventIdx: index("UserData_isEvent_idx").on(table.isEvent),
       inArenaIdx: index("UserData_inArena_idx").on(table.inArena),
@@ -2637,20 +2637,6 @@ export const gameSetting = mysqlTable(
   },
 );
 export type GameSetting = InferSelectModel<typeof gameSetting>;
-
-export const gameRule = mysqlTable(
-  "GameRule",
-  {
-    id: varchar("id", { length: 191 }).primaryKey().notNull(),
-    name: varchar("name", { length: 191 }).notNull(),
-    description: varchar("description", { length: 500 }).notNull(),
-    value: tinyint("value").default(0).notNull(),
-  },
-  (table) => {
-    return { name: index("name").on(table.name) };
-  },
-);
-export type GameRule = InferSelectModel<typeof gameRule>;
 
 export const userLikes = mysqlTable(
   "UserLikes",
