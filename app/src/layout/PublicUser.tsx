@@ -701,6 +701,14 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
       {canSeeSecrets && (
         <div className="text-center text-sm italic">Unique ID: {profile.userId}</div>
       )}
+      {/* Badges are now displayed directly below the profile */}
+      {showBadges && (
+        <BadgesTab
+          userId={profile.userId}
+          username={profile.username}
+          currentBadges={profile.badges}
+        />
+      )}
       {/* Marriages, Students, and Badges sections are now rendered inside tabs below */}
       {(showNindo ||
         showCombatLogs ||
@@ -734,7 +742,6 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                   <TabsTrigger value="marriages">Marriages</TabsTrigger>
                 )}
                 {showStudents && <TabsTrigger value="students">Students</TabsTrigger>}
-                {showBadges && <TabsTrigger value="badges">Badges</TabsTrigger>}
                 {showRecruited && <TabsTrigger value="recruits">Recruits</TabsTrigger>}
                 {showTrainingLogs && enableLogs && (
                   <TabsTrigger value="training">Training Log</TabsTrigger>
@@ -842,17 +849,6 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
           {showStudents && (
             <TabsContent value="students">
               <StudentsTab students={profile.students} />
-            </TabsContent>
-          )}
-          {/* USER BADGES */}
-          {showBadges && (
-            <TabsContent value="badges">
-              <BadgesTab
-                userId={profile.userId}
-                username={profile.username}
-                currentBadges={profile.badges}
-                isActive={showActive === "badges"}
-              />
             </TabsContent>
           )}
           {/* USER RECRUITS */}
@@ -1588,7 +1584,9 @@ const BloodlineHistoryTab: React.FC<TabComponentProps> = ({ userId, isActive }) 
       padding={false}
     >
       {isPending && <Loader explanation="Fetching Bloodline History" />}
-      {bloodlineHistory?.length === 0 && <p>No bloodline history found</p>}
+      {bloodlineHistory?.length === 0 && (
+        <p className="p-3">No bloodline history found</p>
+      )}
       {bloodlineHistory && bloodlineHistory.length > 0 && (
         <Table
           data={bloodlineHistory}
@@ -1697,22 +1695,20 @@ const MarriagesTab: React.FC<MarriagesTabProps> = ({ userId, username, isActive 
   );
 };
 
-interface BadgesTabProps extends TabComponentProps {
+interface BadgesTabProps {
+  userId: string;
   username: string;
   currentBadges: (UserBadge & { badge: Badge })[];
 }
 
-const BadgesTab: React.FC<BadgesTabProps> = ({
-  userId,
-  username,
-  currentBadges,
-  isActive,
-}) => {
+const BadgesTab: React.FC<BadgesTabProps> = ({ userId, username, currentBadges }) => {
   const { data: currentUser } = useUserData();
   const canModify = currentUser && canModifyUserBadges(currentUser.role);
 
+  // Only fetch the list of all badges when the add-badge popover is opened
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const { data: allBadges } = api.badge.getAllNames.useQuery(undefined, {
-    enabled: isActive,
+    enabled: popoverOpen,
   });
 
   const utils = api.useUtils();
@@ -1744,23 +1740,28 @@ const BadgesTab: React.FC<BadgesTabProps> = ({
       initialBreak={true}
       topRightContent={
         <>
-          {allBadges && canModify && (
-            <Popover>
+          {canModify && (
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button className="w-full">
                   <Plus className="h-6 w-6 mr-2" /> New
                 </Button>
               </PopoverTrigger>
-              <PopoverContent>
+              <PopoverContent className="w-96">
                 <ActionSelector
-                  items={allBadges.filter(
-                    (b) => !currentBadges.some((ub) => ub.badgeId === b.id),
-                  )}
+                  items={
+                    allBadges
+                      ? allBadges.filter(
+                          (b) => !currentBadges.some((ub) => ub.badgeId === b.id),
+                        )
+                      : []
+                  }
                   labelSingles={true}
                   onClick={(id) => insertUserBadge.mutate({ userId, badgeId: id })}
                   showBgColor={false}
                   roundFull={true}
                   hideBorder={true}
+                  gridClassNameOverwrite="grid grid-cols-5 md:grid-cols-6"
                   showLabels={true}
                   emptyText="No badges exist yet."
                 />
