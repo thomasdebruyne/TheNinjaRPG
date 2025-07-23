@@ -1153,19 +1153,6 @@ export const profileRouter = createTRPCRouter({
         limit: 5,
       });
     }),
-  getUserDailyPveBattleCount: publicProcedure
-    .input(z.object({ userId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      //Query
-      const result = ctx.drizzle.query.battleHistory.findMany({
-        where: and(
-          eq(battleHistory.attackedId, input.userId),
-          notInArray(battleHistory.battleType, ["SPARRING", "COMBAT"]),
-          gte(battleHistory.createdAt, getTimeOfLastReset()),
-        ),
-      });
-      return (await result).length;
-    }),
   // Get public information on a user
   getPublicUser: publicProcedure
     .input(z.object({ userId: z.string() }))
@@ -1252,6 +1239,17 @@ export const profileRouter = createTRPCRouter({
               columns: {
                 name: true,
               },
+            },
+            battleHistory: {
+              columns: {
+                battleType: true,
+                createdAt: true,
+              },
+              where: and(
+                eq(battleHistory.attackedId, input.userId),
+                notInArray(battleHistory.battleType, ["SPARRING", "COMBAT"]),
+                gte(battleHistory.createdAt, getTimeOfLastReset()),
+              ),
             },
           },
         }),
