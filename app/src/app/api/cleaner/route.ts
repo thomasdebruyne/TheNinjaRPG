@@ -80,6 +80,7 @@ export async function GET() {
         and(
           lte(conversation.updatedAt, new Date(Date.now() - oneDay * 14)),
           eq(conversation.isPublic, 0),
+          eq(conversation.isStaffAvailable, 0),
         ),
       );
 
