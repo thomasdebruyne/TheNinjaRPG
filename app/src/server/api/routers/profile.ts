@@ -1684,7 +1684,7 @@ export const fetchUpdatedUser = async (props: {
       .select()
       .from(quest)
       .where(and(eq(quest.questType, "achievement"), eq(quest.hidden, false))),
-    client.select().from(gameSetting),
+    client.select().from(gameSetting).where(like(gameSetting.name, "%regen%")),
     client.query.userData.findFirst({
       where: eq(userData.userId, userId),
       with: {
