@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
@@ -9,7 +10,7 @@ import {
 import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
 import { eq, or, and, sql, gt, ne, isNotNull, isNull, inArray, gte } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
-import { desc, lt, like } from "drizzle-orm";
+import { desc, lt } from "drizzle-orm";
 import { COMBAT_HEIGHT, COMBAT_WIDTH } from "@/libs/combat/constants";
 import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/libs/travel/constants";
 import { COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
@@ -290,6 +291,7 @@ export const combatRouter = createTRPCRouter({
     .use(hasUserMiddleware)
     .input(performActionSchema)
     .mutation(async ({ ctx, input }) => {
+      Sentry.profiler.startProfiler();
       if (debug) console.log("============ Performing action ============");
 
       // Short-form
@@ -495,6 +497,7 @@ export const combatRouter = createTRPCRouter({
           }
         }
       }
+      Sentry.profiler.stopProfiler();
     }),
   battleArenaHeal: protectedProcedure
     .output(baseServerResponse)
