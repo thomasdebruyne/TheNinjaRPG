@@ -292,7 +292,11 @@ export const getFilter = (state: SupportTicketFilteringState) => {
 export const useFiltering = () => {
   // State variables
   const [search, setSearch] = useState<string>("");
-  const [status, setStatus] = useState<SupportTicketStatus[]>(["OPEN", "IN_PROGRESS"]);
+  const [status, setStatus] = useState<SupportTicketStatus[]>([
+    "OPEN",
+    "IN_PROGRESS",
+    "WAITING_FOR_STAFF",
+  ]);
   const [category, setCategory] = useState<SupportTicketCategory[]>([]);
   const [priority, setPriority] = useState<SupportTicketPriority[]>([]);
   const [assignedToUserId, setAssignedToUserId] = useState<string>("None");
