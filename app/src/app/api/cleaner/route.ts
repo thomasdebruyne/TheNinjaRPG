@@ -8,7 +8,7 @@ import { userItem, mpvpBattleQueue, mpvpBattleUser } from "@/drizzle/schema";
 import { trainingLog, village, captcha, userRequest } from "@/drizzle/schema";
 import { battleHistory, battleAction, historicalAvatar, clan } from "@/drizzle/schema";
 import { conversation, user2conversation, conversationComment } from "@/drizzle/schema";
-import { rankedPvpQueue } from "@/drizzle/schema";
+import { rankedPvpQueue, warKill } from "@/drizzle/schema";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 import { secondsFromNow } from "@/utils/time";
 import { updateGameSetting, checkGameTimer } from "@/libs/gamesettings";
@@ -289,6 +289,11 @@ export async function GET() {
     // Clear rankedPvpQueue entries older than 1 day
     await drizzleDB.execute(
       sql`DELETE FROM ${rankedPvpQueue} WHERE createdAt < CURRENT_TIMESTAMP(3) - INTERVAL 1 DAY`,
+    );
+
+    // Clear war kills older than 10 days
+    await drizzleDB.execute(
+      sql`DELETE FROM ${warKill} WHERE killedAt < CURRENT_TIMESTAMP(3) - INTERVAL 30 DAY`,
     );
 
     return Response.json(`OK`);
