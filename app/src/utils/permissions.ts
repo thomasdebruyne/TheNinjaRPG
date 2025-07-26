@@ -506,7 +506,11 @@ export const canEditSupportTicket = (
 ) => {
   if (userRole !== "USER") return true;
   if (ticket.assignedToUserId === userId) return true;
-  if (ticket.createdByUserId === userId && ticket.status === "OPEN") return true;
+  if (
+    ticket.createdByUserId === userId &&
+    (ticket.status === "OPEN" || ticket.status === "WAITING_FOR_USER")
+  )
+    return true;
   return false;
 };
 

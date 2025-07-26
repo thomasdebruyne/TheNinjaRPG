@@ -169,7 +169,8 @@ export const supportRouter = createTRPCRouter({
         );
       }
       if (
-        updateData?.assignedToUserId !== ticket.assignedToUserId &&
+        updateData?.assignedToUserId &&
+        updateData.assignedToUserId !== ticket.assignedToUserId &&
         !canAssignSupportTicket(user.role)
       ) {
         return errorResponse("No permission to assign tickets");

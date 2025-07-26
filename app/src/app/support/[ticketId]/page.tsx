@@ -455,6 +455,12 @@ export default function TicketDetail(props: { params: Promise<{ ticketId: string
         convo_id={ticket.conversationId}
         title="Conversation"
         subtitle="Talk with staff"
+        onCommentPosted={() => {
+          updateTicket.mutate({
+            ticketId: params.ticketId,
+            status: "IN_PROGRESS",
+          });
+        }}
       />
 
       {/* Canned Responses */}
