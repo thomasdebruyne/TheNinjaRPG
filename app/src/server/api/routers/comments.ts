@@ -913,6 +913,7 @@ export const createConvo = async (info: {
   content: string;
   isStaffAvailable?: boolean;
   convoId?: string;
+  isPublic?: boolean;
 }) => {
   const {
     client,
@@ -922,6 +923,7 @@ export const createConvo = async (info: {
     content,
     convoId,
     isStaffAvailable = false,
+    isPublic = false,
   } = info;
   // Push notifications early
   const pusher = getServerPusher();
@@ -937,7 +939,7 @@ export const createConvo = async (info: {
       id: insertId,
       title: title,
       createdById: senderUserId,
-      isPublic: 0,
+      isPublic: isPublic ? 1 : 0,
       isLocked: 0,
       isStaffAvailable: isStaffAvailable,
     }),

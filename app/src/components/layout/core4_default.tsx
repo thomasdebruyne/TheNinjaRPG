@@ -925,15 +925,10 @@ const RightSideBar: React.FC<{
               <Button
                 decoration="gold"
                 className={`relative w-full ${system.className || ""} ${disabled ? "opacity-30" : "hover:bg-orange-200"}`}
+                count={system.notificationCount}
               >
                 <div className="grow">{system.name}</div>
                 <div>{system.icon && system.icon}</div>
-                {system.notificationCount !== undefined &&
-                  system.notificationCount > 0 && (
-                    <div className="absolute top-0 right-[-3] flex items-center justify-center text-xs text-orange-100 bg-orange-500 rounded-full w-5 h-5 z-50">
-                      {system.notificationCount}
-                    </div>
-                  )}
               </Button>
             </Link>
           );
