@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/tooltip";
 import { trainingSpeedSeconds } from "@/libs/train";
 import { useUserData } from "@/utils/UserContext";
-import { groupBy } from "@/utils/grouping";
 import { ShieldCheck, Swords, Moon, Sun, Dumbbell, Star } from "lucide-react";
 import { LayoutList, Atom } from "lucide-react";
 import { sealCheck } from "@/libs/combat/tags";
@@ -461,9 +460,13 @@ interface VisualizeEffectsProps {
   userId: string;
 }
 
-const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({ effects, userId }) => {
+export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
+  effects,
+  userId,
+}) => {
   // Get sealing effects
   const sealEffects = effects.filter((e) => e.type === "seal" && !e.isNew);
+
   // Collapse consequences based on their type & calculation type
   const collapsedEffects =
     effects
@@ -471,7 +474,6 @@ const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({ effects, userId }) 
       .filter((e) => e.targetId === userId)
       .filter((e) => e.rounds === undefined || e.rounds > 0)
       .reduce((acc, val) => {
-        // Convenience
         const stats = [
           ...(("statTypes" in val && val?.statTypes) || []),
           ...(("generalTypes" in val && val?.generalTypes) || []),
@@ -485,7 +487,6 @@ const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({ effects, userId }) 
           : val.type;
         const sign = val.type.includes("decrease") ? -1 : 1;
         const value = Math.abs(val.power + val.level * val.powerPerLevel) * sign;
-        // Already exists?
         cats.forEach((cat) => {
           const found = acc.find(
             (e) =>
@@ -494,7 +495,6 @@ const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({ effects, userId }) 
               e.category === cat &&
               e.sealed === isSealed,
           );
-          // Update
           if (found) {
             found.value += value;
             if (val.rounds) found.rounds.push(val.rounds);
@@ -513,175 +513,153 @@ const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({ effects, userId }) 
         return acc;
       }, [] as CollapsedEffect[]) || [];
 
-  // Group the effects by type
-  const groupedEffects = groupBy(collapsedEffects, "type");
+  // ------------ UI helpers ------------
+  const valueTxt = (e: CollapsedEffect) =>
+    `${e.value > 0 ? "+" : ""}${Math.round(e.value)}${
+      e.calculation === "percentage" ? "%" : ""
+    }`;
+  const roundsTxt = (e: CollapsedEffect) =>
+    e.rounds.length > 0 ? `↻ ${Math.max(...e.rounds)}` : "";
 
-  // Convenience for showing
-  const visuals: React.ReactNode[] = [];
-  const insert = (
-    image: React.ReactNode,
-    className: string,
-    txtName: string,
-    showValue: boolean,
-    effect: CollapsedEffect,
-  ) => {
-    const e = effect;
-    const value = e.value.toFixed(2);
-    const valTxt = `[${e.value > 0 ? "+" : ""}${value}${e.calculation === "percentage" ? "%" : ""}]`;
-    const roundsTxt = e.rounds.length > 0 ? `[${e.rounds.join(", ")} rounds]` : "";
-    visuals.push(
-      <div
-        key={`${e.type}-${e.category}`}
-        className={cn("flex flex-row gap-2 items-center", className)}
-      >
-        {image}{" "}
-        <div className="leading-none">
-          <div className={cn(e.sealed ? "line-through" : "")}>
-            {txtName} {showValue ? valTxt : ""}
+  const renderCompact = (e: CollapsedEffect) => {
+    // Determine if this effect is beneficial (green) or detrimental (red)
+    const isPositiveEffect = (() => {
+      switch (e.type) {
+        case "damagegiven":
+          return e.value > 0; // More damage dealt is good
+        case "damagetaken":
+          return e.value < 0; // Less damage taken is good
+        default:
+          return e.value > 0; // Fallback for other types
+      }
+    })();
+
+    return (
+      <div key={`${e.type}-${e.category}`} className="flex flex-row items-center gap-2">
+        <ElementImage element={e.category} className="w-6 h-6 shrink-0" />
+        <div className="flex flex-col leading-none">
+          <div
+            className={cn(
+              isPositiveEffect ? "text-green-500" : "text-red-500",
+              e.sealed && "line-through",
+            )}
+          >
+            {valueTxt(e)}
           </div>
-          <div className="text-xs">{roundsTxt}</div>
+          {roundsTxt(e) && <div className="text-xs">{roundsTxt(e)}</div>}
         </div>
-      </div>,
+      </div>
     );
   };
 
-  // Go through the effects, and for each type create the visual
-  groupedEffects.forEach((value: CollapsedEffect[], key: string) => {
-    // Icons with tooltips for each stat
-    value.forEach((e) => {
-      // Image to show
-      const image = (
-        <ElementImage
-          key={`${key}-${e.category}`}
-          element={e.category}
-          className="w-8 h-8"
-        />
-      );
-      // Show different effects
-      switch (key) {
-        case "damagegiven":
-          if (e.value > 0) {
-            insert(image, "text-green-500", `↑ Damage`, true, e);
-          } else {
-            insert(image, "text-red-500", `↓ Damage`, true, e);
-          }
-          break;
-        case "damagetaken":
-          if (e.value > 0) {
-            insert(image, "text-red-500", `↓ Protection`, true, e);
-          } else {
-            insert(image, "text-green-500", `↑ Protection`, true, e);
-          }
-          break;
-        case "stat":
-          if (e.value > 0) {
-            insert(image, "text-green-500", `↑ Stats`, true, e);
-          } else {
-            insert(image, "text-red-500", `↓ Stats`, true, e);
-          }
-          break;
-        case "heal":
-          if (e.value > 0) {
-            insert(image, "text-green-500", `↑ Healing`, true, e);
-          } else {
-            insert(image, "text-red-500", `↓ Healing`, true, e);
-          }
-          break;
-        case "poolcost":
-          if (e.value > 0) {
-            insert(image, "text-red-500", `↓ Action cost`, true, e);
-          } else {
-            insert(image, "text-green-500", `↑ Action cost`, true, e);
-          }
-          break;
-        case "damage":
-          insert(image, "text-red-500", `↓ Taking Dmg`, true, e);
-          break;
-        case "pierce":
-          insert(image, "text-red-500", `↓ Piercing Dmg`, true, e);
-          break;
-        case "shield":
-          insert(image, "text-green-500", `↑ Shield`, true, e);
-          break;
-        case "absorb":
-          insert(image, "text-green-500", `↑ Absorb`, true, e);
-          break;
-        case "reflect":
-          insert(image, "text-green-500", `↑ Reflect`, true, e);
-          break;
-        case "recoil":
-          insert(image, "text-red-500", `↓ Dmg recoil`, true, e);
-          break;
-        case "afterburn":
-          insert(image, "text-red-500", `↓ Afterburn`, true, e);
-          break;
-        case "drain":
-          insert(image, "text-purple-500", `↓ Draining`, true, e);
-          break;
-        case "poison":
-          insert(image, "text-purple-500", `↓ Poisoned`, true, e);
-          break;
-        case "lifesteal":
-          insert(image, "text-green-500", `↑ Steal life`, true, e);
-          break;
-        case "fleeprevent":
-          insert(image, "text-blue-500", `- Cannot Flee`, false, e);
-          break;
-        case "robprevent":
-          insert(image, "text-blue-500", `- Rob Immunity`, false, e);
-          break;
-        case "buffprevent":
-          insert(image, "text-blue-500", `- Buff Immunity`, false, e);
-          break;
-        case "debuffprevent":
-          insert(image, "text-blue-500", `- Debuff Immunity`, false, e);
-          break;
-        case "clearprevent":
-          insert(image, "text-blue-500", `- Clear Immunity`, false, e);
-          break;
-        case "cleanseprevent":
-          insert(image, "text-blue-500", `- Cleanse Immunity`, false, e);
-          break;
-        case "healprevent":
-          insert(image, "text-blue-500", `- Heal Prevention`, false, e);
-          break;
-        case "stunprevent":
-          insert(image, "text-blue-500", `- Stun Resistance`, false, e);
-          break;
-        case "moveprevent":
-          insert(image, "text-blue-500", `- Immobilized`, false, e);
-          break;
-        case "sealprevent":
-          insert(image, "text-blue-500", `- Seal immunity`, false, e);
-          break;
-        case "onehitkillprevent":
-          insert(image, "text-blue-500", `- OHKO immunity`, false, e);
-          break;
-        case "seal":
-          insert(image, "text-blue-500", `- BL Sealed`, false, e);
-          break;
-        case "stun":
-          insert(image, "text-blue-500", `- Stunned`, false, e);
-          break;
-        case "stealth":
-          insert(image, "text-blue-500", `- Stealthed`, false, e);
-          break;
-        case "finalstand":
-          insert(image, "text-orange-500", `- Final Stand`, false, e);
-          break;
-        case "clear":
-          insert(image, "text-red-500", `↓ Clearing positive effects`, false, e);
-          break;
-        case "cleanse":
-          insert(image, "text-green-500", `↑ Clearing negative effects`, false, e);
-          break;
-      }
-    });
-    // Show the effect with its stats
-  });
+  // ------------ Categorisation ------------
+  const STATUS_TYPES = new Set([
+    "shield",
+    "absorb",
+    "reflect",
+    "recoil",
+    "afterburn",
+    "drain",
+    "poison",
+    "lifesteal",
+    "fleeprevent",
+    "robprevent",
+    "buffprevent",
+    "debuffprevent",
+    "clearprevent",
+    "cleanseprevent",
+    "healprevent",
+    "stunprevent",
+    "moveprevent",
+    "sealprevent",
+    "onehitkillprevent",
+    "seal",
+    "stun",
+    "stealth",
+    "finalstand",
+    "clear",
+    "cleanse",
+  ]);
+
+  const statusEffects = collapsedEffects.filter((e) => STATUS_TYPES.has(e.type));
+  const damageGivenEffects = collapsedEffects.filter((e) => e.type === "damagegiven");
+  const damageTakenEffects = collapsedEffects.filter((e) => e.type === "damagetaken");
+  const statEffects = collapsedEffects.filter((e) => e.type === "stat");
+
+  const statusLabel: Record<string, string> = {
+    reflect: "Reflect",
+    shield: "Shield",
+    absorb: "Absorb",
+    recoil: "Recoil",
+    afterburn: "Afterburn",
+    drain: "Drain",
+    poison: "Poison",
+    lifesteal: "Lifesteal",
+    fleeprevent: "Cannot Flee",
+    robprevent: "Rob Immunity",
+    buffprevent: "Buff Immunity",
+    debuffprevent: "Debuff Immunity",
+    clearprevent: "Clear Immunity",
+    cleanseprevent: "Cleanse Immunity",
+    healprevent: "Heal Prevention",
+    stunprevent: "Stun Resistance",
+    moveprevent: "Immobilized",
+    sealprevent: "Seal Immunity",
+    onehitkillprevent: "OHKO Immunity",
+    seal: "BL Sealed",
+    stun: "Stunned",
+    stealth: "Stealthed",
+    finalstand: "Final Stand",
+    clear: "Clear Positives",
+    cleanse: "Cleanse Debuffs",
+  };
+
+  const statusVisuals = statusEffects.map((e) => (
+    <div
+      key={`${e.type}-${e.category}`}
+      className="flex flex-row items-center gap-2 text-xs"
+    >
+      <ElementImage element={e.category} className="w-6 h-6 shrink-0" />
+      <div
+        className={cn(e.sealed && "line-through")}
+      >{`${statusLabel[e.type] || e.type} ${valueTxt(e)} ${roundsTxt(e)}`}</div>
+    </div>
+  ));
+
+  // ------------ Render ------------
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 md:gap-1 lg:gap-3 text-base md:text-xs lg:text-base">
-      {visuals}
+    <div className="flex flex-col gap-4 text-base md:text-xs lg:text-base">
+      {statusVisuals.length > 0 && (
+        <div>
+          <div className="font-semibold mb-1">Statuses</div>
+          <div className="flex flex-col gap-1">{statusVisuals}</div>
+        </div>
+      )}
+
+      {damageGivenEffects.length > 0 && (
+        <div>
+          <div className="font-semibold mb-1">Damage Given</div>
+          <div className="grid grid-cols-2 gap-1">
+            {damageGivenEffects.map(renderCompact)}
+          </div>
+        </div>
+      )}
+
+      {damageTakenEffects.length > 0 && (
+        <div>
+          <div className="font-semibold mb-1">Damage Taken</div>
+          <div className="grid grid-cols-2 gap-1">
+            {damageTakenEffects.map(renderCompact)}
+          </div>
+        </div>
+      )}
+
+      {statEffects.length > 0 && (
+        <div>
+          <div className="font-semibold mb-1">Stats</div>
+          <div className="grid grid-cols-2 gap-1">{statEffects.map(renderCompact)}</div>
+        </div>
+      )}
     </div>
   );
 };

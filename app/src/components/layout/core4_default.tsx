@@ -65,6 +65,7 @@ import type { NavBarDropdownLink } from "@/libs/menus";
 import type { UserWithRelations } from "@/server/api/routers/profile";
 import { usePathname } from "next/navigation";
 import { cn } from "src/libs/shadui";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 export interface LayoutProps {
   children: React.ReactNode;
 }
@@ -878,11 +879,9 @@ const RightSideBar: React.FC<{
   // Derived data
   const inBattle = userData?.status === "BATTLE";
 
-  // Render
-  return (
+  // Helper to render the default sidebar content (without MenuBoxCombat)
+  const renderDefaultSidebar = () => (
     <>
-      {/* COMBAT */}
-      <MenuBoxCombat />
       {/* NOTIFICATIONS */}
       {userData && notifications && notifications.length > 0 && (
         <>
@@ -950,6 +949,25 @@ const RightSideBar: React.FC<{
       )}
     </>
   );
+
+  // Render
+  if (inBattle) {
+    return (
+      <Tabs defaultValue="battle" className="w-full">
+        <TabsContent value="menu">{renderDefaultSidebar()}</TabsContent>
+        <TabsContent value="battle">
+          <MenuBoxCombat />
+        </TabsContent>
+        <TabsList className="w-full  border-2">
+          <TabsTrigger value="menu">Menu</TabsTrigger>
+          <TabsTrigger value="battle">Battle</TabsTrigger>
+        </TabsList>
+      </Tabs>
+    );
+  }
+
+  // Default (not in battle)
+  return renderDefaultSidebar();
 };
 
 // Get wallpaper based on the season

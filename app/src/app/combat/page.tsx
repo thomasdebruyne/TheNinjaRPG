@@ -144,6 +144,7 @@ export default function CombatPage() {
             <>
               {userData?.status === "BATTLE" && (
                 <ActionSelector
+                  showInfoIcon={true}
                   items={actions}
                   currentRound={battle.round}
                   showBgColor={true}
@@ -189,6 +190,7 @@ export default function CombatPage() {
               <TabsContent value="actions" className="mt-0 p-0">
                 {userData?.status === "BATTLE" && (
                   <ActionSelector
+                    showInfoIcon={true}
                     items={actions}
                     className="p-1"
                     currentRound={battle.round}
