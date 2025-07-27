@@ -106,6 +106,7 @@ export const getBattleGrid = (hexsize: number, origin?: { x: number; y: number }
     })
     .map((tile) => {
       tile.cost = 1;
+      tile.name = `${String.fromCharCode(65 + tile.col)}${tile.row + 1}`;
       return tile;
     });
   return grid;
@@ -707,19 +708,27 @@ export const calcBattleResult = (
           }
 
           // Base prestige for PvP kill (only for enemies)
-          if (user.isOutlaw || !target.relations.some(r => 
-            (r.status === "ALLY" && 
-             ((r.villageIdA === vilId && r.villageIdB === target.villageId) ||
-              (r.villageIdA === target.villageId && r.villageIdB === vilId))) ||
-            target.villageId === vilId
-          )) {
-            deltaPrestige += user.anbuId ? PVP_KILL_PRESTIGE_REWARD_ANBU : PVP_KILL_PRESTIGE_REWARD;
-            
+          if (
+            user.isOutlaw ||
+            !target.relations.some(
+              (r) =>
+                (r.status === "ALLY" &&
+                  ((r.villageIdA === vilId && r.villageIdB === target.villageId) ||
+                    (r.villageIdA === target.villageId && r.villageIdB === vilId))) ||
+                target.villageId === vilId,
+            )
+          ) {
+            deltaPrestige += user.anbuId
+              ? PVP_KILL_PRESTIGE_REWARD_ANBU
+              : PVP_KILL_PRESTIGE_REWARD;
+
             // Base village tokens for PvP kill (only for enemies)
-            deltaTokens += user.anbuId ? PVP_KILL_TOKEN_REWARD_ANBU : PVP_KILL_TOKEN_REWARD;
+            deltaTokens += user.anbuId
+              ? PVP_KILL_TOKEN_REWARD_ANBU
+              : PVP_KILL_TOKEN_REWARD;
 
             // ANBU points for PvP kill (only if target is not more than 10 levels under)
-            if (user.anbuId && (user.level - target.level) <= 10) {
+            if (user.anbuId && user.level - target.level <= 10) {
               deltaAnbuPoints += PVP_KILL_ANBU_POINTS_REWARD;
             }
           }
@@ -882,8 +891,10 @@ export const calcBattleResult = (
       const maxTargetLevel = Math.max(...targets.map((t) => t.level), 0);
       if (Math.abs(user.level - maxTargetLevel) > STREAK_LEVEL_DIFF) {
         // Check if any kage was killed in this battle
-        const wasKageKilled = targets.some(target => target.village?.kageId === target.userId);
-        
+        const wasKageKilled = targets.some(
+          (target) => target.village?.kageId === target.userId,
+        );
+
         if (shrineChangeHp !== 0) shrineChangeHp /= Math.abs(shrineChangeHp);
         // Only reduce townhallChangeHP if no kage was killed
         if (townhallChangeHP !== 0 && !wasKageKilled) {

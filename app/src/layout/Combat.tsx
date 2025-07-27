@@ -390,12 +390,8 @@ const Combat: React.FC<CombatProps> = (props) => {
       camera.updateProjectionMatrix();
 
       // Draw the background
-      const { group_tiles, group_edges, honeycombGrid } = drawCombatBackground(
-        WIDTH,
-        HEIGHT,
-        scene,
-        battle.current.background,
-      );
+      const { group_tiles, group_edges, group_names, honeycombGrid } =
+        drawCombatBackground(WIDTH, HEIGHT, scene, battle.current.background);
       grid.current = honeycombGrid;
 
       // Intersections & highlights from interactions
@@ -419,6 +415,7 @@ const Combat: React.FC<CombatProps> = (props) => {
       // Add the group to the scene
       scene.add(group_tiles);
       scene.add(group_edges);
+      scene.add(group_names);
       scene.add(group_ground);
       scene.add(group_users);
       scene.add(group_effects);

@@ -173,7 +173,7 @@ export default function CombatPage() {
               value={activeTab}
               onValueChange={setActiveTab}
             >
-              <TabsList className="w-full my-2">
+              <TabsList className="w-full mt-2 border-2 rounded-none">
                 <TabsTrigger value="actions" className="flex-1">
                   Actions
                 </TabsTrigger>
@@ -186,10 +186,11 @@ export default function CombatPage() {
                   )}
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="actions">
+              <TabsContent value="actions" className="mt-0 p-0">
                 {userData?.status === "BATTLE" && (
                   <ActionSelector
                     items={actions}
+                    className="p-1"
                     currentRound={battle.round}
                     showBgColor={true}
                     showLabels={true}
@@ -204,7 +205,7 @@ export default function CombatPage() {
                   />
                 )}
               </TabsContent>
-              <TabsContent value="history">
+              <TabsContent value="history" className="mt-0 pt-0">
                 <CombatHistory
                   battleId={battle.id}
                   battleVersion={battle.version}
