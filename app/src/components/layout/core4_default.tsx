@@ -12,7 +12,15 @@ import Loader from "@/layout/Loader";
 import AvatarImage from "@/layout/Avatar";
 import SendTicketBtn from "@/layout/SendTicketButton";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { CircleUserRound, CircleHelp, Compass, Cog, Milk } from "lucide-react";
+import {
+  CircleUserRound,
+  CircleHelp,
+  Compass,
+  Cog,
+  Milk,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Bell, Info, ShieldAlert, ShieldCheck, Eclipse } from "lucide-react";
 import { Earth, House, MessageCircleWarning, Inbox } from "lucide-react";
 import { Volume2, VolumeX, Link2 } from "lucide-react";
@@ -99,6 +107,25 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     }
     return "light";
   });
+
+  // Desktop logo visibility (persisted in localStorage)
+  const [logoVisible, setLogoVisible] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("logoVisible");
+      if (saved !== null) return JSON.parse(saved) as boolean;
+    }
+    return true;
+  });
+
+  const toggleLogoVisible = () => {
+    setLogoVisible((prev) => {
+      const newState = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("logoVisible", JSON.stringify(newState));
+      }
+      return newState;
+    });
+  };
 
   // Initial value is derived only from server-side props to avoid hydration mismatches.
   // We later synchronize with client-side localStorage once the component is mounted.
@@ -302,7 +329,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
    * Icons shown to logged in users in navbar
    */
   const signedInIcons = (
-    <div className="flex flex-row">
+    <div className="flex flex-row items-center">
       <SignedIn>
         <UserButton
           appearance={{
@@ -315,24 +342,26 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
         onClick={() => setLeftSideBarOpen(false)}
         aria-label="Event Notifications"
       >
-        <Bell className="h-7 w-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 ml-2 p-1" />
+        <Bell className="h-6 w-6 xl:h-7 xl:w-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 ml-2 p-1" />
       </Link>
       <div
-        className="hover:cursor-pointer h-7 w-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 p-1"
         onClick={userData ? () => toggleAudioMutation() : toggleLocalAudio}
         aria-label="Toggle Audio"
       >
         {localAudioOn ? (
           <>
-            <Volume2 className="h-5 w-5" />
+            <Volume2 className="h-6 w-6 xl:h-7 xl:w-7 rounded-full mx-1 p-1 hover:cursor-pointer hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 " />
             <audio autoPlay loop src={MUSIC_DEFAULT}></audio>
           </>
         ) : (
-          <VolumeX className="h-5 w-5" suppressHydrationWarning />
+          <VolumeX
+            className="h-6 w-6 xl:h-7 xl:w-7 rounded-full mx-1 p-1 hover:cursor-pointer hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80"
+            suppressHydrationWarning
+          />
         )}
       </div>
       <Eclipse
-        className={`hover:cursor-pointer h-7 w-7 min-w-7 min-h-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 p-1 ${theme === "light" ? "bg-yellow-100" : "bg-blue-100"}`}
+        className={`hover:cursor-pointer h-6 w-6 xl:h-7 xl:w-7 min-w-6 min-h-6 xl:min-w-7 xl:min-h-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 p-1 ${theme === "light" ? "bg-yellow-100" : "bg-blue-100"}`}
         onClick={() => {
           if (!theme || theme === "light") {
             localStorage.setItem("theme", "dark");
@@ -400,27 +429,46 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           unoptimized
         />
         <div className="max-w-[1280px] ml-auto mr-auto w-full absolute top-0 bottom-0 md:relative">
-          {/* LOGO */}
-          <Link href="/">
-            <Image
-              className="hidden md:block z-2 relative top-3 left-[50%] translate-x-[-50%] select-none"
-              id="tutorial-logo"
-              src={IMG_LOGO_FULL}
-              width={384}
-              height={138}
-              alt="logo"
-              loading="lazy"
-            />
-            <Image
-              className="block md:hidden absolute top-3 left-[50%] translate-x-[-50%] w-1/2 max-w-250"
-              id="tutorial-logo"
-              src={IMG_LOGO_SHORT}
-              width={250}
-              height={63}
-              alt="logo"
-              loading="lazy"
-            />
-          </Link>
+          {/* LOGO WITH TOGGLE */}
+          <div className="relative z-2 top-3 w-full flex justify-center select-none">
+            {logoVisible && (
+              <Link href="/">
+                <Image
+                  className="hidden md:block"
+                  id="tutorial-logo"
+                  src={IMG_LOGO_FULL}
+                  width={384}
+                  height={138}
+                  alt="logo"
+                  loading="lazy"
+                />
+              </Link>
+            )}
+            {/* Mobile logo (always visible) */}
+            <Link href="/">
+              <Image
+                className="block md:hidden absolute top-0 left-[50%] translate-x-[-50%] w-1/2 max-w-250"
+                id="tutorial-logo-mobile"
+                src={IMG_LOGO_SHORT}
+                width={250}
+                height={63}
+                alt="logo"
+                loading="lazy"
+              />
+            </Link>
+            {/* Toggle button (desktop only) */}
+            <button
+              aria-label={logoVisible ? "Hide Logo" : "Show Logo"}
+              onClick={toggleLogoVisible}
+              className="hidden md:flex items-center justify-center absolute -top-2 right-2 h-6 w-6 bg-slate-700/70 hover:bg-slate-600 text-white rounded-full"
+            >
+              {logoVisible ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           {/* DESKTOP NAVBAR */}
           <div className="hidden md:block z-1 relative top-[-10px] left-[50%] translate-x-[-50%] text-orange-100 font-bold text-lg lg:text-2xl">
             <Image
