@@ -57,7 +57,6 @@ import { SENSEI_STUDENT_RYO_PER_MISSION } from "@/drizzle/constants";
 import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
 import { QUESTS_CONCURRENT_LIMIT } from "@/drizzle/constants";
 import { ERRANDS_PER_DAY, MEDICAL_MISSIONS_PER_DAY } from "@/drizzle/constants";
-import { calcMedninRank } from "@/libs/hospital/hospital";
 import { questFilteringSchema } from "@/validators/quest";
 import type { QuestConsequence } from "@/libs/quest";
 import {
@@ -121,6 +120,7 @@ export const questsRouter = createTRPCRouter({
         offset: skip,
         limit: input.limit,
       });
+      console.log("===========", results);
       results.forEach((r) => controlShownQuestLocationInformation(r));
       const nextCursor = results.length < input.limit ? null : currentCursor + 1;
       return {
@@ -420,7 +420,9 @@ export const questsRouter = createTRPCRouter({
         return errorResponse(`Already active ${current.questType}`);
       }
       // Fetch quest
-      const result = getRandomElement(filtered || []);
+      const result = getRandomElement(
+        results.filter((e) => isAvailableUserQuests(e, user).check),
+      );
       if (!result) return errorResponse("No assignments at this level could be found");
 
       // Insert quest entry
