@@ -683,7 +683,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
   // ------------ Render ------------
   return (
     <div className="relative flex flex-col gap-4 text-base md:text-xs lg:text-base">
-      {collapsedEffects.length > 0 && (
+      {effects.length > 0 && (
         <Popover>
           <PopoverTrigger asChild>
             <Filter className="w-5 h-5 absolute top-0 right-0 hover:cursor-pointer hover:text-orange-500" />

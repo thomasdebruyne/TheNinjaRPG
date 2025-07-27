@@ -108,20 +108,20 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     return "light";
   });
 
-  // Desktop logo visibility (persisted in localStorage)
-  const [logoVisible, setLogoVisible] = useState<boolean>(() => {
+  // Light layout mode: hide desktop logo & navbar, use mobile side sheets (persisted)
+  const [lightLayout, setLightLayout] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("logoVisible");
+      const saved = localStorage.getItem("lightLayout");
       if (saved !== null) return JSON.parse(saved) as boolean;
     }
-    return true;
+    return false; // default = full layout
   });
 
-  const toggleLogoVisible = () => {
-    setLogoVisible((prev) => {
+  const toggleLightLayout = () => {
+    setLightLayout((prev) => {
       const newState = !prev;
       if (typeof window !== "undefined") {
-        localStorage.setItem("logoVisible", JSON.stringify(newState));
+        localStorage.setItem("lightLayout", JSON.stringify(newState));
       }
       return newState;
     });
@@ -430,8 +430,8 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
         />
         <div className="max-w-[1280px] ml-auto mr-auto w-full absolute top-0 bottom-0 md:relative">
           {/* LOGO WITH TOGGLE */}
-          <div className="relative z-2 top-3 w-full flex justify-center select-none">
-            {logoVisible && (
+          <div className="relative z-2 top-3 w-full flex justify-center select-none z-50">
+            {!lightLayout && (
               <Link href="/">
                 <Image
                   className="hidden md:block"
@@ -458,63 +458,65 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
             </Link>
             {/* Toggle button (desktop only) */}
             <button
-              aria-label={logoVisible ? "Hide Logo" : "Show Logo"}
-              onClick={toggleLogoVisible}
-              className="hidden md:flex items-center justify-center absolute -top-2 right-2 h-6 w-6 bg-slate-700/70 hover:bg-slate-600 text-white rounded-full"
+              aria-label={lightLayout ? "Show Layout" : "Hide Layout"}
+              onClick={toggleLightLayout}
+              className="hidden md:flex items-center justify-center absolute top-0 right-2 h-8 w-8 bg-slate-700/70 hover:bg-slate-600 text-white rounded-full"
             >
-              {logoVisible ? (
-                <EyeOff className="h-4 w-4" />
+              {lightLayout ? (
+                <Eye className="h-6 w-6" />
               ) : (
-                <Eye className="h-4 w-4" />
+                <EyeOff className="h-6 w-6" />
               )}
             </button>
           </div>
           {/* DESKTOP NAVBAR */}
-          <div className="hidden md:block z-1 relative top-[-10px] left-[50%] translate-x-[-50%] text-orange-100 font-bold text-lg lg:text-2xl">
-            <Image
-              className="select-none"
-              src={imageset.navbar}
-              width={1280}
-              height={133}
-              alt="navbar"
-              loading="lazy"
-            />
-            <div className="absolute top-6 grid grid-cols-3 w-1/2 px-24 lg:px-36">
-              {navbarMenuItemsLeft.map((link) => (
-                <Link
-                  key={link.name}
-                  className="hover:text-orange-500 flex flex-row gap-1 z-10 items-center justify-center hover:cursor-pointer"
-                  href={link.href}
-                  onClick={async () => {
-                    if (link.onClick) {
-                      await link.onClick();
-                    }
-                  }}
-                  prefetch={false}
-                >
-                  {link.icon}
-                  {link.name}
-                </Link>
-              ))}
+          {!lightLayout && (
+            <div className="hidden md:block z-1 relative top-[-10px] left-[50%] translate-x-[-50%] text-orange-100 font-bold text-lg lg:text-2xl">
+              <Image
+                className="select-none"
+                src={imageset.navbar}
+                width={1280}
+                height={133}
+                alt="navbar"
+                loading="lazy"
+              />
+              <div className="absolute top-6 grid grid-cols-3 w-1/2 px-24 lg:px-36">
+                {navbarMenuItemsLeft.map((link) => (
+                  <Link
+                    key={link.name}
+                    className="hover:text-orange-500 flex flex-row gap-1 z-10 items-center justify-center hover:cursor-pointer"
+                    href={link.href}
+                    onClick={async () => {
+                      if (link.onClick) {
+                        await link.onClick();
+                      }
+                    }}
+                    prefetch={false}
+                  >
+                    {link.icon}
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+              <div className="absolute top-6 right-0 grid grid-cols-3 w-1/2 px-24 lg:px-36">
+                {navbarMenuItemsRight.map((link) => (
+                  <Link
+                    key={link.name}
+                    className="hover:text-orange-500 flex flex-row gap-1 z-10 items-center justify-center"
+                    href={link.href}
+                    onClick={async () => {
+                      if (link.onClick) await link.onClick();
+                    }}
+                    prefetch={false}
+                  >
+                    {link.icon}
+                    {link.name}
+                  </Link>
+                ))}
+                {signedInIcons}
+              </div>
             </div>
-            <div className="absolute top-6 right-0 grid grid-cols-3 w-1/2 px-24 lg:px-36">
-              {navbarMenuItemsRight.map((link) => (
-                <Link
-                  key={link.name}
-                  className="hover:text-orange-500 flex flex-row gap-1 z-10 items-center justify-center"
-                  href={link.href}
-                  onClick={async () => {
-                    if (link.onClick) await link.onClick();
-                  }}
-                  prefetch={false}
-                >
-                  {link.icon}
-                  {link.name}
-                </Link>
-              ))}
-              {signedInIcons}
-            </div>
-          </div>
+          )}
           {/* DESKTOP HANDSIGN */}
           <Image
             className="hidden md:block z-10 relative top-[-120px] left-[50%] translate-x-[-50%] select-none"
