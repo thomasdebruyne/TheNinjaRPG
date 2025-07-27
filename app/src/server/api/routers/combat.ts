@@ -61,6 +61,7 @@ import type { ActionEffect } from "@/libs/combat/types";
 import type { CompleteBattle } from "@/libs/combat/types";
 import type { DrizzleClient } from "@/server/db";
 import { IMG_BG_FOREST } from "@/drizzle/constants";
+import { flushSafe } from "@/app/api/trpc/[trpc]/route";
 import type { ZodBgSchemaType } from "@/validators/backgroundSchema";
 
 // Debug flag when testing battle
@@ -481,6 +482,10 @@ export const combatRouter = createTRPCRouter({
               }
             }
 
+            // Stop profiling
+            Sentry.profiler.stopProfiler();
+            await Sentry.flush(5000);
+
             // Return the new battle + result state if applicable
             return {
               result: result,
@@ -497,7 +502,6 @@ export const combatRouter = createTRPCRouter({
           }
         }
       }
-      Sentry.profiler.stopProfiler();
     }),
   battleArenaHeal: protectedProcedure
     .output(baseServerResponse)
