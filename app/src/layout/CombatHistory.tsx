@@ -126,7 +126,7 @@ const CombatHistory: React.FC<CombatHistoryProps> = (props) => {
                 return (
                   <div
                     key={`v-${entry.battleVersion}`}
-                    className="text-xs font-normal text-gray-600 pl-4 py-1"
+                    className="text-sm font-normal text-gray-600 pl-4 py-1"
                   >
                     {isNewUser && !isLastEntry ? <hr className="mb-3 mt-0" /> : null}
                     {userData?.showBattleDescription ? (
@@ -223,7 +223,7 @@ const CombatHistory: React.FC<CombatHistoryProps> = (props) => {
 
   // Show component
   return (
-    <div className="relative flex flex-col border-b-2 border-l-2 pt-2 border-r-2 bg-slate-100 max-h-80 overflow-auto">
+    <div className="relative flex flex-col border-b-2 border-l-2 pt-2 border-r-2 bg-slate-100 overflow-auto">
       {isFetching && (
         <div className="absolute right-2 top-2">
           <Loader />

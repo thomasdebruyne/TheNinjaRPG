@@ -35,6 +35,11 @@ import {
   IMG_ICON_TWITTER,
   IMG_ICON_YOUTUBE,
 } from "@/drizzle/constants";
+import { useLocalStorage } from "@/hooks/localstorage";
+import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Filter } from "lucide-react";
 import type { GeneralType, StatType, ElementName } from "@/drizzle/constants";
 import type { UserStatuses } from "@/drizzle/constants";
 import type { UserEffect } from "@/libs/combat/types";
@@ -464,12 +469,61 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
   effects,
   userId,
 }) => {
-  // Get sealing effects
-  const sealEffects = effects.filter((e) => e.type === "seal" && !e.isNew);
+  // ------------- Toggle states -------------
+  const [includeJutsu, setIncludeJutsu] = useLocalStorage<boolean>(
+    "ve_include_jutsu",
+    true,
+  );
+  const [includeArmor, setIncludeArmor] = useLocalStorage<boolean>(
+    "ve_include_armor",
+    true,
+  );
+  const [includeItem, setIncludeItem] = useLocalStorage<boolean>(
+    "ve_include_item",
+    true,
+  );
+  const [includeBloodline, setIncludeBloodline] = useLocalStorage<boolean>(
+    "ve_include_bloodline",
+    true,
+  );
+  const [includeVillage, setIncludeVillage] = useLocalStorage<boolean>(
+    "ve_include_village",
+    true,
+  );
+  const [includeSkill, setIncludeSkill] = useLocalStorage<boolean>(
+    "ve_include_skill",
+    true,
+  );
+
+  const includeEffect = (type?: UserEffect["fromType"]): boolean => {
+    if (!type) return true;
+    switch (type) {
+      case "jutsu":
+        return includeJutsu;
+      case "armor":
+        return includeArmor;
+      case "item":
+        return includeItem;
+      case "bloodline":
+        return includeBloodline;
+      case "village":
+        return includeVillage;
+      case "skill":
+        return includeSkill;
+      default:
+        return true;
+    }
+  };
+
+  // Filter effects before processing
+  const filteredEffects = effects.filter((e) => includeEffect(e.fromType));
+
+  // Get sealing effects among the filtered ones (used for strike-through calculation)
+  const sealEffects = filteredEffects.filter((e) => e.type === "seal" && !e.isNew);
 
   // Collapse consequences based on their type & calculation type
   const collapsedEffects =
-    effects
+    filteredEffects
       .filter(isEffectActive)
       .filter((e) => e.targetId === userId)
       .filter((e) => e.rounds === undefined || e.rounds > 0)
@@ -479,7 +533,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
           ...(("generalTypes" in val && val?.generalTypes) || []),
           ...(("elements" in val && val?.elements) || []),
         ];
-        const isSealed = sealEffects && sealCheck(val, sealEffects);
+        const isSealed = sealCheck(val, sealEffects);
         const cats = stats.length === 0 ? ["All" as const] : stats;
         const dual = val.type.includes("increase") || val.type.includes("decrease");
         const baseType = dual
@@ -628,7 +682,66 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
 
   // ------------ Render ------------
   return (
-    <div className="flex flex-col gap-4 text-base md:text-xs lg:text-base">
+    <div className="relative flex flex-col gap-4 text-base md:text-xs lg:text-base">
+      {collapsedEffects.length > 0 && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Filter className="w-5 h-5 absolute top-0 right-0 hover:cursor-pointer hover:text-orange-500" />
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-max p-2 text-xs">
+            <div className="flex flex-col gap-2">
+              {[
+                {
+                  id: "jutsu",
+                  label: "Jutsu",
+                  checked: includeJutsu,
+                  onChange: setIncludeJutsu,
+                },
+                {
+                  id: "armor",
+                  label: "Armor",
+                  checked: includeArmor,
+                  onChange: setIncludeArmor,
+                },
+                {
+                  id: "item",
+                  label: "Item",
+                  checked: includeItem,
+                  onChange: setIncludeItem,
+                },
+                {
+                  id: "bloodline",
+                  label: "Bloodline",
+                  checked: includeBloodline,
+                  onChange: setIncludeBloodline,
+                },
+                {
+                  id: "village",
+                  label: "Village",
+                  checked: includeVillage,
+                  onChange: setIncludeVillage,
+                },
+                {
+                  id: "skill",
+                  label: "Skill",
+                  checked: includeSkill,
+                  onChange: setIncludeSkill,
+                },
+              ].map(({ id, label, checked, onChange }) => (
+                <div key={id} className="flex items-center gap-2">
+                  <Switch
+                    id={`ve-toggle-${id}`}
+                    checked={checked}
+                    onCheckedChange={onChange}
+                  />
+                  <label htmlFor={`ve-toggle-${id}`}>{label}</label>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
       {statusVisuals.length > 0 && (
         <div>
           <div className="font-semibold mb-1">Statuses</div>
