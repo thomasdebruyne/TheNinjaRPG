@@ -484,7 +484,8 @@ export const combatRouter = createTRPCRouter({
 
             // Stop profiling
             Sentry.profiler.stopProfiler();
-            await Sentry.flush(5000);
+            const tempResult = await Sentry.flush(15000);
+            console.log("Sentry flush tempResult: ", tempResult);
 
             // Return the new battle + result state if applicable
             return {

@@ -30,7 +30,7 @@ Sentry.init({
   environment: process.env.NODE_ENV,
 
   // Profiling
-  profileSessionSampleRate: 0.1,
+  profileSessionSampleRate: 1,
   profileLifecycle: "manual",
 
   // Uncomment the line below to enable Spotlight (https://spotlightjs.com)
