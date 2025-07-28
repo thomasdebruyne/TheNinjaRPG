@@ -39,11 +39,12 @@ interface CombatProps {
   battleState: BattleState;
   userId: string;
   setBattleState: React.Dispatch<React.SetStateAction<BattleState | undefined>>;
+  showGridNumbers: boolean;
 }
 
 const Combat: React.FC<CombatProps> = (props) => {
   // Destructure props
-  const { battleState, setBattleState } = props;
+  const { battleState, setBattleState, showGridNumbers } = props;
   const result = battleState.result;
   const utils = api.useUtils();
 
@@ -64,6 +65,9 @@ const Combat: React.FC<CombatProps> = (props) => {
   const mouse = new Vector2();
   const battleId = battle.current?.id;
   const battleType = battle.current?.battleType;
+
+  // Reference to group holding tile names for toggling visibility
+  const groupNamesRef = useRef<Group | null>(null);
 
   // Mutation protection
   const onMutateCheck = useGlobalOnMutateProtect();
@@ -394,6 +398,10 @@ const Combat: React.FC<CombatProps> = (props) => {
         drawCombatBackground(WIDTH, HEIGHT, scene, battle.current.background);
       grid.current = honeycombGrid;
 
+      // Set initial visibility based on prop and store reference
+      group_names.visible = showGridNumbers;
+      groupNamesRef.current = group_names;
+
       // Intersections & highlights from interactions
       let highlights = new Set<string>();
       let tooltips = new Set<string>();
@@ -556,6 +564,13 @@ const Combat: React.FC<CombatProps> = (props) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [battleId, gameAssets]);
+
+  // Update visibility when showGridNumbers flag changes
+  useEffect(() => {
+    if (groupNamesRef.current) {
+      groupNamesRef.current.visible = showGridNumbers;
+    }
+  }, [showGridNumbers]);
 
   // Derived variables
   const showNextMatch =

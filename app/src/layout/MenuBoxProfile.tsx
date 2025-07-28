@@ -38,7 +38,6 @@ import {
 import { useLocalStorage } from "@/hooks/localstorage";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
 import type { GeneralType, StatType, ElementName } from "@/drizzle/constants";
 import type { UserStatuses } from "@/drizzle/constants";
@@ -450,11 +449,13 @@ const Cooldown: React.FC<CooldownProps> = (props) => {
   return counter ? <>[{counter}]</> : <></>;
 };
 
+type EffectCategory = GeneralType | StatType | ElementName | "All";
+
 type CollapsedEffect = {
   type: string;
   value: number;
   calculation: "static" | "percentage" | "formula";
-  category: GeneralType | StatType | ElementName | "All";
+  category: EffectCategory;
   upDownEffect: boolean;
   rounds: number[];
   sealed: boolean;
@@ -534,7 +535,12 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
           ...(("elements" in val && val?.elements) || []),
         ];
         const isSealed = sealCheck(val, sealEffects);
-        const cats = stats.length === 0 ? ["All" as const] : stats;
+        let cats = stats.length === 0 ? ["All"] : stats;
+        const JUTSU_CATS = ["Taijutsu", "Ninjutsu", "Genjutsu", "Bukijutsu"];
+        if (JUTSU_CATS.every((jc) => cats.includes(jc))) {
+          cats = cats.filter((c) => !JUTSU_CATS.includes(c));
+          cats.push("Highest");
+        }
         const dual = val.type.includes("increase") || val.type.includes("decrease");
         const baseType = dual
           ? val.type.replace("increase", "").replace("decrease", "")
@@ -556,7 +562,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
             acc.push({
               type: baseType,
               value: isSealed ? 0 : value,
-              category: cat,
+              category: cat as EffectCategory,
               calculation: val.calculation,
               upDownEffect: dual,
               rounds: val.rounds ? [val.rounds] : [],
