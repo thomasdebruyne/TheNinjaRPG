@@ -539,7 +539,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
         const JUTSU_CATS = ["Taijutsu", "Ninjutsu", "Genjutsu", "Bukijutsu"];
         if (JUTSU_CATS.every((jc) => cats.includes(jc))) {
           cats = cats.filter((c) => !JUTSU_CATS.includes(c));
-          cats.push("Highest");
+          cats.push("All");
         }
         const dual = val.type.includes("increase") || val.type.includes("decrease");
         const baseType = dual
