@@ -1501,6 +1501,8 @@ export const IMG_BUILDING_HOSPITAL =
   "https://utfs.io/f/Hzww9EQvYURJ3n9SmD8pYHJX5rdkUTfOKtvu2eGIELmSWqBx";
 export const IMG_BUILDING_GLOBALANBU =
   "https://utfs.io/f/Hzww9EQvYURJIfwMDCxfOewksxBoS1HQCihpL7c42Ky9uUFv";
+export const IMG_BUILDING_ACADEMY =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJ5kYqQv797jl4ubX8xrRqTZasyMp2WA5eLGUP";
 export const IMG_BUILDING_BANK =
   "https://utfs.io/f/Hzww9EQvYURJEHFjuQLfKL5D7TAFe29bymSaPCIQ846MdzGg";
 export const IMG_BUILDING_ARCHIVE =

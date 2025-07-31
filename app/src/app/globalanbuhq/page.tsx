@@ -39,6 +39,7 @@ export default async function GlobalAnbuHQ() {
           title="Story Missions"
           subtitle="Global Anbu HQ"
           introduction="Story missions are special assignments that advance the game's narrative. They can only be started here at the Global Anbu HQ."
+          initialBreak={true}
         />
       )}
     </>

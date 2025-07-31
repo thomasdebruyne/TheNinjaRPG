@@ -976,7 +976,7 @@ export const isAvailableUserQuests = (
   const huntingRankCheck = !reqHuntRankIdx || userHuntRankIdx >= reqHuntRankIdx;
 
   // Event specific tests
-  const previousCheckTypes = ["event", "story", "anbu"];
+  const previousCheckTypes = ["event", "story", "anbu", "starter"];
   const eventCompletedCheck =
     !previousCheckTypes.includes(questAndUserQuestInfo.questType) ||
     !questAndUserQuestInfo.previousCompletes ||

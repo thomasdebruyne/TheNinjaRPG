@@ -80,9 +80,12 @@ export const QuestHelper: React.FC<QuestHelperProps> = (props) => {
 
             {renderBattlePyramidTips(quest)}
 
+            {renderStarterTips(quest)}
+
             {quest.questType !== "hunting" &&
               quest.questType !== "gathering" &&
-              quest.questType !== "battlepyramid" && (
+              quest.questType !== "battlepyramid" &&
+              quest.questType !== "starter" && (
                 <div className="p-3 bg-gray-50 rounded-lg border text-center">
                   <p className="text-sm text-gray-600">
                     No specific tips available for this quest type yet.
@@ -428,6 +431,75 @@ const renderBattlePyramidTips = (quest: DeepPartial<ZodCombinedQuest>) => {
           <p className="text-purple-800">
             Each subsequent objective should represent a more challenging battle,
             creating a progressive difficulty curve that defines the pyramid structure.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Renders the tips for starter quests
+ * @param quest - The quest to render the tips for
+ * @returns The tips for starter quests
+ */
+const renderStarterTips = (quest: DeepPartial<ZodCombinedQuest>) => {
+  if (quest.questType !== "starter") return null;
+
+  const hasPrerequisite = !!quest.prerequisiteQuestId;
+
+  return (
+    <div className="space-y-4">
+      <Alert>
+        <HelpCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Starter Quest Tips:</strong>
+        </AlertDescription>
+      </Alert>
+
+      <div className="space-y-3 text-sm">
+        {/* Warning for missing prerequisite */}
+        {!hasPrerequisite && (
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+            <h4 className="font-medium text-red-900 mb-2">
+              ⚠️ Missing Prerequisite Quest
+            </h4>
+            <p className="text-red-800">
+              This starter quest does not have a prerequisite quest set. Consider
+              linking starter quests together using the{" "}
+              <code className="bg-red-100 px-1 rounded">prerequisiteQuestId</code> field
+              to create a guided progression for new players.
+            </p>
+          </div>
+        )}
+
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 className="font-medium text-blue-900 mb-2">Quest Progression</h4>
+          <p className="text-blue-800">
+            Starter quests should be linked together with prerequisites to create a
+            logical learning progression. This prevents new players from being
+            overwhelmed with too many quest choices at once.
+          </p>
+        </div>
+
+        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <h4 className="font-medium text-green-900 mb-2">Best Practices</h4>
+          <p className="text-green-800">
+            • Link each starter quest to the previous one using{" "}
+            <code className="bg-green-100 px-1 rounded">prerequisiteQuestId</code>
+            <br />
+            • Create a clear tutorial flow that introduces game mechanics gradually
+            <br />• Consider the difficulty curve and ensure each quest builds upon the
+            last
+          </p>
+        </div>
+
+        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+          <h4 className="font-medium text-purple-900 mb-2">New Player Experience</h4>
+          <p className="text-purple-800">
+            Well-structured starter quests with proper prerequisites, clear descriptions
+            and guidelines create a smooth onboarding experience and help retain new
+            players by providing clear direction without overwhelming choice paralysis.
           </p>
         </div>
       </div>

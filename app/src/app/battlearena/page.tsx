@@ -148,6 +148,7 @@ export default function Arena() {
           title="Battle Pyramids"
           subtitle="Select a tower to start"
           unavailableText="No current battle pyramid quests available"
+          initialBreak={true}
         />
       )}
     </>

@@ -552,6 +552,15 @@ export const questsRouter = createTRPCRouter({
             `Already in active battle pyramid. Abandon if you want to restart.`,
           );
         }
+      } else if (questData.questType === "starter") {
+        const current = user.userQuests?.filter(
+          (q) => q.quest.questType === "starter" && !q.endAt,
+        );
+        if (current && current.length >= 1) {
+          return errorResponse(
+            `Already in active starter quest. Abandon if you want to restart.`,
+          );
+        }
       } else if (questData.questType === "gathering") {
         const current = user.userQuests?.filter(
           (q) => q.quest.questType === "gathering" && !q.endAt,

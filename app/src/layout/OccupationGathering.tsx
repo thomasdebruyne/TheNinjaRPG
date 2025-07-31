@@ -37,6 +37,7 @@ export default function OccupationGathering() {
         questType="gathering"
         title="Gathering Quests"
         subtitle="Gather resources"
+        initialBreak={true}
       />
       <ContentBox title="Overview" subtitle="Your experience and rank" initialBreak>
         <div className="space-y-6">

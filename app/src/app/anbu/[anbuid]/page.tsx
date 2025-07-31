@@ -140,6 +140,7 @@ export default function ANBUDetails(props: { params: Promise<{ anbuid: string }>
           questType="anbu"
           title="ANBU Missions"
           subtitle="Empower the squad and help the village"
+          initialBreak={true}
         />
       )}
     </>

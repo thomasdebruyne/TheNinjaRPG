@@ -19,6 +19,7 @@ interface QuestPickerProps {
   subtitle: string;
   introduction?: string;
   unavailableText?: string;
+  initialBreak?: boolean;
 }
 
 const QuestPicker: React.FC<QuestPickerProps> = (props) => {
@@ -48,14 +49,20 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
   // Default active tab
   useEffect(() => {
     if (userData && !activeElement) {
-      const currentQuest = userData?.userQuests?.find((uq) =>
-        [props.questType].includes(uq.quest.questType),
+      // Try to set to current quest if exists
+      const currentQuest = userData.userQuests?.find(
+        (uq) => uq.quest.questType === props.questType,
       );
       if (currentQuest) {
         setActiveElement(currentQuest.quest.name);
+        return;
+      }
+      // Otherwise, set to first available quest in the list
+      if (quests?.[0]) {
+        setActiveElement(quests[0].name);
       }
     }
-  }, [userData, activeElement, props.questType]);
+  }, [userData, activeElement, props.questType, quests]);
 
   if (!userData) return null;
 
@@ -66,7 +73,7 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
     <ContentBox
       title={props.title}
       subtitle={props.subtitle}
-      initialBreak={true}
+      initialBreak={props.initialBreak}
       padding={false}
     >
       {props.introduction && (

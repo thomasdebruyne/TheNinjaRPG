@@ -37,6 +37,7 @@ export default function OccupationHunter() {
         questType="hunting"
         title="Hunting Quests"
         subtitle="Gather resources"
+        initialBreak={true}
       />
       <ContentBox title="Overview" subtitle="Your experience and rank" initialBreak>
         <div className="space-y-6">
