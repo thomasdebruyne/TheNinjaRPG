@@ -68,24 +68,6 @@ export default function SupportPage() {
     { enabled: !!isStaff },
   );
 
-  // Auto-filter to user's assigned tickets on first load if user has assigned tickets
-  useEffect(() => {
-    if (
-      isStaff &&
-      statistics?.assignedToCurrentUser &&
-      statistics.assignedToCurrentUser > 0 &&
-      filterState.assignedToUserId === "None"
-    ) {
-      filterState.setAssignedToUserId(userData?.userId || "None");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isStaff,
-    statistics?.assignedToCurrentUser,
-    filterState.assignedToUserId,
-    userData?.userId,
-  ]);
-
   if (!userData) return <Loader explanation="Loading userdata" />;
 
   return (
@@ -180,6 +162,11 @@ export default function SupportPage() {
                       <Post
                         title={ticket.title}
                         hover_effect={true}
+                        color={
+                          ticket.assignedTo?.userId === userData?.userId
+                            ? "blue"
+                            : "default"
+                        }
                         user={ticket.createdBy}
                         href={`/support/${ticket.id}`}
                       >
