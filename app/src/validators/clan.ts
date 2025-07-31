@@ -1,14 +1,8 @@
 import { z } from "zod";
+import { CoreVillages } from "@/drizzle/constants";
 import type { Clan } from "@/drizzle/schema";
 
-const bannedNames = [
-  "Freedom State",
-  "Tsukimori",
-  "Glacier",
-  "Shine",
-  "Current",
-  "Shroud",
-];
+const bannedNames = ["Freedom State", "Horizon", ...CoreVillages];
 
 export const clanCreateSchema = z.object({
   villageId: z.string(),
