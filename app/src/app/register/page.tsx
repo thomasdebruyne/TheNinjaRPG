@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { MonitorPlay } from "lucide-react";
+import { MonitorPlay, Shuffle } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { registrationSchema } from "@/validators/register";
@@ -37,18 +37,12 @@ import { colors, skin_colors } from "@/validators/register";
 import { genders } from "@/validators/register";
 import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
 import { sendGTMEvent } from "@next/third-parties/google";
-import { Label } from "@/components/ui/label";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ActionSelector } from "@/layout/CombatActions";
 import {
   IMG_REGISTRATIN_STEP1,
   IMG_REGISTRATIN_STEP2,
-  IMG_REGISTRATIN_STEP3,
-  IMG_REGISTRATIN_STEP4,
-  IMG_REGISTRATIN_STEP5,
-  IMG_REGISTRATIN_STEP6,
-  IMG_REGISTRATIN_STEP7,
   IMG_REGISTRATIN_STEP8,
   IMG_REGISTRATIN_STEP9,
 } from "@/drizzle/constants";
@@ -73,6 +67,20 @@ const Register: React.FC = () => {
   // Create avatar mutation
   const createAvatar = api.avatar.createAvatar.useMutation();
 
+  // Fetch D-ranked bloodlines
+  const { data: bloodlines } = api.bloodline.getAll.useInfiniteQuery(
+    { rank: "D", hidden: false, limit: 500 },
+    { getNextPageParam: (lastPage) => lastPage.nextCursor },
+  );
+  const allBloodlines = bloodlines?.pages
+    .map((page) => page.data)
+    .flat()
+    .map((bloodline) => ({
+      ...bloodline,
+      type: "bloodline" as const,
+      description: "",
+    }));
+
   // Create character mutation
   const { mutate: createCharacter, isPending } =
     api.register.createCharacter.useMutation({
@@ -89,6 +97,8 @@ const Register: React.FC = () => {
   // Form handling
   const form = useForm<RegistrationSchema>({
     mode: "all",
+    reValidateMode: "onChange",
+    criteriaMode: "all",
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       username: "",
@@ -99,18 +109,12 @@ const Register: React.FC = () => {
       attribute_1: undefined,
       attribute_2: undefined,
       attribute_3: undefined,
-      question1: undefined,
-      question2: undefined,
-      question3: undefined,
-      question4: undefined,
-      question5: undefined,
-      question6: undefined,
+      bloodlineId: undefined,
     },
   });
 
   // Carousel control
   useEffect(() => {
-    void form.trigger();
     if (!cApi) return;
 
     setCount(cApi.scrollSnapList().length);
@@ -147,23 +151,30 @@ const Register: React.FC = () => {
     name: "attribute_3",
     defaultValue: undefined,
   });
-  const errors = form.formState.errors;
 
   // Checking for unique username
   const { data: databaseUsername } = api.profile.getUsername.useQuery(
     { username: watchUsername },
-    {},
+    { enabled: watchUsername.length >= 2 },
   );
 
   // If selected username found in database, set error. If not, clear error.
-  if (databaseUsername && errors.username === undefined) {
-    form.setError("username", {
-      type: "custom",
-      message: "The selected username already exists in the database",
-    });
-  } else if (!databaseUsername && errors.username?.type == "custom") {
-    form.clearErrors("username");
-  }
+  useEffect(() => {
+    const usernameError = form.formState.errors.username;
+    if (databaseUsername) {
+      console.log("databaseUsername", databaseUsername);
+      if (!usernameError) {
+        console.log("setError");
+        form.setError("username", {
+          type: "custom",
+          message: "The selected username already exists in the database",
+        });
+      }
+    } else if (usernameError?.type === "custom") {
+      console.log("clearErrors");
+      form.clearErrors("username");
+    }
+  }, [watchUsername, databaseUsername, form]);
 
   // If we have local storage referrer, set it as default value
   useEffect(() => {
@@ -191,6 +202,46 @@ const Register: React.FC = () => {
     (error) => showFormErrorsToast(error),
   );
 
+  // Helper function to get random item from array
+  const getRandomItem = <T,>(array: readonly T[]): T => {
+    return array[Math.floor(Math.random() * array.length)]!;
+  };
+
+  // Randomize all character data function
+  const randomizeAll = () => {
+    // Get 3 random unique attributes (filter out any "none"-like values)
+    const validAttributes = attributes.filter(
+      (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
+    );
+    const shuffled = [...validAttributes].sort(() => 0.5 - Math.random());
+    const [attr1, attr2, attr3] = shuffled.slice(0, 3);
+
+    // Get random colors (filter out any "none"-like values)
+    const validColors = colors.filter(
+      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+    );
+    const validSkinColors = skin_colors.filter(
+      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+    );
+    const validGenders = genders.filter(
+      (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
+    );
+
+    const randomHairColor = getRandomItem(validColors);
+    const randomEyeColor = getRandomItem(validColors);
+    const randomSkinColor = getRandomItem(validSkinColors);
+    const randomGender = getRandomItem(validGenders);
+
+    // Set the form values (validation will trigger automatically due to onChange mode)
+    form.setValue("gender", randomGender);
+    form.setValue("attribute_1", attr1!);
+    form.setValue("attribute_2", attr2!);
+    form.setValue("attribute_3", attr3!);
+    form.setValue("hair_color", randomHairColor);
+    form.setValue("eye_color", randomEyeColor);
+    form.setValue("skin_color", randomSkinColor);
+  };
+
   // Options used for select fields
   const option_colors = colors.map((color, index) => (
     <SelectItem key={index} value={color}>
@@ -216,15 +267,17 @@ const Register: React.FC = () => {
               <Carousel setApi={setCApi}>
                 <CarouselContent>
                   <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step1"
-                      src={IMG_REGISTRATIN_STEP1}
-                      width={491}
-                      height={89}
-                      className="basis-full w-full"
-                      priority={true}
-                    />
-
+                    <div className="w-full flex justify-center">
+                      <div className="relative w-full aspect-[491/89]">
+                        <Image
+                          alt="step1"
+                          src={IMG_REGISTRATIN_STEP1}
+                          fill
+                          className="object-contain"
+                          priority={true}
+                        />
+                      </div>
+                    </div>
                     <div className="flex flex-wrap w-full gap-4 items-center px-10">
                       <FormField
                         control={form.control}
@@ -257,8 +310,7 @@ const Register: React.FC = () => {
                               <FormLabel>Select gender</FormLabel>
                               <Select
                                 onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                value={field.value}
+                                value={field.value ?? ""}
                               >
                                 <FormControl>
                                   <SelectTrigger className="h-14 text-3xl ">
@@ -299,15 +351,19 @@ const Register: React.FC = () => {
                     </div>
                   </CarouselItem>
                   <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step2"
-                      src={IMG_REGISTRATIN_STEP2}
-                      width={491}
-                      height={89}
-                      className="w-full basis-full"
-                      priority={true}
-                    />
-                    <div className="flex w-full gap-4 items-center px-10">
+                    <div className="w-full flex justify-center">
+                      <div className="relative w-full aspect-[491/89]">
+                        <Image
+                          alt="step2"
+                          src={IMG_REGISTRATIN_STEP2}
+                          fill
+                          className="object-contain"
+                          priority={true}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 w-full gap-4 items-center px-3">
                       <FormField
                         control={form.control}
                         name="hair_color"
@@ -316,11 +372,10 @@ const Register: React.FC = () => {
                             <FormLabel>Hair color</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <FormControl>
-                                <SelectTrigger className="h-14 text-3xl ">
+                                <SelectTrigger className="h-14 text-xl ">
                                   <SelectValue placeholder={`None`} />
                                 </SelectTrigger>
                               </FormControl>
@@ -343,11 +398,10 @@ const Register: React.FC = () => {
                             <FormLabel>Eye color</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <FormControl>
-                                <SelectTrigger className="h-14 text-3xl ">
+                                <SelectTrigger className="h-14 text-xl ">
                                   <SelectValue placeholder={`None`} />
                                 </SelectTrigger>
                               </FormControl>
@@ -370,11 +424,10 @@ const Register: React.FC = () => {
                             <FormLabel>Skin color</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <FormControl>
-                                <SelectTrigger className="h-14 text-3xl ">
+                                <SelectTrigger className="h-14 text-xl ">
                                   <SelectValue placeholder={`None`} />
                                 </SelectTrigger>
                               </FormControl>
@@ -390,7 +443,7 @@ const Register: React.FC = () => {
                         )}
                       />
                     </div>
-                    <div className="flex w-full gap-4 items-center px-10">
+                    <div className="grid grid-cols-3 w-full gap-4 items-center px-3">
                       <FormField
                         control={form.control}
                         name="attribute_1"
@@ -399,11 +452,10 @@ const Register: React.FC = () => {
                             <FormLabel>Attribute #1</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <FormControl>
-                                <SelectTrigger className="h-14 text-3xl">
+                                <SelectTrigger className="h-14 text-xl">
                                   <SelectValue placeholder={`None`} />
                                 </SelectTrigger>
                               </FormControl>
@@ -434,11 +486,10 @@ const Register: React.FC = () => {
                             <FormLabel>Attribute #2</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <FormControl>
-                                <SelectTrigger className="h-14 text-3xl">
+                                <SelectTrigger className="h-14 text-xl">
                                   <SelectValue placeholder={`None`} />
                                 </SelectTrigger>
                               </FormControl>
@@ -469,11 +520,10 @@ const Register: React.FC = () => {
                             <FormLabel>Attribute #3</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <FormControl>
-                                <SelectTrigger className="h-14 text-3xl">
+                                <SelectTrigger className="h-14 text-xl">
                                   <SelectValue placeholder={`None`} />
                                 </SelectTrigger>
                               </FormControl>
@@ -497,484 +547,79 @@ const Register: React.FC = () => {
                         )}
                       />
                     </div>
+
+                    <div className="flex justify-center px-3 mb-4">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={randomizeAll}
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                        Randomize All
+                      </Button>
+                    </div>
                   </CarouselItem>
                   <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step3"
-                      src={IMG_REGISTRATIN_STEP3}
-                      width={491}
-                      height={89}
-                      className="w-full"
-                      priority={true}
-                    />
-                    <div className="px-10">
+                    <div className="w-full flex justify-center">
+                      <div className="relative w-full aspect-[491/89]">
+                        <Image
+                          alt="step3"
+                          src={IMG_REGISTRATIN_STEP8}
+                          fill
+                          className="object-contain"
+                          priority={true}
+                        />
+                      </div>
+                    </div>
+                    <div className="px-10 flex flex-col gap-4">
+                      <div className="text-lg font-semibold">
+                        Pick a starting bloodline
+                      </div>
                       <FormField
                         control={form.control}
-                        name="question1"
+                        name="bloodlineId"
                         render={({ field }) => (
-                          <FormItem className=" flex flex-col items-center">
-                            <div>
-                              <FormLabel className="font-bold text-base sm:text-xl">
-                                What environment feels most like home to you?
-                              </FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shine" id="r1" />
-                                    <Label
-                                      htmlFor="r1"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Sunny deserts and glowing sands.
-                                    </Label>
+                          <FormItem>
+                            <FormControl>
+                              <div>
+                                {allBloodlines && allBloodlines.length > 0 ? (
+                                  <ActionSelector
+                                    items={allBloodlines}
+                                    selectedId={field.value}
+                                    onClick={(bloodlineId) => {
+                                      field.onChange(bloodlineId);
+                                    }}
+                                    showLabels
+                                    emptyText="No D-ranked bloodlines available"
+                                    showInfoIcon
+                                    gridClassNameOverwrite="grid grid-cols-4"
+                                  />
+                                ) : (
+                                  <div className="text-center py-4">
+                                    Loading bloodlines...
                                   </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Tsukimori" id="r2" />
-                                    <Label
-                                      htmlFor="r2"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Mystic forests with ancient trees.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Glacier" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Icy mountains and snowfields.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shroud" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Rain-soaked swamps and hidden lagoons.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Current" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Windy valleys and open skies.
-                                    </Label>
-                                  </div>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </div>
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
                   </CarouselItem>
-                  <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step4"
-                      src={IMG_REGISTRATIN_STEP4}
-                      width={491}
-                      height={89}
-                      className="w-full"
-                      priority={true}
-                    />
-                    <div className="px-10">
-                      <FormField
-                        control={form.control}
-                        name="question2"
-                        render={({ field }) => (
-                          <FormItem className=" flex flex-col items-center">
-                            <div>
-                              <FormLabel className="font-bold text-base sm:text-xl">
-                                Which element do you feel most connected to?
-                              </FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shine" id="r1" />
-                                    <Label
-                                      htmlFor="r1"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Fire, for its burning passion.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Tsukimori" id="r2" />
-                                    <Label
-                                      htmlFor="r2"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Earth, for its steady and grounding strength.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Glacier" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Ice, for its sharp and enduring calm.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shroud" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Water, for its adaptability and flow.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Current" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Wind, for its freedom and swiftness.
-                                    </Label>
-                                  </div>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
+                  <CarouselItem className="flex flex-col items-center gap-4">
+                    <div className="w-full flex justify-center">
+                      <div className="relative w-full aspect-[491/89]">
+                        <Image
+                          alt="step4"
+                          src={IMG_REGISTRATIN_STEP9}
+                          fill
+                          className="object-contain"
+                          priority={true}
+                        />
+                      </div>
                     </div>
-                  </CarouselItem>
-                  <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step5"
-                      src={IMG_REGISTRATIN_STEP5}
-                      width={491}
-                      height={89}
-                      className="w-full"
-                      priority={true}
-                    />
-                    <div className="px-10">
-                      <FormField
-                        control={form.control}
-                        name="question3"
-                        render={({ field }) => (
-                          <FormItem className=" flex flex-col items-center">
-                            <div>
-                              <FormLabel className="font-bold text-base sm:text-xl">
-                                What type of activity do you prefer?
-                              </FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shine" id="r1" />
-                                    <Label
-                                      htmlFor="r1"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Harnessing the power of the sun for creation
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Tsukimori" id="r2" />
-                                    <Label
-                                      htmlFor="r2"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Walking peacefully through lush nature.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Glacier" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Conquering harsh challenges with persistence.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shroud" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Embracing storms and adapting to change.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Current" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Soaring through the air and embracing speed.
-                                    </Label>
-                                  </div>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </CarouselItem>
-                  <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step6"
-                      src={IMG_REGISTRATIN_STEP6}
-                      width={491}
-                      height={89}
-                      className="w-full"
-                      priority={true}
-                    />
-                    <div className="px-10">
-                      <FormField
-                        control={form.control}
-                        name="question4"
-                        render={({ field }) => (
-                          <FormItem className=" flex flex-col items-center">
-                            <div>
-                              <FormLabel className="font-bold text-base sm:text-xl">
-                                How do you approach a problem?
-                              </FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shine" id="r1" />
-                                    <Label
-                                      htmlFor="r1"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Dive in headfirst with fiery determination.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Tsukimori" id="r2" />
-                                    <Label
-                                      htmlFor="r2"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Think it through with patience and wisdom.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Glacier" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Stand firm and outlast it.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shroud" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Flow around it, adapting as needed.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Current" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Hit it from an unexpected angle.
-                                    </Label>
-                                  </div>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </CarouselItem>
-                  <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step7"
-                      src={IMG_REGISTRATIN_STEP7}
-                      width={491}
-                      height={89}
-                      className="w-full"
-                      priority={true}
-                    />
-                    <div className="px-10">
-                      <FormField
-                        control={form.control}
-                        name="question5"
-                        render={({ field }) => (
-                          <FormItem className=" flex flex-col items-center">
-                            <div>
-                              <FormLabel className="font-bold text-base sm:text-xl">
-                                What kind of landscape inspires you the most?
-                              </FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shine" id="r1" />
-                                    <Label
-                                      htmlFor="r1"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      A desert shimmering under a blazing sun.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Tsukimori" id="r2" />
-                                    <Label
-                                      htmlFor="r2"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      A tranquil forest alive with spirit energy.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Glacier" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      A frozen peak under a starry sky
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shroud" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      A misty swamp buzzing with hidden life.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Current" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      A windswept valley under a vast, open sky.
-                                    </Label>
-                                  </div>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </CarouselItem>
-                  <CarouselItem className="flex flex-col gap-4">
-                    <Image
-                      alt="step8"
-                      src={IMG_REGISTRATIN_STEP8}
-                      width={491}
-                      height={89}
-                      className="w-full"
-                      priority={true}
-                    />
-                    <div className="px-10">
-                      <FormField
-                        control={form.control}
-                        name="question6"
-                        render={({ field }) => (
-                          <FormItem className=" flex flex-col items-center">
-                            <div>
-                              <FormLabel className="font-bold text-base sm:text-xl">
-                                What motivates you the most?
-                              </FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shine" id="r1" />
-                                    <Label
-                                      htmlFor="r1"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      The brilliance of success and glory.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Tsukimori" id="r2" />
-                                    <Label
-                                      htmlFor="r2"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Harmony with the world and others.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Glacier" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Overcoming the toughest obstacles.
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Shroud" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Faith and resilience through adversity
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Current" id="r3" />
-                                    <Label
-                                      htmlFor="r3"
-                                      className="text-base sm:text-lg"
-                                    >
-                                      Freedom and the thrill of the unknown.
-                                    </Label>
-                                  </div>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </CarouselItem>
-                  <CarouselItem className="flex flex-col items-center justify-center gap-4">
-                    <Image
-                      alt="step9"
-                      src={IMG_REGISTRATIN_STEP9}
-                      width={491}
-                      height={89}
-                      className="w-full"
-                      priority={true}
-                    />
                     <div className="px-10">
                       <FormField
                         control={form.control}
@@ -1042,11 +687,11 @@ const Register: React.FC = () => {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel className="text-base sm:text-lg">
-                                I accept that this is Early Access
+                                I accept that this is a constantly changing game
                               </FormLabel>
                               <FormDescription>
                                 Things (even if purchased with real money) may radically
-                                change.
+                                change over time
                               </FormDescription>
                             </div>
                           </FormItem>

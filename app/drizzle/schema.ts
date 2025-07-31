@@ -1606,8 +1606,12 @@ export const userData = mysqlTable(
     poolsMultiplier: double("poolsMultiplier").default(1).notNull(),
     primaryElement: mysqlEnum("primaryElement", consts.ElementNames),
     secondaryElement: mysqlEnum("secondaryElement", consts.ElementNames),
-    reputationPoints: float("reputationPoints").default(5).notNull(),
-    reputationPointsTotal: float("reputationPointsTotal").default(5).notNull(),
+    reputationPoints: float("reputationPoints")
+      .default(consts.STARTING_REPUTATION_POINTS)
+      .notNull(),
+    reputationPointsTotal: float("reputationPointsTotal")
+      .default(consts.STARTING_REPUTATION_POINTS)
+      .notNull(),
     seichiSilver: int("seichiSilver").default(0).notNull(),
     villagePrestige: float("villagePrestige").default(0).notNull(),
     federalStatus: mysqlEnum("federalStatus", consts.FederalStatuses)

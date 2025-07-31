@@ -188,7 +188,7 @@ const CarouselPrevious = React.forwardRef<
       size={size}
       className={cn(
         "absolute  h-14 w-14 rounded-full",
-        "left-2 top-6 -translate-y-1/2",
+        "left-2 top-12 -translate-y-1/2",
         className,
       )}
       disabled={!canScrollPrev}
@@ -216,7 +216,7 @@ const CarouselNext = React.forwardRef<
       size={size}
       className={cn(
         "absolute h-14 w-14 rounded-full",
-        "right-2 top-6 -translate-y-1/2",
+        "right-2 top-12 -translate-y-1/2",
         className,
       )}
       disabled={!canScrollNext}

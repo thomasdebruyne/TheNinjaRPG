@@ -279,6 +279,11 @@ export const profileRouter = createTRPCRouter({
     const lvlCap = USER_CAPS[user.rank].LVL_CAP;
     if (user.level >= lvlCap) return errorResponse("User at max level for this rank!");
     if (expRequired > 0) return errorResponse("No enough experience for level");
+    if (user.village?.name === "Horizon" && user.level > 9) {
+      return errorResponse(
+        "Horizon users cannot level beyond level 9. To progress, go to the academy to take a quest for joining one of the main villages.",
+      );
+    }
     // Mutate
     const newLevel = user.level + 1;
     const { trackers } = getNewTrackers(user, [

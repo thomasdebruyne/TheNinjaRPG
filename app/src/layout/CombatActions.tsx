@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "src/libs/shadui";
 import { type ItemRarity } from "@/drizzle/schema";
-import type { Item, Jutsu } from "@/drizzle/schema";
+import type { Item, Jutsu, Bloodline } from "@/drizzle/schema";
 import type { ZodAllTags } from "@/libs/combat/types";
 
 interface ActionSelectorProps {
@@ -28,7 +28,7 @@ interface ActionSelectorProps {
         image: string;
         warning?: string;
         rarity?: ItemRarity;
-        type?: "jutsu" | "item" | "basic" | "village" | "asset";
+        type?: "jutsu" | "item" | "basic" | "village" | "asset" | "bloodline";
         effects?: ZodAllTags[];
         highlight?: boolean;
         hidden?: boolean | number;
@@ -47,7 +47,7 @@ interface ActionSelectorProps {
   currentRound?: number;
   roundFull?: boolean;
   hideBorder?: boolean;
-  showBgColor: boolean;
+  showBgColor?: boolean;
   showLabels: boolean;
   selectedId?: string;
   greyedIds?: string[];
@@ -105,90 +105,95 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
                 "elements" in e && e.elements ? e.elements : [],
               )
             : [];
-
           return (
             <div
               key={i}
               ref={i === filtered.length - 1 ? props.setLastElement : null}
-              className="relative"
+              className="relative flex items-center justify-center"
             >
-              {props.renderItem ? (
-                props.renderItem(item)
-              ) : (
-                <ActionOption
-                  aspectRatioClass={props.aspectRatioClass}
-                  className={cn(
-                    "h-full",
-                    isHighlight
-                      ? "rounded-xl border-4 border-amber-500 bg-amber-300 text-black"
-                      : "",
-                    bgColor,
-                    isGreyed ? "opacity-20" : "",
-                  )}
-                  src={item.image}
-                  isGreyed={isGreyed}
-                  alt={item.name}
-                  warning={item?.warning}
-                  roundFull={props.roundFull}
-                  hideBorder={props.hideBorder}
-                  rarity={item.rarity}
-                  cooldown={item.cooldown}
-                  frames={item.frames}
-                  speed={item.speed}
-                  lastUsedRound={item.lastUsedRound}
-                  currentRound={props.currentRound}
-                  txt={props.showLabels ? item.name : ""}
-                  count={props.counts?.find((c) => c.id === item.id)?.quantity}
-                  labelSingles={props.labelSingles}
-                  onClick={() => {
-                    props.onClick(item.id);
-                  }}
-                />
-              )}
-
-              {/* Help / info icon */}
-              {props.showInfoIcon && (
-                <Popover>
-                  <PopoverTrigger
-                    className="absolute top-1 right-1 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <HelpCircle className="h-5 w-5 cursor-pointer text-white hover:text-orange-500" />
-                  </PopoverTrigger>
-                  <PopoverContent className="min-w-96 p-2">
-                    {item.type === "jutsu" ||
-                    item.type === "item" ||
-                    item.type === "basic" ? (
-                      <ItemWithEffects item={item as Item | Jutsu} hideImage />
-                    ) : (
-                      <div className="flex flex-col gap-2 text-sm">
-                        <span className="font-semibold">{item.name}</span>
-                        {item.effects && item.effects.length > 0 && (
-                          <div className="flex flex-col gap-1">
-                            {item.effects.map((e, idx) => (
-                              <span key={idx}>
-                                Effect {idx + 1}: {e.type}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+              <div className="relative">
+                {props.renderItem ? (
+                  props.renderItem(item)
+                ) : (
+                  <ActionOption
+                    aspectRatioClass={props.aspectRatioClass}
+                    className={cn(
+                      "h-full",
+                      isHighlight
+                        ? "rounded-xl border-4 border-amber-500 bg-amber-300 text-black"
+                        : "",
+                      bgColor,
+                      isGreyed ? "opacity-20" : "",
                     )}
-                  </PopoverContent>
-                </Popover>
-              )}
+                    src={item.image}
+                    isGreyed={isGreyed}
+                    alt={item.name}
+                    warning={item?.warning}
+                    roundFull={props.roundFull}
+                    hideBorder={props.hideBorder}
+                    rarity={item.rarity}
+                    cooldown={item.cooldown}
+                    frames={item.frames}
+                    speed={item.speed}
+                    lastUsedRound={item.lastUsedRound}
+                    currentRound={props.currentRound}
+                    txt={props.showLabels ? item.name : ""}
+                    count={props.counts?.find((c) => c.id === item.id)?.quantity}
+                    labelSingles={props.labelSingles}
+                    onClick={() => {
+                      props.onClick(item.id);
+                    }}
+                  />
+                )}
 
-              {elements.map((element, i) => (
-                <div
-                  key={i}
-                  className={`absolute top-[-5px]`}
-                  style={{ left: `${i * 10}px` }}
-                >
-                  <ElementImage element={element} className="w-6" />
-                </div>
-              ))}
+                {/* Help / info icon */}
+                {props.showInfoIcon && (
+                  <Popover>
+                    <PopoverTrigger
+                      className="absolute top-1 right-1 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      <HelpCircle className="h-5 w-5 cursor-pointer text-white hover:text-orange-500" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-2">
+                      {item.type === "jutsu" ||
+                      item.type === "item" ||
+                      item.type === "bloodline" ||
+                      item.type === "basic" ? (
+                        <ItemWithEffects
+                          item={item as Item | Jutsu | Bloodline}
+                          hideImage
+                        />
+                      ) : (
+                        <div className="flex flex-col gap-2 text-sm">
+                          <span className="font-semibold">{item.name}</span>
+                          {item.effects && item.effects.length > 0 && (
+                            <div className="flex flex-col gap-1">
+                              {item.effects.map((e, idx) => (
+                                <span key={idx}>
+                                  Effect {idx + 1}: {e.type}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                {elements.map((element, i) => (
+                  <div
+                    key={i}
+                    className={`absolute top-[-5px]`}
+                    style={{ left: `${i * 10}px` }}
+                  >
+                    <ElementImage element={element} className="w-6" />
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}

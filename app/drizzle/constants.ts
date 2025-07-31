@@ -485,7 +485,6 @@ export const ROLL_CHANCE_PERCENTAGE = {
   ["A"]: 0.01,
   ["B"]: 0.05,
   ["C"]: 0.25,
-  ["D"]: 0.3,
 } as const;
 
 // Calculate cumulative probabilities from individual percentages
@@ -499,12 +498,6 @@ export const ROLL_CHANCE = {
     ROLL_CHANCE_PERCENTAGE.A +
     ROLL_CHANCE_PERCENTAGE.B +
     ROLL_CHANCE_PERCENTAGE.C,
-  ["D"]:
-    ROLL_CHANCE_PERCENTAGE.S +
-    ROLL_CHANCE_PERCENTAGE.A +
-    ROLL_CHANCE_PERCENTAGE.B +
-    ROLL_CHANCE_PERCENTAGE.C +
-    ROLL_CHANCE_PERCENTAGE.D,
 } as const;
 
 // Bloodline Pricing
@@ -558,6 +551,7 @@ export const ROBBING_IMMUNITY_DURATION = 90;
 export const KILLING_NOTORIETY_GAIN = 5;
 
 // Reputation cost config
+export const STARTING_REPUTATION_POINTS = 11;
 export const COST_CHANGE_USERNAME = 5;
 export const COST_CUSTOM_TITLE = 5;
 export const COST_CHANGE_GENDER = 5;
@@ -843,7 +837,7 @@ export const STREAK_LEVEL_DIFF = 10;
 export const RYO_FOR_REP_DAYS_FROZEN = 3;
 export const RYO_FOR_REP_DAYS_AUTO_DELIST = 30;
 export const RYO_FOR_REP_MAX_LISTINGS = 5;
-export const RYO_FOR_REP_MIN_REPS = 5;
+export const RYO_FOR_REP_MIN_REPS = 10;
 export const PITY_BLOODLINE_ROLLS = 200;
 export const PITY_SYSTEM_ENABLED = true;
 

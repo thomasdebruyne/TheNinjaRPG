@@ -362,8 +362,6 @@ export const bloodlineRouter = createTRPCRouter({
         bloodlineRank = "B";
       } else if (rand < ROLL_CHANCE.C) {
         bloodlineRank = "C";
-      } else if (rand < ROLL_CHANCE.D) {
-        bloodlineRank = "D";
       }
       // If a rank was determined, use filterRollableBloodlines to select a bloodline
       if (bloodlineRank) {

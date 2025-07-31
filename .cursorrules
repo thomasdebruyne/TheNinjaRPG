@@ -80,4 +80,4 @@ A particularly complex feature in the game is the combat system, which thus also
 
 # Building, testing, linting etc
 
-Use commands `make build`, `make lint`, `make test` etc. for building. Check the Makefile whenever you want to run these type of terminal commands tying into the application.
+Use commands `make lint` to test linting. Check the Makefile whenever you want to run these type of terminal commands tying into the application. Never attempt to build the project, I will do this myself.

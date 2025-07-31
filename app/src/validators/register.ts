@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { FederalStatuses } from "@/drizzle/constants";
-import { CoreVillages } from "@/drizzle/constants";
 
 // List of possible attributes
 export const attributes = [
@@ -55,12 +54,7 @@ export const registrationSchema = z
     read_privacy: z.literal(true),
     read_earlyaccess: z.literal(true),
     recruiter_userid: z.string().optional().nullish(),
-    question1: z.enum(CoreVillages),
-    question2: z.enum(CoreVillages),
-    question3: z.enum(CoreVillages),
-    question4: z.enum(CoreVillages),
-    question5: z.enum(CoreVillages),
-    question6: z.enum(CoreVillages),
+    bloodlineId: z.string().min(1, "Bloodline selection is required"),
   })
   .strict()
   .required()

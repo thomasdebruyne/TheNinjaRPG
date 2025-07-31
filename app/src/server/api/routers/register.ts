@@ -1,12 +1,17 @@
 import { nanoid } from "nanoid";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { errorResponse, baseServerResponse } from "@/server/api/trpc";
 import { registrationSchema } from "@/validators/register";
 import { historicalIp } from "@/drizzle/schema";
 import { secondsFromNow } from "@/utils/time";
-import { getMostCommonElement } from "@/utils/array";
-import { userData, village, userAttribute, emailReminder } from "@/drizzle/schema";
+import {
+  userData,
+  village,
+  userAttribute,
+  emailReminder,
+  bloodline,
+} from "@/drizzle/schema";
 
 export const registerRouter = createTRPCRouter({
   // Create Character
@@ -15,32 +20,38 @@ export const registerRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Query
-      const villageName = getMostCommonElement([
-        input.question1,
-        input.question2,
-        input.question3,
-        input.question4,
-        input.question5,
-        input.question6,
-      ]);
-      const [villageData, user, reminder] = await Promise.all([
-        ctx.drizzle.query.village.findFirst({
-          where: eq(village.name, villageName || "none"),
-        }),
-        ctx.drizzle.query.userData.findFirst({
-          where: eq(userData.username, input.username),
-        }),
-        ctx.drizzle.query.emailReminder.findFirst({
-          where: eq(emailReminder.userId, ctx.userId),
-        }),
-      ]);
+      const [villageData, user, reminder, selectedBloodline, currentIp] =
+        await Promise.all([
+          ctx.drizzle.query.village.findFirst({
+            where: eq(village.name, "Horizon"),
+          }),
+          ctx.drizzle.query.userData.findFirst({
+            where: eq(userData.username, input.username),
+          }),
+          ctx.drizzle.query.emailReminder.findFirst({
+            where: eq(emailReminder.userId, ctx.userId),
+          }),
+          ctx.drizzle.query.bloodline.findFirst({
+            where: eq(bloodline.id, input.bloodlineId),
+          }),
+          ctx.drizzle.query.historicalIp.findFirst({
+            where: and(
+              eq(historicalIp.ip, ctx.userIp ?? ""),
+              eq(historicalIp.userId, ctx.userId),
+            ),
+          }),
+        ]);
 
       // Guard
       if (user) return errorResponse("Username already taken");
-      if (!villageData) return errorResponse("Village not found");
-      if (!villageData.allianceSystem) return errorResponse("Missing alliance system");
+      if (!villageData) return errorResponse("Horizon village not found");
       if (villageData.type !== "VILLAGE")
         return errorResponse("Can only join villages");
+      if (!selectedBloodline) return errorResponse("Bloodline not found");
+      if (selectedBloodline.rank !== "D")
+        return errorResponse("Only D-ranked bloodlines are allowed for new users");
+      if (selectedBloodline.hidden)
+        return errorResponse("Hidden bloodlines are not allowed for new users");
 
       // Mutate
       const unique_attributes = [
@@ -71,12 +82,13 @@ export const registerRouter = createTRPCRouter({
           username: input.username,
           gender: input.gender,
           villageId: villageData.id,
+          bloodlineId: selectedBloodline.id,
           approvedTos: 1,
           sector: villageData.sector,
           immunityUntil: secondsFromNow(24 * 3600),
           ...(reminder ? { earnedExperience: 10000 } : {}),
         }),
-        ...(ctx.userIp
+        ...(ctx.userIp && !currentIp
           ? [
               ctx.drizzle.insert(historicalIp).values({
                 userId: ctx.userId,
@@ -84,13 +96,15 @@ export const registerRouter = createTRPCRouter({
               }),
             ]
           : []),
+        ...(input.recruiter_userid
+          ? [
+              ctx.drizzle
+                .update(userData)
+                .set({ nRecruited: sql`${userData.nRecruited} + 1` })
+                .where(eq(userData.userId, input.recruiter_userid)),
+            ]
+          : []),
       ]);
-      if (input.recruiter_userid) {
-        await ctx.drizzle
-          .update(userData)
-          .set({ nRecruited: sql`${userData.nRecruited} + 1` })
-          .where(eq(userData.userId, input.recruiter_userid));
-      }
       return { success: true, message: "Character created" };
     }),
 });
