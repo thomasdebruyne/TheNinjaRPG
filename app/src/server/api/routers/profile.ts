@@ -369,7 +369,8 @@ export const profileRouter = createTRPCRouter({
       notifications.push({
         href: "/profile/recruit",
         name: `Vote for Us`,
-        color: "green",
+        color: "hidden",
+        notificationCount: 1,
       });
     }
     // Settings
@@ -553,7 +554,8 @@ export const profileRouter = createTRPCRouter({
         notifications?.push({
           href: "/news",
           name: `${user.unreadNews} news`,
-          color: "green",
+          color: "hidden",
+          notificationCount: user.unreadNews,
         });
       }
       if (user.unreadNotifications > 0) {

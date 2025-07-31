@@ -162,7 +162,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   const pathname = usePathname();
 
   // Derived data for layout
-  const navbarMenuItems = getMainNavbarLinks();
+  const navbarMenuItems = getMainNavbarLinks(notifications);
   const shownNotifications = notifications?.filter(
     (n) => n.color !== "toast" && n.color !== "hidden",
   );
@@ -483,22 +483,31 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                 loading="lazy"
               />
               <div className="absolute top-6 grid grid-cols-3 w-1/2 px-24 lg:px-36">
-                {navbarMenuItemsLeft.map((link) => (
-                  <Link
-                    key={link.name}
-                    className="hover:text-orange-500 flex flex-row gap-1 z-10 items-center justify-center hover:cursor-pointer"
-                    href={link.href}
-                    onClick={async () => {
-                      if (link.onClick) {
-                        await link.onClick();
-                      }
-                    }}
-                    prefetch={false}
-                  >
-                    {link.icon}
-                    {link.name}
-                  </Link>
-                ))}
+                {navbarMenuItemsLeft.map((link) => {
+                  const count = link.notificationCount ?? 0;
+                  console.log(count);
+                  return (
+                    <Link
+                      key={link.name}
+                      className="relative hover:text-orange-500 flex flex-row gap-1 z-10 items-center justify-center hover:cursor-pointer"
+                      href={link.href}
+                      onClick={async () => {
+                        if (link.onClick) {
+                          await link.onClick();
+                        }
+                      }}
+                      prefetch={false}
+                    >
+                      {link.icon}
+                      {link.name}
+                      {count > 0 && (
+                        <div className="absolute top-0 right-2 flex items-center justify-center text-sm text-orange-100 bg-orange-500 rounded-full w-5 h-5 z-50">
+                          {count}
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
               <div className="absolute top-6 right-0 grid grid-cols-3 w-1/2 px-24 lg:px-36">
                 {navbarMenuItemsRight.map((link) => (

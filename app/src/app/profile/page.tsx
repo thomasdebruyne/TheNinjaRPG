@@ -25,7 +25,7 @@ import { differenceInDays, differenceInHours } from "date-fns";
 
 export default function Profile() {
   // State
-  const { data: userData } = useRequiredUserData();
+  const { data: userData, notifications } = useRequiredUserData();
 
   // Query
   const { data: marriages } = api.marriage.getMarriedUsers.useQuery(
@@ -48,6 +48,11 @@ export default function Profile() {
     return <Loader explanation="Loading profile page..." />;
   }
 
+  // News in profile/recruit
+  const newInRecruit =
+    notifications?.find((n) => n.href.includes("/profile/recruit"))
+      ?.notificationCount || 0;
+
   return (
     <>
       <ContentBox
@@ -55,9 +60,14 @@ export default function Profile() {
         title="Profile"
         subtitle="An overview of basic information"
         topRightContent={
-          <div className="flex flex-row gap-1">
-            <Link href="/profile/recruit">
+          <div className="flex flex-row gap-3">
+            <Link href="/profile/recruit" className="relative">
               <Share2 className="h-6 w-6 cursor-pointer hover:text-orange-500 animate-[wiggle_1s_ease-in-out_infinite]" />
+              {newInRecruit > 0 && (
+                <div className="absolute top-[-10px] right-[-10px] flex items-center justify-center text-sm text-orange-100 bg-orange-500 rounded-full w-5 h-5 z-50">
+                  {newInRecruit}
+                </div>
+              )}
             </Link>
             <Link href="/profile/edit">
               <Wrench className="h-6 w-6 cursor-pointer hover:text-orange-500" />

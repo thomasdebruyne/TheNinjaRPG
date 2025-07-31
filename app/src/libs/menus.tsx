@@ -28,13 +28,18 @@ export interface NavBarDropdownLink {
 /**
  * Get main navbar links
  */
-export const getMainNavbarLinks = () => {
+export const getMainNavbarLinks = (notifications?: NavBarDropdownLink[]) => {
+  // Get unread news
+  const unreadNews =
+    notifications?.find((n) => n.href === "/news")?.notificationCount || 0;
+
   const links: NavBarDropdownLink[] = [
     {
       id: "tutorial-news",
       href: "/news",
       name: "News",
       icon: <Newspaper className="h-6 w-6" />,
+      notificationCount: unreadNews,
     },
     {
       id: "tutorial-manual",
@@ -75,6 +80,8 @@ export const useGameMenu = (userData: UserWithRelations) => {
     notifications?.find((n) => n.href === "/reports")?.notificationCount || 0;
   const newInSupport =
     notifications?.find((n) => n.href === "/support")?.notificationCount || 0;
+  const newInProfile =
+    notifications?.find((n) => n.href.includes("/profile"))?.notificationCount || 0;
 
   const systems: NavBarDropdownLink[] = [
     {
@@ -82,6 +89,7 @@ export const useGameMenu = (userData: UserWithRelations) => {
       href: "/profile",
       name: "Profile",
       icon: <User key="profile" className="h-6 w-6" />,
+      notificationCount: newInProfile,
     },
     {
       id: "tutorial-tavern",
