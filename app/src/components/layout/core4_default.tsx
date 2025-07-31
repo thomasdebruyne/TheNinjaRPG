@@ -485,7 +485,6 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
               <div className="absolute top-6 grid grid-cols-3 w-1/2 px-24 lg:px-36">
                 {navbarMenuItemsLeft.map((link) => {
                   const count = link.notificationCount ?? 0;
-                  console.log(count);
                   return (
                     <Link
                       key={link.name}

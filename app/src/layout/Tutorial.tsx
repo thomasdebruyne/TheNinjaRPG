@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Info, ArrowRight } from "lucide-react";
 import { cn } from "src/libs/shadui";
 import { useUserData } from "@/utils/UserContext";
@@ -226,18 +226,25 @@ const TUTORIAL_STEPS: TutorialStepConfig[] = [
     page: "/village",
   },
   {
-    title: "ANBU",
+    title: "Academy",
     description:
-      "Elite squad of Ninjas that are control by the Kage, to be an anbu you must ask your Kage.",
-    elementId: "tutorial-anbu",
+      "Learn the basics of the game here, this will be your starting point for how to play the game. Let's go there now.",
+    elementId: "tutorial-academy",
     page: "/village",
+  },
+  {
+    title: "Academy",
+    description:
+      "Welcome to the academy. One we're done with this tutorial, press here to start your first lesson to get more familiar with the game. Good luck!",
+    elementId: "tutorial-take-quest",
+    page: "/academy",
   },
   {
     title: "That's it for now!",
     description:
       "That's it for the tutorial, you can now start playing the game! You can find further information on how to play the game at this link",
     elementId: "tutorial-logo",
-    page: "/village",
+    page: "/academy",
     externalLink: "https://the-ninja-rpg.fandom.com/wiki/Getting_Started",
   },
 ];
@@ -491,20 +498,22 @@ const Tutorial: React.FC<TutorialProps> = ({
   }, [currentStep, isVisible, pathname]);
 
   // Handle next step
-  const handleNextStep = () => {
-    const nextStep = currentStep + 1;
+  const handleNextStep = useCallback(() => {
+    setCurrentStep((prevStep) => {
+      const nextStep = prevStep + 1;
 
-    // Update the user's tutorial step in the database
-    updateTutorialStep.mutate({ step: nextStep });
+      // Update the user's tutorial step in the database
+      updateTutorialStep.mutate({ step: nextStep });
 
-    // If we've reached the end of the tutorial, hide it
-    if (nextStep >= TUTORIAL_STEPS.length) {
-      setIsVisible(false);
-      return;
-    }
+      // If we've reached the end of the tutorial, hide it
+      if (nextStep >= TUTORIAL_STEPS.length) {
+        setIsVisible(false);
+        return prevStep; // Return current step since we're hiding the tutorial
+      }
 
-    setCurrentStep(nextStep);
-  };
+      return nextStep;
+    });
+  }, [updateTutorialStep, setIsVisible]);
 
   // Add keyboard event listener for Enter key to forward tutorial
   useEffect(() => {
@@ -531,8 +540,7 @@ const Tutorial: React.FC<TutorialProps> = ({
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVisible, showGameMenuTutorial]);
+  }, [isVisible, showGameMenuTutorial, handleNextStep, setRightSideBarOpen]);
 
   // Handle skipping tutorial
   const handleSkipTutorial = () => {

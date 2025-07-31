@@ -121,6 +121,7 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
                       showEdit="quest"
                       imageExtra={
                         <Button
+                          id="tutorial-take-quest"
                           className="mt-2"
                           onClick={() =>
                             startQuest({
