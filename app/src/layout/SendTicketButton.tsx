@@ -194,7 +194,7 @@ const SendTicketBtn: React.FC<SendTicketBtnProps> = (props) => {
 
           <TabsList className="text-center mt-2">
             <TabsTrigger value="ai_support">AI Support</TabsTrigger>
-            <TabsTrigger value="human_support">Human Support & Bugs</TabsTrigger>
+            <TabsTrigger value="human_support">Human Support</TabsTrigger>
             <TabsTrigger value="tutorial">Tutorial</TabsTrigger>
           </TabsList>
         </Tabs>

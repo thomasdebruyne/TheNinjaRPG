@@ -119,6 +119,20 @@ const TUTORIAL_STEPS: TutorialStepConfig[] = [
     requiresGameMenu: true,
   },
   {
+    title: "Jobs",
+    description: "Gather and hunt for materials, or craft items here",
+    elementId: "tutorial-jobs",
+    page: "/profile",
+    requiresGameMenu: true,
+  },
+  {
+    title: "Help",
+    description: "Support system where you can report bugs, request features and more",
+    elementId: "tutorial-support",
+    page: "/profile",
+    requiresGameMenu: true,
+  },
+  {
     title: "Rules",
     description: "View all the rules of the game here",
     elementId: "tutorial-rules",

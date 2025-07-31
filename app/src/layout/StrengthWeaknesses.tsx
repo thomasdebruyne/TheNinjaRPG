@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { useLocalStorage } from "@/hooks/localstorage";
+import React, { useEffect, useState, useRef } from "react";
 import ContentBox from "@/layout/ContentBox";
 import NavTabs from "@/layout/NavTabs";
 import ElementImage from "@/layout/ElementImage";
@@ -26,10 +25,7 @@ const StrengthWeaknesses: React.FC = () => {
   // State
   type TabOptions = (typeof tabOptions)[number];
   const { data: userData } = useRequiredUserData();
-  const [currentTab, setCurrentTab] = useLocalStorage<TabOptions | null>(
-    "strengthWeaknessesTab",
-    "Stats",
-  );
+  const [currentTab, setCurrentTab] = useState<TabOptions>("Graphs");
 
   // Implement stats cap
   if (userData) capUserStats(userData);
