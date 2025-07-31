@@ -800,6 +800,16 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                             <b>Reward Rank</b>: {parsedEffect.reward_rank}
                           </p>
                         )}
+                      {"reward_village_membership" in parsedEffect &&
+                        parsedEffect.reward_village_membership &&
+                        parsedEffect.reward_village_membership !== "NONE" && (
+                          <p>
+                            <b>Reward Village Membership</b>:{" "}
+                            {capitalizeFirstLetter(
+                              parsedEffect.reward_village_membership,
+                            )}
+                          </p>
+                        )}
                       {"reward_tokens" in parsedEffect &&
                         parsedEffect.reward_tokens &&
                         parsedEffect.reward_tokens > 0 && (

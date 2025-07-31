@@ -818,6 +818,7 @@ export const questsRouter = createTRPCRouter({
             reward_badges: [],
             reward_items: [],
             reward_rank: "NONE",
+            reward_village_membership: "NONE",
             reward_hunter_items: false,
             reward_gathering_items: false,
             reward_hunter_items_ids: [],
@@ -1156,8 +1157,16 @@ export const updateRewards = async (info: {
   // Destructure
   const { client, user, rewards, questCounterField, reason } = info;
   // Fetch names from the database
-  const [hunterItems, gatheringItems, items, jutsus, bloodlines, badges] =
+  const [villageData, hunterItems, gatheringItems, items, jutsus, bloodlines, badges] =
     await Promise.all([
+      // Fetch villages if needed
+      rewards.reward_village_membership !== "NONE"
+        ? client
+            .select({ id: village.id, name: village.name })
+            .from(village)
+            .where(eq(village.name, rewards.reward_village_membership))
+            .then((v) => v[0])
+        : undefined,
       // Fetch hunter items if needed
       rewards.reward_hunter_items && user.occupation === "HUNTER"
         ? client
@@ -1244,6 +1253,7 @@ export const updateRewards = async (info: {
 
   // Update userdata
   const getNewRank = rewards.reward_rank !== "NONE";
+  const getNewVillage = rewards.reward_village_membership !== "NONE";
 
   // Cap medical experience at 4 million
   const cappedMedicalExp = Math.min(
@@ -1264,6 +1274,7 @@ export const updateRewards = async (info: {
     craftingExperience: user.craftingExperience + rewards.reward_crafting_experience,
     gatheringExperience: user.gatheringExperience + rewards.reward_gathering_experience,
     rank: getNewRank ? rewards.reward_rank : user.rank,
+    villageId: getNewVillage && villageData ? villageData.id : user.villageId,
   };
   if (questCounterField) {
     updatedUserData.questFinishAt = new Date();

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { showMutationToast } from "@/libs/toast";
 import { rankedSeasonSchema, rewardSchema } from "@/validators/pvpRank";
-import { UserRanks } from "@/drizzle/constants";
+import { STARTER_VILLAGES, UserRanks } from "@/drizzle/constants";
 import { getRewardArray } from "@/libs/objectives";
 import { EditContent, type FormEntry } from "@/layout/EditContent";
 
@@ -136,6 +136,7 @@ export default function SeasonForm({
       { id: "reward_prestige", type: "number" },
       { id: "reward_reputation", type: "number" },
       { id: "reward_rank", type: "str_array", values: UserRanks },
+      { id: "reward_village_membership", type: "str_array", values: STARTER_VILLAGES },
     ];
 
     if (items) {

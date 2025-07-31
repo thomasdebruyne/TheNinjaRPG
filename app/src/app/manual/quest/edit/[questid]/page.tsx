@@ -175,6 +175,7 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
                         "reward_badges",
                         "reward_bloodlines",
                         "reward_rank",
+                        "reward_village_membership",
                         "attackers",
                         "image",
                       ].includes(key)

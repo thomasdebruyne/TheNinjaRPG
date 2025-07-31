@@ -7,6 +7,7 @@ import {
   RetryQuestDelays,
   MEDNIN_RANKS,
   HUNTING_RANKS,
+  STARTER_VILLAGES,
 } from "@/drizzle/constants";
 
 export const SimpleTasks = [
@@ -89,6 +90,7 @@ export const rewardFields = {
   reward_prestige: z.coerce.number().default(0),
   reward_reputation: z.coerce.number().default(0),
   reward_rank: z.enum(UserRanks).default("NONE"),
+  reward_village_membership: z.enum(STARTER_VILLAGES).default("NONE"),
   reward_items: idsWithNumberField,
   reward_jutsus: z.array(z.string()).default([]),
   reward_bloodlines: z.array(z.string()).default([]),
@@ -117,6 +119,7 @@ export const hasReward = (reward: ObjectiveRewardType) => {
     parsedReward.reward_crafting_experience > 0 ||
     parsedReward.reward_gathering_experience > 0 ||
     parsedReward.reward_rank !== "NONE" ||
+    parsedReward.reward_village_membership !== "NONE" ||
     parsedReward.reward_items.length > 0 ||
     parsedReward.reward_jutsus.length > 0 ||
     parsedReward.reward_bloodlines.length > 0 ||

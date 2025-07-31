@@ -7,6 +7,16 @@ export const OCCUPATION_CHANGE_COOLDOWN_DAYS = 3;
 export const PollOptionTypes = ["text", "user"] as const;
 export type PollOptionType = (typeof PollOptionTypes)[number];
 
+export const STARTER_VILLAGES = [
+  "NONE",
+  "SHINE",
+  "TSUKIMORI",
+  "GLACIER",
+  "SHROUD",
+  "CURRENT",
+] as const;
+export type StarterVillage = (typeof STARTER_VILLAGES)[number];
+
 export const ACTIVE_VOTING_SITES = [
   "top100Arena",
   "mmoHub",
@@ -379,6 +389,7 @@ export const QuestTypes = [
   "crime",
   "event",
   "exam",
+  "starter",
   "errand",
   "tier",
   "daily",

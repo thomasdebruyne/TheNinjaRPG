@@ -9,6 +9,7 @@ import {
   RetryQuestDelays,
   MEDNIN_RANKS,
   HUNTING_RANKS,
+  STARTER_VILLAGES,
 } from "@/drizzle/constants";
 import { z } from "zod";
 import { api } from "@/app/_trpc/client";
@@ -151,6 +152,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
             reward_gathering_items: data.reward_gathering_items,
             reward_gathering_items_ids: data.reward_gathering_items_ids,
             reward_rank: data.reward_rank,
+            reward_village_membership: data.reward_village_membership,
             reward_bloodlines: data.reward_bloodlines,
           },
         },
@@ -294,6 +296,11 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
   formData.push({ id: "reward_crafting_experience", type: "number" });
   formData.push({ id: "reward_gathering_experience", type: "number" });
   formData.push({ id: "reward_rank", type: "str_array", values: UserRanks });
+  formData.push({
+    id: "reward_village_membership",
+    type: "str_array",
+    values: STARTER_VILLAGES,
+  });
 
   if (bloodlines) {
     formData.push({

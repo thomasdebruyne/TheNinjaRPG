@@ -203,6 +203,9 @@ export const getReward = (
         if (objective.reward_rank !== "NONE") {
           rawRewards.reward_rank = objective.reward_rank;
         }
+        if (objective.reward_village_membership !== "NONE") {
+          rawRewards.reward_village_membership = objective.reward_village_membership;
+        }
       }
     });
     // Scale rewards
@@ -299,6 +302,7 @@ export const collapseRewards = (
     reward_bloodlines: [],
     reward_badges: [],
     reward_rank: "NONE",
+    reward_village_membership: "NONE",
     reward_hunter_items: false,
     reward_gathering_items: false,
     reward_hunter_items_ids: [],
@@ -353,6 +357,11 @@ export const collapseRewards = (
           collapsed.reward_rank = reward.reward_rank;
         }
       }
+    }
+
+    // Handle village membership reward
+    if (reward.reward_village_membership !== "NONE") {
+      collapsed.reward_village_membership = reward.reward_village_membership;
     }
   });
 

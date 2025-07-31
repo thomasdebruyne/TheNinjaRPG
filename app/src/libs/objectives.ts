@@ -34,6 +34,7 @@ import type { Quest } from "@/drizzle/schema";
 import type { AllObjectivesType, ObjectiveRewardType } from "@/validators/objectives";
 import type { QuestTrackerType } from "@/validators/objectives";
 import type { ElementDefinition } from "cytoscape";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
 
 export const getObjectiveImage = (objective: AllObjectivesType) => {
   switch (objective.task) {
@@ -390,6 +391,11 @@ export const getRewardArray = (reward?: ObjectiveRewardType) => {
   }
   if (questReward.reward_rank && questReward.reward_rank !== "NONE") {
     rewards.push(`rank of ${questReward.reward_rank.toLowerCase()}`);
+  }
+  if (questReward.reward_village_membership !== "NONE") {
+    rewards.push(
+      `village membership of ${capitalizeFirstLetter(questReward.reward_village_membership)}`,
+    );
   }
   if (questReward.reward_bloodlines.length > 0) {
     rewards.push(`${questReward.reward_bloodlines.length} bloodlines`);
