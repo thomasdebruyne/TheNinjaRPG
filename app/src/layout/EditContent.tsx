@@ -97,7 +97,6 @@ interface EditContentProps<T, K, S extends FieldValues> {
   relationId?: string;
   fixedWidths?: "basis-32" | "basis-64" | "basis-96";
   type?: ContentType;
-  bgColor?: "bg-slate-600" | "";
   onAccept?: (
     e: React.BaseSyntheticEvent<object, any, any> | undefined,
   ) => Promise<void>;
@@ -165,13 +164,54 @@ export const EditContent = <
   const questType =
     props.type === "quest" ? form.getValues("questType" as Path<S>) : undefined;
 
+  /**
+   * Get the category of a form entry
+   * @param id - The id of the form entry
+   * @returns The category of the form entry
+   */
+  const getCategory = (id: string) => {
+    if (id.includes("reward")) return "reward";
+    if (
+      id.includes("attackers") ||
+      id.includes("opponent") ||
+      ["scaleGains", "keepOriginalPools"].includes(id)
+    )
+      return "opponent";
+    if (
+      [
+        "sector",
+        "longitude",
+        "latitude",
+        "hideLocation",
+        "sectorType",
+        "locationType",
+      ].includes(id)
+    )
+      return "location";
+    if (
+      [
+        "description",
+        "successDescription",
+        "failDescription",
+        "fleeDescription",
+        "drawDescription",
+        "completionOutcome",
+        "sceneBackground",
+        "sceneCharacters",
+      ].includes(id)
+    )
+      return "scene";
+    if (["nextObjectiveId", "failObjectiveId"].includes(id)) return "graph";
+    return "default";
+  };
+
   // const load = isLoading || load1 || load2 || load3;
   return (
     <Form {...form}>
       <form
         onSubmit={props.onAccept}
         className={
-          formClassName ?? "grid grid-cols-1 md:grid-cols-2 items-center gap-2"
+          formClassName ?? "grid grid-cols-1 md:grid-cols-2 items-center gap-1"
         }
       >
         {formData
@@ -184,9 +224,16 @@ export const EditContent = <
               formEntry.id !== "reward_gathering_items" || questType === "gathering"
             );
           })
+          .map((formEntry) => {
+            return { ...formEntry, category: getCategory(formEntry.id) };
+          })
           .sort((a, b) => {
-            if (["dialog_options", "db_values_with_number"].includes(a.type)) return 1;
-            if (["dialog_options", "db_values_with_number"].includes(b.type)) return -1;
+            // Default category first, then alphabetical by category
+            if (a.category === "default" && b.category !== "default") return -1;
+            if (a.category !== "default" && b.category === "default") return 1;
+            if (a.category !== b.category) {
+              return a.category.localeCompare(b.category);
+            }
             return 0;
           })
           .map((formEntry) => {
@@ -237,13 +284,34 @@ export const EditContent = <
             return (
               <div
                 key={`formEntry-${id}`}
-                className={`${["avatar", "avatar3d"].includes(type) ? "row-span-5" : ""} ${
-                  formEntry.doubleWidth ? "md:col-span-2" : ""
-                } ${
+                className={cn(
+                  "p-2",
+                  ["avatar", "avatar3d"].includes(type) ? "row-span-5" : "",
+                  formEntry.doubleWidth ? "md:col-span-2" : "",
                   props.fixedWidths
                     ? `grow-0 shrink-0 px-2 pt-3 h-32 ${props.fixedWidths}`
-                    : ""
-                } ${props.bgColor ? props.bgColor : ""}`}
+                    : "",
+                  // Rewards drawn in green
+                  formEntry.category === "reward"
+                    ? "bg-green-50 border-green-200 border rounded-lg"
+                    : "",
+                  // Attackers drawn in red
+                  formEntry.category === "opponent"
+                    ? "bg-red-50 border-red-200 border rounded-lg"
+                    : "",
+                  // Location things in blue
+                  formEntry.category === "location"
+                    ? "bg-blue-50 border-blue-200 border rounded-lg"
+                    : "",
+                  // Graph things in purple
+                  formEntry.category === "graph"
+                    ? "bg-purple-50 border-purple-200 border rounded-lg"
+                    : "",
+                  // Description things in yellow
+                  formEntry.category === "scene"
+                    ? "bg-yellow-50 border-yellow-200 border rounded-lg"
+                    : "",
+                )}
               >
                 {["text", "number", "date"].includes(type) && (
                   <FormField
@@ -818,7 +886,6 @@ interface EffectFormWrapperProps {
   hideTagType?: boolean;
   tag: ZodAllTags;
   fixedWidths?: "basis-32" | "basis-64" | "basis-96";
-  bgColor?: "bg-slate-600" | "";
   effects: ZodAllTags[];
   setEffects: (effects: ZodAllTags[]) => void;
 }
@@ -1117,7 +1184,6 @@ export const EffectFormWrapper: React.FC<EffectFormWrapperProps> = (props) => {
       showSubmit={false}
       buttonTxt="Confirm Changes (No database sync)"
       fixedWidths={props.fixedWidths}
-      bgColor={props.bgColor}
     />
   );
 };
@@ -1130,7 +1196,6 @@ interface ObjectiveFormWrapperProps {
   objective: AllObjectivesType;
   formClassName?: string;
   fixedWidths?: "basis-32" | "basis-64" | "basis-96";
-  bgColor?: "bg-slate-600" | "";
   objectives: AllObjectivesType[];
   consecutiveObjectives: boolean;
   setObjectives: (content: AllObjectivesType[]) => void;
@@ -1499,7 +1564,6 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
       showSubmit={false}
       buttonTxt="Confirm Changes (No database sync)"
       fixedWidths={props.fixedWidths}
-      bgColor={props.bgColor}
     />
   );
 };

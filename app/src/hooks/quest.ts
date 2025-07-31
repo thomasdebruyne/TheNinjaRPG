@@ -252,6 +252,13 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
     });
   }
 
+  formData.push({ id: "description", type: "richinput", doubleWidth: true });
+  formData.push({ id: "successDescription", type: "richinput", doubleWidth: true });
+
+  // Add description & image only for missions/crimes/events
+  formData.push({ id: "endsAt", type: "date", label: "Ends At" });
+  formData.push({ id: "startsAt", type: "date", label: "Starts At" });
+
   // For tiers, add tier level
   if (questType === "tier") {
     formData.push({ id: "tierLevel", type: "number" });
@@ -330,12 +337,6 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
 
   // Image & description
   formData.unshift({ id: "image", type: "avatar", href: imageUrl });
-  formData.push({ id: "description", type: "richinput", doubleWidth: true });
-  formData.push({ id: "successDescription", type: "richinput", doubleWidth: true });
-
-  // Add description & image only for missions/crimes/events
-  formData.push({ id: "endsAt", type: "date", label: "Ends At" });
-  formData.push({ id: "startsAt", type: "date", label: "Starts At" });
 
   return {
     currentValues,
