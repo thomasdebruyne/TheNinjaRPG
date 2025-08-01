@@ -10,6 +10,7 @@ export const canChangeContent = (role: UserRole) => {
   return [
     "CONTENT",
     "EVENT",
+    "EVENT-ADMIN",
     "CODING-ADMIN",
     "MODERATOR-ADMIN",
     "CONTENT-ADMIN",
