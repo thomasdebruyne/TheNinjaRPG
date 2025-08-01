@@ -87,6 +87,7 @@ export const UsageStats: React.FC<UsageStatsProps> = (props) => {
       const groups = groupBy(usage, "battleType");
       const labels = Array.from(groups.keys());
       const myChart = getUsageChart(ctx, groups, labels);
+      myChart.resize(500, groups.size * 60);
       return () => {
         myChart.destroy();
       };

@@ -7,6 +7,10 @@ import { jutsuText } from "@/layout/seoTexts";
 import { useUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { UsageStats, LevelStats } from "@/layout/UsageStatistics";
+import StatisticsFiltering, {
+  useFiltering as useStatisticsFiltering,
+  getFilter as getStatisticsFilter,
+} from "@/layout/StatisticsFiltering";
 
 export default function JutsuStatistics(props: {
   params: Promise<{ jutsuid: string }>;
@@ -15,16 +19,19 @@ export default function JutsuStatistics(props: {
   const jutsuId = params.jutsuid;
 
   // Queries
+  const statsFilter = useStatisticsFiltering();
+  const filterParams = getStatisticsFilter(statsFilter);
+
   const { data: userData } = useUserData();
   const { data, isPending } = api.data.getStatistics.useQuery(
-    { id: jutsuId, type: "jutsu" },
+    { id: jutsuId, type: "jutsu", ...filterParams },
     { enabled: !!jutsuId },
   );
   const jutsu = data?.info;
-  const usage = data?.usage;
+  const filteredUsage = data?.usage;
   const totalUsers = data?.totalUsers ?? 0;
   const levelDistribution = data?.levelDistribution;
-  const total = usage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
+  const total = filteredUsage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
   const name = jutsu && "name" in jutsu ? jutsu.name : "";
 
   // Prevent unauthorized access
@@ -60,8 +67,9 @@ export default function JutsuStatistics(props: {
         title="Usage Statistics"
         subtitle={`Total battles: ${total}`}
         initialBreak={true}
+        topRightContent={<StatisticsFiltering state={statsFilter} />}
       >
-        {usage && <UsageStats usage={usage} />}
+        {filteredUsage && <UsageStats usage={filteredUsage} />}
       </ContentBox>
     </>
   );

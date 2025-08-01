@@ -6,6 +6,10 @@ import { aiText } from "@/layout/seoTexts";
 import { api } from "@/app/_trpc/client";
 import { useUserData } from "@/utils/UserContext";
 import { UsageStats } from "@/layout/UsageStatistics";
+import StatisticsFiltering, {
+  useFiltering as useStatisticsFiltering,
+  getFilter as getStatisticsFilter,
+} from "@/layout/StatisticsFiltering";
 
 export default function ManualAIsStatistcs(props: {
   params: Promise<{ aiid: string }>;
@@ -14,14 +18,17 @@ export default function ManualAIsStatistcs(props: {
   const aiId = params.aiid;
 
   // Queries
+  const statsFilter = useStatisticsFiltering();
+  const filterParams = getStatisticsFilter(statsFilter);
+
   const { data: userData } = useUserData();
   const { data, isPending } = api.data.getStatistics.useQuery(
-    { id: aiId, type: "ai" },
+    { id: aiId, type: "ai", ...filterParams },
     { enabled: !!aiId },
   );
   const ai = data?.info;
-  const usage = data?.usage;
-  const total = usage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
+  const filteredUsage = data?.usage;
+  const total = filteredUsage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
   const name = ai && "username" in ai ? ai.username : "";
 
   // Prevent unauthorized access
@@ -42,8 +49,9 @@ export default function ManualAIsStatistcs(props: {
         subtitle={`Total battles: ${total}`}
         initialBreak={!userData && !!ai}
         back_href={userData ? "/manual/ai" : undefined}
+        topRightContent={<StatisticsFiltering state={statsFilter} />}
       >
-        {usage && <UsageStats usage={usage} />}
+        {filteredUsage && <UsageStats usage={filteredUsage} />}
       </ContentBox>
     </>
   );

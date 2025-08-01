@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, eq, sql, asc, isNotNull } from "drizzle-orm";
+import { and, eq, gte, lte, sql, asc, isNotNull } from "drizzle-orm";
 import { userJutsu, userItem, userData, bloodline } from "@/drizzle/schema";
 import { dataBattleAction, jutsu, item } from "@/drizzle/schema";
 import { createTRPCRouter, publicProcedure, serverError } from "../trpc";
@@ -106,6 +106,9 @@ export const dataRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         type: z.enum(["jutsu", "item", "bloodline", "basic", "ai"]),
+        battleType: z.enum(BattleTypes).optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -118,7 +121,20 @@ export const dataRouter = createTRPCRouter({
         })
         .from(dataBattleAction)
         .groupBy(dataBattleAction.battleWon, dataBattleAction.battleType)
-        .where(eq(dataBattleAction.contentId, input.id));
+        .where(
+          and(
+            eq(dataBattleAction.contentId, input.id),
+            ...(input.battleType
+              ? [eq(dataBattleAction.battleType, input.battleType)]
+              : []),
+            ...(input.startDate
+              ? [gte(dataBattleAction.createdAt, new Date(input.startDate))]
+              : []),
+            ...(input.endDate
+              ? [lte(dataBattleAction.createdAt, new Date(input.endDate))]
+              : []),
+          ),
+        );
       // Process different inputs
       if (input.type === "jutsu") {
         // Jutsu Statistics

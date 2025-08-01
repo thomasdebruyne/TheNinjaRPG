@@ -6,6 +6,10 @@ import Loader from "@/layout/Loader";
 import { useUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { UsageStats } from "@/layout/UsageStatistics";
+import StatisticsFiltering, {
+  useFiltering as useStatisticsFiltering,
+  getFilter as getStatisticsFilter,
+} from "@/layout/StatisticsFiltering";
 import { itemText } from "@/layout/seoTexts";
 
 export default function ItemStatistics(props: { params: Promise<{ itemid: string }> }) {
@@ -13,15 +17,18 @@ export default function ItemStatistics(props: { params: Promise<{ itemid: string
   const itemId = params.itemid;
 
   // Queries
+  const statsFilter = useStatisticsFiltering();
+  const filterParams = getStatisticsFilter(statsFilter);
+
   const { data: userData } = useUserData();
   const { data, isPending } = api.data.getStatistics.useQuery(
-    { id: itemId, type: "item" },
+    { id: itemId, type: "item", ...filterParams },
     { enabled: !!itemId },
   );
   const item = data?.info;
-  const usage = data?.usage;
+  const filteredUsage = data?.usage;
   const totalUsers = data?.totalUsers ?? 0;
-  const total = usage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
+  const total = filteredUsage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
   const name = item && "name" in item ? item.name : "";
 
   // Prevent unauthorized access
@@ -44,8 +51,9 @@ export default function ItemStatistics(props: { params: Promise<{ itemid: string
         subtitle={`#battles: ${total}. #users: ${totalUsers}`}
         initialBreak={!userData && !!item}
         back_href={userData ? "/manual/item" : undefined}
+        topRightContent={<StatisticsFiltering state={statsFilter} />}
       >
-        {usage && <UsageStats usage={usage} />}
+        {filteredUsage && <UsageStats usage={filteredUsage} />}
       </ContentBox>
     </>
   );

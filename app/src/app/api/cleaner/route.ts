@@ -46,12 +46,9 @@ export async function GET() {
     // One day in mseconds
     const oneDay = 1000 * 60 * 60 * 24;
 
-    // Step 4: Delete battle actions older than 7 days
+    // Step 4: Delete battle actions older than 30 days
     await drizzleDB.execute(
-      sql`DELETE FROM ${dataBattleAction} a WHERE createdAt < DATE_SUB(NOW(), INTERVAL 7 DAY) LIMIT 99999`,
-    );
-    await drizzleDB.execute(
-      sql`DELETE FROM ${dataBattleAction} a WHERE createdAt < DATE_SUB(NOW(), INTERVAL 7 DAY) LIMIT 99999`,
+      sql`DELETE FROM ${dataBattleAction} a WHERE createdAt < DATE_SUB(NOW(), INTERVAL 30 DAY) LIMIT 99999`,
     );
 
     // Step 5: Delete battle history older than 1 day

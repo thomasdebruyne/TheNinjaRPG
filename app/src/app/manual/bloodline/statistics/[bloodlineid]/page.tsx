@@ -7,6 +7,10 @@ import { bloodlineText } from "@/layout/seoTexts";
 import { useUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { UsageStats, LevelStats } from "@/layout/UsageStatistics";
+import StatisticsFiltering, {
+  useFiltering as useStatisticsFiltering,
+  getFilter as getStatisticsFilter,
+} from "@/layout/StatisticsFiltering";
 
 export default function BloodlineStatistics(props: {
   params: Promise<{ bloodlineid: string }>;
@@ -15,16 +19,19 @@ export default function BloodlineStatistics(props: {
   const bloodlineId = params.bloodlineid;
 
   // Queries
+  const statsFilter = useStatisticsFiltering();
+  const filterParams = getStatisticsFilter(statsFilter);
+
   const { data: userData } = useUserData();
   const { data, isPending } = api.data.getStatistics.useQuery(
-    { id: bloodlineId, type: "bloodline" },
+    { id: bloodlineId, type: "bloodline", ...filterParams },
     { enabled: !!bloodlineId },
   );
   const bloodline = data?.info;
-  const usage = data?.usage;
+  const filteredUsage = data?.usage;
   const totalUsers = data?.totalUsers ?? 0;
   const levelDistribution = data?.levelDistribution;
-  const total = usage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
+  const total = filteredUsage?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
   const name = bloodline && "name" in bloodline ? bloodline.name : "";
 
   // Prevent unauthorized access
@@ -62,8 +69,9 @@ export default function BloodlineStatistics(props: {
         title="Usage Statistics"
         subtitle={`Total battles: ${total}`}
         initialBreak={true}
+        topRightContent={<StatisticsFiltering state={statsFilter} />}
       >
-        {usage && <UsageStats usage={usage} />}
+        {filteredUsage && <UsageStats usage={filteredUsage} />}
       </ContentBox>
     </>
   );
