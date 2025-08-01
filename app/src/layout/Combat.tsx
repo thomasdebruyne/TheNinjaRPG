@@ -24,6 +24,8 @@ import { useSetAtom } from "jotai";
 import { userBattleAtom } from "@/utils/UserContext";
 import { Check } from "lucide-react";
 import { PvpBattleTypes } from "@/drizzle/constants";
+import ItemLoadoutSelector from "@/layout/ItemLoadoutSelector";
+import JutsuLoadoutSelector from "@/layout/JutsuLoadoutSelector";
 import { IMG_INITIATIVE_D20 } from "@/drizzle/constants";
 import type { Grid } from "honeycomb-grid";
 import type { ReturnedBattle, StatSchemaType } from "@/libs/combat/types";
@@ -80,6 +82,11 @@ const Combat: React.FC<CombatProps> = (props) => {
     undefined,
   );
   const suid = userData?.userId;
+
+  // Session battle user state
+  const battleSessionUser = battle.current?.usersState.find(
+    (u) => u.userId === userData?.userId,
+  );
 
   // Query data
   const { data: gameAssets } = api.misc.getAllGameAssetNames.useQuery(undefined);
@@ -214,19 +221,19 @@ const Combat: React.FC<CombatProps> = (props) => {
       }
     },
   });
-  useEffect(() => {
-    if (
-      battle.current &&
-      isInLobby &&
-      PvpBattleTypes.includes(battle.current.battleType)
-    ) {
-      const user = battle.current.usersState.find((u) => u.userId === suid);
-      if (user && !user.iAmHere) {
-        iAmHere({ battleId: battle.current.id });
+
+  // Mutation for selecting loadouts
+  const { mutate: selectLoadout } = api.combat.updateCombatLoadout.useMutation({
+    onSuccess: (data) => {
+      if ("battle" in data && data.success && data.battle) {
+        battle.current = data.battle;
+        setBattleAtom(battle.current);
+        setBattleState({ battle: data.battle, result: null, isPending: false });
+      } else {
+        showMutationToast({ success: false, message: data.message });
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInLobby]);
+    },
+  });
 
   // Handle key-presses
   const onDocumentKeyDown = (event: KeyboardEvent) => {
@@ -602,12 +609,12 @@ const Combat: React.FC<CombatProps> = (props) => {
         PvpBattleTypes.includes(battle.current.battleType) && (
           <div className="absolute bottom-0 left-0 right-0 top-0 z-20 m-auto bg-black opacity-90">
             <div className="flex flex-col items-center justify-center text-white h-full">
-              <p className="p-5 text-5xl">Waiting for opponent</p>
-              <p className="text-3xl">
+              <p className="text-3xl">Waiting for opponent</p>
+              <p className="text-xl">
                 Time Left:{" "}
                 <Countdown targetDate={battle.current.createdAt} timeDiff={timeDiff} />
               </p>
-              <p className="text-xl mt-5 mb-2 font-bold flex flex-row">
+              <p className="text-lg mb-2 flex flex-row">
                 Initiative Winner: {initiveWinner?.username}{" "}
                 <Link href="/manual/combat">
                   <HelpCircle className="ml-2 h6 w-6 hover:text-orange-500" />
@@ -625,21 +632,57 @@ const Combat: React.FC<CombatProps> = (props) => {
                         <Image
                           alt={`roll-${u.userId}`}
                           src={IMG_INITIATIVE_D20}
-                          height={80}
-                          width={80}
+                          height={60}
+                          width={60}
                         ></Image>
-                        <p className="absolute text-lg top-10">
+                        <p className="absolute text-md top-7">
                           {Math.floor(u.initiative)}
                         </p>
-                        <p>{u.username}</p>{" "}
-                        {u.iAmHere ? (
-                          <CheckCircle className="h-6 w-6" />
-                        ) : (
-                          <ClockIcon className="h-6 w-6" />
-                        )}
+                        <p>
+                          {u.username} {u.iAmHere ? "(✓)" : ""}
+                        </p>
                       </div>
                     );
                   })}
+              </div>
+              <div className="flex flex-row gap-4 items-center mt-3">
+                <ItemLoadoutSelector
+                  size="small"
+                  label="Item Loadout"
+                  onSelectOverride={(loadoutId) => {
+                    if (battle?.current) {
+                      selectLoadout({
+                        battleId: battle.current.id,
+                        itemLoadoutId: loadoutId,
+                      });
+                    }
+                  }}
+                  selectedOverrideId={battleSessionUser?.itemLoadout}
+                />
+                <JutsuLoadoutSelector
+                  size="small"
+                  label="Jutsu Loadout"
+                  onSelectOverride={(loadoutId) => {
+                    if (battle?.current) {
+                      selectLoadout({
+                        battleId: battle.current.id,
+                        jutsuLoadoutId: loadoutId,
+                      });
+                    }
+                  }}
+                  selectedOverrideId={battleSessionUser?.jutsuLoadout}
+                />
+                <Button
+                  variant="secondary"
+                  disabled={battleSessionUser?.iAmHere}
+                  onClick={() => {
+                    if (battle.current && suid) {
+                      iAmHere({ battleId: battle.current.id });
+                    }
+                  }}
+                >
+                  {battleSessionUser?.iAmHere ? "Ready" : "I'm Ready"}
+                </Button>
               </div>
             </div>
           </div>

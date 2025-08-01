@@ -42,6 +42,7 @@ import type { UserItemWithRelations, UserData } from "@/drizzle/schema";
 import type { ItemSlot } from "@/drizzle/constants";
 import type { ZodAllTags } from "@/libs/combat/types";
 import type { DrizzleClient } from "@/server/db";
+import type { ItemLoadout } from "@/drizzle/schema";
 import { postProcessRewards, type PostProcessedRewards } from "@/libs/quest";
 import { updateRewards } from "./quests";
 import { collapseRewards } from "@/libs/quest";
@@ -870,93 +871,118 @@ export const itemRouter = createTRPCRouter({
         fetchUser(ctx.drizzle, ctx.userId),
         fetchUserItems(ctx.drizzle, ctx.userId),
       ]);
-      // Derived
-      const loadout = loadouts.find((l) => l.id === input.id);
-      const maxLoadouts = fedItemLoadouts(user);
-      // Guard
-      if (!loadout) return errorResponse("Loadout not found");
-      if (maxLoadouts <= 0) return errorResponse("Loadouts not available");
-
-      // Validate items in loadout
-      const validItemData = [];
-      const invalidItems = [];
-      for (const itemEntry of loadout.itemData) {
-        const useritem = useritems.find((ui) => ui.itemId === itemEntry.itemId);
-        if (!useritem) {
-          invalidItems.push(`Item not found`);
-          continue;
-        }
-        if (useritem.storedAtHome) {
-          invalidItems.push(`${useritem.item.name} is stored at home`);
-          continue;
-        }
-        if (useritem.item.requiredLevel > user.level) {
-          invalidItems.push(
-            `${useritem.item.name} requires level ${useritem.item.requiredLevel}`,
-          );
-          continue;
-        }
-        if (useritem.craftingFinishedAt && useritem.craftingFinishedAt > new Date()) {
-          invalidItems.push(`${useritem.item.name} is being crafted`);
-          continue;
-        }
-        if (useritem.isInAuction) {
-          invalidItems.push(`${useritem.item.name} is in auction`);
-          continue;
-        }
-        const currentlyImbuing = useritem.imbuements.filter(
-          (imbuement) =>
-            imbuement.craftingFinishedAt && imbuement.craftingFinishedAt > new Date(),
-        );
-        if (currentlyImbuing.length > 0) {
-          invalidItems.push(`${useritem.item.name} is being imbued`);
-          continue;
-        }
-        validItemData.push(itemEntry);
-      }
-
-      // First unequip all items
-      await ctx.drizzle
-        .update(userItem)
-        .set({ equipped: "NONE" })
-        .where(eq(userItem.userId, ctx.userId));
-
-      // Then equip valid items from loadout
-      const equipPromises = [];
-      for (const itemEntry of validItemData) {
-        equipPromises.push(
-          ctx.drizzle
-            .update(userItem)
-            .set({ equipped: itemEntry.slot })
-            .where(
-              and(
-                eq(userItem.userId, ctx.userId),
-                eq(userItem.itemId, itemEntry.itemId),
-              ),
-            ),
-        );
-      }
-      // Execute all updates
-      await Promise.all([
-        ctx.drizzle
-          .update(userData)
-          .set({ itemLoadout: loadout.id })
-          .where(eq(userData.userId, ctx.userId)),
-        ...equipPromises,
-      ]);
-      // Return
-      const message =
-        invalidItems.length > 0
-          ? `Loadout selected. Warnings: ${invalidItems.join(", ")}`
-          : "Loadout selected";
-
-      return { success: true, message };
+      // Mutate & return result
+      const id = input.id;
+      return await selectItemLoadout(ctx.drizzle, id, loadouts, useritems, user);
     }),
 });
 
 /**
  * COMMON QUERIES WHICH ARE REUSED
  */
+
+/**
+ * @param client - The database client
+ * @param loadoutId - The ID of the loadout to select
+ * @param loadouts - The loadouts to select from
+ * @param useritems - The user items to select from
+ * @param user - The user data
+ * @returns A promise that resolves to the result of the select
+ */
+export const selectItemLoadout = async (
+  client: DrizzleClient,
+  loadoutId: string,
+  loadouts: ItemLoadout[],
+  useritems: UserItemWithRelations[],
+  user: UserData,
+) => {
+  // First unequip all items
+  // Derived
+  const loadout = loadouts.find((l) => l.id === loadoutId);
+  const maxLoadouts = fedItemLoadouts(user);
+  // Guard
+  if (!loadout) return errorResponse("Loadout not found");
+  if (maxLoadouts <= 0) return errorResponse("Loadouts not available");
+
+  // Validate items in loadout
+  const validItemData = [];
+  const invalidItems = [];
+  for (const itemEntry of loadout.itemData) {
+    const useritem = useritems.find((ui) => ui.itemId === itemEntry.itemId);
+    if (!useritem) {
+      invalidItems.push(`Item not found`);
+      continue;
+    }
+    if (useritem.storedAtHome) {
+      invalidItems.push(`${useritem.item.name} is stored at home`);
+      continue;
+    }
+    if (useritem.item.requiredLevel > user.level) {
+      invalidItems.push(
+        `${useritem.item.name} requires level ${useritem.item.requiredLevel}`,
+      );
+      continue;
+    }
+    if (useritem.craftingFinishedAt && useritem.craftingFinishedAt > new Date()) {
+      invalidItems.push(`${useritem.item.name} is being crafted`);
+      continue;
+    }
+    if (useritem.isInAuction) {
+      invalidItems.push(`${useritem.item.name} is in auction`);
+      continue;
+    }
+    const currentlyImbuing = useritem.imbuements.filter(
+      (imbuement) =>
+        imbuement.craftingFinishedAt && imbuement.craftingFinishedAt > new Date(),
+    );
+    if (currentlyImbuing.length > 0) {
+      invalidItems.push(`${useritem.item.name} is being imbued`);
+      continue;
+    }
+    validItemData.push(itemEntry);
+  }
+
+  // Get valid item ids
+  const validItemIds = validItemData.map((i) => i.itemId);
+
+  // First unequip all items
+  await client
+    .update(userItem)
+    .set({ equipped: "NONE" })
+    .where(eq(userItem.userId, user.userId));
+
+  // Then equip valid items from loadout
+  const equipPromises = [];
+  for (const itemEntry of validItemData) {
+    equipPromises.push(
+      client
+        .update(userItem)
+        .set({ equipped: itemEntry.slot })
+        .where(
+          and(eq(userItem.userId, user.userId), eq(userItem.itemId, itemEntry.itemId)),
+        ),
+    );
+  }
+  // Execute all updates
+  await Promise.all([
+    client
+      .update(userData)
+      .set({ itemLoadout: loadout.id })
+      .where(eq(userData.userId, user.userId)),
+    ...equipPromises,
+  ]);
+  // Return
+  const message =
+    invalidItems.length > 0
+      ? `Loadout selected. Warnings: ${invalidItems.join(", ")}`
+      : "Loadout selected";
+
+  return {
+    success: true,
+    message,
+    items: useritems.filter((ui) => validItemIds.includes(ui.itemId)),
+  };
+};
 
 export const fetchItem = async (client: DrizzleClient, id: string) => {
   return await client.query.item.findFirst({

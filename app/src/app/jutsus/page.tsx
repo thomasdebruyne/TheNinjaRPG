@@ -6,7 +6,7 @@ import ItemWithEffects from "@/layout/ItemWithEffects";
 import ContentBox from "@/layout/ContentBox";
 import Modal2 from "@/layout/Modal2";
 import Loader from "@/layout/Loader";
-import LoadoutSelector from "@/layout/LoadoutSelector";
+import JutsuLoadoutSelector from "@/layout/JutsuLoadoutSelector";
 import Confirm2 from "@/layout/Confirm2";
 import { SquareChevronRight, SquareChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -257,7 +257,7 @@ export default function MyJutsu() {
       topRightContent={
         !isOpen && (
           <div className="flex flex-row items-center gap-2">
-            <LoadoutSelector />
+            <JutsuLoadoutSelector />
             <JutsuFiltering state={state} />
             {userData.extraJutsuSlots < MAX_EXTRA_JUTSU_SLOTS && (
               <Confirm2

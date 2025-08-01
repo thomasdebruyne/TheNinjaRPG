@@ -12,7 +12,7 @@ import ItemWithEffects from "@/layout/ItemWithEffects";
 import Modal2 from "@/layout/Modal2";
 import Countdown from "@/layout/Countdown";
 import Confirm2 from "@/layout/Confirm2";
-import LoadoutSelector from "@/layout/LoadoutSelector";
+import JutsuLoadoutSelector from "@/layout/JutsuLoadoutSelector";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   UserRoundSearch,
@@ -68,7 +68,10 @@ export default function Travel() {
     "showOwnership",
     false,
   );
-  const [autoAttackMode, setAutoAttackMode] = useLocalStorage<boolean>("autoAttackMode", false);
+  const [autoAttackMode, setAutoAttackMode] = useLocalStorage<boolean>(
+    "autoAttackMode",
+    false,
+  );
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showSorrounding, setShowSorrounding] = useState<boolean>(false);
 
@@ -102,12 +105,11 @@ export default function Travel() {
       return ["VILLAGE", "SAFEZONE"].includes(v.type);
     }
   });
-  
+
   // Fetch tracked bounties for map display
-  const { data: trackedBounties } = api.bounty.getTrackedBounties.useQuery(
-    undefined,
-    { enabled: !!userData }
-  );
+  const { data: trackedBounties } = api.bounty.getTrackedBounties.useQuery(undefined, {
+    enabled: !!userData,
+  });
   const sectorVillage = villages?.find((v) => v.sector === userData?.sector);
 
   // Consumable items
@@ -511,7 +513,7 @@ export default function Travel() {
         )}
       </ContentBox>
       <div className="flex flex-row p-1 justify-between items-center">
-        {showSector && <LoadoutSelector size="small" />}
+        {showSector && <JutsuLoadoutSelector size="small" />}
         {showSector && userData?.anbuId && autoAttackMode && (
           <div className="text-red-500 text-sm font-semibold flex items-center">
             <Zap className="h-4 w-4 mr-1" />

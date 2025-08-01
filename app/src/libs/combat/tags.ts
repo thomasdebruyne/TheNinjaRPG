@@ -150,32 +150,37 @@ export const copy = (
   // Check if copy is prevented
   const { pass } = preventCheck(usersEffects, "buffprevent", user, effect);
   if (!pass) return preventResponse(effect, user, "cannot copy effects");
-  
+
   // Calculate chance of success
   const { power } = getPower(effect);
   const primaryCheck = Math.random() < power / 100;
   if (effect.isNew && effect.rounds && effect.castThisRound) {
     if (primaryCheck) {
       const excludedFromTypes = ["bloodline", "armor", "item", "village", "skill"];
-      const allowedEffectTypes = ["increasedamagegiven", "increasestat", "decreasedamagetaken"];
-      
+      const allowedEffectTypes = [
+        "increasedamagegiven",
+        "increasestat",
+        "decreasedamagetaken",
+      ];
+
       const positiveEffects = usersEffects.filter(
-        (e) => e.targetId === target.userId && 
-               isPositiveUserEffect(e) && 
-               !excludedFromTypes.includes(e.fromType || "") &&
-               allowedEffectTypes.includes(e.type),
+        (e) =>
+          e.targetId === target.userId &&
+          isPositiveUserEffect(e) &&
+          !excludedFromTypes.includes(e.fromType || "") &&
+          allowedEffectTypes.includes(e.type),
       );
-      
+
       if (positiveEffects.length === 0) {
         return {
           txt: `${user.username} tries to copy positive effects from ${target.username} but finds no copyable effects.`,
           color: "blue",
         };
       }
-      
+
       let copiedCount = 0;
       const copiedEffects: string[] = [];
-      
+
       positiveEffects.forEach((posEffect) => {
         const prevCopy = usersEffects.find(
           (e) => e.fromEffectId === posEffect.id && e.rounds && e.rounds > 0,
@@ -193,14 +198,15 @@ export const copy = (
           copiedEffect.createdRound = effect.createdRound;
           usersEffects.push(copiedEffect);
           copiedCount++;
-          
+
           // Create description of the copied effect
-          const effectPower = posEffect.power + posEffect.level * posEffect.powerPerLevel;
+          const effectPower =
+            posEffect.power + posEffect.level * posEffect.powerPerLevel;
           const effectDesc = `${posEffect.type} (${effectPower}${posEffect.calculation === "percentage" ? "%" : ""})`;
           copiedEffects.push(effectDesc);
         }
       });
-      
+
       const effectsList = copiedEffects.join(", ");
       return {
         txt: `${user.username} copies ${copiedCount} positive effects from ${target.username}: ${effectsList}`,
@@ -224,8 +230,9 @@ export const mirror = (
 ): ActionEffect | undefined => {
   // Check if mirror is prevented
   const { pass } = preventCheck(usersEffects, "debuffprevent", target, effect);
-  if (!pass) return preventResponse(effect, target, "cannot be debuffed with mirrored effects");
-  
+  if (!pass)
+    return preventResponse(effect, target, "cannot be debuffed with mirrored effects");
+
   // Calculate chance of success
   const { power } = getPower(effect);
   const primaryCheck = Math.random() < power / 100;
@@ -233,24 +240,25 @@ export const mirror = (
     if (primaryCheck) {
       const excludedFromTypes = ["bloodline", "armor", "item", "village"];
       const excludedEffectTypes = ["damage", "pierce", "clear"];
-      
+
       const negativeEffects = usersEffects.filter(
-        (e) => e.targetId === user.userId && 
-               isNegativeUserEffect(e) && 
-               !excludedFromTypes.includes(e.fromType || "") &&
-               !excludedEffectTypes.includes(e.type),
+        (e) =>
+          e.targetId === user.userId &&
+          isNegativeUserEffect(e) &&
+          !excludedFromTypes.includes(e.fromType || "") &&
+          !excludedEffectTypes.includes(e.type),
       );
-      
+
       if (negativeEffects.length === 0) {
         return {
           txt: `${user.username} tries to mirror negative effects onto ${target.username} but finds no negative effects to reflect.`,
           color: "blue",
         };
       }
-      
+
       let mirroredCount = 0;
       const mirroredEffects: string[] = [];
-      
+
       negativeEffects.forEach((negEffect) => {
         const prevMirror = usersEffects.find(
           (e) => e.fromEffectId === negEffect.id && e.rounds && e.rounds > 0,
@@ -268,14 +276,15 @@ export const mirror = (
           mirroredEffect.createdRound = effect.createdRound;
           usersEffects.push(mirroredEffect);
           mirroredCount++;
-          
+
           // Create description of the mirrored effect
-          const effectPower = negEffect.power + negEffect.level * negEffect.powerPerLevel;
+          const effectPower =
+            negEffect.power + negEffect.level * negEffect.powerPerLevel;
           const effectDesc = `${negEffect.type} (${effectPower}${negEffect.calculation === "percentage" ? "%" : ""})`;
           mirroredEffects.push(effectDesc);
         }
       });
-      
+
       const effectsList = mirroredEffects.join(", ");
       return {
         txt: `${user.username} mirrors ${mirroredCount} negative effects onto ${target.username}: ${effectsList}`,
@@ -850,6 +859,7 @@ export const clone = (usersState: BattleUserState[], effect: GroundEffect) => {
     newAi.userId = nanoid();
     effect.creatorId = newAi.userId;
     newAi.isSummon = true;
+    newAi.leftBattle = false;
     newAi.username = `${user.username} clone`;
     newAi.controllerId = user.userId;
     newAi.isOriginal = false;
@@ -1070,17 +1080,15 @@ export const damageUser = (
 ) => {
   // Store the raw damage before any calculations
   const rawDamage = damageCalc(effect, origin, target, config) * dmgModifier;
-  
+
   // Calculate the final damage with modifiers
   const thisRound = effect.castThisRound;
   const instant = thisRound && effect.rounds === 0;
   const residual = !thisRound && (effect.rounds === undefined || effect.rounds > 0);
-  
+
   // Only apply barrier absorption to instant damage, not residual damage
-  const damage = instant 
-    ? rawDamage * (1 - (effect.barrierAbsorb ?? 0))
-    : rawDamage;
-  
+  const damage = instant ? rawDamage * (1 - (effect.barrierAbsorb ?? 0)) : rawDamage;
+
   // Find out if target has any weakness tag related to this damage effect
   // const weaknessTags =
   // Fetch types to show to the user
@@ -1091,7 +1099,7 @@ export const damageUser = (
     ...("elements" in effect && effect.elements ? effect.elements : []),
     ...("poolsAffected" in effect && effect.poolsAffected ? effect.poolsAffected : []),
   ];
-  
+
   if (instant || residual) {
     consequences.set(effect.id, {
       userId: effect.creatorId,
@@ -1115,15 +1123,15 @@ export const damageBarrier = (
   const idx = groundEffects.findIndex((g) => g.id === effect.targetId);
   const barrier = groundEffects[idx];
   if (!barrier || !("curHealth" in barrier)) return undefined;
-  
+
   // Apply damage for both instant and residual effects
   const thisRound = effect.castThisRound;
   const instant = thisRound && effect.rounds === 0;
   const residual = !thisRound && (effect.rounds === undefined || effect.rounds > 0);
-  
+
   // Only apply damage if this is an instant effect or residual effect
   if (!instant && !residual) return undefined;
-  
+
   const { power } = getPower(barrier);
   // Create barrier target user stats
   const target = structuredClone(origin);
@@ -1385,7 +1393,8 @@ export const afterburn = (
 ) => {
   const { pass, preventTag } = preventCheck(usersEffects, "debuffprevent", target);
   if (preventTag && preventTag.createdRound < effect.createdRound) {
-    if (!pass) return preventResponse(effect, target, "cannot be debuffed with afterburn");
+    if (!pass)
+      return preventResponse(effect, target, "cannot be debuffed with afterburn");
   }
   const { power, qualifier } = getPower(effect);
   if (!effect.isNew && !effect.castThisRound) {
@@ -1403,7 +1412,7 @@ export const afterburn = (
                   ? consequence.damage
                   : power,
             ) * ratio;
-          
+
           // Add to existing afterburn damage (stacking) with 60% limit
           const currentAfterburn = consequence.afterburn || 0;
           const maxAfterburn = Math.floor(consequence.damage * 0.6); // 60% limit
@@ -1413,11 +1422,12 @@ export const afterburn = (
       }
     });
   }
-  
-  const description = effect.calculation === "percentage" 
-    ? `will take ${qualifier} of damage received as afterburn`
-    : `will take ${qualifier} afterburn damage`;
-    
+
+  const description =
+    effect.calculation === "percentage"
+      ? `will take ${qualifier} of damage received as afterburn`
+      : `will take ${qualifier} afterburn damage`;
+
   return getInfo(target, effect, description);
 };
 
@@ -2012,6 +2022,7 @@ export const summon = (
         effect.aiId = newAi.userId;
         newAi.controllerId = user.userId;
         newAi.hidden = undefined;
+        newAi.leftBattle = false;
         newAi.longitude = effect.longitude;
         newAi.latitude = effect.latitude;
         newAi.villageId = user.villageId;

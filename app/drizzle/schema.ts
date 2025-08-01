@@ -1186,13 +1186,16 @@ export const jutsuLoadout = mysqlTable(
     };
   },
 );
+export type JutsuLoadout = InferSelectModel<typeof jutsuLoadout>;
 
 export const itemLoadout = mysqlTable(
   "ItemLoadout",
   {
     id: varchar("id", { length: 191 }).primaryKey().notNull(),
     userId: varchar("userId", { length: 191 }).notNull(),
-    itemData: json("itemData").$type<Array<{ itemId: string; slot: ItemSlot }>>().notNull(),
+    itemData: json("itemData")
+      .$type<Array<{ itemId: string; slot: ItemSlot }>>()
+      .notNull(),
     createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
@@ -1203,6 +1206,7 @@ export const itemLoadout = mysqlTable(
     };
   },
 );
+export type ItemLoadout = InferSelectModel<typeof itemLoadout>;
 
 export const rankedLoadout = mysqlTable("RankedLoadout", {
   id: varchar("id", { length: 191 }).primaryKey().notNull(),

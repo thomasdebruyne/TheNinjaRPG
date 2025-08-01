@@ -5,7 +5,7 @@ import { useLocalStorage } from "@/hooks/localstorage";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import BanInfo from "@/layout/BanInfo";
-import LoadoutSelector from "@/layout/LoadoutSelector";
+import JutsuLoadoutSelector from "@/layout/JutsuLoadoutSelector";
 import {
   Select,
   SelectContent,
@@ -203,7 +203,7 @@ const SelectAI: React.FC<SelectAIProps> = (props) => {
       title="Configure"
       subtitle="Choose opponent and jutsu loadout"
       initialBreak={true}
-      topRightContent={<LoadoutSelector size="small" />}
+      topRightContent={<JutsuLoadoutSelector size="small" />}
     >
       <div className="flex flex-col items-center">
         {canDoArena && (

@@ -43,6 +43,7 @@ import { jutsuFilteringSchema } from "@/validators/jutsu";
 import { QuestTracker } from "@/validators/objectives";
 import type { JutsuFilteringSchema } from "@/validators/jutsu";
 import type { ZodAllTags } from "@/libs/combat/types";
+import type { UserData, JutsuLoadout, UserJutsu, Jutsu } from "@/drizzle/schema";
 import type { DrizzleClient } from "@/server/db";
 import { TRPCError } from "@trpc/server";
 import { fetchStudents } from "@/routers/sensei";
@@ -276,7 +277,7 @@ export const jutsuRouter = createTRPCRouter({
 
   getLoadouts: protectedProcedure.query(async ({ ctx }) => {
     const [loadouts, user] = await Promise.all([
-      fetchLoadouts(ctx.drizzle, ctx.userId),
+      fetchJutsuLoadouts(ctx.drizzle, ctx.userId),
       fetchUser(ctx.drizzle, ctx.userId),
     ]);
     const maxLoadouts = fedJutsuLoadouts(user);
@@ -310,33 +311,14 @@ export const jutsuRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
-      const [loadouts, user] = await Promise.all([
-        fetchLoadouts(ctx.drizzle, ctx.userId),
+      const [loadouts, user, userjutsus] = await Promise.all([
+        fetchJutsuLoadouts(ctx.drizzle, ctx.userId),
         fetchUser(ctx.drizzle, ctx.userId),
+        fetchUserJutsus(ctx.drizzle, ctx.userId),
       ]);
-      const loadout = loadouts.find((l) => l.id === input.id);
-      const maxLoadouts = fedJutsuLoadouts(user);
-
-      if (!loadout) return errorResponse("Loadout not found");
-      if (maxLoadouts <= 0) return errorResponse("Loadouts not available");
-
-      await Promise.all([
-        ctx.drizzle
-          .update(userData)
-          .set({ jutsuLoadout: loadout.id })
-          .where(eq(userData.userId, ctx.userId)),
-        ctx.drizzle
-          .update(userJutsu)
-          .set({
-            equipped:
-              loadout.jutsuIds.length > 0
-                ? sql`CASE WHEN ${inArray(userJutsu.jutsuId, loadout.jutsuIds)} THEN 1 ELSE 0 END`
-                : 0,
-          })
-          .where(eq(userJutsu.userId, ctx.userId)),
-      ]);
-
-      return { success: true, message: `Loadout selected` };
+      // Mutate & return result
+      const id = input.id;
+      return await selectJutsuLoadout(ctx.drizzle, id, loadouts, userjutsus, user);
     }),
 
   create: protectedProcedure.output(baseServerResponse).mutation(async ({ ctx }) => {
@@ -663,7 +645,7 @@ export const jutsuRouter = createTRPCRouter({
           client: ctx.drizzle,
           userId: ctx.userId,
         }),
-        fetchLoadouts(ctx.drizzle, ctx.userId),
+        fetchJutsuLoadouts(ctx.drizzle, ctx.userId),
       ]);
       const { user } = data;
       if (!user) return errorResponse("User not found");
@@ -700,7 +682,7 @@ export const jutsuRouter = createTRPCRouter({
           client: ctx.drizzle,
           userId: ctx.userId,
         }),
-        fetchLoadouts(ctx.drizzle, ctx.userId),
+        fetchJutsuLoadouts(ctx.drizzle, ctx.userId),
       ]);
       const { user } = data;
       if (!user) return errorResponse("User not found");
@@ -786,7 +768,7 @@ export const jutsuRouter = createTRPCRouter({
     )
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
-      const loadouts = await fetchLoadouts(ctx.drizzle, ctx.userId);
+      const loadouts = await fetchJutsuLoadouts(ctx.drizzle, ctx.userId);
       const loadout = loadouts.find((l) => l.id === input.loadoutId);
       if (!loadout) return errorResponse("Loadout not found");
 
@@ -818,7 +800,7 @@ export const jutsuRouter = createTRPCRouter({
  * COMMON QUERIES/HELPERS
  */
 
-export const fetchLoadouts = async (client: DrizzleClient, userId: string) => {
+export const fetchJutsuLoadouts = async (client: DrizzleClient, userId: string) => {
   return await client.query.jutsuLoadout.findMany({
     where: eq(jutsuLoadout.userId, userId),
     orderBy: (table) => desc(table.createdAt),
@@ -1057,4 +1039,47 @@ export const jutsuDatabaseFilter = (input?: JutsuFilteringSchema) => {
         )
       : []),
   ];
+};
+
+/**
+ * @param client - The database client
+ * @param loadoutId - The ID of the loadout to select
+ * @param loadouts - The loadouts to select from
+ * @param user - The user data
+ * @returns A promise that resolves to the result of the select
+ */
+export const selectJutsuLoadout = async (
+  client: DrizzleClient,
+  loadoutId: string,
+  loadouts: JutsuLoadout[],
+  userjutsus: (UserJutsu & { jutsu: Jutsu })[],
+  user: UserData,
+) => {
+  const loadout = loadouts.find((l) => l.id === loadoutId);
+  const maxLoadouts = fedJutsuLoadouts(user);
+
+  if (!loadout) return errorResponse("Loadout not found");
+  if (maxLoadouts <= 0) return errorResponse("Loadouts not available");
+
+  await Promise.all([
+    client
+      .update(userData)
+      .set({ jutsuLoadout: loadout.id })
+      .where(eq(userData.userId, user.userId)),
+    client
+      .update(userJutsu)
+      .set({
+        equipped:
+          loadout.jutsuIds.length > 0
+            ? sql`CASE WHEN ${inArray(userJutsu.jutsuId, loadout.jutsuIds)} THEN 1 ELSE 0 END`
+            : 0,
+      })
+      .where(eq(userJutsu.userId, user.userId)),
+  ]);
+
+  return {
+    success: true,
+    message: `Loadout selected`,
+    jutsus: userjutsus.filter((u) => loadout.jutsuIds.includes(u.jutsuId)),
+  };
 };

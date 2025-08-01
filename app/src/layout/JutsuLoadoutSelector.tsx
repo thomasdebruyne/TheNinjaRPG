@@ -1,19 +1,19 @@
 import React from "react";
 import Loader from "@/layout/Loader";
 import { api } from "@/app/_trpc/client";
-import { fedItemLoadouts } from "@/utils/paypal";
+import { fedJutsuLoadouts } from "@/utils/paypal";
 import { Folder } from "lucide-react";
 import { showMutationToast } from "@/libs/toast";
 import { useRequiredUserData } from "@/utils/UserContext";
 
-interface ItemLoadoutSelectorProps {
+interface JutsuLoadoutSelectorProps {
   size?: "small" | "large";
   label?: string;
   onSelectOverride?: (loadoutId: string) => void;
   selectedOverrideId?: string | null;
 }
 
-const ItemLoadoutSelector: React.FC<ItemLoadoutSelectorProps> = (props) => {
+const JutsuLoadoutSelector: React.FC<JutsuLoadoutSelectorProps> = (props) => {
   // State
   const { data: userData } = useRequiredUserData();
 
@@ -21,21 +21,22 @@ const ItemLoadoutSelector: React.FC<ItemLoadoutSelectorProps> = (props) => {
   const utils = api.useUtils();
 
   // How many loadouts?
-  const maxLoadouts = fedItemLoadouts(userData);
+  const maxLoadouts = fedJutsuLoadouts(userData);
 
   // Get loadouts
-  const { data, isFetching } = api.item.getItemLoadouts.useQuery(undefined, {
+  const { data, isFetching } = api.jutsu.getLoadouts.useQuery(undefined, {
     enabled: maxLoadouts > 1,
   });
 
   // Mutations
-  const { mutate: selectItemLoadout, isPending } =
-    api.item.selectItemLoadout.useMutation({
+  const { mutate: selectJutsuLoadout, isPending } =
+    api.jutsu.selectJutsuLoadout.useMutation({
       onSuccess: async (data) => {
         showMutationToast(data);
         if (data.success) {
           await utils.profile.getUser.invalidate();
           await utils.item.getUserItems.invalidate();
+          await utils.jutsu.getUserJutsus.invalidate();
         }
       },
     });
@@ -43,7 +44,7 @@ const ItemLoadoutSelector: React.FC<ItemLoadoutSelectorProps> = (props) => {
   // Derived size vars
   const iconSize = props?.size === "small" ? "h-6 w-6" : "h-10 w-10";
   const textSize = props?.size === "small" ? "text-xs" : "text-sm mt-1";
-  const selectedId = props.selectedOverrideId || userData?.itemLoadout;
+  const selectedId = props.selectedOverrideId || userData?.jutsuLoadout;
 
   // Loaders
   if (!userData) return <Loader />;
@@ -57,7 +58,7 @@ const ItemLoadoutSelector: React.FC<ItemLoadoutSelectorProps> = (props) => {
     if (props.onSelectOverride) {
       props.onSelectOverride(id);
     } else {
-      selectItemLoadout({ id });
+      selectJutsuLoadout({ id });
     }
   };
 
@@ -87,4 +88,4 @@ const ItemLoadoutSelector: React.FC<ItemLoadoutSelectorProps> = (props) => {
   );
 };
 
-export default ItemLoadoutSelector;
+export default JutsuLoadoutSelector;
