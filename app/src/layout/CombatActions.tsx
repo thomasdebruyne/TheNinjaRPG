@@ -70,7 +70,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
     (i) => !i.hidden || (userData && canChangeContent(userData.role)),
   );
   const base = "gap-1 text-xs";
-  const grid = props.gridClassNameOverwrite || "grid grid-cols-6 md:grid-cols-8";
+  const grid = props.gridClassNameOverwrite || "grid grid-cols-6 md:grid-cols-7";
   const bgColor = props.showBgColor
     ? "border-b-2 border-l-2 border-r-2 bg-slate-50 text-black"
     : "";
@@ -105,11 +105,12 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
                 "elements" in e && e.elements ? e.elements : [],
               )
             : [];
+
           return (
             <div
               key={i}
               ref={i === filtered.length - 1 ? props.setLastElement : null}
-              className="relative flex items-center justify-center"
+              className="relative flex items-start justify-center"
             >
               <div className="relative">
                 {props.renderItem ? (

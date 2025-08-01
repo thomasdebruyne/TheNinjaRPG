@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { eq, sql, gte, and, like } from "drizzle-orm";
+import { eq, sql, gte, and, like, desc } from "drizzle-orm";
 import {
   item,
   userItem,
@@ -9,6 +9,7 @@ import {
   actionLog,
   bloodlineRolls,
   craftingRequirement,
+  itemLoadout,
 } from "@/drizzle/schema";
 import { ItemTypes, ItemSlots } from "@/drizzle/constants";
 import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
@@ -36,6 +37,7 @@ import { itemFilteringSchema } from "@/validators/item";
 import { filterRollableBloodlines } from "@/libs/bloodline";
 import { fetchBloodlines } from "@/routers/bloodline";
 import { setEmptyStringsToNulls } from "@/utils/typeutils";
+import { fedItemLoadouts } from "@/utils/paypal";
 import type { UserItemWithRelations, UserData } from "@/drizzle/schema";
 import type { ItemSlot } from "@/drizzle/constants";
 import type { ZodAllTags } from "@/libs/combat/types";
@@ -435,9 +437,10 @@ export const itemRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Fetch
-      const [useritems, user] = await Promise.all([
+      const [useritems, user, loadouts] = await Promise.all([
         fetchUserItems(ctx.drizzle, ctx.userId),
         fetchUser(ctx.drizzle, ctx.userId),
+        fetchItemLoadouts(ctx.drizzle, ctx.userId),
       ]);
       // Mutate
       const result = await toggleEquipItem(
@@ -447,11 +450,29 @@ export const itemRouter = createTRPCRouter({
         user,
         input.slot,
       );
-      // Execute
+      // If anything happened
       if (result.success && "promises" in result && result.promises.length > 0) {
+        // Update current loadout with new equipment state
+        if (user.itemLoadout) {
+          const currentLoadout = loadouts.find((l) => l.id === user.itemLoadout);
+          if (currentLoadout) {
+            const newItemData = result.newUserItems
+              .filter((ui) => ui.equipped !== "NONE")
+              .map((ui) => ({ itemId: ui.itemId, slot: ui.equipped }));
+            result.promises.push(
+              ctx.drizzle
+                .update(itemLoadout)
+                .set({ itemData: newItemData })
+                .where(eq(itemLoadout.id, currentLoadout.id)),
+            );
+          }
+        }
+        // Execute all promises in parallel
         await Promise.all(result.promises);
+        // Return
         return { success: true, message: result.message };
       }
+      // Else return the result from toggling
       return result;
     }),
   // Consume item
@@ -816,6 +837,121 @@ export const itemRouter = createTRPCRouter({
         message: `Equipped ${nEquipped} item${nEquipped === 1 ? "" : "s"}`,
       };
     }),
+  getItemLoadouts: protectedProcedure.query(async ({ ctx }) => {
+    // Query
+    const [loadouts, user] = await Promise.all([
+      fetchItemLoadouts(ctx.drizzle, ctx.userId),
+      fetchUser(ctx.drizzle, ctx.userId),
+    ]);
+    // Derived
+    const maxLoadouts = fedItemLoadouts(user);
+    // Create missing loadouts if needed
+    if (loadouts.length < maxLoadouts) {
+      for (let i = loadouts.length; i < maxLoadouts; i++) {
+        const loadout = {
+          id: nanoid(),
+          userId: ctx.userId,
+          itemData: [],
+          createdAt: new Date(),
+        };
+        await ctx.drizzle.insert(itemLoadout).values(loadout);
+        loadouts.push(loadout);
+      }
+    }
+    return maxLoadouts < loadouts.length ? loadouts.slice(0, maxLoadouts) : loadouts;
+  }),
+  selectItemLoadout: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      // Query
+      const [loadouts, user, useritems] = await Promise.all([
+        fetchItemLoadouts(ctx.drizzle, ctx.userId),
+        fetchUser(ctx.drizzle, ctx.userId),
+        fetchUserItems(ctx.drizzle, ctx.userId),
+      ]);
+      // Derived
+      const loadout = loadouts.find((l) => l.id === input.id);
+      const maxLoadouts = fedItemLoadouts(user);
+      // Guard
+      if (!loadout) return errorResponse("Loadout not found");
+      if (maxLoadouts <= 0) return errorResponse("Loadouts not available");
+
+      // Validate items in loadout
+      const validItemData = [];
+      const invalidItems = [];
+      for (const itemEntry of loadout.itemData) {
+        const useritem = useritems.find((ui) => ui.itemId === itemEntry.itemId);
+        if (!useritem) {
+          invalidItems.push(`Item not found`);
+          continue;
+        }
+        if (useritem.storedAtHome) {
+          invalidItems.push(`${useritem.item.name} is stored at home`);
+          continue;
+        }
+        if (useritem.item.requiredLevel > user.level) {
+          invalidItems.push(
+            `${useritem.item.name} requires level ${useritem.item.requiredLevel}`,
+          );
+          continue;
+        }
+        if (useritem.craftingFinishedAt && useritem.craftingFinishedAt > new Date()) {
+          invalidItems.push(`${useritem.item.name} is being crafted`);
+          continue;
+        }
+        if (useritem.isInAuction) {
+          invalidItems.push(`${useritem.item.name} is in auction`);
+          continue;
+        }
+        const currentlyImbuing = useritem.imbuements.filter(
+          (imbuement) =>
+            imbuement.craftingFinishedAt && imbuement.craftingFinishedAt > new Date(),
+        );
+        if (currentlyImbuing.length > 0) {
+          invalidItems.push(`${useritem.item.name} is being imbued`);
+          continue;
+        }
+        validItemData.push(itemEntry);
+      }
+
+      // First unequip all items
+      await ctx.drizzle
+        .update(userItem)
+        .set({ equipped: "NONE" })
+        .where(eq(userItem.userId, ctx.userId));
+
+      // Then equip valid items from loadout
+      const equipPromises = [];
+      for (const itemEntry of validItemData) {
+        equipPromises.push(
+          ctx.drizzle
+            .update(userItem)
+            .set({ equipped: itemEntry.slot })
+            .where(
+              and(
+                eq(userItem.userId, ctx.userId),
+                eq(userItem.itemId, itemEntry.itemId),
+              ),
+            ),
+        );
+      }
+      // Execute all updates
+      await Promise.all([
+        ctx.drizzle
+          .update(userData)
+          .set({ itemLoadout: loadout.id })
+          .where(eq(userData.userId, ctx.userId)),
+        ...equipPromises,
+      ]);
+      // Return
+      const message =
+        invalidItems.length > 0
+          ? `Loadout selected. Warnings: ${invalidItems.join(", ")}`
+          : "Loadout selected";
+
+      return { success: true, message };
+    }),
 });
 
 /**
@@ -878,7 +1014,10 @@ export const toggleEquipItem = async (
   user: UserData,
   slot?: ItemSlot,
 ) => {
-  const useritem = useritems.find((i) => i.id === userItemId);
+  // Create a clone to be returned
+  const newUserItems = structuredClone(useritems);
+  // Get the user item
+  const useritem = newUserItems.find((i) => i.id === userItemId);
   // Definitions & Guard
   if (!useritem) return errorResponse("User item not found");
   if (useritem.storedAtHome) return errorResponse("Fetch at home first");
@@ -903,7 +1042,7 @@ export const toggleEquipItem = async (
 
   const doEquip = !useritem.equipped || useritem.equipped !== slot;
   const info = useritem.item;
-  const instances = useritems.filter(
+  const instances = newUserItems.filter(
     (ui) => ui.itemId === info.id && ui.equipped !== "NONE",
   );
   const instancesEquipped = instances.length;
@@ -916,7 +1055,7 @@ export const toggleEquipItem = async (
   let newEquipSlot = slot;
   if (newEquipSlot === undefined) {
     ItemSlots.forEach((slot) => {
-      if (slot.includes(info.slot) && !useritems.find((i) => i.equipped === slot)) {
+      if (slot.includes(info.slot) && !newUserItems.find((i) => i.equipped === slot)) {
         newEquipSlot = slot;
       }
     });
@@ -930,9 +1069,12 @@ export const toggleEquipItem = async (
   }
   // We need to have a slot
   if (!newEquipSlot) return errorResponse("No slot found");
+  // Response info
+  let message = "";
+  let promises: Promise<unknown>[] = [];
   // Mutate
   if (doEquip) {
-    const userItemInSlot = useritems.find(
+    const userItemInSlot = newUserItems.find(
       (ui) => ui.equipped === newEquipSlot && ui.id !== useritem.id,
     );
     // Optimistic update
@@ -941,7 +1083,7 @@ export const toggleEquipItem = async (
       userItemInSlot.equipped = "NONE";
     }
     // Promises
-    const promises = [
+    promises = [
       client
         .update(userItem)
         .set({ equipped: newEquipSlot })
@@ -955,12 +1097,29 @@ export const toggleEquipItem = async (
           ]
         : []),
     ];
-    return { success: true, message: `Equipped ${info.name}`, promises };
+    message = `Equipped ${info.name}`;
   } else {
-    const promise = client
-      .update(userItem)
-      .set({ equipped: "NONE" })
-      .where(eq(userItem.id, useritem.id));
-    return { success: true, message: `Unequipped ${info.name}`, promises: [promise] };
+    useritem.equipped = "NONE";
+    promises = [
+      client
+        .update(userItem)
+        .set({ equipped: "NONE" })
+        .where(eq(userItem.id, useritem.id)),
+    ];
+    message = `Unequipped ${info.name}`;
   }
+  // Return information
+  return {
+    success: true,
+    message,
+    promises,
+    newUserItems,
+  };
+};
+
+export const fetchItemLoadouts = async (client: DrizzleClient, userId: string) => {
+  return await client.query.itemLoadout.findMany({
+    where: eq(itemLoadout.userId, userId),
+    orderBy: (table) => desc(table.createdAt),
+  });
 };

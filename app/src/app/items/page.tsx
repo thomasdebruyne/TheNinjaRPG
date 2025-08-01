@@ -10,6 +10,7 @@ import ItemWithEffects from "@/layout/ItemWithEffects";
 import Modal2 from "@/layout/Modal2";
 import Confirm2 from "@/layout/Confirm2";
 import ContentImage from "@/layout/ContentImage";
+import ItemLoadoutSelector from "@/layout/ItemLoadoutSelector";
 import { nonCombatConsume } from "@/libs/item";
 import { Button } from "@/components/ui/button";
 import { calcItemSellingPrice } from "@/libs/item";
@@ -151,7 +152,10 @@ export default function MyItems() {
           </div>
         </div>
       </ContentBox>
-      <div className="mt-1 w-full flex justify-end">
+      <div className="mt-1 w-full flex justify-between items-center">
+        <div>
+          <ItemLoadoutSelector />
+        </div>
         <Confirm2
           title="Auto Equip"
           isValid={!isPending}

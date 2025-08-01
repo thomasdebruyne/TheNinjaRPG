@@ -4,6 +4,9 @@ import { FED_GOLD_REPS_COST } from "@/drizzle/constants";
 import { FED_NORMAL_JUTSU_LOADOUTS } from "@/drizzle/constants";
 import { FED_SILVER_JUTSU_LOADOUTS } from "@/drizzle/constants";
 import { FED_GOLD_JUTSU_LOADOUTS } from "@/drizzle/constants";
+import { FED_NORMAL_ITEM_LOADOUTS } from "@/drizzle/constants";
+import { FED_SILVER_ITEM_LOADOUTS } from "@/drizzle/constants";
+import { FED_GOLD_ITEM_LOADOUTS } from "@/drizzle/constants";
 import { PAYPAL_DISCOUNT_PERCENT } from "@/drizzle/constants";
 import type { FederalStatus } from "@/drizzle/schema";
 import type { UserData } from "@/drizzle/schema";
@@ -27,6 +30,21 @@ export const fedJutsuLoadouts = (user?: UserData) => {
       return base + FED_SILVER_JUTSU_LOADOUTS;
     case "GOLD":
       return base + FED_GOLD_JUTSU_LOADOUTS;
+  }
+  return base;
+};
+
+export const fedItemLoadouts = (user?: UserData) => {
+  const base = 0;
+  if (!user) return base;
+  const status = getUserFederalStatus(user);
+  switch (status) {
+    case "NORMAL":
+      return base + FED_NORMAL_ITEM_LOADOUTS;
+    case "SILVER":
+      return base + FED_SILVER_ITEM_LOADOUTS;
+    case "GOLD":
+      return base + FED_GOLD_ITEM_LOADOUTS;
   }
   return base;
 };

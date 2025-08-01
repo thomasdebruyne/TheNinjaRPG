@@ -859,6 +859,10 @@ export const FED_GOLD_JUTSU_SLOTS = 3;
 export const FED_NORMAL_JUTSU_LOADOUTS = 1;
 export const FED_SILVER_JUTSU_LOADOUTS = 2;
 export const FED_GOLD_JUTSU_LOADOUTS = 3;
+
+export const FED_NORMAL_ITEM_LOADOUTS = 1;
+export const FED_SILVER_ITEM_LOADOUTS = 2;
+export const FED_GOLD_ITEM_LOADOUTS = 3;
 export const FED_EVENT_ITEMS_NORMAL = 15;
 export const FED_EVENT_ITEMS_SILVER = 20;
 export const FED_EVENT_ITEMS_GOLD = 25;

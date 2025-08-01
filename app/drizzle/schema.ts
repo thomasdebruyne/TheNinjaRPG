@@ -1187,6 +1187,23 @@ export const jutsuLoadout = mysqlTable(
   },
 );
 
+export const itemLoadout = mysqlTable(
+  "ItemLoadout",
+  {
+    id: varchar("id", { length: 191 }).primaryKey().notNull(),
+    userId: varchar("userId", { length: 191 }).notNull(),
+    itemData: json("itemData").$type<Array<{ itemId: string; slot: ItemSlot }>>().notNull(),
+    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      userIdIdx: index("ItemLoadout_userId_idx").on(table.userId),
+    };
+  },
+);
+
 export const rankedLoadout = mysqlTable("RankedLoadout", {
   id: varchar("id", { length: 191 }).primaryKey().notNull(),
   userId: varchar("userId", { length: 191 }).notNull(),
@@ -1568,6 +1585,7 @@ export const userData = mysqlTable(
     anbuId: varchar("anbuId", { length: 191 }),
     clanId: varchar("clanId", { length: 191 }),
     jutsuLoadout: varchar("jutsuLoadout", { length: 191 }),
+    itemLoadout: varchar("itemLoadout", { length: 191 }),
     rankedLoadout: varchar("rankedLoadout", { length: 191 }),
     nRecruited: int("nRecruited").default(0).notNull(),
     lastIp: varchar("lastIp", { length: 191 }),
