@@ -180,6 +180,7 @@ export const dataRouter = createTRPCRouter({
         battleTypes: z.array(z.enum(BattleTypes)).optional(),
         minCount: z.number().min(1).default(1),
         jutsuEffects: z.array(z.string()).optional(),
+        bloodlineIds: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -203,6 +204,13 @@ export const dataRouter = createTRPCRouter({
                 sql`JSON_SEARCH(${jutsu.effects}, 'one', ${effect}, NULL, '$[*].type') IS NOT NULL`,
             ),
           ),
+        );
+      }
+
+      // Build bloodline filter if needed
+      if (input.bloodlineIds && input.bloodlineIds.length > 0) {
+        whereConditions.push(
+          inArray(dataBattleAction.relatedBloodlineId, input.bloodlineIds),
         );
       }
 
@@ -254,6 +262,7 @@ export const dataRouter = createTRPCRouter({
         battleTypes: z.array(z.enum(BattleTypes)).optional(),
         minCount: z.number().min(1).default(1),
         itemTypes: z.array(z.string()).optional(),
+        bloodlineIds: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -271,6 +280,13 @@ export const dataRouter = createTRPCRouter({
       // Build item type filter if needed
       if (input.itemTypes && input.itemTypes.length > 0) {
         whereConditions.push(inArray(item.itemType, input.itemTypes as ItemType[]));
+      }
+
+      // Build bloodline filter if needed
+      if (input.bloodlineIds && input.bloodlineIds.length > 0) {
+        whereConditions.push(
+          inArray(dataBattleAction.relatedBloodlineId, input.bloodlineIds),
+        );
       }
 
       // Run equippedCounts and usage queries in parallel for efficiency

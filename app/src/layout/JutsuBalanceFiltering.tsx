@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { api } from "@/app/_trpc/client";
 
 import { BattleTypes } from "@/drizzle/constants";
 import { effectFilters } from "@/libs/train";
@@ -24,14 +25,17 @@ export const useFiltering = () => {
   ]);
   const [minCount, setMinCount] = useState<number>(1);
   const [jutsuEffects, setJutsuEffects] = useState<EffectType[]>([]);
+  const [bloodlineIds, setBloodlineIds] = useState<string[]>([]);
 
   return {
     battleTypes,
     minCount,
     jutsuEffects,
+    bloodlineIds,
     setBattleTypes,
     setMinCount,
     setJutsuEffects,
+    setBloodlineIds,
   };
 };
 
@@ -49,16 +53,22 @@ const JutsuBalanceFiltering: React.FC<JutsuBalanceFilteringProps> = (props) => {
     battleTypes,
     minCount,
     jutsuEffects,
+    bloodlineIds,
     setBattleTypes,
     setMinCount,
     setJutsuEffects,
+    setBloodlineIds,
   } = props.state;
+
+  // Fetch bloodline names for filtering
+  const { data: bloodlines } = api.bloodline.getAllNames.useQuery(undefined);
 
   // Count filters
   const numBattleTypes = battleTypes.length;
   const numJutsuEffects = jutsuEffects.length;
+  const numBloodlineIds = bloodlineIds.length;
   const numMinCount = minCount > 1 ? 1 : 0;
-  const numFilters = numBattleTypes + numJutsuEffects + numMinCount;
+  const numFilters = numBattleTypes + numJutsuEffects + numBloodlineIds + numMinCount;
 
   return (
     <Popover>
@@ -105,6 +115,21 @@ const JutsuBalanceFiltering: React.FC<JutsuBalanceFilteringProps> = (props) => {
               onChange={(e) => setJutsuEffects(e as EffectType[])}
             />
           </div>
+
+          {/* Bloodlines */}
+          <div>
+            <Label>Bloodlines</Label>
+            <MultiSelect
+              selected={bloodlineIds}
+              options={
+                bloodlines?.map((bloodline) => ({
+                  value: bloodline.id,
+                  label: bloodline.name,
+                })) || []
+              }
+              onChange={(e) => setBloodlineIds(e as string[])}
+            />
+          </div>
         </div>
       </PopoverContent>
     </Popover>
@@ -121,5 +146,6 @@ export const getFilter = (state: JutsuBalanceFilteringState) => {
     battleTypes: state.battleTypes.length > 0 ? state.battleTypes : undefined,
     minCount: state.minCount,
     jutsuEffects: state.jutsuEffects.length > 0 ? state.jutsuEffects : undefined,
+    bloodlineIds: state.bloodlineIds.length > 0 ? state.bloodlineIds : undefined,
   };
 };
