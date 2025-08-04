@@ -14,7 +14,12 @@ import type { BattleType, ItemType } from "@/drizzle/constants";
  * STATE HOOK
  */
 export const useFiltering = () => {
-  const [battleTypes, setBattleTypes] = useState<BattleType[]>([]);
+  const [battleTypes, setBattleTypes] = useState<BattleType[]>([
+    "RANKED_PVP",
+    "COMBAT",
+    "RANKED_SPARRING",
+    "SPARRING",
+  ]);
   const [minCount, setMinCount] = useState<number>(1);
   const [itemTypes, setItemTypes] = useState<ItemType[]>([]);
 
@@ -47,10 +52,16 @@ const ItemBalanceFiltering: React.FC<ItemBalanceFilteringProps> = (props) => {
     setItemTypes,
   } = props.state;
 
+  // Count filters
+  const numBattleTypes = battleTypes.length;
+  const numItemTypes = itemTypes.length;
+  const numMinCount = minCount > 1 ? 1 : 0;
+  const numFilters = numBattleTypes + numItemTypes + numMinCount;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button>
+        <Button count={numFilters}>
           <Filter className="sm:mr-2 h-6 w-6 hover:text-orange-500" />
           <p className="hidden sm:block">Filter</p>
         </Button>
