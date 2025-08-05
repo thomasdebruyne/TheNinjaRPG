@@ -1236,6 +1236,7 @@ export const rankedSeason = mysqlTable("RankedSeason", {
   endDate: datetime("endDate", { mode: "date", fsp: 3 }).notNull(),
   rewards: json("rewards").$type<RankedSeasonDivisionReward[]>().notNull(),
   ended: boolean("ended").default(false).notNull(),
+  paused: boolean("paused").default(false).notNull(),
   createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
     .default(sql`(CURRENT_TIMESTAMP(3))`)
     .notNull(),

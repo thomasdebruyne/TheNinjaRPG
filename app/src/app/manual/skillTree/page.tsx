@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
@@ -10,7 +11,7 @@ import SkillTreeFiltering, {
   getFilter,
 } from "@/layout/SkillTreeFiltering";
 import { Button } from "@/components/ui/button";
-import { FilePlus, Workflow, List } from "lucide-react";
+import { FilePlus, Workflow, List, ChartCandlestick } from "lucide-react";
 import { useInfinitePagination } from "@/libs/pagination";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";
@@ -79,6 +80,13 @@ export default function ManualSkillTree() {
         title="Skill Tree"
         subtitle="Master your ninja abilities"
         back_href="/manual"
+        topRightContent={
+          <Link href="/manual/skillTree/balance">
+            <Button id="skill-tree-balance" hoverText="Balance Statistics">
+              <ChartCandlestick className="h-6 w-6" />
+            </Button>
+          </Link>
+        }
       >
         <p>
           The Skill Tree represents specialized techniques and abilities that
@@ -140,18 +148,20 @@ export default function ManualSkillTree() {
         {totalLoading && <Loader explanation="Loading data" />}
         {!showGraph &&
           allSkills.map((skill, i) => (
-            <ItemWithEffects
-              key={skill.id}
-              item={skill}
-              showEdit={
-                userData && canChangeContent(userData.role) ? "skillTree" : undefined
-              }
-              onDelete={
-                userData && canChangeContent(userData.role)
-                  ? (id: string) => deleteSkill({ id })
-                  : undefined
-              }
-            />
+            <div key={i} ref={i === allSkills.length - 1 ? setLastElement : null}>
+              <ItemWithEffects
+                key={skill.id}
+                item={skill}
+                showEdit={
+                  userData && canChangeContent(userData.role) ? "skillTree" : undefined
+                }
+                onDelete={
+                  userData && canChangeContent(userData.role)
+                    ? (id: string) => deleteSkill({ id })
+                    : undefined
+                }
+              />
+            </div>
           ))}
       </ContentBox>
     </>

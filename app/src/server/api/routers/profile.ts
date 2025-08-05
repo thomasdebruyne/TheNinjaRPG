@@ -78,6 +78,7 @@ import {
   canEditJutsus,
   canEditItems,
   canEditStaffAccountFlag,
+  canEditRankedLp,
 } from "@/utils/permissions";
 import { UserRanks, BasicElementName } from "@/drizzle/constants";
 import { getRandomElement } from "@/utils/array";
@@ -762,6 +763,12 @@ export const profileRouter = createTRPCRouter({
         return errorResponse("Not allowed to toggle staff account flag");
       }
 
+      const rankedLpChanged =
+        input.data.rankedLp !== undefined && input.data.rankedLp !== target.rankedLp;
+      if (rankedLpChanged && !canEditRankedLp(user.role)) {
+        return errorResponse("Not allowed to change ranked LP");
+      }
+
       // Check permissions for jutsus/items before performing updates
       const jutsuChanged =
         newJutsuIds.slice().sort().join(",") !== oldJutsuIds.slice().sort().join(",");
@@ -818,13 +825,7 @@ export const profileRouter = createTRPCRouter({
       if (!aiCheck.allowUpdate) {
         return errorResponse(aiCheck.comment);
       }
-      console.log("usernameChanged", usernameChanged);
-      console.log("customTitleChanged", customTitleChanged);
-      console.log("bloodlineChanged", bloodlineChanged);
-      console.log("villageChanged", villageChanged);
-      console.log("rankChanged", rankChanged);
-      console.log("staffAccountChanged", staffAccountChanged);
-      console.log("roleChanged", roleChanged);
+
       // Update database
       await Promise.all([
         ctx.drizzle
@@ -837,6 +838,7 @@ export const profileRouter = createTRPCRouter({
             ...(villageChanged ? { villageId: input.data.villageId } : {}),
             ...(rankChanged ? { rank: input.data.rank } : {}),
             ...(staffAccountChanged ? { staffAccount: input.data.staffAccount } : {}),
+            ...(rankedLpChanged ? { rankedLp: input.data.rankedLp } : {}),
             ...(roleChanged ? { role: input.data.role } : {}),
             ...(villageChanged
               ? {
@@ -1221,6 +1223,7 @@ export const profileRouter = createTRPCRouter({
             movedTooFastCount: true,
             pveFights: true,
             rank: true,
+            rankedLp: true,
             reputationPoints: true,
             role: true,
             senseiId: true,

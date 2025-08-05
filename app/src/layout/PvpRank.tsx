@@ -116,6 +116,23 @@ export const RankedArenaMain: React.FC = () => {
   if (!currentSeason) return <Loader explanation="Searching for Season to Start" />;
   if (userData.isBanned) return <BanInfo />;
 
+  // Check if season is paused
+  if (currentSeason.paused) {
+    return (
+      <div className="flex flex-col items-center gap-4 p-3">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-destructive mb-2">
+            Ranked Season Paused
+          </p>
+          <p className="text-sm text-muted-foreground">
+            The current ranked season &quot;{currentSeason.name}&quot; is currently
+            paused. Ranked battles are temporarily unavailable.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Process loadout
   const equippedJutsu = rankedLoadout?.loadout.jutsuIds.length ?? 0;
   const equippedWeapons = rankedLoadout?.loadout.weaponIds.length ?? 0;

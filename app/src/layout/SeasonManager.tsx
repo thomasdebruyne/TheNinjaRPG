@@ -94,6 +94,14 @@ export function SeasonManager() {
     const start = new Date(season.startDate);
     const end = new Date(season.endDate);
 
+    if (season.paused) {
+      return (
+        <Badge className="shrink-0" variant="destructive">
+          Paused
+        </Badge>
+      );
+    }
+
     if (start <= now && now <= end) {
       return (
         <Badge className="shrink-0" variant="default">
@@ -173,6 +181,7 @@ export function SeasonManager() {
                         startDate: new Date(selectedSeason.startDate),
                         endDate: new Date(selectedSeason.endDate),
                         rewards: selectedSeason.rewards,
+                        paused: selectedSeason.paused,
                       }}
                       onSuccess={() => setIsEditDialogOpen(false)}
                     />

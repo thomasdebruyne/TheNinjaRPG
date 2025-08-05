@@ -1,0 +1,1 @@
+ALTER TABLE `RankedSeason` ADD `paused` boolean DEFAULT false NOT NULL;

@@ -1870,6 +1870,13 @@
       "when": 1754378532722,
       "tag": "0266_shocking_wild_child",
       "breakpoints": false
+    },
+    {
+      "idx": 267,
+      "version": "5",
+      "when": 1754395424796,
+      "tag": "0267_purple_jackpot",
+      "breakpoints": false
     }
   ]
 }

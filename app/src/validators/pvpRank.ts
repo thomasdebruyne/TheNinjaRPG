@@ -17,6 +17,7 @@ export const rankedSeasonSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   rewards: z.array(divisionRewardSchema),
+  paused: z.boolean().default(false),
 });
 export type RankedSeason = z.infer<typeof rankedSeasonSchema>;
 

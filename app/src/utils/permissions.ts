@@ -481,6 +481,18 @@ export const canEditStaffAccountFlag = (role: UserRole) => {
   return role === "CODING-ADMIN" || role === "CONTENT-ADMIN" || role === "EVENT-ADMIN";
 };
 
+export const canEditRankedLp = (role: UserRole) => {
+  return [
+    "CONTENT-ADMIN",
+    "CODING-ADMIN",
+    "CONTENT",
+    "EVENT",
+    "EVENT-ADMIN",
+    "MODERATOR-ADMIN",
+    "CODER",
+  ].includes(role);
+};
+
 export const canSeeHiddenBountyInfo = (role: UserRole) => {
   return role !== "USER";
 };

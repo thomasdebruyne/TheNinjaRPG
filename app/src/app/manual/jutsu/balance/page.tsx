@@ -285,8 +285,8 @@ const JutsuUsageBalance: React.FC<JutsuUsageBalanceProps> = (props) => {
   const columns: ColumnDefinitionType<JutsuBalanceRow, keyof JutsuBalanceRow>[] = [
     { key: "name", header: "Jutsu", type: "string" },
     { key: "links", header: "Links", type: "jsx" },
-    { key: "totalUsage", header: "Uses", type: "number" },
-    { key: "equippedCount", header: "Equipped", type: "number" },
+    { key: "totalUsage", header: "#uses", type: "number" },
+    { key: "equippedCount", header: "#equipped", type: "number" },
     { key: "wins", header: "Wins", type: "number" },
     { key: "flees", header: "Flees", type: "number" },
     { key: "losses", header: "Losses", type: "number" },

@@ -19,12 +19,13 @@ export interface EditUserPermissions {
   canEditItems?: boolean;
   canEditStaffAccountFlag?: boolean;
   canEditUserRoles?: UserRole[];
+  canEditRankedLp?: boolean;
 }
 
 export const useUserEditForm = (
   userId: string,
   user: UpdateUserSchema,
-  permissions?: EditUserPermissions,
+  permissions: EditUserPermissions,
 ) => {
   // Form handling
   const form = useForm<UpdateUserSchema>({
@@ -35,18 +36,19 @@ export const useUserEditForm = (
     resolver: zodResolver(updateUserSchema),
   });
 
-  // Permissions with defaults set to true (backwards compatibility)
+  // Permissions with defaults set to false
   const {
-    canEditUsername = true,
-    canEditCustomTitle = true,
-    canEditBloodline = true,
-    canEditVillage = true,
-    canEditRank = true,
-    canEditJutsus = true,
-    canEditItems = true,
-    canEditStaffAccountFlag = true,
+    canEditUsername = false,
+    canEditCustomTitle = false,
+    canEditBloodline = false,
+    canEditVillage = false,
+    canEditRank = false,
+    canEditJutsus = false,
+    canEditItems = false,
+    canEditStaffAccountFlag = false,
     canEditUserRoles = [],
-  } = permissions || {};
+    canEditRankedLp = false,
+  } = permissions;
 
   // Conditional queries based on permissions
   const { data: jutsus, isPending: l1 } = api.jutsu.getAllNames.useQuery(undefined, {
@@ -126,6 +128,9 @@ export const useUserEditForm = (
     });
   if (canEditStaffAccountFlag)
     formData.push({ id: "staffAccount", type: "boolean", label: "Staff Benefits" });
+
+  if (canEditRankedLp)
+    formData.push({ id: "rankedLp", type: "number", label: "Ranked LP" });
 
   if (canEditJutsus)
     formData.push({

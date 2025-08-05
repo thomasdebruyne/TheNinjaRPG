@@ -20,6 +20,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import RichInput from "@/layout/RichInput";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Medal } from "lucide-react";
@@ -105,6 +111,7 @@ import {
   canDeleteReferral,
   canChangeUserRolesTo,
   canAwardExperience,
+  canEditRankedLp,
 } from "@/utils/permissions";
 
 interface PublicUserComponentProps {
@@ -352,21 +359,42 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
           <div className="flex flex-row gap-1">
             {userData && canCloneUser(userData.role) && (
               <>
-                <CopyCheck
-                  className="h-6 w-6 cursor-pointer hover:text-orange-500"
-                  onClick={() => cloneUser.mutate({ userId: profile.userId })}
-                />
-                <UpdateUserIdButton
-                  userId={profile.userId}
-                  username={profile.username}
-                  updateUserIdMutation={updateUserId}
-                />
+                <TooltipProvider delayDuration={50}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CopyCheck
+                        className="h-6 w-6 cursor-pointer hover:text-orange-500"
+                        onClick={() => cloneUser.mutate({ userId: profile.userId })}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Clone User</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider delayDuration={50}>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <UpdateUserIdButton
+                        userId={profile.userId}
+                        username={profile.username}
+                        updateUserIdMutation={updateUserId}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Update User ID</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </>
             )}
             {userData && !userData.isBanned && !userData.isSilenced && (
               <NewConversationPrompt
                 newButton={
-                  <MessageCircle className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                  <TooltipProvider delayDuration={50}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <MessageCircle className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>Message User</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 }
                 preSelectedUser={{
                   userId: profile.userId,
@@ -380,10 +408,18 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
             )}
             {userData && (
               <>
-                <Settings
-                  className="h-6 w-6 cursor-pointer hover:text-orange-500"
-                  onClick={() => setShowEditModal(true)}
-                />
+                <TooltipProvider delayDuration={50}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Settings
+                        className="h-6 w-6 cursor-pointer hover:text-orange-500"
+                        onClick={() => setShowEditModal(true)}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Edit User</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
                 <Modal2
                   title="Update User Data"
                   isOpen={showEditModal}
@@ -409,7 +445,14 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                 title="Award Reputation Points"
                 proceed_label="Award Points"
                 button={
-                  <Medal className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                  <TooltipProvider delayDuration={50}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Medal className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>Award Reputation</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 }
                 isValid={form.formState.isValid}
                 onAccept={handleAwardSubmit}
@@ -482,7 +525,14 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                 title="Award Experience Points"
                 proceed_label="Award Experience"
                 button={
-                  <Award className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                  <TooltipProvider delayDuration={50}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Award className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>Award Experience</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 }
                 isValid={experienceForm.formState.isValid}
                 onAccept={experienceForm.handleSubmit((data) => {
@@ -540,7 +590,14 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                 }}
                 system="user_profile"
                 button={
-                  <Flag className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                  <TooltipProvider delayDuration={50}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Flag className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>Report User</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 }
               />
             )}
@@ -549,7 +606,14 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                 <Confirm2
                   title="Confirm force change user state to awake"
                   button={
-                    <PersonStanding className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                    <TooltipProvider delayDuration={50}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <PersonStanding className="h-6 w-6 cursor-pointer hover:text-orange-500" />
+                        </TooltipTrigger>
+                        <TooltipContent>Force Awake</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   }
                   onAccept={(e) => {
                     e.preventDefault();
@@ -560,7 +624,14 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                   for fixing users stuck in a particular state. I.E Battle. The action
                   will be logged. Are you sure?
                 </Confirm2>
-                <DeleteUserButton userData={profile} />
+                <TooltipProvider delayDuration={50}>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <DeleteUserButton userData={profile} />
+                    </TooltipTrigger>
+                    <TooltipContent>Delete User</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </>
             ) : (
               ""
@@ -943,6 +1014,7 @@ const EditUserComponent: React.FC<EditUserComponentProps> = ({ userId, profile }
     canEditStaffAccountFlag: canEditStaffAccountFlag(userRole),
     canEditQuests: canEditQuests(userRole),
     canEditUserRoles: canChangeUserRolesTo(userRole),
+    canEditRankedLp: canEditRankedLp(userRole),
   } as const;
 
   const canEditSomething = Object.values(perms).some(Boolean);
@@ -990,6 +1062,7 @@ const EditUserComponent: React.FC<EditUserComponentProps> = ({ userId, profile }
       canEditItems: perms.canEditItems,
       canEditStaffAccountFlag: perms.canEditStaffAccountFlag,
       canEditUserRoles: perms.canEditUserRoles,
+      canEditRankedLp: perms.canEditRankedLp,
     },
   );
 

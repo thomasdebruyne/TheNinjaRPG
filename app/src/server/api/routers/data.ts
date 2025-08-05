@@ -1,8 +1,22 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { and, eq, gte, lte, sql, asc, inArray, or } from "drizzle-orm";
-import { userJutsu, userItem, userData, bloodline } from "@/drizzle/schema";
-import { dataBattleAction, jutsu, item, actionLog } from "@/drizzle/schema";
+import {
+  userJutsu,
+  userItem,
+  userData,
+  bloodline,
+  skillTree,
+  userSkill,
+} from "@/drizzle/schema";
+import {
+  dataBattleAction,
+  jutsu,
+  item,
+  actionLog,
+  logBattleLengths,
+  logRankedPicks,
+} from "@/drizzle/schema";
 import { BattleDataEntryType } from "@/drizzle/constants";
 import {
   createTRPCRouter,
@@ -20,17 +34,24 @@ import { BattleTypes } from "@/drizzle/constants";
 import { jutsuFilteringSchema } from "@/validators/jutsu";
 import { itemFilteringSchema } from "@/validators/item";
 import { bloodlineFilteringSchema } from "@/validators/bloodline";
+import { skillTreeFilteringSchema } from "@/validators/skillTree";
 import { fetchPublicUsers } from "@/routers/profile";
 import { getPublicUsersSchema } from "@/validators/user";
+import { skillTreeDatabaseFilter } from "./skillTree";
 import type {
   ItemType,
   LetterRank,
   StatType,
   UserRank,
   StarterVillage,
+  RankedRank,
 } from "@/drizzle/constants";
 import { canChangeContent } from "@/utils/permissions";
 import type { QueryCondition } from "@/utils/typeutils";
+import { RANKED_RANKS } from "@/drizzle/constants";
+import { logQueueLengths } from "@/drizzle/schema";
+import { getRankedRank } from "@/libs/ranked_pvp";
+import { fetchSanninRankedPlayers } from "@/server/api/routers/pvprank";
 
 export const dataRouter = createTRPCRouter({
   deleteSingleDataBattleAction: protectedProcedure
@@ -107,7 +128,7 @@ export const dataRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      // Build where conditions
+      // Build where conditions for battle data
       const whereConditions: QueryCondition[] = [
         eq(dataBattleAction.type, "bloodline"),
       ];
@@ -117,19 +138,17 @@ export const dataRouter = createTRPCRouter({
         whereConditions.push(inArray(dataBattleAction.battleType, input.battleTypes));
       }
 
-      // Perform the filter by bloodline ranks and stat classifications directly in the main query
-      const havingClause = gte(sql`SUM(${dataBattleAction.count})`, input.minCount);
-
       // Build bloodline rank filter if needed
+      const bloodlineWhereConditions: QueryCondition[] = [];
       if (input.bloodlineRanks && input.bloodlineRanks.length > 0) {
-        whereConditions.push(
+        bloodlineWhereConditions.push(
           inArray(bloodline.rank, input.bloodlineRanks as LetterRank[]),
         );
       }
 
       // Build stat classification filter if needed
       if (input.statClassifications && input.statClassifications.length > 0) {
-        whereConditions.push(
+        bloodlineWhereConditions.push(
           inArray(
             bloodline.statClassification,
             input.statClassifications as StatType[],
@@ -137,18 +156,34 @@ export const dataRouter = createTRPCRouter({
         );
       }
 
-      // Run equippedCounts and usage queries in parallel for efficiency
-      const [equippedCounts, usage] = await Promise.all([
+      // Run all queries in parallel for efficiency
+      const [allBloodlines, userCounts, battleStats] = await Promise.all([
+        // Get all bloodlines (filtered by rank/classification if specified)
+        ctx.drizzle
+          .select({
+            id: bloodline.id,
+            name: bloodline.name,
+          })
+          .from(bloodline)
+          .where(
+            bloodlineWhereConditions.length > 0
+              ? and(...bloodlineWhereConditions)
+              : undefined,
+          ),
+
+        // Get user counts per bloodline
         ctx.drizzle
           .select({
             bloodlineId: userData.bloodlineId,
-            equippedCount:
+            userCount:
               sql<number>`COUNT(CASE WHEN ${userData.bloodlineId} IS NOT NULL THEN 1 END)`.mapWith(
                 Number,
               ),
           })
           .from(userData)
           .groupBy(userData.bloodlineId),
+
+        // Get battle statistics
         ctx.drizzle
           .select({
             name: bloodline.name,
@@ -165,19 +200,61 @@ export const dataRouter = createTRPCRouter({
             dataBattleAction.battleType,
           )
           .where(and(...whereConditions))
-          .having(havingClause),
+          .having(gte(sql`SUM(${dataBattleAction.count})`, input.minCount)),
       ]);
 
-      // Create a map for quick lookup
-      const equippedCountMap = new Map(
-        equippedCounts.map((item) => [item.bloodlineId, item.equippedCount]),
+      // Create maps for quick lookup
+      const userCountMap = new Map(
+        userCounts.map((item) => [item.bloodlineId, item.userCount]),
       );
 
-      // Add equipped count to each result
-      return usage.map((item) => ({
-        ...item,
-        equippedCount: equippedCountMap.get(item.bloodlineId) || 0,
-      }));
+      // Group battle stats by bloodline
+      const battleStatsMap = new Map<
+        string,
+        Array<{ battleWon: number; count: number }>
+      >();
+      battleStats.forEach((stat) => {
+        if (!battleStatsMap.has(stat.bloodlineId)) {
+          battleStatsMap.set(stat.bloodlineId, []);
+        }
+        battleStatsMap.get(stat.bloodlineId)!.push({
+          battleWon: stat.battleWon,
+          count: stat.count,
+        });
+      });
+
+      // Create result for each bloodline
+      return allBloodlines.map((bloodline) => {
+        const userCount = userCountMap.get(bloodline.id) || 0;
+        const battleData = battleStatsMap.get(bloodline.id) || [];
+
+        // Calculate battle statistics
+        const wins = battleData
+          .filter((entry) => entry.battleWon === 1)
+          .reduce((acc, curr) => acc + curr.count, 0);
+
+        const flees = battleData
+          .filter((entry) => entry.battleWon === 2)
+          .reduce((acc, curr) => acc + curr.count, 0);
+
+        const losses = battleData
+          .filter((entry) => entry.battleWon === 0)
+          .reduce((acc, curr) => acc + curr.count, 0);
+
+        const totalUsage = wins + flees + losses;
+        const winRate = totalUsage > 0 ? (wins / totalUsage) * 100 : 0;
+
+        return {
+          name: bloodline.name,
+          bloodlineId: bloodline.id,
+          userCount,
+          totalUsage,
+          wins,
+          flees,
+          losses,
+          winRate: `${winRate.toFixed(1)}%`,
+        };
+      });
     }),
   getJutsuBalanceStatistics: publicProcedure
     .input(
@@ -403,6 +480,99 @@ export const dataRouter = createTRPCRouter({
 
       return results;
     }),
+  getSkillTreeBalanceStatistics: publicProcedure
+    .input(
+      z.object({
+        minCount: z.number().min(1).default(1),
+        skillEffects: z.array(z.string()).optional(),
+        tiers: z.array(z.number()).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Build where conditions for skill tree data
+      const whereConditions: QueryCondition[] = [];
+
+      // Build skill effect filter if needed
+      if (input.skillEffects && input.skillEffects.length > 0) {
+        whereConditions.push(
+          or(
+            ...input.skillEffects.map(
+              (effect) =>
+                sql`JSON_SEARCH(${skillTree.effects}, 'one', ${effect}, NULL, '$[*].type') IS NOT NULL`,
+            ),
+          ),
+        );
+      }
+
+      // Build tier filter if needed
+      if (input.tiers && input.tiers.length > 0) {
+        whereConditions.push(inArray(skillTree.tier, input.tiers));
+      }
+
+      // Run userCounts and skill queries in parallel for efficiency
+      const [userCounts, skills] = await Promise.all([
+        // Get user counts per skill
+        ctx.drizzle
+          .select({
+            skillId: userSkill.skillId,
+            userCount: sql<number>`COUNT(${userSkill.userId})`.mapWith(Number),
+          })
+          .from(userSkill)
+          .groupBy(userSkill.skillId),
+
+        // Get all skills (filtered by effects/tiers if specified)
+        ctx.drizzle
+          .select({
+            id: skillTree.id,
+            name: skillTree.name,
+            tier: skillTree.tier,
+            costSkillPoints: skillTree.costSkillPoints,
+            effects: skillTree.effects,
+          })
+          .from(skillTree)
+          .where(whereConditions.length > 0 ? and(...whereConditions) : undefined),
+      ]);
+
+      // Create a map for quick lookup
+      const userCountMap = new Map(
+        userCounts.map((item) => [item.skillId, item.userCount]),
+      );
+
+      // Create result for each skill
+      return skills
+        .map((skill) => {
+          const userCount = userCountMap.get(skill.id) || 0;
+
+          return {
+            name: skill.name,
+            skillId: skill.id,
+            tier: skill.tier,
+            costSkillPoints: skill.costSkillPoints,
+            userCount,
+            effects: skill.effects,
+          };
+        })
+        .filter((skill) => skill.userCount >= input.minCount)
+        .sort((a, b) => b.userCount - a.userCount);
+    }),
+  getSkillTreeEffectsBalanceStatistics: publicProcedure
+    .input(skillTreeFilteringSchema)
+    .query(async ({ ctx, input }) => {
+      // Build where conditions
+      const baseFilters = skillTreeDatabaseFilter(input);
+      // Fetch results
+      const results = await ctx.drizzle.query.skillTree.findMany({
+        where: and(...baseFilters),
+        columns: {
+          id: true,
+          name: true,
+          tier: true,
+          costSkillPoints: true,
+          effects: true,
+        },
+      });
+      return results;
+    }),
   getItemBalanceStatistics: publicProcedure
     .input(
       z.object({
@@ -540,6 +710,306 @@ export const dataRouter = createTRPCRouter({
 
       // Add battle count to each result
       return usage;
+    }),
+  getBattleLengthStatistics: publicProcedure
+    .input(
+      z.object({
+        battleTypes: z.array(z.enum(BattleTypes)).optional(),
+        minCount: z.number().min(1).default(1),
+        minWinnerLevel: z.number().min(1).max(100).optional(),
+        maxWinnerLevel: z.number().min(1).max(100).optional(),
+        minLoserLevel: z.number().min(1).max(100).optional(),
+        maxLoserLevel: z.number().min(1).max(100).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Build where conditions
+      const whereConditions: QueryCondition[] = [];
+
+      // Add battle type filter
+      if (input.battleTypes && input.battleTypes.length > 0) {
+        whereConditions.push(inArray(logBattleLengths.battleType, input.battleTypes));
+      }
+
+      // Add winner level filters
+      if (input.minWinnerLevel) {
+        whereConditions.push(gte(logBattleLengths.winnerLevel, input.minWinnerLevel));
+      }
+      if (input.maxWinnerLevel) {
+        whereConditions.push(lte(logBattleLengths.winnerLevel, input.maxWinnerLevel));
+      }
+
+      // Add loser level filters
+      if (input.minLoserLevel) {
+        whereConditions.push(gte(logBattleLengths.loserLevel, input.minLoserLevel));
+      }
+      if (input.maxLoserLevel) {
+        whereConditions.push(lte(logBattleLengths.loserLevel, input.maxLoserLevel));
+      }
+
+      // Perform the filter by minimum count
+      const havingClause = gte(sql`SUM(${logBattleLengths.count})`, input.minCount);
+
+      // Fetch battle length data
+      const battleLengths = await ctx.drizzle
+        .select({
+          battleType: logBattleLengths.battleType,
+          rounds: logBattleLengths.rounds,
+          count: sql<number>`SUM(${logBattleLengths.count})`.mapWith(Number),
+        })
+        .from(logBattleLengths)
+        .groupBy(logBattleLengths.battleType, logBattleLengths.rounds)
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+        .having(havingClause)
+        .orderBy(asc(logBattleLengths.rounds));
+
+      return battleLengths;
+    }),
+  getQueueLengthStatistics: publicProcedure
+    .input(
+      z.object({
+        rankedRanks: z.array(z.enum(RANKED_RANKS)).optional(),
+        minCount: z.number().min(1).default(1),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Build where conditions
+      const whereConditions: QueryCondition[] = [];
+
+      // Add ranked rank filter
+      if (input.rankedRanks && input.rankedRanks.length > 0) {
+        whereConditions.push(inArray(logQueueLengths.rankedRank, input.rankedRanks));
+      }
+
+      // Perform the filter by minimum count
+      const havingClause = gte(sql`SUM(${logQueueLengths.count})`, input.minCount);
+
+      // Fetch queue length data
+      const queueLengths = await ctx.drizzle
+        .select({
+          rankedRank: logQueueLengths.rankedRank,
+          ceiledMinutes: logQueueLengths.ceiledMinutes,
+          count: sql<number>`SUM(${logQueueLengths.count})`.mapWith(Number),
+        })
+        .from(logQueueLengths)
+        .groupBy(logQueueLengths.rankedRank, logQueueLengths.ceiledMinutes)
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+        .having(havingClause)
+        .orderBy(asc(logQueueLengths.ceiledMinutes));
+
+      return queueLengths;
+    }),
+  clearAllBattleLengths: protectedProcedure
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canChangeContent(user.role)) {
+        return errorResponse("You are not allowed to clear battle length data");
+      }
+      // Delete
+      await Promise.all([
+        ctx.drizzle.delete(logBattleLengths),
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "battleLengths",
+          changes: ["Cleared all battle length data"],
+          relatedId: null,
+          relatedMsg: "Clear: All battle length data",
+          relatedImage: null,
+        }),
+      ]);
+      return { success: true, message: "All battle length data cleared" };
+    }),
+  clearAllQueueLengths: protectedProcedure
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canChangeContent(user.role)) {
+        return errorResponse("You are not allowed to clear queue length data");
+      }
+      // Delete
+      await Promise.all([
+        ctx.drizzle.delete(logQueueLengths),
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "queueLengths",
+          changes: ["Cleared all queue length data"],
+          relatedId: null,
+          relatedMsg: "Clear: All queue length data",
+          relatedImage: null,
+        }),
+      ]);
+      return { success: true, message: "All queue length data cleared" };
+    }),
+  getRankedLoadoutStatistics: publicProcedure
+    .input(
+      z.object({
+        minCount: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(50),
+        types: z.array(z.string()).optional(),
+        name: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Perform the filter by minimum count
+      const havingClause = gte(sql`SUM(${logRankedPicks.count})`, input.minCount);
+
+      // Build where conditions for type filtering
+      const typeConditions =
+        input.types && input.types.length > 0
+          ? inArray(logRankedPicks.type, input.types as ["jutsu", "item", "consumable"])
+          : undefined;
+
+      // Build name filtering conditions
+      const nameConditions = input.name && input.name.length > 0 ? true : false;
+
+      // Fetch ranked loadout data with content names
+      const [jutsuPicks, itemPicks, consumablePicks] = await Promise.all([
+        ctx.drizzle
+          .select({
+            type: logRankedPicks.type,
+            contentId: logRankedPicks.contentId,
+            battleType: logRankedPicks.battleType,
+            count: sql<number>`SUM(${logRankedPicks.count})`.mapWith(Number),
+            name: jutsu.name,
+          })
+          .from(logRankedPicks)
+          .innerJoin(jutsu, eq(logRankedPicks.contentId, jutsu.id))
+          .where(
+            and(
+              eq(logRankedPicks.type, "jutsu"),
+              typeConditions,
+              nameConditions
+                ? sql`LOWER(${jutsu.name}) LIKE LOWER(${`%${input.name}%`})`
+                : undefined,
+            ),
+          )
+          .groupBy(logRankedPicks.contentId, logRankedPicks.battleType)
+          .having(havingClause)
+          .orderBy(sql`SUM(${logRankedPicks.count}) DESC`)
+          .limit(input.limit),
+        ctx.drizzle
+          .select({
+            type: logRankedPicks.type,
+            contentId: logRankedPicks.contentId,
+            battleType: logRankedPicks.battleType,
+            count: sql<number>`SUM(${logRankedPicks.count})`.mapWith(Number),
+            name: item.name,
+          })
+          .from(logRankedPicks)
+          .innerJoin(item, eq(logRankedPicks.contentId, item.id))
+          .where(
+            and(
+              eq(logRankedPicks.type, "item"),
+              typeConditions,
+              nameConditions
+                ? sql`LOWER(${item.name}) LIKE LOWER(${`%${input.name}%`})`
+                : undefined,
+            ),
+          )
+          .groupBy(logRankedPicks.contentId, logRankedPicks.battleType)
+          .having(havingClause)
+          .orderBy(sql`SUM(${logRankedPicks.count}) DESC`)
+          .limit(input.limit),
+        ctx.drizzle
+          .select({
+            type: logRankedPicks.type,
+            contentId: logRankedPicks.contentId,
+            battleType: logRankedPicks.battleType,
+            count: sql<number>`SUM(${logRankedPicks.count})`.mapWith(Number),
+            name: item.name,
+          })
+          .from(logRankedPicks)
+          .innerJoin(item, eq(logRankedPicks.contentId, item.id))
+          .where(
+            and(
+              eq(logRankedPicks.type, "consumable"),
+              typeConditions,
+              nameConditions
+                ? sql`LOWER(${item.name}) LIKE LOWER(${`%${input.name}%`})`
+                : undefined,
+            ),
+          )
+          .groupBy(logRankedPicks.contentId, logRankedPicks.battleType)
+          .having(havingClause)
+          .orderBy(sql`SUM(${logRankedPicks.count}) DESC`)
+          .limit(input.limit),
+      ]);
+
+      // Combine all results and sort by count
+      const allPicks = [...jutsuPicks, ...itemPicks, ...consumablePicks];
+      return allPicks.sort((a, b) => b.count - a.count).slice(0, input.limit);
+    }),
+  getRankedRankDistributionStatistics: publicProcedure
+    .input(
+      z.object({
+        minCount: z.number().min(1).default(1),
+        minLevel: z.number().min(1).max(100).optional(),
+        maxLevel: z.number().min(1).max(100).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Build where conditions
+      const whereConditions: QueryCondition[] = [];
+
+      // Add level range filter
+      if (input.minLevel) {
+        whereConditions.push(gte(userData.level, input.minLevel));
+      }
+      if (input.maxLevel) {
+        whereConditions.push(lte(userData.level, input.maxLevel));
+      }
+
+      // Get top players LP for rank calculation
+      const [topPlayersLPArray, users] = await Promise.all([
+        fetchSanninRankedPlayers(ctx.drizzle),
+        ctx.drizzle
+          .select({
+            userId: userData.userId,
+            username: userData.username,
+            rankedLp: userData.rankedLp,
+            level: userData.level,
+            villageId: userData.villageId,
+          })
+          .from(userData)
+          .where(
+            and(
+              eq(userData.isAi, false),
+              whereConditions.length > 0 ? and(...whereConditions) : undefined,
+            ),
+          ),
+      ]);
+
+      // Calculate ranks for each user and ignore Unranked players
+      const rankCounts = new Map<string, number>();
+
+      users.forEach((user) => {
+        const rank = getRankedRank(user.rankedLp, topPlayersLPArray);
+        // Skip Unranked players
+        if (rank !== "Unranked") {
+          rankCounts.set(rank, (rankCounts.get(rank) || 0) + 1);
+        }
+      });
+
+      // Convert to array format and filter by minimum count
+      const distribution = Array.from(rankCounts.entries())
+        .map(([rank, count]) => ({ rank, count }))
+        .filter((item) => item.count >= input.minCount)
+        .sort((a, b) => {
+          // Sort by rank order (Wood, Adept, Master, Legend, Sannin)
+          const rankOrder =
+            RANKED_RANKS.indexOf(a.rank as RankedRank) -
+            RANKED_RANKS.indexOf(b.rank as RankedRank);
+          return rankOrder !== 0 ? rankOrder : b.count - a.count;
+        });
+
+      return distribution;
     }),
   getStatistics: publicProcedure
     .input(

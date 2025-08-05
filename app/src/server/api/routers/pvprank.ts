@@ -322,16 +322,22 @@ export const pvpRankRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx }) => {
       // Query
-      const [existingQueue, user, currentLoadout] = await Promise.all([
+      const [existingQueue, user, currentLoadout, currentSeason] = await Promise.all([
         fetchUserRankedQueue(ctx.drizzle, ctx.userId),
         fetchUser(ctx.drizzle, ctx.userId),
         ctx.drizzle.query.rankedLoadout.findFirst({
           where: eq(rankedLoadout.userId, ctx.userId),
         }),
+        fetchCurrentSeason(ctx.drizzle),
       ]);
       // Guard
       if (existingQueue) {
         return errorResponse("Already in queue");
+      }
+
+      // Check if current season is paused
+      if (currentSeason?.paused) {
+        return errorResponse("Ranked season is currently paused");
       }
 
       // Validate loadout for residual jutsu limit

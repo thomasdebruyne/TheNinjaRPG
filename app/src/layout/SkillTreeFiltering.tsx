@@ -17,17 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { TriStateToggle } from "@/components/control/Toggle";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { effectFilters } from "@/libs/train";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { searchJutsuSchema } from "@/validators/jutsu";
 import { Filter } from "lucide-react";
-import Toggle from "@/components/control/Toggle";
 import { useUserData } from "@/utils/UserContext";
 import { canChangeContent } from "@/utils/permissions";
 import type { SearchJutsuSchema } from "@/validators/jutsu";
-import type { EffectType } from "@/libs/train";
 
 interface SkillTreeFilteringProps {
   state: SkillTreeFilteringState;
@@ -58,19 +58,27 @@ const SkillTreeFiltering: React.FC<SkillTreeFilteringProps> = (props) => {
 
   // Tier options (1-10)
   const tierOptions = Array.from({ length: 10 }, (_, i) => i + 1);
-  
+
   // Cost options (common skill point costs)
   const costOptions = [1, 2, 3, 4, 5, 10, 15, 20];
+
+  // Counting filters
+  const numName = name.length > 0 ? 1 : 0;
+  const numEffect = effect.length;
+  const numTier = tier !== "ANY" ? 1 : 0;
+  const numCost = costSkillPoints !== "ANY" ? 1 : 0;
+  const visibilityFilter = hidden !== undefined ? 1 : 0;
+  const totalFilters = numName + numEffect + numTier + numCost + visibilityFilter;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button id="filter-skill">
+        <Button id="filter-skill" count={totalFilters}>
           <Filter className="sm:mr-2 h-6 w-6 hover:text-orange-500" />
           <p className="hidden sm:block">Filter</p>
         </Button>
       </PopoverTrigger>
-      <PopoverContent>
+      <PopoverContent className="min-w-96">
         <div className="grid grid-cols-2 gap-1 gap-x-3">
           {/* SKILL NAME */}
           <div>
@@ -90,25 +98,15 @@ const SkillTreeFiltering: React.FC<SkillTreeFilteringProps> = (props) => {
               />
             </Form>
           </div>
-          
+
           {/* Effect */}
           <div>
-            <Select onValueChange={(e) => setEffect(e as EffectType)}>
-              <Label htmlFor="effect">Effect</Label>
-              <SelectTrigger>
-                <SelectValue placeholder={effect} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem key={"Any-effect"} value={"ANY"}>
-                  ANY
-                </SelectItem>
-                {effectFilters.map((ef) => (
-                  <SelectItem key={ef} value={ef}>
-                    {ef}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Effects</Label>
+            <MultiSelect
+              selected={effect}
+              options={effectFilters.map((ef) => ({ value: ef, label: ef }))}
+              onChange={setEffect}
+            />
           </div>
 
           {/* Tier */}
@@ -133,10 +131,18 @@ const SkillTreeFiltering: React.FC<SkillTreeFilteringProps> = (props) => {
 
           {/* Cost */}
           <div>
-            <Select onValueChange={(e) => setCostSkillPoints(e === "ANY" ? "ANY" : parseInt(e))}>
+            <Select
+              onValueChange={(e) =>
+                setCostSkillPoints(e === "ANY" ? "ANY" : parseInt(e))
+              }
+            >
               <Label htmlFor="cost">Skill Points Cost</Label>
               <SelectTrigger>
-                <SelectValue placeholder={costSkillPoints === "ANY" ? "ANY" : costSkillPoints?.toString()} />
+                <SelectValue
+                  placeholder={
+                    costSkillPoints === "ANY" ? "ANY" : costSkillPoints?.toString()
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem key={"Any-cost"} value={"ANY"}>
@@ -153,14 +159,16 @@ const SkillTreeFiltering: React.FC<SkillTreeFilteringProps> = (props) => {
 
           {/* Hidden */}
           {userData && canChangeContent(userData.role) && (
-            <div className="mt-1 col-span-2">
-              <Toggle
+            <div className="mt-1">
+              <Label htmlFor="toggle-hidden-only">Visibility</Label>
+              <TriStateToggle
                 verticalLayout
                 id="toggle-hidden-only"
                 value={hidden}
                 setShowActive={setHidden}
                 labelActive="Hidden"
-                labelInactive="Non-Hidden"
+                labelInactive="Visible"
+                labelAll="All Visibility"
               />
             </div>
           )}
@@ -176,9 +184,10 @@ export default SkillTreeFiltering;
 export const getFilter = (state: SkillTreeFilteringState) => {
   return {
     name: state.name ? state.name : undefined,
-    effect: state.effect !== "ANY" ? state.effect : undefined,
+    effect: state.effect.length > 0 ? state.effect : undefined,
     tier: state.tier !== "ANY" ? state.tier : undefined,
-    costSkillPoints: state.costSkillPoints !== "ANY" ? state.costSkillPoints : undefined,
+    costSkillPoints:
+      state.costSkillPoints !== "ANY" ? state.costSkillPoints : undefined,
     hidden: state.hidden ? state.hidden : undefined,
   };
 };
@@ -187,7 +196,7 @@ export const getFilter = (state: SkillTreeFilteringState) => {
 export const useFiltering = () => {
   // State variables
   const [name, setName] = useState<string>("");
-  const [effect, setEffect] = useState<(typeof effectFilters)[number] | "ANY">("ANY");
+  const [effect, setEffect] = useState<string[]>([]);
   const [tier, setTier] = useState<number | "ANY">("ANY");
   const [costSkillPoints, setCostSkillPoints] = useState<number | "ANY">("ANY");
   const [hidden, setHidden] = useState<boolean | undefined>(false);

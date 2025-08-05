@@ -12,6 +12,10 @@ import { IMG_AVATAR_DEFAULT, COST_SKILL_RESET } from "@/drizzle/constants";
 import { SkillTreeValidator } from "@/libs/combat/types";
 import { canUnequipAllUsers } from "@/utils/permissions";
 import { actionLog } from "@/drizzle/schema";
+import {
+  skillTreeFilteringSchema,
+  type SkillTreeFilteringSchema,
+} from "@/validators/skillTree";
 
 export const skillTreeRouter = createTRPCRouter({
   // Get single skill by ID
@@ -31,12 +35,8 @@ export const skillTreeRouter = createTRPCRouter({
         .object({
           cursor: z.number().nullish(),
           limit: z.number().min(1).max(500),
-          name: z.string().optional(),
-          hidden: z.boolean().optional(),
-          tier: z.number().min(1).max(10).optional(),
-          costSkillPoints: z.number().min(1).optional(),
-          effect: z.string().optional(),
         })
+        .merge(skillTreeFilteringSchema)
         .optional(),
     )
     .query(async ({ ctx, input }) => {
@@ -44,20 +44,11 @@ export const skillTreeRouter = createTRPCRouter({
       const limit = input?.limit ? input.limit : 50;
       const skip = currentCursor * limit;
 
+      // Build where conditions using the generalized filter function
+      const baseFilters = skillTreeDatabaseFilter(input || {});
+
       const results = await ctx.drizzle.query.skillTree.findMany({
-        where: and(
-          ...(input?.name ? [like(skillTree.name, `%${input.name}%`)] : []),
-          ...(input?.hidden !== undefined
-            ? [eq(skillTree.hidden, input.hidden)]
-            : [eq(skillTree.hidden, false)]),
-          ...(input?.tier ? [eq(skillTree.tier, input.tier)] : []),
-          ...(input?.costSkillPoints
-            ? [eq(skillTree.costSkillPoints, input.costSkillPoints)]
-            : []),
-          ...(input?.effect
-            ? [sql`JSON_SEARCH(${skillTree.effects},'one',${input.effect}) IS NOT NULL`]
-            : []),
-        ),
+        where: and(...baseFilters),
         orderBy: [skillTree.tier, skillTree.name],
         limit: limit,
         offset: skip,
@@ -314,12 +305,14 @@ export const skillTreeRouter = createTRPCRouter({
 
       // Check if user has permission to unequip all users
       if (!canUnequipAllUsers(user)) {
-        return errorResponse("You don't have permission to reset all users' skill trees");
+        return errorResponse(
+          "You don't have permission to reset all users' skill trees",
+        );
       }
 
       // Get all users with skill trees
       const allUsers = await ctx.drizzle.select().from(userData);
-      
+
       if (allUsers.length === 0) {
         return errorResponse("No users found");
       }
@@ -348,3 +341,39 @@ export const skillTreeRouter = createTRPCRouter({
       };
     }),
 });
+
+/**
+ * Builds the where conditions for the skill tree database filter
+ * @param input - The input object containing the filter criteria
+ * @returns The where conditions for the skill tree database filter
+ */
+export const skillTreeDatabaseFilter = (input: SkillTreeFilteringSchema) => {
+  const filters = [];
+
+  if (input.name) {
+    filters.push(like(skillTree.name, `%${input.name}%`));
+  }
+
+  if (input.effect && input.effect.length > 0) {
+    filters.push(
+      sql`JSON_SEARCH(${skillTree.effects}, 'one', ${input.effect[0]}, NULL, '$[*].type') IS NOT NULL`,
+    );
+  }
+
+  if (input.tier) {
+    filters.push(eq(skillTree.tier, input.tier));
+  }
+
+  if (input.costSkillPoints) {
+    filters.push(eq(skillTree.costSkillPoints, input.costSkillPoints));
+  }
+
+  // Default to false if hidden is undefined (show non-hidden skills by default)
+  if (input.hidden !== undefined) {
+    filters.push(eq(skillTree.hidden, input.hidden));
+  } else {
+    filters.push(eq(skillTree.hidden, false));
+  }
+
+  return filters;
+};

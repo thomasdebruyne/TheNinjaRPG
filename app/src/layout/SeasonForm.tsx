@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import { RANKED_DIVISIONS } from "@/drizzle/constants";
@@ -69,6 +70,7 @@ export default function SeasonForm({
       startDate: new Date(),
       endDate: new Date(),
       rewards: [],
+      paused: false,
     },
   });
 
@@ -312,6 +314,24 @@ export default function SeasonForm({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="paused"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Pause Season</FormLabel>
+                <p className="text-sm text-muted-foreground">
+                  When paused, players cannot queue for ranked battles in this season.
+                </p>
+              </div>
+            </FormItem>
+          )}
+        />
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">

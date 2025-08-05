@@ -18,6 +18,7 @@ export const updateUserSchema = z.object({
   items: z.array(z.string()).optional(),
   reason: z.string().min(10),
   staffAccount: z.boolean().optional(),
+  rankedLp: z.coerce.number().int().min(0).optional(),
 });
 
 export type UpdateUserSchema = z.infer<typeof updateUserSchema>;

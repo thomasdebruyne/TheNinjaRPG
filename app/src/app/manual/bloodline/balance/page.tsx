@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocalStorage } from "@/hooks/localstorage";
-import { groupBy } from "@/utils/grouping";
+
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import { Button } from "@/components/ui/button";
@@ -231,64 +231,40 @@ const BloodlineUsageBalance: React.FC<BloodlineUsageBalanceProps> = (props) => {
   }, [bloodlineNames]);
 
   // Process data for table
-  const tableData =
-    data &&
-    (() => {
-      const groups = groupBy(data, "name");
-      const rows = Array.from(groups.entries()).map(([name, entries]) => {
-        const wins = entries
-          .filter((entry) => entry.battleWon === 1)
-          .reduce((acc, curr) => acc + (curr.count || 0), 0);
+  const tableData = data
+    ?.map((entry) => {
+      const bloodlineId = bloodlineNameToId.get(entry.name);
 
-        const flees = entries
-          .filter((entry) => entry.battleWon === 2)
-          .reduce((acc, curr) => acc + (curr.count || 0), 0);
-
-        const losses = entries
-          .filter((entry) => entry.battleWon === 0)
-          .reduce((acc, curr) => acc + (curr.count || 0), 0);
-
-        const totalUsage = wins + flees + losses;
-        const winRate = totalUsage > 0 ? (wins / totalUsage) * 100 : 0;
-
-        // Get equipped count from the first entry (all entries for a bloodline will have the same equipped count)
-        const equippedCount = entries[0]?.equippedCount || 0;
-
-        const bloodlineId = bloodlineNameToId.get(name);
-
-        return {
-          name,
-          links: (
-            <div className="flex items-center gap-2">
-              <Link href={`/manual/bloodline/statistics/${bloodlineId}`}>
-                <BarChart3 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+      return {
+        name: entry.name,
+        links: (
+          <div className="flex items-center gap-2">
+            <Link href={`/manual/bloodline/statistics/${bloodlineId}`}>
+              <BarChart3 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+            </Link>
+            {canEdit && (
+              <Link href={`/manual/bloodline/edit/${bloodlineId}`}>
+                <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary" />
               </Link>
-              {canEdit && (
-                <Link href={`/manual/bloodline/edit/${bloodlineId}`}>
-                  <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                </Link>
-              )}
-              <InfoIcon
-                className="h-4 w-4 text-muted-foreground hover:text-primary"
-                onClick={() => {
-                  setSelectedBloodlineId(bloodlineId ?? "");
-                  setIsModalOpen(true);
-                }}
-              />
-            </div>
-          ),
-          totalUsage,
-          equippedCount,
-          wins,
-          flees,
-          losses,
-          winRate: `${winRate.toFixed(1)}%`,
-        };
-      });
-
-      // Sort by total usage descending
-      return rows.sort((a, b) => b.totalUsage - a.totalUsage);
-    })();
+            )}
+            <InfoIcon
+              className="h-4 w-4 text-muted-foreground hover:text-primary"
+              onClick={() => {
+                setSelectedBloodlineId(bloodlineId ?? "");
+                setIsModalOpen(true);
+              }}
+            />
+          </div>
+        ),
+        userCount: entry.userCount,
+        totalUsage: entry.totalUsage,
+        wins: entry.wins,
+        flees: entry.flees,
+        losses: entry.losses,
+        winRate: entry.winRate,
+      };
+    })
+    ?.sort((a, b) => b.totalUsage - a.totalUsage);
 
   // Table columns
   type BloodlineBalanceRow = ArrayElement<typeof tableData>;
@@ -298,8 +274,8 @@ const BloodlineUsageBalance: React.FC<BloodlineUsageBalanceProps> = (props) => {
   >[] = [
     { key: "name", header: "Bloodline", type: "string" },
     { key: "links", header: "Links", type: "jsx" },
-    { key: "totalUsage", header: "Uses", type: "number" },
-    { key: "equippedCount", header: "Equipped", type: "number" },
+    { key: "userCount", header: "#users", type: "number" },
+    { key: "totalUsage", header: "#uses", type: "number" },
     { key: "wins", header: "Wins", type: "number" },
     { key: "flees", header: "Flees", type: "number" },
     { key: "losses", header: "Losses", type: "number" },

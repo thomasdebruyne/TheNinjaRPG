@@ -8,9 +8,11 @@ import { Image as LucideImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { canChangeContent } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
+import { BattleLengthHistogram } from "@/layout/BattleLengthHistogram";
 
 export default function ManualCombat() {
   const { data: userData } = useUserData();
+
   return (
     <>
       <ContentBox
@@ -42,6 +44,8 @@ export default function ManualCombat() {
           <li>For consecutive PVP kills, stacking bonus of 5-0.25% are added</li>
         </ul>
       </ContentBox>
+
+      <BattleLengthHistogram />
     </>
   );
 }
