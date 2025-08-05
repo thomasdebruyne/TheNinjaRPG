@@ -1500,6 +1500,64 @@ export const actionLogRelations = relations(actionLog, ({ one }) => ({
   }),
 }));
 
+export const logBattleLengths = mysqlTable(
+  "LogTimeDurations",
+  {
+    id: int("id").autoincrement().primaryKey().notNull(),
+    battleType: mysqlEnum("battleType", consts.BattleTypes).notNull(),
+    winnerLevel: int("winnerLevel").notNull(),
+    loserLevel: int("loserLevel").notNull(),
+    rounds: int("rounds").notNull(),
+    count: int("count").notNull(),
+  },
+  (table) => {
+    return {
+      battleTypeIdx: index("LogBattleLengths_battleType_idx").on(table.battleType),
+      uniqueEntryIdx: unique("uniqueEntry").on(
+        table.battleType,
+        table.winnerLevel,
+        table.loserLevel,
+        table.rounds,
+      ),
+    };
+  },
+);
+
+export const logQueueLengths = mysqlTable(
+  "LogQueueLengths",
+  {
+    id: int("id").autoincrement().primaryKey().notNull(),
+    rankedRank: mysqlEnum("rankedRank", consts.RANKED_RANKS).notNull(),
+    ceiledMinutes: int("ceiledMinutes").notNull(),
+    count: int("count").notNull(),
+  },
+  (table) => {
+    return {
+      uniqueEntryIdx: unique("uniqueEntry").on(table.rankedRank, table.ceiledMinutes),
+    };
+  },
+);
+
+export const logRankedPicks = mysqlTable(
+  "LogRankedPicks",
+  {
+    id: int("id").autoincrement().primaryKey().notNull(),
+    type: mysqlEnum("type", ["jutsu", "item", "consumable"]).notNull(),
+    contentId: varchar("contentId", { length: 191 }).notNull(),
+    battleType: mysqlEnum("battleType", consts.BattleTypes).notNull(),
+    count: int("count").notNull().default(1),
+  },
+  (table) => {
+    return {
+      uniqueContentIdIdx: unique("uniqueContentId").on(
+        table.type,
+        table.contentId,
+        table.battleType,
+      ),
+    };
+  },
+);
+
 export const trainingLog = mysqlTable(
   "TrainingLog",
   {

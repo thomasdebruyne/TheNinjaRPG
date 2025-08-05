@@ -4,7 +4,12 @@ import { createTRPCRouter, protectedProcedure } from "@/api/trpc";
 import { eq, gte, gt, sql, and, inArray, lte, desc } from "drizzle-orm";
 import { item, jutsu, rankedLoadout, rankedPvpQueue, userData } from "@/drizzle/schema";
 import { TRPCError } from "@trpc/server";
-import { rankedSeason, rankedUserRewards } from "@/drizzle/schema";
+import {
+  rankedSeason,
+  rankedUserRewards,
+  logQueueLengths,
+  logRankedPicks,
+} from "@/drizzle/schema";
 import { canChangeContent } from "@/utils/permissions";
 import { rankedLoadoutSchema, rankedSeasonSchema } from "@/validators/pvpRank";
 import { baseServerResponse, errorResponse } from "@/api/trpc";
@@ -403,10 +408,13 @@ export const pvpRankRouter = createTRPCRouter({
     .output(baseServerResponse.extend({ battleId: z.string().optional() }))
     .mutation(async ({ ctx }) => {
       // Get all queued players
-      const queuedPlayers = await ctx.drizzle.query.rankedPvpQueue.findMany({
-        with: { user: { columns: { status: true }, with: { rankedLoadout: true } } },
-        orderBy: desc(rankedPvpQueue.queueStartTime),
-      });
+      const [queuedPlayers, topPlayersLP] = await Promise.all([
+        ctx.drizzle.query.rankedPvpQueue.findMany({
+          with: { user: { columns: { status: true }, with: { rankedLoadout: true } } },
+          orderBy: desc(rankedPvpQueue.queueStartTime),
+        }),
+        fetchSanninRankedPlayers(ctx.drizzle),
+      ]);
 
       const userEntry = queuedPlayers.find((p) => p.userId === ctx.userId);
       // Guards
@@ -415,6 +423,7 @@ export const pvpRankRouter = createTRPCRouter({
       }
       // Derived
       const secondsInQueue = secondsPassed(userEntry.queueStartTime);
+      const rankedRank = getRankedRank(userEntry.rankedLp, topPlayersLP);
       const lpRadius = getRankedRadius(secondsInQueue);
       const opponentEntry = queuedPlayers.find((opponent) => {
         if (opponent.userId === ctx.userId) return false;
@@ -448,6 +457,59 @@ export const pvpRankRouter = createTRPCRouter({
         ctx.drizzle
           .delete(rankedPvpQueue)
           .where(inArray(rankedPvpQueue.userId, [ctx.userId, opponentEntry.userId])),
+        ctx.drizzle
+          .insert(logQueueLengths)
+          .values({
+            rankedRank: rankedRank,
+            ceiledMinutes: Math.ceil(secondsInQueue / 60),
+            count: 1,
+          })
+          .onDuplicateKeyUpdate({ set: { count: sql`${logQueueLengths.count} + 1` } }),
+        ctx.drizzle
+          .insert(logRankedPicks)
+          .values([
+            ...userEntry.user.rankedLoadout.loadout.jutsuIds.map((jutsuId) => ({
+              type: "jutsu" as const,
+              contentId: jutsuId,
+              battleType: "RANKED_PVP" as const,
+              count: 1,
+            })),
+            ...userEntry.user.rankedLoadout.loadout.weaponIds.map((weaponId) => ({
+              type: "item" as const,
+              contentId: weaponId,
+              battleType: "RANKED_PVP" as const,
+              count: 1,
+            })),
+            ...userEntry.user.rankedLoadout.loadout.consumableIds.map(
+              (consumableId) => ({
+                type: "consumable" as const,
+                contentId: consumableId,
+                battleType: "RANKED_PVP" as const,
+                count: 1,
+              }),
+            ),
+            ...opponentEntry.user.rankedLoadout.loadout.jutsuIds.map((jutsuId) => ({
+              type: "jutsu" as const,
+              contentId: jutsuId,
+              battleType: "RANKED_PVP" as const,
+              count: 1,
+            })),
+            ...opponentEntry.user.rankedLoadout.loadout.weaponIds.map((weaponId) => ({
+              type: "item" as const,
+              contentId: weaponId,
+              battleType: "RANKED_PVP" as const,
+              count: 1,
+            })),
+            ...opponentEntry.user.rankedLoadout.loadout.consumableIds.map(
+              (consumableId) => ({
+                type: "consumable" as const,
+                contentId: consumableId,
+                battleType: "RANKED_PVP" as const,
+                count: 1,
+              }),
+            ),
+          ])
+          .onDuplicateKeyUpdate({ set: { count: sql`${logRankedPicks.count} + 1` } }),
       ]);
       if (result.success && result.battleId) {
         return { success: true, message: "Match found!", battleId: result.battleId };
@@ -608,4 +670,22 @@ export const endRankedSeason = async (client: DrizzleClient, seasonId: string) =
     // Insert rewards rows if any
     rewardRows.length > 0 ? client.insert(rankedUserRewards).values(rewardRows) : null,
   ]);
+};
+
+/**
+ * Fetch the top players for Sannin rank
+ * @param client - The Drizzle client
+ * @returns The top players for Sannin rank
+ */
+export const fetchSanninRankedPlayers = async (client: DrizzleClient) => {
+  const users = await client.query.userData.findMany({
+    columns: {
+      userId: true,
+      rankedLp: true,
+    },
+    orderBy: (userData, { desc }) => [desc(userData.rankedLp)],
+    where: gt(userData.rankedLp, 0),
+    limit: RANKED_SANNIN_TOP_PLAYERS,
+  });
+  return users.map((u) => u.rankedLp);
 };
