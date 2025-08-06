@@ -26,7 +26,6 @@ import { QueueLengthHistogram } from "@/layout/QueueLengthHistogram";
 import { RankedRankDistributionHistogram } from "@/layout/RankedRankDistributionHistogram";
 import Table, { type ColumnDefinitionType } from "@/layout/Table";
 import { api } from "@/app/_trpc/client";
-import { useState } from "react";
 import type { ArrayElement } from "@/utils/typeutils";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import RankedLoadoutFiltering, {
@@ -35,13 +34,8 @@ import RankedLoadoutFiltering, {
 } from "@/layout/RankedLoadoutFiltering";
 
 export default function RankedManualPage() {
-  const availableTabs = ["overview", "matchmaking", "loadouts", "rewards"];
-  type Tab = (typeof availableTabs)[number];
-  const [activeTab, setActiveTab] = useLocalStorage<Tab>(
-    "rankedPvpTab",
-    "Overview",
-    true,
-  );
+  type Tab = "overview" | "matchmaking" | "loadouts" | "rewards";
+  const [activeTab, setActiveTab] = useLocalStorage<Tab>("manRankTa", "overview", true);
 
   return (
     <>
@@ -50,7 +44,11 @@ export default function RankedManualPage() {
         subtitle="Competitive battles for League Points"
         back_href="/manual"
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as Tab)}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="matchmaking">Matchmaking</TabsTrigger>

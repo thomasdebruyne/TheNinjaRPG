@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { eq, sql, gte, gt, and, or, asc, desc, isNull, isNotNull } from "drizzle-orm";
+import { eq, sql, gte, gt, and, asc, desc, isNull, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { fetchUser } from "./profile";

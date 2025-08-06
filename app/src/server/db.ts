@@ -7,7 +7,6 @@ import type { PlanetScaleDatabase } from "drizzle-orm/planetscale-serverless";
 export type DrizzleClient = PlanetScaleDatabase<typeof schema>;
 
 declare global {
-  // eslint-disable-next-line no-var
   var drizzle: DrizzleClient | undefined;
 }
 

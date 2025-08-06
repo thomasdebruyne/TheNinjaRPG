@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import Image from "next/image";
 import { Trash2, Flag, Info } from "lucide-react";
 import { api } from "@/app/_trpc/client";

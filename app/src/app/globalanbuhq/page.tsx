@@ -7,6 +7,9 @@ import { drizzleDB } from "@/server/db";
 import { IMG_BUILDING_GLOBALANBU } from "@/drizzle/constants";
 import QuestPicker from "@/layout/QuestPicker";
 
+// Force dynamic rendering to avoid static generation errors with headers
+export const dynamic = "force-dynamic";
+
 export default async function GlobalAnbuHQ() {
   // Session information
   const user = await currentUser();

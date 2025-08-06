@@ -3,16 +3,11 @@
 import { useEffect, useState } from "react";
 
 export default function PWAManager() {
-  const [isSupported, setIsSupported] = useState(false);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(
-    null,
-  );
+  const [, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     // Check if service workers are supported
     if ("serviceWorker" in navigator) {
-      setIsSupported(true);
-
       // Register service worker
       void registerServiceWorker();
     }
@@ -39,7 +34,7 @@ export default function PWAManager() {
         }
       });
     } catch (error) {
-      console.error("Service Worker registration failed:", error);
+      console.error("Service Worker registration failed:", error as Error);
     }
   };
 

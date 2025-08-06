@@ -26,7 +26,11 @@ const ContentBox: React.FC<ContentBoxProps> = (props) => {
   const title = props.back_href ? (
     <Link
       className="ml-1 flex flex-row items-center hover:text-orange-700"
-      onClick={() => props.onBack && props.onBack()}
+      onClick={() => {
+        if (props.onBack) {
+          props.onBack();
+        }
+      }}
       href={props.back_href}
       suppressHydrationWarning
     >

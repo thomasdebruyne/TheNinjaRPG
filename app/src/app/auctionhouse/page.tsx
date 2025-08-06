@@ -322,7 +322,6 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
   const isExpired = new Date(listing.expiresAt) < new Date();
   const isOwner = listing.sellerId === userData.userId;
   const isActive = listing.status === "ACTIVE";
-  const timeLeft = new Date(listing.expiresAt).toLocaleString();
 
   // Handlers
   const handlePlaceBid = (auctionId: string, amount: number) => {

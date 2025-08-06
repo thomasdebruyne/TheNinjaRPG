@@ -3,7 +3,7 @@ import { and, lte, sql, eq, lt, isNull, or, ne } from "drizzle-orm";
 import { drizzleDB } from "@/server/db";
 import { forumPost, forumThread, questHistory, userAttribute } from "@/drizzle/schema";
 import { bankTransfers, bloodlineRolls, conceptImage } from "@/drizzle/schema";
-import { userData, battle, dataBattleAction, userJutsu, jutsu } from "@/drizzle/schema";
+import { userData, battle, userJutsu, jutsu } from "@/drizzle/schema";
 import { userItem, mpvpBattleQueue, mpvpBattleUser } from "@/drizzle/schema";
 import { trainingLog, village, captcha, userRequest } from "@/drizzle/schema";
 import { battleHistory, battleAction, historicalAvatar, clan } from "@/drizzle/schema";

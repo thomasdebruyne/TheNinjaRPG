@@ -78,7 +78,6 @@ export default function CombatPage() {
 
   // Collect all possible actions for action selector
   const actions = availableUserActions(battleState?.battle, userData?.userId);
-  const action = actions.find((a) => a.id === actionId);
 
   // Battle scene
   const combat = useMemo(() => {

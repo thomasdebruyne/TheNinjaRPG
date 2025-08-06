@@ -748,18 +748,6 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
     },
   });
 
-  const { mutate: fight } = api.clan.fightLeader.useMutation({
-    onSuccess: async (data) => {
-      showMutationToast(data);
-      if (data.success) {
-        await utils.profile.getUser.invalidate();
-        await utils.clan.get.invalidate();
-        await utils.clan.getRequests.invalidate();
-        router.push("/combat");
-      }
-    },
-  });
-
   const { mutate: boostTraining } = api.clan.purchaseTrainingBoost.useMutation({
     onSuccess: async (data) => {
       showMutationToast(data);

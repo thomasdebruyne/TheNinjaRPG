@@ -301,7 +301,11 @@ const RichInput: React.FC<RichInputProps> = (props) => {
           {props.onSubmit && (
             <SendHorizontal
               className="h-8 w-8 text-gray-400 hover:cursor-pointer hover:text-gray-600 opacity-50"
-              onClick={(e) => props.onSubmit && props.onSubmit(e)}
+              onClick={(e) => {
+                if (props.onSubmit) {
+                  props.onSubmit(e);
+                }
+              }}
             />
           )}
         </div>

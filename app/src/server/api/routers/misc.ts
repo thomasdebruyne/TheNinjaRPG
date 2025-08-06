@@ -24,9 +24,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { ratelimitMiddleware, hasUserMiddleware } from "../trpc";
 import { updateGameSetting } from "@/libs/gamesettings";
 import { changeSettingSchema } from "@/validators/misc";
-import { callDiscordTicket } from "@/libs/discord";
-import { TicketTypes } from "@/validators/misc";
-import { createTicketSchema } from "@/validators/misc";
+
 import { Sentiment } from "@/drizzle/constants";
 import type { DrizzleClient } from "@/server/db";
 

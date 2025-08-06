@@ -5,7 +5,7 @@ import { Vector2, OrthographicCamera, Group, Clock } from "three";
 import Countdown from "./Countdown";
 import WebGlError from "@/layout/WebGLError";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, Clock as ClockIcon, CheckCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { drawCombatBackground, drawCombatEffects } from "@/libs/combat/drawing";
 import { OrbitControls } from "@/libs/threejs/OrbitControls";
 import { COMBAT_SECONDS, COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";

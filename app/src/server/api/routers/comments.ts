@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { eq, or, and, sql, desc, asc, inArray, isNull, notInArray } from "drizzle-orm";
@@ -868,7 +867,7 @@ interface FetchConvoOptions {
  * @throws {ServerError} If the request is invalid or the conversation is not found.
  */
 export const fetchConversation = async (params: FetchConvoOptions) => {
-  const { client, id, title, userId } = params;
+  const { client, id, title } = params;
   const getConvo = async () => {
     if (id) {
       return await client.query.conversation.findFirst({
@@ -1074,9 +1073,6 @@ export const OFFENSIVE_WORDS = [
   "Abeed",
   "Abo",
   "aboriginal",
-  "addict",
-  "addicted",
-  "addicts",
   "af",
   "Africoon",
   "Africoon-Americoon",
@@ -1098,8 +1094,6 @@ export const OFFENSIVE_WORDS = [
   "antinigger",
   "aperest",
   "apesault",
-  "arab",
-  "arabs",
   "Arabush",
   "Aravush",
   "areola",
@@ -1159,7 +1153,6 @@ export const OFFENSIVE_WORDS = [
   "Beaney",
   "beatoff",
   "beatyourmeat",
-  "beaver",
   "beef curtains",
   "bellend",
   "bestial",
@@ -1185,8 +1178,6 @@ export const OFFENSIVE_WORDS = [
   "bollock",
   "bombing",
   "bondage",
-  "boob",
-  "booby",
   "boong",
   "boong",
   "boonga",
@@ -1254,7 +1245,6 @@ export const OFFENSIVE_WORDS = [
   "Chug",
   "Ciapaty-or-ciapak",
   "Cina",
-  "cisgender",
   "clamdigger",
   "clamdiver",
   "clit",
@@ -1318,13 +1308,11 @@ export const OFFENSIVE_WORDS = [
   "doo-doo",
   "doodoo",
   "doofus",
-  "dope",
   "Dothead",
   "douche",
   "douchebag",
   "dripdick",
   "dullard",
-  "dwarf",
   "effing",
   "ejaculation",
   "erection",
@@ -1394,7 +1382,6 @@ export const OFFENSIVE_WORDS = [
   "incest",
   "Indognesial",
   "Indonesial",
-  "itch",
   "jackoff",
   "jew",
   "Jigaboo",
@@ -1447,7 +1434,7 @@ export const OFFENSIVE_WORDS = [
   "Munt",
   "munter",
   "Mzungu",
-  "n1gga",  
+  "n1gga",
   "n1gga$",
   "n1ggas",
   "n1ggaz",
@@ -1501,8 +1488,6 @@ export const OFFENSIVE_WORDS = [
   "Polock",
   "poon",
   "poontang",
-  "pooper",
-  "pooping",
   "poorwhitetrash",
   "Porch-monkey",
   "porchmonkey",
@@ -1611,7 +1596,6 @@ export const OFFENSIVE_WORDS = [
   "Wigger",
   "willy",
   "wokeness",
-  "wtf",
   "Wuhan-virus",
   "yambag",
   "Yuon",

@@ -368,7 +368,7 @@ export const questsRouter = createTRPCRouter({
       if (!user) return errorResponse("User does not exist");
 
       // For certain quest types, we fallback to lower ranks if the user does not have the required rank
-      const { filtered, rankInfo } = fallbackQuestsFilter(results, user, input.type);
+      const { rankInfo } = fallbackQuestsFilter(results, user, input.type);
 
       // Additional guards
       if (user.sector !== input.userSector) return errorResponse("Sector mismatch");

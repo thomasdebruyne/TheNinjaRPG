@@ -107,7 +107,7 @@ export async function GET() {
     const usersToUnsilence: string[] = [];
 
     // For each banned user, check if they have any active ban reports
-    for (const [userId, _] of bannedUsers) {
+    for (const [userId] of bannedUsers) {
       // Only unban if they had an expired ban report and have no active ban reports
       if (userBanReports.has(userId) && !userHasActiveBan.has(userId)) {
         usersToUnban.push(userId);
@@ -115,7 +115,7 @@ export async function GET() {
     }
 
     // For each silenced user, check if they have any active silence reports
-    for (const [userId, _] of silencedUsers) {
+    for (const [userId] of silencedUsers) {
       // Only unsilence if they had an expired silence report and have no active silence reports
       if (userSilenceReports.has(userId) && !userHasActiveSilence.has(userId)) {
         usersToUnsilence.push(userId);

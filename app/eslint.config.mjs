@@ -41,6 +41,7 @@ const config = [
 
     rules: {
       "@typescript-eslint/array-type": "off",
+      "@typescript-eslint/no-var": "off",
       "@typescript-eslint/prefer-nullish-coalescing": "off",
       "@typescript-eslint/only-throw-error": "off",
       "@typescript-eslint/consistent-type-definitions": "off",

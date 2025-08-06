@@ -22,7 +22,6 @@ import { BarChart3, InfoIcon, Pencil } from "lucide-react";
 import type { ArrayElement } from "@/utils/typeutils";
 import { useUserData } from "@/utils/UserContext";
 import { canChangeContent } from "@/utils/permissions";
-import { showMutationToast } from "@/libs/toast";
 
 export default function ManualSkillTreeBalance() {
   // State
@@ -184,26 +183,10 @@ const SkillTreeUsageBalance: React.FC<SkillTreeUsageBalanceProps> = (props) => {
 
   // Queries
   const { data, isPending } = api.data.getSkillTreeBalanceStatistics.useQuery(filter);
-  const { data: skillNames } = api.skillTree.getAll.useQuery({ limit: 500 });
   const { data: skillDetails, isPending: isSkillDetailsPending } =
     api.skillTree.get.useQuery({ id: selectedSkillId }, { enabled: !!selectedSkillId });
 
-  // Mutations
-  const { mutate: deleteAllData, isPending: isDeleting } =
-    api.data.deleteAllDataBattleAction.useMutation({
-      onSuccess: async (result) => {
-        showMutationToast(result);
-        if (result.success) {
-          // Invalidate the skill tree balance statistics query to refresh the data
-          await utils.data.getSkillTreeBalanceStatistics.invalidate();
-        }
-      },
-    });
-
-  const utils = api.useUtils();
-
   // Check if user can change content
-  const canDelete = canChangeContent(userData?.role ?? "USER");
   const canEdit = canChangeContent(userData?.role ?? "USER");
 
   // Process data for table

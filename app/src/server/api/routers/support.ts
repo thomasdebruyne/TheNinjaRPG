@@ -617,7 +617,7 @@ export const supportRouter = createTRPCRouter({
           success: true,
           message: "Ticket escalated to GitHub successfully",
         };
-      } catch (error) {
+      } catch {
         return errorResponse("Failed to escalate ticket to GitHub");
       }
     }),

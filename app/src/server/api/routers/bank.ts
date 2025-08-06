@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { errorResponse, baseServerResponse } from "../trpc";
 import { fetchUser } from "@/routers/profile";
-import { eq, or, and, gte, sql, desc, sum } from "drizzle-orm";
+import { eq, or, and, gte, sql, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { userData, bankTransfers, dailyBankInterest } from "@/drizzle/schema";
 import { RYO_CAP } from "@/drizzle/constants";

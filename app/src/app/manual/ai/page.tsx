@@ -7,7 +7,7 @@ import ItemWithEffects from "@/layout/ItemWithEffects";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import { Button } from "@/components/ui/button";
-import { FilePlus, ChartCandlestick, ChartPie } from "lucide-react";
+import { FilePlus, ChartCandlestick } from "lucide-react";
 import { useInfinitePagination } from "@/libs/pagination";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";

@@ -1,5 +1,5 @@
 import { toast } from "@/components/ui/use-toast";
-import { ErrorMessage } from "@hookform/error-message";
+
 import { ToastAction } from "@/components/ui/toast";
 import { CheckCircle, XOctagon } from "lucide-react";
 import type { FieldErrors } from "react-hook-form";
@@ -66,7 +66,7 @@ export const showFormErrorsToast = (errors: FieldErrors<any>) => {
     errs: FieldErrors<any>,
     parentKey = "",
   ): React.ReactNode[] => {
-    return Object.entries(errs).flatMap(([key, value], idx) => {
+    return Object.entries(errs).flatMap(([key, value]) => {
       const fullKey = parentKey ? `${parentKey}.${key}` : key;
       if (!value) return [];
       if (typeof value.message === "string" && value.message) {

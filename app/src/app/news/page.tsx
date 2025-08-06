@@ -6,6 +6,9 @@ import { fetchUser } from "@/routers/profile";
 import { drizzleDB } from "@/server/db";
 import { IMG_BUILDING_NEWS } from "@/drizzle/constants";
 
+// Force dynamic rendering to avoid static generation errors with headers
+export const dynamic = "force-dynamic";
+
 export default async function News() {
   // Session information
   const user = await currentUser();

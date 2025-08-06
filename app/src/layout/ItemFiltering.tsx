@@ -35,7 +35,7 @@ import { TriStateToggle } from "@/components/control/Toggle";
 import { useUserData } from "@/utils/UserContext";
 import { canChangeContent } from "@/utils/permissions";
 import type { SearchJutsuSchema } from "@/validators/jutsu";
-import type { EffectType } from "@/libs/train";
+
 import type { AttackTarget, ItemType, AttackMethod } from "@/drizzle/constants";
 import type { ItemRarity, ItemSlotType } from "@/drizzle/schema";
 

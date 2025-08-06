@@ -757,11 +757,6 @@ export const staffRouter = createTRPCRouter({
       if (!target.recruiterId) {
         return errorResponse("User has no recruiter to delete");
       }
-      // Get recruiter info for logging
-      const recruiter = await ctx.drizzle.query.userData.findFirst({
-        where: eq(userData.userId, target.recruiterId),
-        columns: { username: true },
-      });
       // Mutate
       await Promise.all([
         ctx.drizzle

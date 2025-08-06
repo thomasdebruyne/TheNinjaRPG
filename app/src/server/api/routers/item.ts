@@ -20,7 +20,7 @@ import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
 import { ItemValidator } from "@/libs/combat/types";
 import { canChangeContent } from "@/utils/permissions";
 import { callDiscordContent } from "@/libs/discord";
-import { effectFilters } from "@/libs/train";
+
 import { getStrucBoost } from "@/utils/village";
 import { calcItemSellingPrice } from "@/libs/item";
 import {

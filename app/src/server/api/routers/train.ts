@@ -16,7 +16,7 @@ import { getStrucBoost } from "@/utils/village";
 import { validateCaptcha } from "@/routers/misc";
 import { fetchUpdatedUser } from "@/routers/profile";
 import { QuestTracker } from "@/validators/objectives";
-import { countVillageSectors } from "@/routers/village";
+
 import { MAX_DAILY_TRAININGS } from "@/drizzle/constants";
 import { getShrineBoost } from "@/utils/village";
 
