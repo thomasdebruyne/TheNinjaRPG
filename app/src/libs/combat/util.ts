@@ -359,7 +359,7 @@ export const sortEffects = (
   if (ordered.includes(a.type) && ordered.includes(b.type)) {
     const aIndex = ordered.indexOf(a.type);
     const bIndex = ordered.indexOf(b.type);
-    
+
     // If they're the same type, handle special ordering
     if (aIndex === bIndex) {
       // For damage reduction effects, sort static before percentage
@@ -373,29 +373,30 @@ export const sortEffects = (
       }
       return 0; // Same type, same calculation, maintain original order
     }
-    
+
     // Special handling for damage reduction effects to ensure proper ordering
     // We want: decreasedamagetaken(static) -> decreasedamagegiven(static) -> decreasedamagegiven(percentage) -> decreasedamagetaken(percentage)
-    if ((a.type === "decreasedamagetaken" && b.type === "decreasedamagegiven") ||
-        (a.type === "decreasedamagegiven" && b.type === "decreasedamagetaken")) {
-      
+    if (
+      (a.type === "decreasedamagetaken" && b.type === "decreasedamagegiven") ||
+      (a.type === "decreasedamagegiven" && b.type === "decreasedamagetaken")
+    ) {
       // If both are static, decreasedamagetaken comes first
       if (a.calculation === "static" && b.calculation === "static") {
         if (a.type === "decreasedamagetaken") return -1;
         if (b.type === "decreasedamagetaken") return 1;
       }
-      
+
       // If both are percentage, decreasedamagegiven comes first
       if (a.calculation === "percentage" && b.calculation === "percentage") {
         if (a.type === "decreasedamagegiven") return -1;
         if (b.type === "decreasedamagegiven") return 1;
       }
-      
+
       // If one is static and one is percentage, static comes first
       if (a.calculation === "static" && b.calculation === "percentage") return -1;
       if (a.calculation === "percentage" && b.calculation === "static") return 1;
     }
-    
+
     return aIndex > bIndex ? 1 : -1;
   }
   return 0;
@@ -678,11 +679,19 @@ export const calcBattleResult = (
 
       // Money/ryo calculation
       const moneyBoost = user?.clan?.ryoBoost ? 1 + user.clan.ryoBoost / 100 : 1;
-      const moneyDelta = didWin
-        ? battleType === "COMBAT"
-          ? 3000
-          : (randomInt(30, 40) + user.level) * moneyBoost
-        : 0;
+      let moneyDelta = didWin ? (randomInt(30, 40) + user.level) * moneyBoost : 0;
+
+      // If combat, more money
+      if (battleType === "COMBAT") {
+        moneyDelta *= 1.5;
+      }
+
+      // If ranked PVP, add benefits
+      if (battleType === "RANKED_PVP") {
+        moneyDelta *= 1.5;
+        deltaTokens += 10;
+        deltaPrestige += 10;
+      }
 
       // Include money stolen during combat
       if (battleType === "COMBAT" && user.moneyStolen) {
