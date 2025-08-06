@@ -762,7 +762,42 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
               </VisuallyHidden.Root>
               <Suspense fallback={<Loader explanation="Loading..." />}>
                 <SheetHeader>
-                  <div ref={rightSideBarRef} onClick={() => setRightSideBarOpen(false)}>
+                  <div
+                    ref={rightSideBarRef}
+                    onClick={(e) => {
+                      // Don't close the sheet if clicking on interactive elements
+                      const target = e.target as HTMLElement;
+
+                      // Check if the target or any of its parents is a tab-related element
+                      const isTabElement =
+                        target.closest('[role="tab"]') ||
+                        target.closest("[data-state]") ||
+                        target.closest("[data-radix-tabs-trigger]") ||
+                        target.closest("[data-radix-tabs-list]") ||
+                        target.closest("[data-radix-tabs-content]");
+
+                      // Check if it's any other interactive element
+                      const isOtherInteractive =
+                        target.closest("button") ||
+                        target.closest("a") ||
+                        target.closest("input") ||
+                        target.closest("select") ||
+                        target.closest("textarea");
+
+                      // Check if the target has a cursor pointer style (indicating it's clickable)
+                      const hasPointerCursor =
+                        target.style.cursor === "pointer" ||
+                        target.closest('[style*="cursor: pointer"]') ||
+                        target.closest('[class*="cursor-pointer"]');
+
+                      const isInteractive =
+                        isTabElement || isOtherInteractive || hasPointerCursor;
+
+                      if (!isInteractive) {
+                        setRightSideBarOpen(false);
+                      }
+                    }}
+                  >
                     {rightSideBar}
                   </div>
                 </SheetHeader>
