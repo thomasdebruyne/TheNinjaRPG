@@ -13,7 +13,11 @@ import {
 import { canChangeContent } from "@/utils/permissions";
 import { rankedLoadoutSchema, rankedSeasonSchema } from "@/validators/pvpRank";
 import { baseServerResponse, errorResponse } from "@/api/trpc";
-import { RANKED_SANNIN_TOP_PLAYERS, RANKED_PVP_STATS } from "@/drizzle/constants";
+import {
+  RANKED_SANNIN_TOP_PLAYERS,
+  RANKED_PVP_STATS,
+  RANKED_REQUIRED_RANK,
+} from "@/drizzle/constants";
 import { validateJutsuLoadout, validateItemLoadout } from "@/libs/ranked_pvp";
 import { initiateBattle } from "@/routers/combat";
 import { secondsPassed } from "@/utils/time";
@@ -23,6 +27,8 @@ import { updateRewards } from "@/server/api/routers/quests";
 import { postProcessRewards } from "@/libs/quest";
 import type { DrizzleClient } from "@/server/db";
 import { getRankedRank } from "@/libs/ranked_pvp";
+import { hasRequiredRank } from "@/libs/train";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
 
 export const pvpRankRouter = createTRPCRouter({
   // Get the user's season rewards
@@ -333,6 +339,11 @@ export const pvpRankRouter = createTRPCRouter({
       // Guard
       if (existingQueue) {
         return errorResponse("Already in queue");
+      }
+      if (!hasRequiredRank(user.rank, RANKED_REQUIRED_RANK)) {
+        return errorResponse(
+          `You need to be a ${capitalizeFirstLetter(RANKED_REQUIRED_RANK)} to queue`,
+        );
       }
 
       // Check if current season is paused
