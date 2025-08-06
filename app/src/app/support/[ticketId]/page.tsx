@@ -498,7 +498,7 @@ export default function TicketDetail(props: { params: Promise<{ ticketId: string
                     onClick={() => handleCopyCannedResponse(response.description)}
                     className="h-8 w-8 p-0"
                   >
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-4 w-4 text-gray-500" />
                   </Button>
                 </div>
               </div>
