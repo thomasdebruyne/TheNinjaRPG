@@ -18,6 +18,7 @@ import {
   RANKED_LOADOUT_MAX_INCREASECOST_JUTSUS,
 } from "@/drizzle/constants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocalStorage } from "@/hooks/localstorage";
 import ContentBox from "@/layout/ContentBox";
 import { SeasonManager } from "@/layout/SeasonManager";
 import { UnclaimedSeasonRewards } from "@/layout/UnclaimedSeasonRewards";
@@ -34,7 +35,13 @@ import RankedLoadoutFiltering, {
 } from "@/layout/RankedLoadoutFiltering";
 
 export default function RankedManualPage() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const availableTabs = ["overview", "matchmaking", "loadouts", "rewards"];
+  type Tab = (typeof availableTabs)[number];
+  const [activeTab, setActiveTab] = useLocalStorage<Tab>(
+    "rankedPvpTab",
+    "Overview",
+    true,
+  );
 
   return (
     <>

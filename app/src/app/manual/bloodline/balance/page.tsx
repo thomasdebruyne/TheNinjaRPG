@@ -31,7 +31,7 @@ export default function ManualBloodlineBalance() {
   // State
   const availableTabs = ["Usage", "Power"];
   type Tab = (typeof availableTabs)[number];
-  const [tab, setTab] = useLocalStorage<Tab>("bloodlineBalanceTab", "Usage");
+  const [tab, setTab] = useLocalStorage<Tab>("bloodlineBalanceTab", "Usage", true);
 
   const NavBarBlock = (
     <NavTabs current={tab} options={availableTabs} setValue={setTab} />

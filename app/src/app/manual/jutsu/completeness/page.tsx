@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useLocalStorage } from "@/hooks/localstorage";
 import ContentBox from "@/layout/ContentBox";
 import NavTabs from "@/layout/NavTabs";
 import Loader from "@/layout/Loader";
@@ -20,7 +21,8 @@ import ItemWithEffects from "@/layout/ItemWithEffects";
 export default function ManualJutsuBalance() {
   // State
   const availFilters = ["Incomplete", "Diversity"];
-  const [filter, setFilter] = useState<(typeof availFilters)[number]>("Incomplete");
+  type Tab = (typeof availFilters)[number];
+  const [filter, setFilter] = useLocalStorage<Tab>("jutsuComplete", "Incomplete", true);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);

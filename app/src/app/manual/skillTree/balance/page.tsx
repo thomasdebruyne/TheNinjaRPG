@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useLocalStorage } from "@/hooks/localstorage";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
-import Confirm2 from "@/layout/Confirm2";
 import Modal2 from "@/layout/Modal2";
-import { Button } from "@/components/ui/button";
 import Table, { type ColumnDefinitionType } from "@/layout/Table";
 import { api } from "@/app/_trpc/client";
 import SkillTreeBalanceFiltering, {
@@ -20,7 +18,7 @@ import SkillTreeFiltering, {
   getFilter as getSkillTreeFilter,
 } from "@/layout/SkillTreeFiltering";
 import ItemWithEffects from "@/layout/ItemWithEffects";
-import { BarChart3, Trash2, InfoIcon, Pencil } from "lucide-react";
+import { BarChart3, InfoIcon, Pencil } from "lucide-react";
 import type { ArrayElement } from "@/utils/typeutils";
 import { useUserData } from "@/utils/UserContext";
 import { canChangeContent } from "@/utils/permissions";
@@ -30,7 +28,7 @@ export default function ManualSkillTreeBalance() {
   // State
   const availableTabs = ["Usage", "Power"];
   type Tab = (typeof availableTabs)[number];
-  const [tab, setTab] = useLocalStorage<Tab>("skillTreeBalanceTab", "Usage");
+  const [tab, setTab] = useLocalStorage<Tab>("skillTreeBalanceTab", "Usage", true);
 
   const NavBarBlock = (
     <NavTabs current={tab} options={availableTabs} setValue={setTab} />

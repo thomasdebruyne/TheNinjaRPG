@@ -17,6 +17,7 @@ import {
   IMG_MANUAL_POLLS,
   IMG_MANUAL_RANKED,
   IMG_MANUAL_SKILLTREE,
+  IMG_MANUAL_BALANCE,
 } from "@/drizzle/constants";
 import ContentBox from "@/layout/ContentBox";
 
@@ -38,6 +39,7 @@ export default function ManualMain() {
     { name: "awards", img: IMG_MANUAL_AWARDS },
     { name: "polls", img: IMG_MANUAL_POLLS },
     { name: "pvp_rank", img: IMG_MANUAL_RANKED },
+    { name: "balance", img: IMG_MANUAL_BALANCE },
   ];
   return (
     <ContentBox

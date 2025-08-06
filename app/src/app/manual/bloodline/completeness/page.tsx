@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useLocalStorage } from "@/hooks/localstorage";
 import ContentBox from "@/layout/ContentBox";
 import NavTabs from "@/layout/NavTabs";
 import Loader from "@/layout/Loader";
@@ -9,44 +10,100 @@ import Table, { type ColumnDefinitionType } from "@/layout/Table";
 import WordCloud from "@/layout/Wordcloud";
 import { Chart as ChartJS } from "chart.js/auto";
 import type { ArrayElement } from "@/utils/typeutils";
+import { CircleMinus, CircleCheckBig } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, InfoIcon, Pencil } from "lucide-react";
+import { useUserData } from "@/utils/UserContext";
+import { canChangeContent } from "@/utils/permissions";
+import Modal2 from "@/layout/Modal2";
+import ItemWithEffects from "@/layout/ItemWithEffects";
 
 export default function ManualBloodlineBalance() {
   // State
   const availFilters = ["Incomplete", "Diversity"];
-  const [filter, setFilter] = useState<(typeof availFilters)[number]>("Incomplete");
+  type Tab = (typeof availFilters)[number];
+  const [filter, setFilter] = useLocalStorage<Tab>("bloodComplete", "Incomplete", true);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBloodlineId, setSelectedBloodlineId] = useState<string>("");
+
+  // User data for permissions
+  const { data: userData } = useUserData();
 
   // Queries
   const { data, isPending } = api.bloodline.getAll.useQuery({ limit: 500 }, {});
   const allBloodlines = data?.data;
 
+  // Bloodline details query for modal
+  const { data: bloodlineDetails, isPending: isBloodlineDetailsPending } =
+    api.bloodline.get.useQuery(
+      { id: selectedBloodlineId },
+      { enabled: !!selectedBloodlineId },
+    );
+
+  // Check if user can edit bloodlines
+  const canEdit = canChangeContent(userData?.role ?? "USER");
+
   // Table processing
   const processed = allBloodlines
     ?.map((bloodline) => {
       // Checks
-      const classification = bloodline.statClassification ? 1 : 0;
+      const classification = !bloodline.statClassification ? 1 : 0;
       const effects = bloodline.effects.length === 0 ? 1 : 0;
-      const shortDescription = bloodline.description.length < 50 ? 1 : 0;
-      const total = classification + effects + shortDescription;
+      const description = bloodline.description.length < 50 ? 1 : 0;
+      const total = classification + effects + description;
       // Return summary
+
       return {
         name: bloodline.name,
-        description: bloodline.description,
-        classification: classification ? "Yes" : "No",
-        effects: effects ? "Yes" : "No",
-        shortDescription: shortDescription ? "Yes" : "No",
+        links: (
+          <div className="flex items-center gap-2">
+            <Link href={`/manual/bloodline/statistics/${bloodline.id}`}>
+              <BarChart3 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+            </Link>
+            {canEdit && (
+              <Link href={`/manual/bloodline/edit/${bloodline.id}`}>
+                <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary" />
+              </Link>
+            )}
+            <InfoIcon
+              className="h-4 w-4 text-muted-foreground hover:text-primary"
+              onClick={() => {
+                setSelectedBloodlineId(bloodline.id);
+                setIsModalOpen(true);
+              }}
+            />
+          </div>
+        ),
+        classification: classification ? (
+          <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
+        ),
+        effects: effects ? (
+          <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
+        ),
+        description: description ? (
+          <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
+        ),
         total: total,
       };
     })
-    .filter((b) => b.total > 0)
     .sort((a, b) => b.total - a.total);
 
   // Table
   type Row = ArrayElement<typeof processed>;
   const columns: ColumnDefinitionType<Row, keyof Row>[] = [
     { key: "name", header: "Bloodline", type: "string" },
-    { key: "classification", header: "N/A Class", type: "string" },
-    { key: "effects", header: "N/A Effects", type: "string" },
-    { key: "shortDescription", header: "Too Undescriptive", type: "string" },
+    { key: "links", header: "Links", type: "jsx" },
+    { key: "classification", header: "Classification", type: "jsx" },
+    { key: "effects", header: "Effects", type: "jsx" },
+    { key: "description", header: "Description", type: "jsx" },
   ];
 
   // Counts per classification
@@ -63,8 +120,38 @@ export default function ManualBloodlineBalance() {
     return acc;
   }, {});
 
+  // Counts per effect type and calculation (for stacked bar chart)
+  const effectTypeCalculationCounts = allBloodlines?.reduce<
+    Record<string, Record<string, number>>
+  >((acc, bloodline) => {
+    bloodline.effects.forEach((effect) => {
+      const effectType = effect.type;
+      const calculation = effect.calculation || "static";
+
+      if (!acc[effectType]) {
+        acc[effectType] = {};
+      }
+      acc[effectType][calculation] = (acc[effectType][calculation] || 0) + 1;
+    });
+    return acc;
+  }, {});
+
+  // Sort effect types by total count (descending)
+  const sortedEffectTypeCalculationCounts = effectTypeCalculationCounts
+    ? Object.fromEntries(
+        Object.entries(effectTypeCalculationCounts)
+          .map(([effectType, calculations]) => ({
+            effectType,
+            calculations,
+            total: Object.values(calculations).reduce((sum, count) => sum + count, 0),
+          }))
+          .sort((a, b) => b.total - a.total)
+          .map(({ effectType, calculations }) => [effectType, calculations]),
+      )
+    : undefined;
+
   // Wordcloud
-  const allText = processed?.map((b) => b.description).join(" ");
+  const allText = allBloodlines?.map((b) => b.description).join(" ");
 
   return (
     <>
@@ -93,15 +180,37 @@ export default function ManualBloodlineBalance() {
             <CountsChart data={classCounts} />
             <p className="bold text-xl">Ranking</p>
             <CountsChart data={rankCounts} />
+            <p className="bold text-xl">Effect Types</p>
+            <StackedCountsChart data={sortedEffectTypeCalculationCounts} />
           </div>
         )}
       </ContentBox>
+
+      {/* Bloodline Details Modal */}
+      <Modal2
+        title="Bloodline Details"
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        proceed_label={null}
+      >
+        {isBloodlineDetailsPending ? (
+          <Loader explanation="Loading bloodline details" />
+        ) : (
+          bloodlineDetails && (
+            <ItemWithEffects item={bloodlineDetails} showStatistic="bloodline" />
+          )
+        )}
+      </Modal2>
     </>
   );
 }
 
 interface CountsChartProps {
   data: Record<string, number> | undefined;
+}
+
+interface StackedCountsChartProps {
+  data: Record<string, Record<string, number>> | undefined;
 }
 
 const CountsChart: React.FC<CountsChartProps> = (props) => {
@@ -122,6 +231,13 @@ const CountsChart: React.FC<CountsChartProps> = (props) => {
           responsive: true,
           aspectRatio: 1.1,
           scales: {
+            x: {
+              ticks: {
+                maxRotation: 90,
+                minRotation: 90,
+                autoSkip: false,
+              },
+            },
             y: {
               beginAtZero: true,
             },
@@ -152,6 +268,83 @@ const CountsChart: React.FC<CountsChartProps> = (props) => {
   return (
     <div className="relative w-[99%] p-3">
       <canvas ref={classChart} id="classCounts"></canvas>
+    </div>
+  );
+};
+
+const StackedCountsChart: React.FC<StackedCountsChartProps> = (props) => {
+  const stackedChart = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const stackedCtx = stackedChart?.current?.getContext("2d");
+    if (stackedCtx && props.data) {
+      const effectTypes = Object.keys(props.data);
+      const calculations = Array.from(
+        new Set(Object.values(props.data).flatMap((calcObj) => Object.keys(calcObj))),
+      );
+
+      const datasets = calculations.map((calculation, index) => {
+        const colors = [
+          "#FF6384",
+          "#36A2EB",
+          "#FFCE56",
+          "#4BC0C0",
+          "#9966FF",
+          "#FF9F40",
+        ];
+        return {
+          label: calculation,
+          data: effectTypes.map(
+            (effectType) => props.data?.[effectType]?.[calculation] || 0,
+          ),
+          backgroundColor: colors[index % colors.length],
+          borderColor: colors[index % colors.length],
+          borderWidth: 1,
+        };
+      });
+
+      const myStackedChart = new ChartJS(stackedCtx, {
+        type: "bar",
+        options: {
+          maintainAspectRatio: false,
+          responsive: true,
+          aspectRatio: 1.1,
+          scales: {
+            x: {
+              ticks: {
+                maxRotation: 90,
+                minRotation: 90,
+                autoSkip: false,
+              },
+              stacked: true,
+            },
+            y: {
+              beginAtZero: true,
+              stacked: true,
+            },
+          },
+          plugins: {
+            legend: {
+              display: true,
+            },
+          },
+        },
+        data: {
+          labels: effectTypes,
+          datasets: datasets,
+        },
+      });
+
+      // Remove on unmount
+      return () => {
+        myStackedChart.destroy();
+      };
+    }
+  }, [props.data]);
+
+  return (
+    <div className="relative w-[99%] p-3">
+      <canvas ref={stackedChart} id="stackedCounts"></canvas>
     </div>
   );
 };

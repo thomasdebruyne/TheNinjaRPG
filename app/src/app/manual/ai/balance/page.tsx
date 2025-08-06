@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useLocalStorage } from "@/hooks/localstorage";
 import { groupBy } from "@/utils/grouping";
 import ContentBox from "@/layout/ContentBox";
@@ -29,7 +29,7 @@ export default function ManualAIsBalance() {
   // State
   const availableTabs = ["Usage", "Power"];
   type Tab = (typeof availableTabs)[number];
-  const [tab, setTab] = useLocalStorage<Tab>("aiBalanceTab", "Usage");
+  const [tab, setTab] = useLocalStorage<Tab>("aiBalanceTab", "Usage", true);
 
   const NavBarBlock = (
     <NavTabs current={tab} options={availableTabs} setValue={setTab} />

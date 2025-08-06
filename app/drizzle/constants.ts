@@ -1275,6 +1275,8 @@ export const IMG_MANUAL_JUTSU =
   "https://utfs.io/f/Hzww9EQvYURJMI7fE4tsO4cexqW2RDgkE3zZbNXSFGitmnar";
 export const IMG_MANUAL_SKILLTREE =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJQB2gVJjhzBPya1rwfCIqOTU0cV5xgsMeo3u2";
+export const IMG_MANUAL_BALANCE =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJunxMxUaCyJLoOFkrcn4gxSwCfEQ9eMNXZlG8";
 export const IMG_MANUAL_ITEM =
   "https://utfs.io/f/Hzww9EQvYURJb59vlYAtYUndMi56GkX19q0A4PzyeIloBrEa";
 export const IMG_MANUAL_AI =

@@ -31,7 +31,7 @@ export default function ManualJutsusBalance() {
   // State
   const availableTabs = ["Usage", "Power"];
   type Tab = (typeof availableTabs)[number];
-  const [tab, setTab] = useLocalStorage<Tab>("jutsuBalanceTab", "Usage");
+  const [tab, setTab] = useLocalStorage<Tab>("jutsuBalanceTab", "Usage", true);
 
   const NavBarBlock = (
     <NavTabs current={tab} options={availableTabs} setValue={setTab} />

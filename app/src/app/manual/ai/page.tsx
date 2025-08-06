@@ -93,11 +93,6 @@ export default function ManualAI() {
                 <ChartCandlestick className="h-6 w-6" />
               </Button>
             </Link>
-            <Link href="/manual/ai/completeness">
-              <Button id="ai-completeness" hoverText="Content Completeness">
-                <ChartPie className="h-6 w-6" />
-              </Button>
-            </Link>
           </div>
         }
       >
