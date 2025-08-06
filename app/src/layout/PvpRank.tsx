@@ -23,6 +23,7 @@ import {
   RANKED_LOADOUT_MAX_POISON_JUTSUS,
   RANKED_LOADOUT_MAX_INCREASECOST_ITEMS,
   RANKED_LOADOUT_MAX_INCREASECOST_JUTSUS,
+  RANKED_ENTRY_COST,
 } from "@/drizzle/constants";
 import { validateJutsuLoadout, validateItemLoadout } from "@/libs/ranked_pvp";
 import { QueueTimer } from "@/layout/Countdown";
@@ -48,6 +49,17 @@ export const RankedArenaMain: React.FC = () => {
 
   // Get ranked loadout
   const { data: rankedLoadout } = api.pvpRank.getRankedLoadout.useQuery();
+
+  // Enter ranked season
+  const { mutate: enterSeason, isPending: isEntering } =
+    api.pvpRank.enterRankedSeason.useMutation({
+      onSuccess: (data) => {
+        showMutationToast(data);
+        if (data.success) {
+          void utils.profile.getUser.invalidate();
+        }
+      },
+    });
 
   // Queue for ranked PvP
   const { mutate: queue, isPending: isQueuing } =
@@ -128,6 +140,40 @@ export const RankedArenaMain: React.FC = () => {
             The current ranked season &quot;{currentSeason.name}&quot; is currently
             paused. Ranked battles are temporarily unavailable.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user hasn't entered the ranked season yet
+  if (userData.rankedLp === 0) {
+    const hasEnoughPrestige = userData.villagePrestige >= RANKED_ENTRY_COST;
+
+    return (
+      <div className="flex flex-col items-center gap-4 p-3">
+        <div className="text-center">
+          <p className="text-lg font-semibold mb-2">Enter Ranked Season</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            To participate in ranked PvP battles, you must first enter the ranked
+            season. This requires {RANKED_ENTRY_COST.toLocaleString()} village prestige
+            points.
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Your village prestige: <b>{userData.villagePrestige.toLocaleString()}</b>
+          </p>
+          {!hasEnoughPrestige && (
+            <p className="text-sm text-destructive mb-4">
+              You need {RANKED_ENTRY_COST.toLocaleString()} village prestige to enter
+              the ranked season.
+            </p>
+          )}
+          <Button
+            className="w-full"
+            onClick={() => enterSeason()}
+            disabled={isEntering || !hasEnoughPrestige}
+          >
+            {isEntering ? "Entering..." : "Enter Ranked Season"}
+          </Button>
         </div>
       </div>
     );

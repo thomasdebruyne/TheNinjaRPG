@@ -17,6 +17,7 @@ import {
   RANKED_SANNIN_TOP_PLAYERS,
   RANKED_PVP_STATS,
   RANKED_REQUIRED_RANK,
+  RANKED_ENTRY_COST,
 } from "@/drizzle/constants";
 import { validateJutsuLoadout, validateItemLoadout } from "@/libs/ranked_pvp";
 import { initiateBattle } from "@/routers/combat";
@@ -318,6 +319,34 @@ export const pvpRankRouter = createTRPCRouter({
       return { success: true, message: "Ranked loadout updated successfully" };
     }),
 
+  // Enter the ranked season
+  enterRankedSeason: protectedProcedure
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!hasRequiredRank(user.rank, RANKED_REQUIRED_RANK)) {
+        return errorResponse(
+          `You need to be a ${capitalizeFirstLetter(RANKED_REQUIRED_RANK)} to enter the ranked season`,
+        );
+      }
+      if (user.rankedLp > 0) {
+        return errorResponse("You have already entered the ranked season");
+      }
+      if (user.villagePrestige < RANKED_ENTRY_COST) {
+        return errorResponse(
+          `You need to have ${RANKED_ENTRY_COST} village prestige to enter the ranked season`,
+        );
+      }
+      // Mutation
+      await ctx.drizzle
+        .update(userData)
+        .set({ rankedLp: 1, villagePrestige: user.villagePrestige - RANKED_ENTRY_COST })
+        .where(eq(userData.userId, ctx.userId));
+      return { success: true, message: "Ranked season entered successfully" };
+    }),
+
   // Queue for ranked PVP battle
   queueForRankedPvp: protectedProcedure
     .output(
@@ -343,6 +372,11 @@ export const pvpRankRouter = createTRPCRouter({
       if (!hasRequiredRank(user.rank, RANKED_REQUIRED_RANK)) {
         return errorResponse(
           `You need to be a ${capitalizeFirstLetter(RANKED_REQUIRED_RANK)} to queue`,
+        );
+      }
+      if (user.rankedLp < 1) {
+        return errorResponse(
+          "You need to have entered into the ranked season before you can queue",
         );
       }
 
