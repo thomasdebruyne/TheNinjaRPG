@@ -234,6 +234,9 @@ export const pvpRankRouter = createTRPCRouter({
           jutsuIds: [],
           weaponIds: [],
           consumableIds: [],
+          favoriteJutsuIds: [],
+          favoriteWeaponIds: [],
+          favoriteConsumableIds: [],
         },
       };
       await ctx.drizzle.insert(rankedLoadout).values(loadout);

@@ -25,5 +25,8 @@ export const rankedLoadoutSchema = z.object({
   jutsuIds: z.array(z.string()),
   weaponIds: z.array(z.string()),
   consumableIds: z.array(z.string()),
+  favoriteJutsuIds: z.array(z.string()).optional(),
+  favoriteWeaponIds: z.array(z.string()).optional(),
+  favoriteConsumableIds: z.array(z.string()).optional(),
 });
 export type RankedLoadoutSchema = z.infer<typeof rankedLoadoutSchema>;

@@ -13,7 +13,7 @@ import Modal2 from "@/layout/Modal2";
 import { ActionSelector } from "@/layout/CombatActions";
 import JutsuFiltering, { useFiltering, getFilter } from "@/layout/JutsuFiltering";
 import type { Jutsu, Item } from "@/drizzle/schema";
-import { OctagonX } from "lucide-react";
+import { OctagonX, Star } from "lucide-react";
 import {
   RANKED_LOADOUT_MAX_JUTSUS,
   RANKED_LOADOUT_MAX_WEAPONS,
@@ -308,6 +308,7 @@ export const RankedLoadoutSelector: React.FC = () => {
   const updateLoadout = api.pvpRank.updateRankedLoadout.useMutation({
     onSuccess: (data) => {
       showMutationToast(data);
+      setSelectedItem(undefined);
       void utils.pvpRank.getRankedLoadout.invalidate();
     },
   });
@@ -326,6 +327,11 @@ export const RankedLoadoutSelector: React.FC = () => {
   const loadoutWeapons = rankedLoadout?.loadout.weaponIds ?? [];
   const loadoutConsumables = rankedLoadout?.loadout.consumableIds ?? [];
 
+  // Get favorite arrays
+  const favoriteJutsus = rankedLoadout?.loadout.favoriteJutsuIds ?? [];
+  const favoriteWeapons = rankedLoadout?.loadout.favoriteWeaponIds ?? [];
+  const favoriteConsumables = rankedLoadout?.loadout.favoriteConsumableIds ?? [];
+
   const handleUnequipAll = () => {
     if (!rankedLoadout) return;
     updateLoadout.mutate({
@@ -336,7 +342,7 @@ export const RankedLoadoutSelector: React.FC = () => {
     });
   };
 
-  // Process data
+  // Process data with favorite sorting
   const filteredWeapons = weapons?.data.filter((weapon) => weapon.repsCost === 0) || [];
   const filteredConsumables =
     consumables?.data.filter((consumable) => consumable.repsCost === 0) || [];
@@ -344,18 +350,116 @@ export const RankedLoadoutSelector: React.FC = () => {
   const equippedItems = rankedLoadout
     ? [...rankedLoadout.loadout.weaponIds, ...rankedLoadout.loadout.consumableIds]
     : [];
+
+  // Sort items with equipped first, then favorites, then normal ordering
+  const sortedWeapons = filteredWeapons.sort((a, b) => {
+    const aIsEquipped = loadoutWeapons.includes(a.id);
+    const bIsEquipped = loadoutWeapons.includes(b.id);
+    const aIsFavorite = favoriteWeapons.includes(a.id);
+    const bIsFavorite = favoriteWeapons.includes(b.id);
+
+    // Equipped items come first
+    if (aIsEquipped && !bIsEquipped) return -1;
+    if (!aIsEquipped && bIsEquipped) return 1;
+
+    // If both are equipped or both are not equipped, sort by favorite status
+    if (aIsFavorite && !bIsFavorite) return -1;
+    if (!aIsFavorite && bIsFavorite) return 1;
+
+    // If both have same favorite status, maintain original order
+    return 0;
+  });
+
+  const sortedConsumables = filteredConsumables.sort((a, b) => {
+    const aIsEquipped = loadoutConsumables.includes(a.id);
+    const bIsEquipped = loadoutConsumables.includes(b.id);
+    const aIsFavorite = favoriteConsumables.includes(a.id);
+    const bIsFavorite = favoriteConsumables.includes(b.id);
+
+    // Equipped items come first
+    if (aIsEquipped && !bIsEquipped) return -1;
+    if (!aIsEquipped && bIsEquipped) return 1;
+
+    // If both are equipped or both are not equipped, sort by favorite status
+    if (aIsFavorite && !bIsFavorite) return -1;
+    if (!aIsFavorite && bIsFavorite) return 1;
+
+    // If both have same favorite status, maintain original order
+    return 0;
+  });
+
   const processedJutsu = flatJutsu
-    .map((jutsu) => ({ ...jutsu, highlight: loadoutJutsus.includes(jutsu.id) }))
+    .map((jutsu) => ({
+      ...jutsu,
+      highlight: loadoutJutsus.includes(jutsu.id),
+      isFavorite: favoriteJutsus.includes(jutsu.id),
+    }))
     .filter((jutsu) => jutsu.jutsuType === "NORMAL")
     .filter((jutsu) => !jutsu.effects.some((e) => e.type === "summon")) // Exclude summon jutsu from ranked
     .sort((a, b) => {
-      const aIndex = loadoutJutsus.indexOf(a.id) ?? -1;
-      const bIndex = loadoutJutsus.indexOf(b.id) ?? -1;
-      if (aIndex === -1 && bIndex === -1) return 0;
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
+      const aIsEquipped = loadoutJutsus.includes(a.id);
+      const bIsEquipped = loadoutJutsus.includes(b.id);
+      const aIsFavorite = favoriteJutsus.includes(a.id);
+      const bIsFavorite = favoriteJutsus.includes(b.id);
+
+      // Equipped jutsus come first
+      if (aIsEquipped && !bIsEquipped) return -1;
+      if (!aIsEquipped && bIsEquipped) return 1;
+
+      // If both are equipped, maintain their order in the loadout
+      if (aIsEquipped && bIsEquipped) {
+        const aIndex = loadoutJutsus.indexOf(a.id);
+        const bIndex = loadoutJutsus.indexOf(b.id);
+        return aIndex - bIndex;
+      }
+
+      // If both are not equipped, sort by favorite status
+      if (aIsFavorite && !bIsFavorite) return -1;
+      if (!aIsFavorite && bIsFavorite) return 1;
+
+      // If both have same favorite status, maintain original order
+      return 0;
     });
+
+  // Handle favorite toggling
+  const handleToggleFavoriteJutsu = (jutsu: Jutsu) => {
+    if (!rankedLoadout) return;
+    const isFavorite = favoriteJutsus.includes(jutsu.id);
+    const newFavoriteJutsus = isFavorite
+      ? favoriteJutsus.filter((id) => id !== jutsu.id)
+      : [...favoriteJutsus, jutsu.id];
+
+    updateLoadout.mutate({
+      ...rankedLoadout.loadout,
+      favoriteJutsuIds: newFavoriteJutsus,
+    });
+  };
+
+  const handleToggleFavoriteWeapon = (weapon: Item) => {
+    if (!rankedLoadout) return;
+    const isFavorite = favoriteWeapons.includes(weapon.id);
+    const newFavoriteWeapons = isFavorite
+      ? favoriteWeapons.filter((id) => id !== weapon.id)
+      : [...favoriteWeapons, weapon.id];
+
+    updateLoadout.mutate({
+      ...rankedLoadout.loadout,
+      favoriteWeaponIds: newFavoriteWeapons,
+    });
+  };
+
+  const handleToggleFavoriteConsumable = (consumable: Item) => {
+    if (!rankedLoadout) return;
+    const isFavorite = favoriteConsumables.includes(consumable.id);
+    const newFavoriteConsumables = isFavorite
+      ? favoriteConsumables.filter((id) => id !== consumable.id)
+      : [...favoriteConsumables, consumable.id];
+
+    updateLoadout.mutate({
+      ...rankedLoadout.loadout,
+      favoriteConsumableIds: newFavoriteConsumables,
+    });
+  };
 
   // Handle jutsu equipping
   const handleToggleJutsu = (jutsu: Jutsu) => {
@@ -486,15 +590,16 @@ export const RankedLoadoutSelector: React.FC = () => {
           <TabsContent value="weapons">
             {isLoadingWeapons && <Loader explanation="Loading Weapons" />}
             <ActionSelector
-              items={filteredWeapons?.map((weapon) => ({
+              items={sortedWeapons?.map((weapon) => ({
                 ...weapon,
                 highlight: rankedLoadout?.loadout.weaponIds.includes(weapon.id),
+                isFavorite: favoriteWeapons.includes(weapon.id),
               }))}
               selectedId={selectedItem?.id}
               showBgColor={false}
               showLabels={false}
               onClick={(id) => {
-                const item = filteredWeapons?.find((w) => w.id === id);
+                const item = sortedWeapons?.find((w) => w.id === id);
                 if (item) {
                   setSelectedItem(item);
                   setIsItemModalOpen(true);
@@ -507,15 +612,16 @@ export const RankedLoadoutSelector: React.FC = () => {
           <TabsContent value="consumables">
             {isLoadingConsumables && <Loader explanation="Loading Consumables" />}
             <ActionSelector
-              items={filteredConsumables?.map((consumable) => ({
+              items={sortedConsumables?.map((consumable) => ({
                 ...consumable,
                 highlight: rankedLoadout?.loadout.consumableIds.includes(consumable.id),
+                isFavorite: favoriteConsumables.includes(consumable.id),
               }))}
               selectedId={selectedItem?.id}
               showBgColor={false}
               showLabels={false}
               onClick={(id) => {
-                const item = filteredConsumables?.find((c) => c.id === id);
+                const item = sortedConsumables?.find((c) => c.id === id);
                 if (item) {
                   setSelectedItem(item);
                   setIsItemModalOpen(true);
@@ -561,6 +667,38 @@ export const RankedLoadoutSelector: React.FC = () => {
         >
           <div className="flex flex-col gap-4">
             <ItemWithEffects item={selectedItem} showStatistic="item" />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (selectedItem.itemType === "WEAPON") {
+                    handleToggleFavoriteWeapon(selectedItem);
+                  } else {
+                    handleToggleFavoriteConsumable(selectedItem);
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <Star
+                  className={`h-4 w-4 ${
+                    (
+                      selectedItem.itemType === "WEAPON"
+                        ? favoriteWeapons.includes(selectedItem.id)
+                        : favoriteConsumables.includes(selectedItem.id)
+                    )
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-gray-400"
+                  }`}
+                />
+                {(
+                  selectedItem.itemType === "WEAPON"
+                    ? favoriteWeapons.includes(selectedItem.id)
+                    : favoriteConsumables.includes(selectedItem.id)
+                )
+                  ? "Unfavorite"
+                  : "Favorite"}
+              </Button>
+            </div>
             {!equippedItems.includes(selectedItem.id) &&
               selectedItem.effects.some((e) => e.type === "poison") && (
                 <div className="text-sm text-muted-foreground">
@@ -600,6 +738,22 @@ export const RankedLoadoutSelector: React.FC = () => {
         >
           <div className="flex flex-col gap-4">
             <ItemWithEffects item={selectedJutsu} showStatistic="jutsu" />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleToggleFavoriteJutsu(selectedJutsu)}
+                className="flex items-center gap-2"
+              >
+                <Star
+                  className={`h-4 w-4 ${
+                    favoriteJutsus.includes(selectedJutsu.id)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-gray-400"
+                  }`}
+                />
+                {favoriteJutsus.includes(selectedJutsu.id) ? "Unfavorite" : "Favorite"}
+              </Button>
+            </div>
             {!loadoutJutsus.includes(selectedJutsu.id) &&
               selectedJutsu.effects.some(
                 (e) => "residualModifier" in e && e.residualModifier,

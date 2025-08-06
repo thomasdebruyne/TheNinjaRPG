@@ -1,7 +1,7 @@
 import React from "react";
 import ContentImage from "./ContentImage";
 import { useUserData } from "@/utils/UserContext";
-import { Info, HelpCircle } from "lucide-react";
+import { Info, HelpCircle, Star } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import ElementImage from "@/layout/ElementImage";
@@ -31,6 +31,7 @@ interface ActionSelectorProps {
         type?: "jutsu" | "item" | "basic" | "village" | "asset" | "bloodline";
         effects?: ZodAllTags[];
         highlight?: boolean;
+        isFavorite?: boolean;
         hidden?: boolean | number;
         cooldown?: number;
         frames?: number;
@@ -197,6 +198,13 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
                     <ElementImage element={element} className="w-6" />
                   </div>
                 ))}
+
+                {/* Favorite indicator */}
+                {item.isFavorite && (
+                  <div className="absolute top-[-5px] right-[-5px]">
+                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  </div>
+                )}
               </div>
             </div>
           );
