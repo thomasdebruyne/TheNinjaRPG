@@ -42,7 +42,7 @@ export default function RankedManualPage() {
       <ContentBox
         title="Ranked PvP (Preview Feature)"
         subtitle="Competitive battles for League Points"
-        back_href="/manual"
+        defaultBackHref="/manual"
       >
         <Tabs
           value={activeTab}

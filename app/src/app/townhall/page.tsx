@@ -127,7 +127,7 @@ const ElderHall: React.FC<{
       <ContentBox
         title="Town Hall"
         subtitle="Elders Council"
-        back_href="/village"
+        defaultBackHref="/village"
         topRightContent={navTabs}
       >
         <p className="pb-2">
@@ -315,7 +315,7 @@ const KageHall: React.FC<{
       <ContentBox
         title="Town Hall"
         subtitle="Kage Challenge"
-        back_href="/village"
+        defaultBackHref="/village"
         topRightContent={navTabs}
       >
         <p>
@@ -759,7 +759,7 @@ const AllianceHall: React.FC<{
       <ContentBox
         title={user.isOutlaw ? "Rumours" : "Town Hall"}
         subtitle="Villages & factions"
-        back_href="/village"
+        defaultBackHref="/village"
         topRightContent={navTabs}
       >
         <div className="overflow-auto">

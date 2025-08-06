@@ -68,7 +68,7 @@ export default function JutsuStatistics(props: {
         <ContentBox
           title="Jutsu Statistics"
           subtitle={jutsu.name}
-          back_href="/manual/jutsu"
+          defaultBackHref="/manual/jutsu"
         >
           {jutsuText(jutsu.name)}
         </ContentBox>
@@ -77,7 +77,7 @@ export default function JutsuStatistics(props: {
         title={`Jutsu: ${name}`}
         subtitle={`Total users: ${totalUsers}`}
         initialBreak={!userData && !!jutsu}
-        back_href={userData ? "/manual/jutsu" : undefined}
+        defaultBackHref={userData ? "/manual/jutsu" : undefined}
       >
         {levelDistribution && (
           <LevelStats

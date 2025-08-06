@@ -145,7 +145,7 @@ export default function ANBU() {
     <ContentBox
       title="ANBU"
       subtitle="Assigned by Kage & Elders"
-      back_href="/village"
+      defaultBackHref="/village"
       padding={false}
       topRightContent={
         canCreateMore &&

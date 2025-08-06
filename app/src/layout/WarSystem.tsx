@@ -141,7 +141,7 @@ export const WarRoom: React.FC<{
       <ContentBox
         title="Wars"
         subtitle="Manage Wars"
-        back_href="/village"
+        defaultBackHref="/village"
         topRightContent={navTabs}
         initialBreak={initialBreak}
       >

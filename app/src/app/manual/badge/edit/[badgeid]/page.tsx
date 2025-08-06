@@ -59,7 +59,7 @@ const SingleEditBadge: React.FC<SingleEditBadgeProps> = (props) => {
     <ContentBox
       title="Content Panel"
       subtitle="Badge Management"
-      back_href="/manual/badge"
+      defaultBackHref="/manual/badge"
       noRightAlign={true}
       topRightContent={
         formData.find((e) => e.id === "description") ? (

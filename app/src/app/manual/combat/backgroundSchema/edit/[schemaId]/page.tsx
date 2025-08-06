@@ -28,11 +28,9 @@ import { bgTypes } from "@/validators/backgroundSchema";
 import { BgSchemaValidator } from "@/validators/backgroundSchema";
 import { BackgroundSchemaValidator } from "@/validators/backgroundSchema";
 
-export default function EditBackgroundSchemaPage(
-  props: {
-    params: Promise<{ schemaId: string }>;
-  }
-) {
+export default function EditBackgroundSchemaPage(props: {
+  params: Promise<{ schemaId: string }>;
+}) {
   const params = use(props.params);
   const router = useRouter();
   const schemaId = params.schemaId;
@@ -114,7 +112,7 @@ const EditBackgroundSchemaForm: React.FC<EditBackgroundSchemaFormProps> = ({
     <ContentBox
       title="Edit Background Schema"
       subtitle={`Editing schema: ${schema?.name || "New Schema"}`}
-      back_href="/manual/combat/backgroundSchema"
+      defaultBackHref="/manual/combat/backgroundSchema"
     >
       <Form {...form}>
         <form onSubmit={onSubmit}>

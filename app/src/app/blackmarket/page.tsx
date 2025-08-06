@@ -65,7 +65,7 @@ export default function BlackMarket() {
       <ContentBox
         title="Black Market"
         subtitle="Special Abilities and Items"
-        back_href="/village"
+        defaultBackHref="/village"
         topRightContent={
           <NavTabs
             id="blackmarket-page"

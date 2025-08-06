@@ -4,16 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import {
-  Plus,
-  X,
-  Vote,
-  Eye,
-  User,
-  Type,
-  Trash2,
-  Pencil,
-} from "lucide-react";
+import { Plus, X, Vote, Eye, User, Type, Trash2, Pencil } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 
@@ -132,7 +123,7 @@ export default function PollsPage() {
       <ContentBox
         title="Community Polls"
         subtitle="Vote and share your opinion"
-        back_href="/manual"
+        defaultBackHref="/manual"
       >
         <p>
           Participate in community polls to share your opinion on various topics.

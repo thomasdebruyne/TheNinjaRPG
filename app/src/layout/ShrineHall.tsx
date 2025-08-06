@@ -67,7 +67,7 @@ export const ShrineHall = ({ user, navTabs }: ShrineHallProps) => {
       <ContentBox
         title="Shrines"
         subtitle={`${user.village?.name} Shrines`}
-        back_href="/village"
+        defaultBackHref="/village"
         topRightContent={navTabs}
         padding={false}
       >

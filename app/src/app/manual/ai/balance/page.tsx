@@ -140,7 +140,7 @@ const AiUsageBalance: React.FC<{ navTabs: React.ReactNode }> = ({ navTabs }) => 
     <ContentBox
       title="AI Balance"
       subtitle="Data since last reset"
-      back_href="/manual/ai"
+      defaultBackHref="/manual/ai"
       padding={false}
       topRightContent={
         <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ const AiEffectsBalance: React.FC<{ navTabs: React.ReactNode }> = ({ navTabs }) =
       <ContentBox
         title="AI Effects Balance"
         subtitle="Effect-based power analysis"
-        back_href="/manual/ai"
+        defaultBackHref="/manual/ai"
         padding={false}
         topRightContent={
           <div className="flex items-center gap-2">

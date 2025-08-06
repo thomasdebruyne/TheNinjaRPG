@@ -1,13 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronsLeft } from "lucide-react";
 
 export interface ContentBoxProps {
   children: React.ReactNode;
   title: string;
-  back_href?: string;
+  defaultBackHref?: string;
   subtitle?: string | React.ReactNode;
   topRightCorntentBreakpoint?: "sm" | "md" | "lg" | "xl" | "2xl";
   topRightContent?: React.ReactNode;
@@ -22,21 +23,37 @@ export interface ContentBoxProps {
 }
 
 const ContentBox: React.FC<ContentBoxProps> = (props) => {
+  // State for browser-based back functionality
+  const router = useRouter();
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  // If we have browser history, we can go back
+  useEffect(() => {
+    setCanGoBack(history.length > 1);
+  }, []);
+
+  // Handle back navigation
+  const handleBack = useCallback(() => {
+    if (canGoBack) {
+      router.back();
+    } else if (props.defaultBackHref) {
+      router.push(props.defaultBackHref);
+    }
+  }, [canGoBack, router, props]);
+
   // Title to be shown
-  const title = props.back_href ? (
-    <Link
-      className="ml-1 flex flex-row items-center hover:text-orange-700"
+  const title = props.defaultBackHref ? (
+    <div
+      className="ml-1 flex cursor-pointer flex-row items-center hover:text-orange-700"
       onClick={() => {
-        if (props.onBack) {
-          props.onBack();
-        }
+        handleBack();
+        if (props.onBack) props.onBack();
       }}
-      href={props.back_href}
       suppressHydrationWarning
     >
       <ChevronsLeft className="h-6 w-6" />
       {props.title}
-    </Link>
+    </div>
   ) : (
     <div suppressHydrationWarning>{props.title}</div>
   );

@@ -41,7 +41,7 @@ export default function ItemStatistics(props: { params: Promise<{ itemid: string
         <ContentBox
           title="Item Statistics"
           subtitle={item.name}
-          back_href="/manual/item"
+          defaultBackHref="/manual/item"
         >
           {itemText(item.name)}
         </ContentBox>
@@ -50,7 +50,7 @@ export default function ItemStatistics(props: { params: Promise<{ itemid: string
         title={`Item: ${name}`}
         subtitle={`#battles: ${total}. #users: ${totalUsers}`}
         initialBreak={!userData && !!item}
-        back_href={userData ? "/manual/item" : undefined}
+        defaultBackHref={userData ? "/manual/item" : undefined}
         topRightContent={<StatisticsFiltering state={statsFilter} />}
       >
         {filteredUsage && <UsageStats usage={filteredUsage} />}

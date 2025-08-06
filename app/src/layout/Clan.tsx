@@ -676,13 +676,13 @@ export const ClanRequests: React.FC<ClanRequestsProps> = (props) => {
  */
 interface ClanInfoProps {
   clanData: NonNullable<ClanRouter["get"]>;
-  back_href?: string;
+  defaultBackHref?: string;
 }
 
 export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
   // Destructure
   const { userData, updateUser } = useRequireInVillage("/clanhall");
-  const { clanData, back_href } = props;
+  const { clanData, defaultBackHref } = props;
   const clanId = clanData.id;
   const groupLabel = userData?.isOutlaw ? "Faction" : "Clan";
 
@@ -860,7 +860,7 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
     <ContentBox
       title={clanData.name}
       subtitle={`${groupLabel} Overview`}
-      back_href={back_href}
+      defaultBackHref={defaultBackHref}
       topRightContent={
         <div className="flex flex-row gap-1">
           {isLeader && hadHideout && (
@@ -1409,14 +1409,14 @@ export const ClanMembers: React.FC<ClanMembersProps> = (props) => {
  */
 interface ClanProfileProps {
   clanId: string;
-  back_href?: string;
+  defaultBackHref?: string;
 }
 
 export const ClanProfile: React.FC<ClanProfileProps> = (props) => {
   // Destructure & state
   const [showActive, setShowActive] = useLocalStorage<string>("clanPageTab", "orders");
   const { userData } = useRequireInVillage("/clanhall");
-  const { clanId, back_href } = props;
+  const { clanId, defaultBackHref } = props;
 
   // Queries
   const { data: clanData } = api.clan.get.useQuery({ clanId: clanId });
@@ -1437,7 +1437,7 @@ export const ClanProfile: React.FC<ClanProfileProps> = (props) => {
   return (
     <>
       {/** OVERVIEW */}
-      <ClanInfo back_href={back_href} clanData={clanData} />
+      <ClanInfo defaultBackHref={defaultBackHref} clanData={clanData} />
       <div className="w-full pt-2">
         <Tabs
           defaultValue={showActive}

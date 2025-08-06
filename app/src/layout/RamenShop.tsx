@@ -21,7 +21,7 @@ import type { UserWithRelations } from "@/routers/profile";
 
 interface RamenShopProps {
   initialBreak?: boolean;
-  back_href?: string;
+  defaultBackHref?: string;
   showImage?: boolean;
 }
 
@@ -51,7 +51,7 @@ const RamenShop: React.FC<RamenShopProps> = (props) => {
     <ContentBox
       title="Ramen Shop"
       subtitle="Healthy food to regain chakra & stamina"
-      back_href={props.back_href}
+      defaultBackHref={props.defaultBackHref}
       padding={false}
       initialBreak={props.initialBreak}
     >

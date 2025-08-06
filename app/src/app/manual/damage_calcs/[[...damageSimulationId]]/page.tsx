@@ -286,7 +286,7 @@ export default function Simulator(props: {
         <ContentBox
           title="Damage Simulator"
           subtitle="Damage calculation tool"
-          back_href="/manual"
+          defaultBackHref="/manual"
         >
           {battleCalcText()}
         </ContentBox>
@@ -295,7 +295,7 @@ export default function Simulator(props: {
         title="Damage Simulator"
         subtitle="Benchmark your build"
         initialBreak={!userData}
-        back_href={userData ? "/manual" : undefined}
+        defaultBackHref={userData ? "/manual" : undefined}
         padding={false}
         topRightContent={
           <Toggle

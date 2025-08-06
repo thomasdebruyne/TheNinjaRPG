@@ -55,7 +55,7 @@ export default function Reports() {
     <ContentBox
       title="Reports"
       subtitle={userData?.role === "USER" ? "Your reports" : "Overview"}
-      back_href="/reports"
+      defaultBackHref="/reports"
       padding={false}
     >
       <Table

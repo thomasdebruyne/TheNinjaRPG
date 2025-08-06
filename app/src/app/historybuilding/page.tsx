@@ -30,7 +30,7 @@ export default async function HistoryBuilding() {
     <FancyForumThreads
       board_name="History"
       canPost={canPost}
-      back_href="/village"
+      defaultBackHref="/village"
       image={IMG_BUILDING_ARCHIVE}
       initialData={initialNews}
     />

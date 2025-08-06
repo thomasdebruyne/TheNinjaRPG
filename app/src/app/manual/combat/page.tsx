@@ -18,7 +18,7 @@ export default function ManualCombat() {
       <ContentBox
         title="Combat"
         subtitle="Fighting for survival"
-        back_href="/manual"
+        defaultBackHref="/manual"
         topRightContent={
           userData &&
           canChangeContent(userData.role) && (

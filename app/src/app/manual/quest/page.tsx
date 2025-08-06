@@ -70,7 +70,7 @@ export default function ManualQuests() {
       <ContentBox
         title="Quests"
         subtitle="Tasks to perform around the world"
-        back_href="/manual"
+        defaultBackHref="/manual"
       >
         Quests covers a wide range of activities within the game, including:
         <ul>

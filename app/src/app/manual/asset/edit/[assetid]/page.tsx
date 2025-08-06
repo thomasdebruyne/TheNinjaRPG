@@ -57,7 +57,7 @@ const SingleEditAsset: React.FC<SingleEditAssetProps> = (props) => {
     <ContentBox
       title="Content Panel"
       subtitle="Asset Management"
-      back_href="/manual/asset"
+      defaultBackHref="/manual/asset"
       noRightAlign={true}
     >
       {!asset && <p>Could not find this asset</p>}

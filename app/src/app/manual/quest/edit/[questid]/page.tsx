@@ -149,7 +149,7 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
       <ContentBox
         title="Content Panel"
         subtitle="Quest Management"
-        back_href="/manual/quest"
+        defaultBackHref="/manual/quest"
         noRightAlign={true}
         topRightContent={
           <div className="flex flex-row gap-2">

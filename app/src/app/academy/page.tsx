@@ -12,7 +12,7 @@ export default function Academy() {
       <ContentBox
         title="Academy"
         subtitle="Learning the ropes"
-        back_href="/village"
+        defaultBackHref="/village"
         padding={false}
       >
         <Image

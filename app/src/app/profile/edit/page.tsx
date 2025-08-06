@@ -104,7 +104,7 @@ export default function EditProfile() {
     <ContentBox
       title="Edit Profile"
       subtitle="Customize Character"
-      back_href="/profile"
+      defaultBackHref="/profile"
       padding={false}
     >
       <div className="grid grid-cols-1">
@@ -1368,15 +1368,15 @@ const ElementRerollButton: React.FC<ElementRerollButtonProps> = ({
   elementType,
   canAfford,
   canChange,
-  onReroll
+  onReroll,
 }) => (
   <Confirm2
     title={`Confirm ${elementType.charAt(0).toUpperCase() + elementType.slice(1)} Element Re-Roll`}
     button={
-      <Button 
+      <Button
         id={`reroll-${elementType}`}
-        type="submit" 
-        className="w-full" 
+        type="submit"
+        className="w-full"
         disabled={!canAfford || !canChange}
       >
         Re-Roll {elementType.charAt(0).toUpperCase() + elementType.slice(1)} Element
@@ -1387,8 +1387,8 @@ const ElementRerollButton: React.FC<ElementRerollButtonProps> = ({
       onReroll(elementType);
     }}
   >
-    Rerolling your {elementType} element costs {COST_REROLL_ELEMENT} reputation points. Are you
-    sure you want to re-roll your {elementType} element?
+    Rerolling your {elementType} element costs {COST_REROLL_ELEMENT} reputation points.
+    Are you sure you want to re-roll your {elementType} element?
   </Confirm2>
 );
 
@@ -1816,7 +1816,11 @@ const ManagementCommands: React.FC<ManagementCommandsProps> = ({ user }) => {
         <Confirm2
           title="Confirm Reset All Skill Trees"
           button={
-            <Button variant="destructive" disabled={isResettingSkillTrees} className="w-full">
+            <Button
+              variant="destructive"
+              disabled={isResettingSkillTrees}
+              className="w-full"
+            >
               {isResettingSkillTrees ? (
                 <Loader size={5} />
               ) : (
@@ -1832,15 +1836,19 @@ const ManagementCommands: React.FC<ManagementCommandsProps> = ({ user }) => {
             resetAllUsersSkillPoints();
           }}
         >
-          This will reset all users&apos; skill trees and refund their skill points <b>FOR ALL USERS</b>. Are you
-          sure you want to continue?
+          This will reset all users&apos; skill trees and refund their skill points{" "}
+          <b>FOR ALL USERS</b>. Are you sure you want to continue?
         </Confirm2>
       )}
       {canAwardExperience(user) && (
         <Confirm2
           title="Confirm Mass Experience Award"
           button={
-            <Button variant="default" disabled={isAwardingExperience} className="w-full">
+            <Button
+              variant="default"
+              disabled={isAwardingExperience}
+              className="w-full"
+            >
               {isAwardingExperience ? (
                 <Loader size={5} />
               ) : (
@@ -1870,8 +1878,8 @@ const ManagementCommands: React.FC<ManagementCommandsProps> = ({ user }) => {
               />
             </div>
             <p>
-              This will award <b>{experienceAmount}</b> experience points to <b>ALL USERS</b>. Are you
-              sure you want to continue?
+              This will award <b>{experienceAmount}</b> experience points to{" "}
+              <b>ALL USERS</b>. Are you sure you want to continue?
             </p>
           </div>
         </Confirm2>

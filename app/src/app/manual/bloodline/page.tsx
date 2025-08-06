@@ -68,7 +68,7 @@ export default function ManualBloodlines() {
       <ContentBox
         title="Bloodlines"
         subtitle="What are they?"
-        back_href="/manual"
+        defaultBackHref="/manual"
         topRightContent={
           <div className="flex flex-row gap-1">
             <Link href="/manual/bloodline/balance">

@@ -38,7 +38,7 @@ export default function ManualTravel() {
       <ContentBox
         title="Opinions"
         subtitle="Let us know that state of affairs"
-        back_href="/manual"
+        defaultBackHref="/manual"
       >
         TNR has always been community-driven; it&apos;s been our strength, but it&apos;s
         also been our weakness, with poor trust between users and staff, toxic

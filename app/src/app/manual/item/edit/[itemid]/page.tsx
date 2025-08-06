@@ -87,7 +87,7 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
       <ContentBox
         title="Content Panel"
         subtitle="Item Management"
-        back_href="/manual/item"
+        defaultBackHref="/manual/item"
         topRightContent={
           formData.find((e) => e.id === "description") ? (
             <div className="flex gap-2 items-center">

@@ -225,7 +225,7 @@ export default function Recruit() {
       <ContentBox
         title="TNR Promotion"
         subtitle="Earn by helping us grow"
-        back_href="/profile"
+        defaultBackHref="/profile"
       >
         <p className="mb-4 italic">
           Vote on the following sites to earn reputation points. Once you have voted on

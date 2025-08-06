@@ -62,7 +62,7 @@ export default function ManualBadges() {
     <ContentBox
       title="Badges"
       subtitle="All available user badges"
-      back_href="/manual"
+      defaultBackHref="/manual"
       topRightContent={
         userData && canChangeContent(userData.role) ? (
           <Button id="create-badge" onClick={() => create()}>

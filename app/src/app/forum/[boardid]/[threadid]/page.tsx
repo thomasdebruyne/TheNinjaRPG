@@ -77,7 +77,7 @@ export default function Thread(props: { params: Promise<{ threadid: string }> })
       {!userData && (
         <ContentBox
           title="Public Forum"
-          back_href={thread ? "/forum/" + thread.boardId : "/forum"}
+          defaultBackHref={thread ? "/forum/" + thread.boardId : "/forum"}
         >
           {forumText}
         </ContentBox>
@@ -86,7 +86,7 @@ export default function Thread(props: { params: Promise<{ threadid: string }> })
       {thread && (
         <ContentBox
           title="Forum"
-          back_href={userData ? "/forum/" + thread.boardId : undefined}
+          defaultBackHref={userData ? "/forum/" + thread.boardId : undefined}
           initialBreak={userData ? false : true}
           subtitle={thread.title}
         >

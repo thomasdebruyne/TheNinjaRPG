@@ -147,7 +147,7 @@ export default function ManualCombat() {
       <ContentBox
         title="Balance"
         subtitle="Links to Balance Data"
-        back_href="/manual"
+        defaultBackHref="/manual"
         padding={false}
       >
         <p className="p-3">

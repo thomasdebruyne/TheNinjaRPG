@@ -111,7 +111,8 @@ export default function Occupations() {
   };
 
   const topRightContent =
-    userData?.occupation && (changeStatusData?.canChange || canChangeContent(userData?.role || "USER")) ? (
+    userData?.occupation &&
+    (changeStatusData?.canChange || canChangeContent(userData?.role || "USER")) ? (
       <Dialog open={changeDialogOpen} onOpenChange={setChangeDialogOpen}>
         <DialogTrigger asChild>
           <Button>
@@ -139,7 +140,7 @@ export default function Occupations() {
       <ContentBox
         title="Occupation"
         subtitle="Work for your village"
-        back_href="/profile"
+        defaultBackHref="/profile"
         topRightContent={topRightContent}
       >
         {userData?.occupation ? (
@@ -160,23 +161,25 @@ export default function Occupations() {
                   </span>
                 </div>
               )}
-              {changeStatusData && !changeStatusData.canChange && !canChangeContent(userData?.role || "USER") && (
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-orange-600 font-medium">
-                  <span>You can change occupations in</span>
-                  {userData.occupationSignupAt && (
-                    <span className="font-mono bg-popover rounded px-2 py-0.5">
-                      <Countdown
-                        targetDate={
-                          new Date(
-                            userData.occupationSignupAt.getTime() +
-                              OCCUPATION_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
-                          )
-                        }
-                      />
-                    </span>
-                  )}
-                </div>
-              )}
+              {changeStatusData &&
+                !changeStatusData.canChange &&
+                !canChangeContent(userData?.role || "USER") && (
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-orange-600 font-medium">
+                    <span>You can change occupations in</span>
+                    {userData.occupationSignupAt && (
+                      <span className="font-mono bg-popover rounded px-2 py-0.5">
+                        <Countdown
+                          targetDate={
+                            new Date(
+                              userData.occupationSignupAt.getTime() +
+                                OCCUPATION_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+                            )
+                          }
+                        />
+                      </span>
+                    )}
+                  </div>
+                )}
             </div>
           </div>
         ) : (

@@ -88,7 +88,7 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
       <ContentBox
         title="Content Panel"
         subtitle="Skill Tree Management"
-        back_href="/manual/skillTree"
+        defaultBackHref="/manual/skillTree"
         noRightAlign={true}
       >
         {!skillTree && <p>Could not find this skill</p>}

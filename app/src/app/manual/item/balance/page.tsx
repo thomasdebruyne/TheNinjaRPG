@@ -139,7 +139,7 @@ const ItemEffectsBalance: React.FC<ItemEffectsBalanceProps> = (props) => {
       title="Item Effects Balance"
       subtitle="Review Item Power Balance"
       padding={false}
-      back_href="/manual/item"
+      defaultBackHref="/manual/item"
       topRightContent={
         <div className="flex flex-row items-center">
           {props.navTabs}
@@ -290,7 +290,7 @@ const ItemUsageBalance: React.FC<ItemUsageBalanceProps> = (props) => {
     <ContentBox
       title="Item Balance"
       subtitle="Data since last reset"
-      back_href="/manual/item"
+      defaultBackHref="/manual/item"
       padding={false}
       topRightContent={
         <div className="flex items-center gap-2">

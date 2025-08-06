@@ -163,7 +163,7 @@ export default function ManualItemBalance() {
       <ContentBox
         title="Completeness"
         subtitle="Missing information etc."
-        back_href="/manual/item"
+        defaultBackHref="/manual/item"
         padding={false}
         topRightContent={
           <NavTabs current={filter} options={availFilters} setValue={setFilter} />

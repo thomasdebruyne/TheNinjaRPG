@@ -236,7 +236,7 @@ export default function Bank() {
       <ContentBox
         title="Bank"
         subtitle={`Save money & earn ${interest}% interest / day`}
-        back_href="/village"
+        defaultBackHref="/village"
         padding={false}
       >
         <Image

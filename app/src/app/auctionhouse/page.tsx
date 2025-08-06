@@ -63,7 +63,7 @@ export default function AuctionHousePage() {
     <ContentBox
       title="Auction House"
       subtitle="Trade items with other players"
-      back_href="/village"
+      defaultBackHref="/village"
       padding={false}
       topRightContent={
         <div className="flex gap-2 items-center">

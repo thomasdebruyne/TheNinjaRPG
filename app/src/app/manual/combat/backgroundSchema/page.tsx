@@ -58,7 +58,7 @@ export default function ManualbackgroundSchema() {
       <ContentBox
         title="Combat Background Schemas"
         subtitle="Manage combat background schemas"
-        back_href="/manual"
+        defaultBackHref="/manual"
         topRightContent={
           <div className="flex flex-row gap-1 items-center">
             {userData && canChangeContent(userData.role) && (

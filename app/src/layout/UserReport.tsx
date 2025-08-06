@@ -201,7 +201,7 @@ const DisplayUserReport: React.FC<UserReportProps> = (props) => {
     <>
       <ContentBox
         title="Reports"
-        back_href={props.hideHrefBack ? undefined : "/reports"}
+        defaultBackHref={props.hideHrefBack ? undefined : "/reports"}
         subtitle="Details about user report"
         initialBreak={props.initialBreak}
       >

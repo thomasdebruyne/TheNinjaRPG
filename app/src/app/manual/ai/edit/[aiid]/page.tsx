@@ -107,7 +107,7 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
       <ContentBox
         title="Content Panel"
         subtitle="Note: stats scaled by level!"
-        back_href="/manual/ai"
+        defaultBackHref="/manual/ai"
       >
         {!processedUser && <p>Could not find this AI</p>}
         {!loading && processedUser && (

@@ -15,7 +15,7 @@ export default async function PublicProfile(props: {
     <PublicUserComponent
       userId={user?.userId || params.username}
       title="Users"
-      back_href="/users"
+      defaultBackHref="/users"
       showRecruited
       showStudents
       showBadges

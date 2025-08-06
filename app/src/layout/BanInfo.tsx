@@ -15,7 +15,11 @@ const BanInfo: React.FC<BanInfoProps> = () => {
 
   return (
     <>
-      <ContentBox title="No Access" subtitle="You are banned" back_href="/profile">
+      <ContentBox
+        title="No Access"
+        subtitle="You are banned"
+        defaultBackHref="/profile"
+      >
         Please wait for your ban to end before you can access this page.
       </ContentBox>
       {report && (

@@ -162,7 +162,7 @@ export default function TicketDetail(props: { params: Promise<{ ticketId: string
       {/* Ticket Information in Post Component */}
       <ContentBox
         title="Ticket Information"
-        back_href="/support"
+        defaultBackHref="/support"
         subtitle={`Ticket#: ${ticket.id}`}
       >
         <Post

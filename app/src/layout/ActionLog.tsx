@@ -11,7 +11,7 @@ import type { ActionLogSchema } from "@/validators/logs";
 
 interface ActionLogsProps {
   state: ActionLogSchema;
-  back_href?: string;
+  defaultBackHref?: string;
   relatedId?: string;
   initialBreak?: boolean;
   topRightContent?: React.ReactNode;
@@ -74,7 +74,7 @@ const ActionLogs: React.FC<ActionLogsProps> = (props) => {
       title="Content Log"
       subtitle={`Changes for: ${props.state.logtype}`}
       padding={false}
-      back_href={props.back_href}
+      defaultBackHref={props.defaultBackHref}
       initialBreak={props.initialBreak}
       topRightContent={props.topRightContent}
     >

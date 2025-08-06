@@ -70,7 +70,7 @@ export default function ManualItems() {
       <ContentBox
         title="Items"
         subtitle="Content"
-        back_href="/manual"
+        defaultBackHref="/manual"
         topRightContent={
           <div className="flex flex-row gap-1">
             <Link href="/manual/item/balance">

@@ -20,7 +20,7 @@ export default function ItemShop() {
       userData={userData}
       minCost={1}
       defaultType="WEAPON"
-      back_href={"/village"}
+      defaultBackHref={"/village"}
       eventItems={false}
     />
   );

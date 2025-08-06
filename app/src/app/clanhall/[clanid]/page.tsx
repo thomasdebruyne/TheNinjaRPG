@@ -18,5 +18,5 @@ export default function ClanInfo(props: { params: Promise<{ clanid: string }> })
   if (!access) return <Loader explanation="Accessing Clan Hall" />;
 
   // Render
-  return <ClanProfile back_href="/clanhall" clanId={clanId} />;
+  return <ClanProfile defaultBackHref="/clanhall" clanId={clanId} />;
 }

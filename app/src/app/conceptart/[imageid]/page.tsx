@@ -42,5 +42,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function ConceptArtImage(props: Props) {
   const params = await props.params;
-  return <ConceptBox_ConceptImage imageid={params.imageid} back_href="/conceptart" />;
+  return (
+    <ConceptBox_ConceptImage imageid={params.imageid} defaultBackHref="/conceptart" />
+  );
 }

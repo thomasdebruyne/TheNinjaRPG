@@ -39,7 +39,7 @@ export default function AssignExperience() {
     <ContentBox
       title="Assign Experience Points"
       subtitle={`You have ${userData.earnedExperience} unused experience points`}
-      back_href="/profile"
+      defaultBackHref="/profile"
     >
       <DistributeStatsForm
         userData={userData}

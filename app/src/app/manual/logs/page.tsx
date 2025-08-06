@@ -22,7 +22,7 @@ export default function ActionLog() {
         <ContentBox
           title="Content Log"
           subtitle="Logs for all changes to the game"
-          back_href="/manual"
+          defaultBackHref="/manual"
         >
           {changelogText()}
         </ContentBox>
@@ -30,7 +30,7 @@ export default function ActionLog() {
       <ActionLogs
         state={getFilter(state)}
         initialBreak={!userData}
-        back_href={userData ? "/manual" : undefined}
+        defaultBackHref={userData ? "/manual" : undefined}
         topRightContent={<ActionLogFiltering state={state} />}
       />
     </>

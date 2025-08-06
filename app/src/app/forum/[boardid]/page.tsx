@@ -110,13 +110,13 @@ export default function Board(props: { params: Promise<{ boardid: string }> }) {
   return (
     <>
       {!userData && (
-        <ContentBox title="Public Forum" back_href={"/forum/"}>
+        <ContentBox title="Public Forum" defaultBackHref={"/forum/"}>
           {forumText}
         </ContentBox>
       )}
       <ContentBox
         title="Forum"
-        back_href={userData ? "/forum/" : undefined}
+        defaultBackHref={userData ? "/forum/" : undefined}
         initialBreak={userData ? false : true}
         subtitle={board.name}
         topRightContent={

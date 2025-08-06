@@ -30,7 +30,7 @@ interface ShopProps {
   title?: string;
   image?: string;
   subtitle?: string;
-  back_href?: string;
+  defaultBackHref?: string;
   initialBreak?: boolean;
   minCost?: number;
   minRepsCost?: number;
@@ -143,7 +143,7 @@ const Shop: React.FC<ShopProps> = (props) => {
         <ContentBox
           title={props.title ?? "Item Shop"}
           subtitle={props.subtitle ?? "Buy items"}
-          back_href={props.back_href}
+          defaultBackHref={props.defaultBackHref}
           initialBreak={props.initialBreak}
           padding={false}
           topRightContent={

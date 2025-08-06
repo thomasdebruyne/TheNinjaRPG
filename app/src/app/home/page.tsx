@@ -123,7 +123,7 @@ export default function HomePage() {
       <ContentBox
         title={ownVillage ? "Your Home" : "Guest Residence"}
         subtitle={`Train, eat, sleep. +${boost}% regen sleeping.`}
-        back_href="/village"
+        defaultBackHref="/village"
       >
         <div className="grid grid-cols-3 text-center font-bold italic">
           <Link href="/traininggrounds">

@@ -32,7 +32,7 @@ import type { ArrayElement } from "@/utils/typeutils";
 interface ConversationProps {
   convo_title?: string;
   convo_id?: string;
-  back_href?: string;
+  defaultBackHref?: string;
   refreshKey: number;
   title: string;
   subtitle: string;
@@ -47,7 +47,7 @@ export const ConversationSkeleton: React.FC<ConversationProps> = (props) => {
     <ContentBox
       title={props.title}
       subtitle={props.subtitle}
-      back_href={props.back_href}
+      defaultBackHref={props.defaultBackHref}
       initialBreak={props.initialBreak}
       topRightContent={props.topRightContent}
       onBack={props.onBack}
@@ -503,7 +503,7 @@ const Conversation: React.FC<ConversationProps> = (props) => {
         <ContentBox
           title={props.title}
           subtitle={props.subtitle}
-          back_href={props.back_href}
+          defaultBackHref={props.defaultBackHref}
           initialBreak={props.initialBreak}
           topRightContent={
             <div className="flex items-center gap-1">

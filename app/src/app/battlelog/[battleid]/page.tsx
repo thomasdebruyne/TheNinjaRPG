@@ -63,13 +63,17 @@ export default function BattleLog(props: { params: Promise<{ battleid: string }>
     <ContentBox
       title="Spectate"
       subtitle="Available for 3h!"
-      back_href="/profile"
+      defaultBackHref="/profile"
       padding={false}
       topRightContent={
         <div className="flex flex-row items-center gap-2">
           {battle && (
             <ActionTimer
-              user={{ userId: userId, actionPoints: battle.usersState.find(u => u.userId === userId)?.actionPoints ?? 0 }}
+              user={{
+                userId: userId,
+                actionPoints:
+                  battle.usersState.find((u) => u.userId === userId)?.actionPoints ?? 0,
+              }}
               battle={battle}
               isPending={battleState.isPending}
             />

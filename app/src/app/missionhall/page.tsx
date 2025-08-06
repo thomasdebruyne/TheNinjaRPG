@@ -30,7 +30,7 @@ export default function MissionHallPage() {
       subtitle={
         userData.isOutlaw ? "Small and big assignments" : "Help the village grow"
       }
-      back_href="/village"
+      defaultBackHref="/village"
       padding={false}
       topRightContent={
         <NavTabs

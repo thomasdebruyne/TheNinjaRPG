@@ -77,7 +77,7 @@ export default function Hospital() {
     <ContentBox
       title={hospitalName}
       subtitle={hospitalSubtitle}
-      back_href="/village"
+      defaultBackHref="/village"
       padding={false}
     >
       <Image

@@ -92,7 +92,7 @@ const SingleEditBloodline: React.FC<SingleEditBloodlineProps> = (props) => {
       <ContentBox
         title="Content Panel"
         subtitle="Bloodline Management"
-        back_href="/manual/bloodline"
+        defaultBackHref="/manual/bloodline"
         noRightAlign={true}
         topRightContent={
           formData.find((e) => e.id === "description") ? (

@@ -32,7 +32,7 @@ export default async function GlobalAnbuHQ() {
       <FancyForumThreads
         board_name="ANBU HQ"
         canPost={canPost}
-        back_href="/village"
+        defaultBackHref="/village"
         image={IMG_BUILDING_GLOBALANBU}
         initialData={initialNews}
       />

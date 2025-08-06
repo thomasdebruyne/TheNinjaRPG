@@ -97,7 +97,7 @@ export default function Arena() {
       <ContentBox
         title={title}
         subtitle={subtitle}
-        back_href="/village"
+        defaultBackHref="/village"
         padding={tab === "Arena"}
         topRightContent={
           <div className="w-48">

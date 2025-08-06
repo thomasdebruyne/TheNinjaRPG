@@ -278,7 +278,7 @@ const AnbuMembers: React.FC<AnbuMembersProps> = (props) => {
     <ContentBox
       title={`Squad: ${squad.name}`}
       subtitle={`PVP Activity: ${squad.pvpActivity}`}
-      back_href="/anbu"
+      defaultBackHref="/anbu"
       padding={false}
       topRightContent={
         <div className="flex flex-row items-center gap-1">

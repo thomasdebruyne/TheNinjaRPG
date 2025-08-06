@@ -142,7 +142,7 @@ const BloodlineEffectsBalance: React.FC<BloodlineEffectsBalanceProps> = (props) 
       title="Bloodline Effects Balance"
       subtitle="Review Bloodline Power Balance"
       padding={false}
-      back_href="/manual/bloodline"
+      defaultBackHref="/manual/bloodline"
       topRightContent={
         <div className="flex flex-row items-center">
           {props.navTabs}
@@ -290,7 +290,7 @@ const BloodlineUsageBalance: React.FC<BloodlineUsageBalanceProps> = (props) => {
     <ContentBox
       title="Bloodline Balance"
       subtitle="Data since last reset"
-      back_href="/manual/bloodline"
+      defaultBackHref="/manual/bloodline"
       padding={false}
       topRightContent={
         <div className="flex items-center gap-2">

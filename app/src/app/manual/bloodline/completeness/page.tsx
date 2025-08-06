@@ -158,7 +158,7 @@ export default function ManualBloodlineBalance() {
       <ContentBox
         title="Completeness"
         subtitle="Missing information etc."
-        back_href="/manual/bloodline"
+        defaultBackHref="/manual/bloodline"
         padding={false}
         topRightContent={
           <NavTabs current={filter} options={availFilters} setValue={setFilter} />

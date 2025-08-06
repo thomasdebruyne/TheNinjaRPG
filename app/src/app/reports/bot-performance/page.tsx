@@ -152,7 +152,7 @@ export default function BotPerformance() {
     <ContentBox
       title="Bot Performance"
       subtitle="Accuracy over time"
-      back_href="/reports"
+      defaultBackHref="/reports"
       padding={false}
       topRightContent={
         <div>

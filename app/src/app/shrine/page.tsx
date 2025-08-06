@@ -57,7 +57,7 @@ export default function Shrine() {
         <ContentBox
           title={`Lvl. ${sectorData.sectorData?.shrineLevel || 1} Shrine`}
           subtitle={sectorData.sectorData ? "Sector is Claimed" : "Unclaimed Sector"}
-          back_href="/travel"
+          defaultBackHref="/travel"
         >
           <div className="flex flex-col items-center">
             {sectorData.sectorData ? (
@@ -100,7 +100,7 @@ export default function Shrine() {
           <ContentBox
             title="Your Wars"
             subtitle={`Sector ${userData.sector}`}
-            back_href="/travel"
+            defaultBackHref="/travel"
           >
             <div className="divide-y">
               {userWars.map((war) => (

@@ -68,7 +68,7 @@ export default function PublicProfile(props: { params: Promise<{ ip: string }> }
   return (
     <ContentBox
       title={`Users`}
-      back_href="/users"
+      defaultBackHref="/users"
       subtitle={`IP Lookup: ${params.ip}`}
       padding={false}
     >

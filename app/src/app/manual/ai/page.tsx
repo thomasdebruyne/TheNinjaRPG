@@ -85,7 +85,7 @@ export default function ManualAI() {
       <ContentBox
         title="AI"
         subtitle="NPC Opponents"
-        back_href="/manual"
+        defaultBackHref="/manual"
         topRightContent={
           <div className="flex flex-row gap-1">
             <Link href="/manual/ai/balance">

@@ -14,7 +14,7 @@ import type { InfiniteThreads } from "@/routers/forum";
 
 interface FancyForumThreadsProps {
   board_name: string;
-  back_href?: string;
+  defaultBackHref?: string;
   initialData: Awaited<InfiniteThreads>;
   initialBreak?: boolean;
   image?: string;
@@ -53,7 +53,7 @@ const FancyForumThreads: React.FC<FancyForumThreadsProps> = (props) => {
     <ContentBox
       title={board.name}
       subtitle={board.summary}
-      back_href={props.back_href}
+      defaultBackHref={props.defaultBackHref}
       initialBreak={props.initialBreak}
       padding={false}
       topRightContent={

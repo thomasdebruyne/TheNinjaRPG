@@ -68,7 +68,7 @@ export default function AdministrationBuilding() {
     <ContentBox
       title="Administration Building"
       subtitle="Information Board"
-      back_href="/village"
+      defaultBackHref="/village"
       padding={false}
     >
       <Image

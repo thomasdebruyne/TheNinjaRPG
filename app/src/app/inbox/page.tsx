@@ -67,7 +67,7 @@ export default function Inbox() {
       <Conversation
         refreshKey={0}
         convo_id={selectedConvo}
-        back_href="/inbox"
+        defaultBackHref="/inbox"
         onBack={() => setSelectedConvo(null)}
         title="Inbox"
         subtitle="Private messages"

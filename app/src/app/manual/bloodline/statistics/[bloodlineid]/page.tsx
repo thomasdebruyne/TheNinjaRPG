@@ -46,7 +46,7 @@ export default function BloodlineStatistics(props: {
         <ContentBox
           title="Bloodline Statistics"
           subtitle={bloodline.name}
-          back_href="/manual/bloodline"
+          defaultBackHref="/manual/bloodline"
         >
           {bloodlineText(bloodline.name)}
         </ContentBox>
@@ -55,7 +55,7 @@ export default function BloodlineStatistics(props: {
         title={`Bloodline: ${name}`}
         subtitle={`Total users: ${totalUsers}`}
         initialBreak={!userData && !!bloodline}
-        back_href={userData ? "/manual/bloodline" : undefined}
+        defaultBackHref={userData ? "/manual/bloodline" : undefined}
       >
         {levelDistribution && (
           <LevelStats

@@ -38,7 +38,7 @@ export default function Science() {
         title="Science Building"
         subtitle="Check your genetics"
         padding={false}
-        back_href="/village"
+        defaultBackHref="/village"
         topRightContent={
           <BloodlineStatistics
             trigger={

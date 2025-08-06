@@ -86,7 +86,7 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
       <ContentBox
         title="Content Panel"
         subtitle="Jutsu Management"
-        back_href="/manual/jutsu"
+        defaultBackHref="/manual/jutsu"
         topRightContent={
           formData.find((e) => e.id === "description") ? (
             <ChatInputField

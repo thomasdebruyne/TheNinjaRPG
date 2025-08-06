@@ -79,7 +79,7 @@ export default function ManualSkillTree() {
       <ContentBox
         title="Skill Tree"
         subtitle="Master your ninja abilities"
-        back_href="/manual"
+        defaultBackHref="/manual"
         topRightContent={
           <Link href="/manual/skillTree/balance">
             <Button id="skill-tree-balance" hoverText="Balance Statistics">

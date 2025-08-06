@@ -86,7 +86,7 @@ export default function AwardsManual() {
       title="User Rewards"
       subtitle="History of all reputation points and money awarded"
       padding={false}
-      back_href="/manual"
+      defaultBackHref="/manual"
     >
       {allAwards && allAwards.length > 0 ? (
         <Table data={allAwards} columns={columns} setLastElement={setLastElement} />

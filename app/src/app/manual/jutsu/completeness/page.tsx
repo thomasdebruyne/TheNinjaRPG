@@ -175,7 +175,7 @@ export default function ManualJutsuBalance() {
       <ContentBox
         title="Completeness"
         subtitle="Missing information etc."
-        back_href="/manual/jutsu"
+        defaultBackHref="/manual/jutsu"
         padding={false}
         topRightContent={
           <NavTabs current={filter} options={availFilters} setValue={setFilter} />

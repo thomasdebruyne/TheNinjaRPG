@@ -40,7 +40,11 @@ export default function ManualAIsStatistcs(props: {
   return (
     <>
       {!userData && ai && "username" in ai && (
-        <ContentBox title="AI Profile" subtitle={ai.username} back_href="/manual/ai">
+        <ContentBox
+          title="AI Profile"
+          subtitle={ai.username}
+          defaultBackHref="/manual/ai"
+        >
           {aiText(ai.username)}
         </ContentBox>
       )}
@@ -48,7 +52,7 @@ export default function ManualAIsStatistcs(props: {
         title={`AI: ${name}`}
         subtitle={`Total battles: ${total}`}
         initialBreak={!userData && !!ai}
-        back_href={userData ? "/manual/ai" : undefined}
+        defaultBackHref={userData ? "/manual/ai" : undefined}
         topRightContent={<StatisticsFiltering state={statsFilter} />}
       >
         {filteredUsage && <UsageStats usage={filteredUsage} />}

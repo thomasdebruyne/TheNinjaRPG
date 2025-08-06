@@ -127,7 +127,7 @@ const SkillTreeEffectsBalance: React.FC<SkillTreeEffectsBalanceProps> = (props) 
       <ContentBox
         title="Skill Tree Effects"
         subtitle="Compare power levels"
-        back_href="/manual/skillTree"
+        defaultBackHref="/manual/skillTree"
         padding={false}
         topRightContent={
           <div className="flex flex-row items-center gap-2">
@@ -238,7 +238,7 @@ const SkillTreeUsageBalance: React.FC<SkillTreeUsageBalanceProps> = (props) => {
       <ContentBox
         title="Skill Tree Usage Balance"
         subtitle="Track skill adoption and usage patterns"
-        back_href="/manual/skillTree"
+        defaultBackHref="/manual/skillTree"
         padding={false}
         topRightContent={
           <div className="flex flex-row items-center gap-2">

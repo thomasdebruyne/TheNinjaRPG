@@ -67,7 +67,7 @@ export default function VillageUsers(props: {
     <ContentBox
       title="Village Users"
       subtitle={`${activeTab} users`}
-      back_href="/village"
+      defaultBackHref="/village"
       padding={false}
       topRightContent={
         <div className="flex flex-col sm:flex-row gap-2">

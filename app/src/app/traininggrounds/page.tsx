@@ -443,7 +443,7 @@ const StatsTraining: React.FC<TrainingProps> = (props) => {
     <ContentBox
       title="Training"
       subtitle={`Training (${efficiency}% efficiency) [${userData.dailyTrainings} / ${MAX_DAILY_TRAININGS}]`}
-      back_href="/village"
+      defaultBackHref="/village"
       topRightContent={
         <NavTabs
           current={userData.trainingSpeed}
@@ -721,7 +721,7 @@ const JutsuTraining: React.FC<TrainingProps> = (props) => {
       <ContentBox
         title="Techniques"
         subtitle="Jutsu Techniques"
-        back_href="/village"
+        defaultBackHref="/village"
         initialBreak={true}
         topRightContent={
           <JutsuFiltering state={state} fixedBloodline={userData.bloodlineId} />

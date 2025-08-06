@@ -23,7 +23,7 @@ export default function ItemShop() {
       minCost={1}
       image={IMG_BUILDING_SOUVENIER}
       defaultType="WEAPON"
-      back_href={"/village"}
+      defaultBackHref={"/village"}
       eventItems={true}
     />
   );

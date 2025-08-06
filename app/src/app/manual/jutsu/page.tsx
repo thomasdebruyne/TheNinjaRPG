@@ -67,7 +67,7 @@ export default function ManualJutsus() {
       <ContentBox
         title="Jutsus"
         subtitle="What are they?"
-        back_href="/manual"
+        defaultBackHref="/manual"
         topRightContent={
           <div className="flex flex-row gap-1">
             <Link href="/manual/jutsu/balance">

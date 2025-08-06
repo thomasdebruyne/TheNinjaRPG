@@ -117,7 +117,7 @@ import {
 interface PublicUserComponentProps {
   userId: string;
   title: string;
-  back_href?: string;
+  defaultBackHref?: string;
   initialBreak?: boolean;
   showRecruited?: boolean;
   showStudents?: boolean;
@@ -138,7 +138,7 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
   const {
     userId,
     title,
-    back_href,
+    defaultBackHref,
     initialBreak,
     showRecruited,
     showStudents,
@@ -343,7 +343,7 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
         <ContentBox
           title="Public Profile"
           subtitle={`Profile: ${profileName}`}
-          back_href={back_href}
+          defaultBackHref={defaultBackHref}
           initialBreak={initialBreak}
         >
           {publicUserText(profile.username)}
@@ -352,7 +352,7 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
       {/* USER STATISTICS */}
       <ContentBox
         title={title}
-        back_href={userData ? back_href : undefined}
+        defaultBackHref={userData ? defaultBackHref : undefined}
         subtitle={`Profile: ${profileName}`}
         initialBreak={userData ? initialBreak : true}
         topRightContent={

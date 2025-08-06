@@ -136,7 +136,7 @@ const JutsuEffectsBalance: React.FC<JutsuEffectsBalanceProps> = (props) => {
       title="Jutsu Effects Balance"
       subtitle="Review Jutsu Power Balance"
       padding={false}
-      back_href="/manual/jutsu"
+      defaultBackHref="/manual/jutsu"
       topRightContent={
         <div className="flex flex-row items-center">
           {props.navTabs}
@@ -301,7 +301,7 @@ const JutsuUsageBalance: React.FC<JutsuUsageBalanceProps> = (props) => {
     <ContentBox
       title="Jutsu Balance"
       subtitle="Data since last reset"
-      back_href="/manual/jutsu"
+      defaultBackHref="/manual/jutsu"
       padding={false}
       topRightContent={
         <div className="flex items-center gap-2">

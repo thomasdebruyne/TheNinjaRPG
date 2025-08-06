@@ -86,7 +86,7 @@ export default function Clans() {
       <ContentBox
         title={groupLabelPlural}
         subtitle="Fight together"
-        back_href="/village"
+        defaultBackHref="/village"
         padding={false}
         topRightContent={
           <>

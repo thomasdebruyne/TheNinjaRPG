@@ -124,7 +124,7 @@ export default function CreateSupportTicket() {
     <ContentBox
       title="Create Support Ticket"
       subtitle="Get help with your questions or report issues"
-      back_href="/support"
+      defaultBackHref="/support"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Information */}
