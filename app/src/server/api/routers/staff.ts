@@ -72,6 +72,7 @@ import {
 import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
 import { canCloneUser, canClearSectors } from "@/utils/permissions";
 import { TRPCError } from "@trpc/server";
+import * as Sentry from "@sentry/nextjs";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { UserStatus } from "@/drizzle/constants";
 import type { DrizzleClient } from "@/server/db";
@@ -95,10 +96,14 @@ export const staffRouter = createTRPCRouter({
     .mutation(async ({ ctx }) => {
       // Query
       const user = await fetchUser(ctx.drizzle, ctx.userId);
-      // Guard
+      // Guard so only staff can throw errors
       if (!canUseMonitoringTests(user.role)) {
         return errorResponse("Not allowed for you");
       }
+      // Flush an error directly to sentry
+      const error = new Error("Direct flush error");
+      Sentry.captureException(error);
+      await Sentry.flush(5000);
       // Mutate
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
