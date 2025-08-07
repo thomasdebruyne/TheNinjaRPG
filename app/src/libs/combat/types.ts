@@ -5,7 +5,12 @@ import { LetterRanks, UserRanks, WeaponTypes } from "@/drizzle/constants";
 import { ElementNames } from "@/drizzle/constants";
 import { DateTimeRegExp } from "@/utils/regex";
 import { StatTypes, GeneralTypes, PoolTypes } from "@/drizzle/constants";
-import { MAX_STATS_CAP, MAX_GENS_CAP, USER_CAPS } from "@/drizzle/constants";
+import {
+  MAX_STATS_CAP,
+  MAX_GENS_CAP,
+  USER_CAPS,
+  AdjustableBasicActions,
+} from "@/drizzle/constants";
 import { rewardFields } from "@/validators/objectives";
 import type { StatType, GeneralType, PoolType, ElementName } from "@/drizzle/constants";
 import type { publicState } from "@/libs/combat/constants";
@@ -91,6 +96,19 @@ export type BattleUserState = Omit<NonNullable<UserWithRelations>, "items"> & {
   keystoneItem?: Item | null;
   bounties?: { id: string; status: BountyStatus; amountRyo: number }[];
   bountySignups?: { id: string; bountyId: string }[];
+};
+
+/**
+ * Basic actions are the actions that are available to a user by default
+ * They are defined in the database, and can be modified by tags
+ */
+export type BasicActions = {
+  basicAttack: CombatAction;
+  basicHeal: CombatAction;
+  basicMove: CombatAction;
+  basicClear: CombatAction;
+  basicCleanse: CombatAction;
+  basicFlee: CombatAction;
 };
 
 // Create type for battle, which contains information on user current state
@@ -400,6 +418,22 @@ export const DecreasePoolCostTag = z.object({
   rounds: z.coerce.number().int().min(2).max(20).default(2),
   direction: type("defence"),
   calculation: z.enum(["static", "percentage"]).default("percentage"),
+});
+
+export const IncreaseRangeTag = z.object({
+  ...BaseAttributes,
+  ...PowerAttributes,
+  type: z.literal("increaserange").default("increaserange"),
+  description: msg("Increase range of basic actions"),
+  calculation: z.enum(["static"]).default("static"),
+  actionsAffected: z.array(z.enum(AdjustableBasicActions)).optional(),
+});
+
+export const IncreaseRangePreventTag = z.object({
+  ...BaseAttributes,
+  ...PowerAttributes,
+  type: z.literal("increaserangeprevent").default("increaserangeprevent"),
+  description: msg("Prevents buffing of basic actions range"),
 });
 
 export const IncreaseStatTag = z.object({
@@ -852,6 +886,8 @@ export const AllTags = z.union([
   IncreaseHealGivenTag.default({}),
   IncreaseMarriageSlots.default({}),
   IncreasePoolCostTag.default({}),
+  IncreaseRangeTag.default({}),
+  IncreaseRangePreventTag.default({}),
   IncreaseStatTag.default({}),
   LifeStealTag.default({}),
   MirrorTag.default({}),
@@ -902,6 +938,7 @@ export const isPositiveUserEffect = (tag: ZodAllTags) => {
       "increasedamagegiven",
       "increaseheal",
       "increasestat",
+      "increaserange",
       "lifesteal",
       "move",
       "moveprevent",
@@ -944,6 +981,7 @@ export const isNegativeUserEffect = (tag: ZodAllTags) => {
       "healprevent",
       "increasedamagetaken",
       "increasepoolcost",
+      "increaserangeprevent",
       "moveprevent",
       "onehitkill",
       "pierce",

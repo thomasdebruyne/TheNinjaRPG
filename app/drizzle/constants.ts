@@ -123,6 +123,15 @@ export const GeneralTypes = [
 ] as const;
 export type GeneralType = (typeof GeneralTypes)[number];
 
+export const AdjustableBasicActions = [
+  "basicAttack",
+  "basicHeal",
+  "move",
+  "clear",
+  "cleanse",
+] as const;
+export type AdjustableBasicAction = (typeof AdjustableBasicActions)[number];
+
 export const PoolTypes = ["Health", "Chakra", "Stamina"] as const;
 export type PoolType = (typeof PoolTypes)[number];
 

@@ -1,6 +1,6 @@
 import { scaleUserStats } from "@/libs/profile";
 import { nanoid } from "nanoid";
-import { isPositiveUserEffect, isNegativeUserEffect } from "./types";
+import { isPositiveUserEffect, isNegativeUserEffect, IncreaseRangeTag } from "./types";
 import { HealTag } from "@/libs/combat/types";
 import type { BattleUserState, Consequence } from "./types";
 import type { GroundEffect, UserEffect, ActionEffect } from "./types";
@@ -13,6 +13,7 @@ import type { CombatAction } from "@/libs/combat/types";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import type { BattleEffect } from "./types";
 import type { Battle } from "@/drizzle/schema";
+import { noCase } from "change-case";
 
 /**
  * Realize tag with information about how powerful tag is
@@ -559,6 +560,46 @@ export const increaseStats = (
     if (!pass) return preventResponse(effect, target, "cannot be buffed");
   }
   return adjustStats(effect, target);
+};
+
+/** Increase range of basic actions */
+export const increaseRange = (
+  effect: UserEffect,
+  usersEffects: UserEffect[],
+  target: BattleUserState,
+): ActionEffect | undefined => {
+  const parsed = IncreaseRangeTag.parse(effect);
+  const { pass, preventTag } = preventCheck(usersEffects, "buffprevent", target);
+  if (preventTag && preventTag.createdRound < effect.createdRound) {
+    if (!pass) return preventResponse(effect, target, "cannot be buffed");
+  }
+  const { adverb, qualifier } = getPower(effect);
+  const affected = parsed.actionsAffected?.map((a) => noCase(a)).join(", ");
+  return getInfo(
+    target,
+    effect,
+    `basic action${affected && "s"} [${affected}] range is ${adverb} by ${qualifier}`,
+  );
+};
+
+/** Prevent increasing range of basic actions with a static chance */
+export const increaseRangePrevent = (
+  effect: UserEffect,
+  target: BattleUserState,
+): ActionEffect | undefined => {
+  const { power } = getPower(effect);
+  const mainCheck = Math.random() < power / 100;
+  if (mainCheck) {
+    const info = getInfo(target, effect, "cannot get basic action range increased");
+    effect.power = 100;
+    return info;
+  } else if (effect.isNew) {
+    effect.rounds = 0;
+    return {
+      txt: `${target.username} could not be prevented from getting basic action range increased`,
+      color: "blue",
+    };
+  }
 };
 
 export const decreaseStats = (

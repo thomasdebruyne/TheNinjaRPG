@@ -533,6 +533,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
           ...(("statTypes" in val && val?.statTypes) || []),
           ...(("generalTypes" in val && val?.generalTypes) || []),
           ...(("elements" in val && val?.elements) || []),
+          ...(("actionsAffected" in val && val?.actionsAffected) || []),
         ];
         const isSealed = sealCheck(val, sealEffects);
         let cats = stats.length === 0 ? ["All"] : stats;
@@ -632,6 +633,8 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
     "stunprevent",
     "moveprevent",
     "sealprevent",
+    "rangeprevent",
+    "range",
     "onehitkillprevent",
     "seal",
     "stun",
@@ -655,6 +658,8 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
     drain: "Drain",
     poison: "Poison",
     lifesteal: "Lifesteal",
+    increaserangeprevent: "Increase Range",
+    increaserange: "Increase Range",
     fleeprevent: "Cannot Flee",
     robprevent: "Rob Immunity",
     buffprevent: "Buff Immunity",

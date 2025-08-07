@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { isInArray } from "@/utils/array";
-import { Grab } from "lucide-react";
+import { Grab, Swords, HeartPulse, Eraser, Sparkles, Rabbit } from "lucide-react";
 import { Zap } from "lucide-react";
 import { BrainCog } from "lucide-react";
 import { Sword } from "lucide-react";
@@ -38,12 +38,31 @@ import {
   IMG_ELEMENT_METAL,
 } from "@/drizzle/constants";
 
-import { GeneralTypes, StatTypes, PoolTypes, ElementNames } from "@/drizzle/constants";
-import type { GeneralType, StatType, PoolType, ElementName } from "@/drizzle/constants";
+import {
+  GeneralTypes,
+  StatTypes,
+  PoolTypes,
+  ElementNames,
+  AdjustableBasicActions,
+} from "@/drizzle/constants";
+import type {
+  GeneralType,
+  StatType,
+  PoolType,
+  ElementName,
+  AdjustableBasicAction,
+} from "@/drizzle/constants";
 import type { ZodAllTags } from "@/libs/combat/types";
 
 interface ElementImageProps {
-  element: GeneralType | StatType | ElementName | PoolType | "All" | ZodAllTags["type"];
+  element:
+    | GeneralType
+    | StatType
+    | ElementName
+    | PoolType
+    | AdjustableBasicAction
+    | "All"
+    | ZodAllTags["type"];
   hoverText?: string;
   className?: string;
 }
@@ -109,9 +128,65 @@ const ElementImage: React.FC<ElementImageProps> = (props) => {
         className={props.className}
       />
     );
-  } else if (isInArray(element, [...StatTypes, ...GeneralTypes, ...PoolTypes, "All"])) {
+  } else if (
+    isInArray(element, [
+      ...StatTypes,
+      ...GeneralTypes,
+      ...PoolTypes,
+      ...AdjustableBasicActions,
+      "All",
+    ])
+  ) {
     const base = "rounded-full p-1 text-white";
     switch (element) {
+      case "basicAttack":
+        image = (
+          <Swords
+            strokeWidth={3}
+            className={cn(base, props.className, "bg-blue-600")}
+          />
+        );
+        break;
+      case "basicHeal":
+        image = (
+          <HeartPulse
+            strokeWidth={3}
+            className={cn(base, props.className, "bg-green-600")}
+          />
+        );
+        break;
+      case "clear":
+        image = (
+          <Eraser
+            strokeWidth={3}
+            className={cn(base, props.className, "bg-stone-500")}
+          />
+        );
+        break;
+      case "cleanse":
+        image = (
+          <Sparkles
+            strokeWidth={3}
+            className={cn(base, props.className, "bg-yellow-400")}
+          />
+        );
+        break;
+      case "flee":
+        image = (
+          <Rabbit
+            strokeWidth={3}
+            className={cn(base, props.className, "bg-pink-400")}
+          />
+        );
+        break;
+      case "move":
+        image = (
+          <Footprints
+            strokeWidth={3}
+            className={cn(base, props.className, "bg-cyan-600")}
+          />
+        );
+        break;
       case "Highest":
         return (
           <SquarePlus

@@ -9,8 +9,10 @@ import { calcPoolCost } from "@/libs/combat/util";
 import { hasNoAvailableActions } from "@/libs/combat/util";
 import { calcApReduction } from "@/libs/combat/util";
 import { getBarriersBetween } from "@/libs/combat/util";
+import { IncreaseRangeTag } from "@/libs/combat/types";
 import { isUserStealthed, isUserImmobilized } from "@/libs/combat/util";
-import { getUserElementalSeal } from "@/libs/combat/util";
+import { getUserElementalSeal, isEffectActive } from "@/libs/combat/util";
+import { getPower } from "@/libs/combat/tags";
 import { realizeTag, updateStatUsage } from "@/libs/combat/tags";
 import { getPossibleActionTiles } from "@/libs/hexgrid";
 import { PathCalculator } from "@/libs/hexgrid";
@@ -33,7 +35,7 @@ import type { BattleUserState, ReturnedUserState } from "@/libs/combat/types";
 import type { CompleteBattle, ReturnedBattle } from "@/libs/combat/types";
 import type { Grid } from "honeycomb-grid";
 import type { TerrainHex } from "@/libs/hexgrid";
-import type { CombatAction } from "@/libs/combat/types";
+import type { CombatAction, BasicActions } from "@/libs/combat/types";
 import type { GroundEffect, UserEffect } from "@/libs/combat/types";
 import type { UserJutsu, Jutsu, UserItem, Item } from "@/drizzle/schema";
 
@@ -52,24 +54,8 @@ export const availableUserActions = (
   const isStealth = isUserStealthed(userId, battle?.usersEffects);
   const isImmobilized = isUserImmobilized(userId, battle?.usersEffects);
   const elementalSeal = getUserElementalSeal(userId, battle?.usersEffects);
-  // Setup basic actions.
-  const current = user?.basicActions;
-  const base = getBasicActions(user);
-  const basicActions = {
-    basicAttack: current?.find((ba) => ba.id == "sp") || base.basicAttack,
-    basicHeal: current?.find((ba) => ba.id == "cp") || base.basicHeal,
-    basicMove: current?.find((ba) => ba.id == "move") || base.basicMove,
-    basicClear: current?.find((ba) => ba.id == "clear") || base.basicClear,
-    basicCleanse: current?.find((ba) => ba.id == "cleanse") || base.basicCleanse,
-    basicFlee: current?.find((ba) => ba.id == "flee") || base.basicFlee,
-  };
-  // Always set battleDescriptions back to base values
-  basicActions.basicAttack.battleDescription = base.basicAttack.battleDescription;
-  basicActions.basicHeal.battleDescription = base.basicHeal.battleDescription;
-  basicActions.basicMove.battleDescription = base.basicMove.battleDescription;
-  basicActions.basicClear.battleDescription = base.basicClear.battleDescription;
-  basicActions.basicCleanse.battleDescription = base.basicCleanse.battleDescription;
-  basicActions.basicFlee.battleDescription = base.basicFlee.battleDescription;
+  const basicActions = getActiveBasicActions(battle, user);
+
   // Concatenate all actions
   let availableActions = [
     ...(basicMoves && !isStealth ? [basicActions.basicAttack] : []),
@@ -173,19 +159,78 @@ export const availableUserActions = (
   return availableActions;
 };
 
-export const getBasicActions = (
+/**
+ * Get the active basic actions for a user. This includes several overrides of the "default" basic actions
+ * @param user - The user to get the active basic actions for
+ * @returns The active basic actions for the user
+ */
+export const getActiveBasicActions = (
+  battle: ReturnedBattle | undefined | null,
   user: ReturnedUserState | undefined,
-): {
-  basicAttack: CombatAction;
-  basicHeal: CombatAction;
-  basicCleanse: CombatAction;
-  basicClear: CombatAction;
-  basicMove: CombatAction;
-  basicFlee: CombatAction;
-} => {
+): BasicActions => {
+  const userId = user?.userId;
+  const current = user?.basicActions;
+  const base = getDefaultBasicActions(user);
+  const active = {
+    basicAttack: current?.find((ba) => ba.id == "basicAttack") || base.basicAttack,
+    basicHeal: current?.find((ba) => ba.id == "basicHeal") || base.basicHeal,
+    basicMove: current?.find((ba) => ba.id == "move") || base.basicMove,
+    basicClear: current?.find((ba) => ba.id == "clear") || base.basicClear,
+    basicCleanse: current?.find((ba) => ba.id == "cleanse") || base.basicCleanse,
+    basicFlee: current?.find((ba) => ba.id == "flee") || base.basicFlee,
+  };
+  // Always set battleDescriptions & range back to base values
+  active.basicAttack.battleDescription = base.basicAttack.battleDescription;
+  active.basicHeal.battleDescription = base.basicHeal.battleDescription;
+  active.basicMove.battleDescription = base.basicMove.battleDescription;
+  active.basicClear.battleDescription = base.basicClear.battleDescription;
+  active.basicCleanse.battleDescription = base.basicCleanse.battleDescription;
+  active.basicFlee.battleDescription = base.basicFlee.battleDescription;
+  active.basicMove.range = base.basicMove.range;
+  active.basicClear.range = base.basicClear.range;
+  active.basicCleanse.range = base.basicCleanse.range;
+  active.basicAttack.range = base.basicAttack.range;
+  active.basicHeal.range = base.basicHeal.range;
+
+  // Apply range bonuses from increaserange tags (per-action)
+  const rangeBonusMap: Record<string, number> = {};
+  battle?.usersEffects
+    ?.filter((e) => e.type === "increaserange")
+    .filter((e) => e.targetId === userId && isEffectActive(e))
+    .forEach((e) => {
+      const parsed = IncreaseRangeTag.parse(e);
+      const { power } = getPower(e);
+      parsed.actionsAffected?.forEach((act) => {
+        rangeBonusMap[act] =
+          rangeBonusMap[act] !== undefined && rangeBonusMap[act] > power
+            ? rangeBonusMap[act]
+            : power;
+      });
+    });
+
+  // Apply bonuses to relevant basic actions
+  Object.entries(rangeBonusMap).forEach(([aid, bonus]) => {
+    if (bonus === 0) return;
+    const ba = Object.values(active).find((a) => a.id === aid);
+    if (ba?.range !== undefined && ba.range > 0) {
+      ba.range += bonus;
+    }
+  });
+  // Return actions
+  return active;
+};
+
+/**
+ * Get the default basic actions for a user
+ * @param user - The user to get the basic actions for
+ * @returns The basic actions for the user
+ */
+export const getDefaultBasicActions = (
+  user: ReturnedUserState | undefined,
+): BasicActions => {
   return {
     basicAttack: {
-      id: "sp",
+      id: "basicAttack",
       name: "Basic Attack",
       image: IMG_BASIC_ATTACK,
       battleDescription: "%user perform a basic physical strike against %target",
@@ -201,7 +246,7 @@ export const getBasicActions = (
       cooldown: 0,
       originalCooldown: 0,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "sp")?.lastUsedRound ?? 0,
+        user?.basicActions?.find((ba) => ba.id == "basicAttack")?.lastUsedRound ?? 0,
       level: user?.level,
       effects: [
         DamageTag.parse({
@@ -212,10 +257,15 @@ export const getBasicActions = (
           rounds: 0,
           appearAnimation: ID_ANIMATION_HIT,
         }),
+        IncreaseRangeTag.parse({
+          power: 2,
+          rounds: 5,
+          actionsAffected: ["basicAttack", "basicHeal", "move"],
+        }),
       ],
     },
     basicHeal: {
-      id: "cp",
+      id: "basicHeal",
       name: "Basic Heal",
       image: IMG_BASIC_HEAL,
       battleDescription: "%user perform basic healing of %target",
@@ -231,7 +281,7 @@ export const getBasicActions = (
       cooldown: 5,
       originalCooldown: 5,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "cp")?.lastUsedRound ?? -10,
+        user?.basicActions?.find((ba) => ba.id == "basicHeal")?.lastUsedRound ?? -10,
       level: user?.level,
       effects: [
         HealTag.parse({

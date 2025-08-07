@@ -75,7 +75,7 @@ import { DecreaseDamageTakenTag } from "@/libs/combat/types";
 import { realizeTag } from "@/libs/combat/tags";
 import { rollInitiative } from "@/libs/combat/util";
 import { findRelationship } from "@/utils/alliance";
-import { getBasicActions } from "@/libs/combat/actions";
+import { getDefaultBasicActions } from "@/libs/combat/actions";
 import { canTrainJutsu, checkJutsuItems } from "@/libs/train";
 import { toOffenceStat, toDefenceStat } from "@/libs/stats";
 import type { RankedLoadout } from "@/drizzle/schema";
@@ -1837,7 +1837,7 @@ export const processUsersForBattle = async (
       });
 
     // Add basic actions to user for tracking cooldowns
-    user.basicActions = Object.values(getBasicActions(user));
+    user.basicActions = Object.values(getDefaultBasicActions(user));
 
     // Sort if we have a loadout
     if (user?.loadout?.jutsuIds) {
