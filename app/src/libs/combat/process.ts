@@ -332,8 +332,8 @@ export const applyEffects = (
         return remainingDamage;
       };
       // Store pre-shield damage for reflect/lifesteal/absorb calculations
-      const preShieldDamage = (c.damage ?? 0);
-      
+      const preShieldDamage = c.damage ?? 0;
+
       // Adjust damages and reduce shields
       if (target && user) {
         if (c.damage && c.damage > 0) {
@@ -349,7 +349,7 @@ export const applyEffects = (
           c.recoil = calcAdjustedDamage(user, c.recoil, c.types);
         }
       }
-      
+
       // Store pre-shield damage for later use
       c.preShieldDamage = preShieldDamage;
       return c;
@@ -362,29 +362,26 @@ export const applyEffects = (
 
       // Apply all the consequences
       if (target && user) {
-        if (c.damage && c.damage > 0) {
-          if (c.damage > 0) {
-            target.curHealth -= c.damage;
-            target.curHealth = Math.max(0, target.curHealth);
-            actionEffects.push({
-              txt: `${target.username} takes ${c.damage.toFixed(2)} damage`,
-              color: "red",
-              types: c.types,
-            });
-          }
+        console.log(c);
+        if (c.damage !== undefined && c.damage >= 0) {
+          target.curHealth -= c.damage;
+          target.curHealth = Math.max(0, target.curHealth);
+          actionEffects.push({
+            txt: `${target.username} takes ${c.damage.toFixed(2)} damage`,
+            color: "red",
+            types: c.types,
+          });
         }
-        if (c.residual && c.residual > 0) {
-          if (c.residual > 0) {
-            target.curHealth -= c.residual;
-            target.curHealth = Math.max(0, target.curHealth);
-            actionEffects.push({
-              txt: `${target.username} takes ${c.residual.toFixed(2)} residual damage`,
-              color: "red",
-              types: c.types,
-            });
-          }
+        if (c.residual !== undefined && c.residual >= 0) {
+          target.curHealth -= c.residual;
+          target.curHealth = Math.max(0, target.curHealth);
+          actionEffects.push({
+            txt: `${target.username} takes ${c.residual.toFixed(2)} residual damage`,
+            color: "red",
+            types: c.types,
+          });
         }
-        if (c.heal_hp && c.heal_hp > 0 && target.curHealth > 0) {
+        if (c.heal_hp !== undefined && c.heal_hp >= 0 && target.curHealth > 0) {
           target.curHealth += c.heal_hp;
           target.curHealth = Math.min(target.maxHealth, target.curHealth);
           actionEffects.push({
@@ -392,7 +389,7 @@ export const applyEffects = (
             color: "green",
           });
         }
-        if (c.heal_sp && c.heal_sp > 0) {
+        if (c.heal_sp !== undefined && c.heal_sp >= 0) {
           target.curStamina += c.heal_sp;
           target.curStamina = Math.min(target.maxStamina, target.curStamina);
           actionEffects.push({
@@ -400,7 +397,7 @@ export const applyEffects = (
             color: "green",
           });
         }
-        if (c.heal_cp && c.heal_cp > 0) {
+        if (c.heal_cp !== undefined && c.heal_cp >= 0) {
           target.curChakra += c.heal_cp;
           target.curChakra = Math.min(target.maxChakra, target.curChakra);
           actionEffects.push({
@@ -408,43 +405,37 @@ export const applyEffects = (
             color: "green",
           });
         }
-        if (c.reflect && c.reflect > 0) {
-          if (c.reflect > 0) {
-            // Use pre-shield damage for the 60% cap calculation to avoid shield interference
-            const preShieldDamage = c.preShieldDamage ?? 0;
-            const maxReflect = preShieldDamage * 0.6;
-            const finalReflect = Math.min(c.reflect, maxReflect);
-            user.curHealth -= finalReflect;
-            user.curHealth = Math.max(0, user.curHealth);
-            actionEffects.push({
-              txt: `${user.username} takes ${finalReflect.toFixed(2)} reflect damage`,
-              color: "red",
-            });
-          }
+        if (c.reflect !== undefined && c.reflect >= 0) {
+          // Use pre-shield damage for the 60% cap calculation to avoid shield interference
+          const preShieldDamage = c.preShieldDamage ?? 0;
+          const maxReflect = preShieldDamage * 0.6;
+          const finalReflect = Math.min(c.reflect, maxReflect);
+          user.curHealth -= finalReflect;
+          user.curHealth = Math.max(0, user.curHealth);
+          actionEffects.push({
+            txt: `${user.username} takes ${finalReflect.toFixed(2)} reflect damage`,
+            color: "red",
+          });
         }
-        if (c.recoil && c.recoil > 0) {
-          if (c.recoil > 0) {
-            user.curHealth -= c.recoil;
-            user.curHealth = Math.max(0, user.curHealth);
-            actionEffects.push({
-              txt: `${user.username} takes ${c.recoil.toFixed(2)} recoil damage`,
-              color: "red",
-            });
-          }
+        if (c.recoil !== undefined && c.recoil >= 0) {
+          user.curHealth -= c.recoil;
+          user.curHealth = Math.max(0, user.curHealth);
+          actionEffects.push({
+            txt: `${user.username} takes ${c.recoil.toFixed(2)} recoil damage`,
+            color: "red",
+          });
         }
-        if (c.afterburn && c.afterburn > 0) {
-          if (c.afterburn > 0) {
-            target.curHealth -= c.afterburn;
-            target.curHealth = Math.max(0, target.curHealth);
-            actionEffects.push({
-              txt: `${target.username} takes ${c.afterburn.toFixed(2)} afterburn damage`,
-              color: "red",
-            });
-          }
+        if (c.afterburn !== undefined && c.afterburn >= 0) {
+          target.curHealth -= c.afterburn;
+          target.curHealth = Math.max(0, target.curHealth);
+          actionEffects.push({
+            txt: `${target.username} takes ${c.afterburn.toFixed(2)} afterburn damage`,
+            color: "red",
+          });
         }
         if (
-          c.lifesteal_hp &&
-          c.lifesteal_hp > 0 &&
+          c.lifesteal_hp !== undefined &&
+          c.lifesteal_hp >= 0 &&
           target.curHealth > 0 &&
           user.curHealth > 0
         ) {
@@ -459,7 +450,7 @@ export const applyEffects = (
             color: "green",
           });
         }
-        if (c.absorb_hp && c.absorb_hp > 0 && target.curHealth > 0) {
+        if (c.absorb_hp !== undefined && c.absorb_hp >= 0 && target.curHealth > 0) {
           // Use pre-shield damage for the 60% cap calculation to avoid shield interference
           const preShieldDamage = c.preShieldDamage ?? 0;
           const maxAbsorb = preShieldDamage * 0.6;
@@ -473,7 +464,7 @@ export const applyEffects = (
             color: "green",
           });
         }
-        if (c.absorb_sp && c.absorb_sp > 0) {
+        if (c.absorb_sp !== undefined && c.absorb_sp >= 0) {
           target.curStamina += c.absorb_sp;
           target.curStamina = Math.min(target.maxHealth, target.curStamina);
           actionEffects.push({
@@ -483,7 +474,7 @@ export const applyEffects = (
             color: "green",
           });
         }
-        if (c.absorb_cp && c.absorb_cp > 0) {
+        if (c.absorb_cp !== undefined && c.absorb_cp >= 0) {
           target.curChakra += c.absorb_cp;
           target.curChakra = Math.min(target.maxHealth, target.curChakra);
           actionEffects.push({
@@ -494,28 +485,28 @@ export const applyEffects = (
           });
         }
         // Handle drain effects for each pool
-        if (c.drain_hp && c.drain_hp > 0 && target.curHealth > 0) {
+        if (c.drain_hp !== undefined && c.drain_hp >= 0 && target.curHealth > 0) {
           target.curHealth = Math.max(0, target.curHealth - c.drain_hp);
           actionEffects.push({
             txt: `${target.username} loses ${c.drain_hp.toFixed(2)} HP to drain`,
             color: "purple",
           });
         }
-        if (c.drain_cp && c.drain_cp > 0 && target.curChakra > 0) {
+        if (c.drain_cp !== undefined && c.drain_cp >= 0 && target.curChakra > 0) {
           target.curChakra = Math.max(0, target.curChakra - c.drain_cp);
           actionEffects.push({
             txt: `${target.username} loses ${c.drain_cp.toFixed(2)} CP to drain`,
             color: "purple",
           });
         }
-        if (c.drain_sp && c.drain_sp > 0 && target.curStamina > 0) {
+        if (c.drain_sp !== undefined && c.drain_sp >= 0 && target.curStamina > 0) {
           target.curStamina = Math.max(0, target.curStamina - c.drain_sp);
           actionEffects.push({
             txt: `${target.username} loses ${c.drain_sp.toFixed(2)} SP to drain`,
             color: "purple",
           });
         }
-        if (c.poison && c.poison > 0) {
+        if (c.poison !== undefined && c.poison >= 0) {
           target.curHealth = Math.max(
             0,
             Math.min(target.maxHealth, target.curHealth - c.poison),
