@@ -1887,6 +1887,7 @@ export const processUsersForBattle = async (
         effects
           .filter((e) => e.type === "summon")
           .forEach((e) => "aiId" in e && allSummons.push(e.aiId));
+        // Add item effects to user
         if (
           itemType === "ARMOR" ||
           itemType === "ACCESSORY" ||
@@ -1962,7 +1963,9 @@ export const processUsersForBattle = async (
   });
 
   // If there are any summonAIs defined, then add them to usersState, but disable them
-  const summonsToProcess = [...new Set(allSummons)];
+  const summonsToProcess = [
+    ...new Set(allSummons.filter((s) => !usersState.find((u) => u.userId === s))),
+  ];
   if (summonsToProcess.length > 0) {
     const summons = await client.query.userData.findMany({
       with: {
