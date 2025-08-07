@@ -362,7 +362,6 @@ export const applyEffects = (
 
       // Apply all the consequences
       if (target && user) {
-        console.log(c);
         if (c.damage !== undefined && c.damage >= 0) {
           target.curHealth -= c.damage;
           target.curHealth = Math.max(0, target.curHealth);

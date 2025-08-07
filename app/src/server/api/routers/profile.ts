@@ -48,6 +48,7 @@ import { getNewTrackers } from "@/libs/quest";
 import { mockAchievementHistoryEntries } from "@/libs/quest";
 import { mutateContentSchema } from "@/validators/comments";
 import { attributes } from "@/validators/register";
+import { removeFromSquad, fetchSquad } from "@/routers/anbu";
 import { colors, skin_colors } from "@/validators/register";
 import { callDiscordContent } from "@/libs/discord";
 import { scaleUserStats } from "@/libs/profile";
@@ -1805,51 +1806,64 @@ export const fetchUpdatedUser = async (props: {
   if (user) {
     // If prestige below 0, reset to 0 and move to outlaw faction
     if (user.villagePrestige < 0 && user.village?.type === "VILLAGE") {
-      const syndicate = await client.query.village.findFirst({
-        where: eq(village.type, "OUTLAW"),
-      });
+      // Check if we need to remove the kage
+      const needNewKage =
+        user.villageId &&
+        user.village?.kageId === user.userId &&
+        user.villagePrestige < KAGE_MIN_PRESTIGE;
+      // Run queries in parallel for speed
+      const [syndicate, clanData, squadData, elder] = await Promise.all([
+        client.query.village.findFirst({
+          where: eq(village.type, "OUTLAW"),
+        }),
+        user.clanId ? fetchClan(client, user.clanId) : null,
+        user.anbuId ? fetchSquad(client, user.anbuId) : null,
+        needNewKage && user.villageId
+          ? fetchKageReplacement(client, user.villageId, user.userId)
+          : null,
+      ]);
       if (syndicate) {
+        // Immidiate update of user. Will be effectuated now (forceRegen)
         user.villagePrestige = -user.villagePrestige;
         user.villageId = syndicate.id;
         user.isOutlaw = true;
-        if (user.clanId) {
-          const clanData = await fetchClan(client, user.clanId);
-          if (clanData) {
-            await removeFromClan(client, clanData, user, ["Turned outlaw"]);
-          }
-        }
+        forceRegen = true;
+        // Trigger message to user
         void pusher.trigger(user.userId, "event", {
           type: "userMessage",
           message: "You have been kicked out of your village due to negative prestige",
           route: "/profile",
           routeText: "To Profile",
         });
-        forceRegen = true;
-      }
-    }
-    // If user is kage & village prestige less than threshold, remove from kage
-    if (
-      user.villageId &&
-      user.village?.kageId === user.userId &&
-      user.villagePrestige < KAGE_MIN_PRESTIGE
-    ) {
-      const elder = await fetchKageReplacement(client, user.villageId, user.userId);
-      if (elder) {
+        // Queries to be run now
         await Promise.all([
-          client
-            .update(village)
-            .set({ kageId: elder.userId, leaderUpdatedAt: new Date() })
-            .where(eq(village.id, user.villageId)),
-          client
-            .update(userData)
-            .set({ villagePrestige: KAGE_PRESTIGE_REQUIREMENT })
-            .where(eq(userData.userId, user.userId)),
-          pusher.trigger(user.userId, "event", {
-            type: "userMessage",
-            message: `Your prestige dropped below ${KAGE_MIN_PRESTIGE} and you are no longer kage`,
-            route: "/profile",
-            routeText: "To Profile",
-          }),
+          // Squad updates
+          ...(user.anbuId && squadData
+            ? [removeFromSquad(client, squadData, user.userId)]
+            : []),
+          // Clan updates
+          ...(user.clanId && clanData
+            ? [removeFromClan(client, clanData, user, ["Turned outlaw"])]
+            : []),
+          // Kage updates
+          ...(needNewKage && elder
+            ? [
+                client
+                  .update(village)
+                  .set({ kageId: elder.userId, leaderUpdatedAt: new Date() })
+                  .where(eq(village.id, user.villageId)),
+                client
+                  .update(userData)
+                  .set({ villagePrestige: KAGE_PRESTIGE_REQUIREMENT })
+                  .where(eq(userData.userId, user.userId)),
+                pusher.trigger(user.userId, "event", {
+                  type: "userMessage",
+                  message: `Your prestige dropped below ${KAGE_MIN_PRESTIGE} and you are no longer kage`,
+                  route: "/profile",
+                  routeText: "To Profile",
+                }),
+              ]
+            : []),
         ]);
       }
     }

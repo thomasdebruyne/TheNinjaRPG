@@ -373,13 +373,13 @@ export const anbuRouter = createTRPCRouter({
       if (!member) return errorResponse("Member not found");
       if (squad.villageId !== user.villageId) return errorResponse("Wrong village");
       if (!isLeader && !isElder && !isKage) return errorResponse("Not allowed");
-      
+
       // Prevent kicking the last member - must disband squad instead
       const nMembers = squad?.members.length || 0;
       if (nMembers <= 1) {
         return errorResponse("Cannot kick the last member. Use disband squad instead.");
       }
-      
+
       // Mutate
       await removeFromSquad(ctx.drizzle, squad, member.userId);
       // Create
@@ -663,7 +663,7 @@ export const anbuRouter = createTRPCRouter({
  * @param squad - The ANBU squad from which the user will be removed.
  * @param userId - The ID of the user to be removed from the squad.
  */
-const removeFromSquad = async (
+export const removeFromSquad = async (
   client: DrizzleClient,
   squad: NonNullable<AnbuRouter["get"]>,
   userId: string,

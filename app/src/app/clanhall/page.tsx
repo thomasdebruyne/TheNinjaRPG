@@ -80,7 +80,7 @@ export default function Clans() {
 
   // Render
   if (userData.clanId) {
-    return <ClanProfile clanId={userData.clanId} />;
+    return <ClanProfile clanId={userData.clanId} defaultBackHref="/village" />;
   } else {
     return (
       <ContentBox
