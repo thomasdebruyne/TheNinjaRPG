@@ -15,6 +15,7 @@ import { JutsuValidator } from "@/libs/combat/types";
 import { canChangeContent } from "@/utils/permissions";
 import { tagTypes } from "@/libs/combat/types";
 import { useJutsuEditForm } from "@/hooks/jutsu";
+import { JutsuHelper } from "@/layout/ContentHelp";
 import { setNullsToEmptyStrings } from "@/utils/typeutils";
 import { getTagSchema } from "@/libs/combat/types";
 import type { ZodJutsuType } from "@/libs/combat/types";
@@ -88,46 +89,49 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
         subtitle="Jutsu Management"
         defaultBackHref="/manual/jutsu"
         topRightContent={
-          formData.find((e) => e.id === "description") ? (
-            <ChatInputField
-              inputProps={{
-                id: "chatInput",
-                placeholder: "Instruct ChatGPT to edit",
-              }}
-              aiProps={{
-                apiEndpoint: "/api/chat/jutsu",
-                systemMessage: `
+          <div className="flex flex-row gap-2">
+            {formData.find((e) => e.id === "description") ? (
+              <ChatInputField
+                inputProps={{
+                  id: "chatInput",
+                  placeholder: "Instruct ChatGPT to edit",
+                }}
+                aiProps={{
+                  apiEndpoint: "/api/chat/jutsu",
+                  systemMessage: `
                   Current jutsu data: ${JSON.stringify(form.getValues())}. 
                   Current effects: ${JSON.stringify(effects)}
                 `,
-              }}
-              onToolCall={(toolCall) => {
-                const data = toolCall.args as ZodJutsuType;
-                let key: keyof typeof data;
-                for (key in data) {
-                  if (["villageId", "image"].includes(key)) {
-                    continue;
-                  } else if (key === "effects") {
-                    const newEffects = data.effects
-                      .map((effect) => {
-                        const schema = getTagSchema(effect.type);
-                        const parsed = schema.safeParse(effect);
-                        if (parsed.success) {
-                          return parsed.data;
-                        } else {
-                          return undefined;
-                        }
-                      })
-                      .filter((e): e is NonNullable<typeof e> => e !== undefined);
-                    setEffects(newEffects);
-                  } else {
-                    form.setValue(key, data[key]);
+                }}
+                onToolCall={(toolCall) => {
+                  const data = toolCall.args as ZodJutsuType;
+                  let key: keyof typeof data;
+                  for (key in data) {
+                    if (["villageId", "image"].includes(key)) {
+                      continue;
+                    } else if (key === "effects") {
+                      const newEffects = data.effects
+                        .map((effect) => {
+                          const schema = getTagSchema(effect.type);
+                          const parsed = schema.safeParse(effect);
+                          if (parsed.success) {
+                            return parsed.data;
+                          } else {
+                            return undefined;
+                          }
+                        })
+                        .filter((e): e is NonNullable<typeof e> => e !== undefined);
+                      setEffects(newEffects);
+                    } else {
+                      form.setValue(key, data[key]);
+                    }
                   }
-                }
-                void form.trigger();
-              }}
-            />
-          ) : undefined
+                  void form.trigger();
+                }}
+              />
+            ) : undefined}
+            <JutsuHelper jutsu={form.getValues()} />
+          </div>
         }
       >
         {!jutsu && <p>Could not find this jutsu</p>}

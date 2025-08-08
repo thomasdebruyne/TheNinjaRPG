@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Vector2, OrthographicCamera, Group, Clock } from "three";
@@ -14,7 +14,7 @@ import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/travel/util";
 import { highlightTiles } from "@/libs/combat/drawing";
 import { highlightTooltips } from "@/libs/combat/drawing";
 import { highlightUsers } from "@/libs/combat/drawing";
-import { calcActiveUser } from "@/libs/combat/actions";
+import { calcActiveUser, availableUserActions } from "@/libs/combat/actions";
 import { drawCombatUsers } from "@/libs/combat/drawing";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { api, useGlobalOnMutateProtect } from "@/app/_trpc/client";
@@ -82,6 +82,14 @@ const Combat: React.FC<CombatProps> = (props) => {
     undefined,
   );
   const suid = userData?.userId;
+  // Precompute available actions for the session user; recompute on version change
+  const precomputedActions = useMemo(() => {
+    if (battle.current && suid) {
+      return availableUserActions(battle.current, suid);
+    }
+    return [] as CombatAction[];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [battle.current?.version, suid]);
 
   // Session battle user state
   const battleSessionUser = battle.current?.usersState.find(
@@ -238,7 +246,10 @@ const Combat: React.FC<CombatProps> = (props) => {
   // Handle key-presses
   const onDocumentKeyDown = (event: KeyboardEvent) => {
     if (battle.current) {
-      const { actor } = calcActiveUser(battle.current, suid, timeDiff);
+      const { actor } = calcActiveUser(battle.current, suid, timeDiff, {
+        precomputedUserId: suid,
+        precomputedActions,
+      });
       switch (event.key) {
         case "w":
           if (actor.userId === suid) {
@@ -288,7 +299,10 @@ const Combat: React.FC<CombatProps> = (props) => {
       if (!focusCheck && process.env.NODE_ENV !== "development") setHasFocus(false);
       if (!hasFocus || !focusCheck) return;
       if (suid && battle.current && userId.current && !isPending && !result) {
-        const { actor, changedActor } = calcActiveUser(battle.current, suid, timeDiff);
+        const { actor, changedActor } = calcActiveUser(battle.current, suid, timeDiff, {
+          precomputedUserId: suid,
+          precomputedActions,
+        });
         // Scenario 1: it is now AIs turn, perform action
         if (actor.isAi && !isPending) {
           if (canPerformAction()) {
@@ -535,6 +549,7 @@ const Combat: React.FC<CombatProps> = (props) => {
               battle: battle.current,
               grid: grid.current,
               currentHighlights: highlights,
+              precomputedActions,
             });
           }
 

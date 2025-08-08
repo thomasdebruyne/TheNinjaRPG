@@ -678,6 +678,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
     finalstand: "Final Stand",
     clear: "Clear Positives",
     cleanse: "Cleanse Debuffs",
+    injectjutsus: "Added Action",
   };
 
   const statusVisuals = statusEffects.map((e) => (

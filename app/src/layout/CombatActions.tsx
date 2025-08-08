@@ -115,7 +115,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
               ref={i === filtered.length - 1 ? props.setLastElement : null}
               className="relative flex items-start justify-center"
             >
-              <div className="relative">
+              <div className="relative h-full">
                 {props.renderItem ? (
                   props.renderItem(item)
                 ) : (

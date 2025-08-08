@@ -6,6 +6,7 @@ import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import { EditContent } from "@/layout/EditContent";
 import { EffectFormWrapper } from "@/layout/EditContent";
+import { SkillTreeHelper } from "@/layout/ContentHelp";
 import { FilePlus, FileMinus } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import { useRequiredUserData } from "@/utils/UserContext";
@@ -90,6 +91,11 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
         subtitle="Skill Tree Management"
         defaultBackHref="/manual/skillTree"
         noRightAlign={true}
+        topRightContent={
+          <div className="flex justify-end">
+            <SkillTreeHelper skillTree={form.getValues()} />
+          </div>
+        }
       >
         {!skillTree && <p>Could not find this skill</p>}
         {!loading && skillTree && (

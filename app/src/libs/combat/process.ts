@@ -27,18 +27,10 @@ import { increaseHealGiven, decreaseHealGiven } from "./tags";
 import { increasepoolcost, decreasepoolcost } from "./tags";
 import { flee, fleePrevent } from "./tags";
 import { stun, stunPrevent, onehitkill, onehitkillPrevent, movePrevent } from "./tags";
-import {
-  seal,
-  sealPrevent,
-  sealCheck,
-  rob,
-  robPrevent,
-  stealth,
-  elementalseal,
-} from "./tags";
+import { seal, sealPrevent, sealCheck, rob, robPrevent, stealth } from "./tags";
 import { clear, cleanse, summon, summonPrevent, buffPrevent, weakness } from "./tags";
 import { cleansePrevent, clearPrevent, healPrevent, debuffPrevent } from "./tags";
-import { updateStatUsage } from "./tags";
+import { updateStatUsage, injectjutsus, elementalseal } from "./tags";
 import { BATTLE_TAG_STACKING, ID_ANIMATION_SMOKE } from "@/drizzle/constants";
 import type { BattleUserState, ReturnedUserState } from "./types";
 import type { GroundEffect, UserEffect, ActionEffect, BattleEffect } from "./types";
@@ -741,6 +733,8 @@ export const applySingleEffect = (
           info = shield(effect, curTarget);
         } else if (effect.type === "poison" && action) {
           info = poison(effect, action, actorId, consequences, curTarget, usersEffects);
+        } else if (effect.type === "injectjutsus") {
+          info = injectjutsus(effect, newTarget);
         } else if (effect.type === "copy") {
           info = copy(effect, usersEffects, curUser, curTarget);
         } else if (effect.type === "mirror") {

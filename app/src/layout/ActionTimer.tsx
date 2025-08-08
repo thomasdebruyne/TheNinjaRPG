@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Loader from "./Loader";
 import { useUserData } from "@/utils/UserContext";
-import { calcActiveUser } from "@/libs/combat/actions";
+import { calcActiveUser, availableUserActions } from "@/libs/combat/actions";
 import { calcApReduction } from "@/libs/combat/util";
 import {
   IMG_ACTIONTIMER_BG,
@@ -45,6 +45,12 @@ const ActionTimer: React.FC<ActionTimerProps> = (props) => {
   const actionNow = user.actionPoints - stunReduction;
   const actionAfter = actionNow - cost;
 
+  // Precompute actions for this user, recompute only when battle version changes
+  const precomputedActions = useMemo(() => {
+    return availableUserActions(battle, user.userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [battle?.version, user.userId]);
+
   // Calculate label and color
   const yellow = IMG_ACTIONTIMER_YELLOW;
   const red = IMG_ACTIONTIMER_RED;
@@ -63,7 +69,10 @@ const ActionTimer: React.FC<ActionTimerProps> = (props) => {
         actor,
         mseconds,
         secondsLeft: left,
-      } = calcActiveUser(battle, user.userId, timeDiff);
+      } = calcActiveUser(battle, user.userId, timeDiff, {
+        precomputedUserId: user.userId,
+        precomputedActions,
+      });
       // Is it the user in question
       const canAct = actor.userId === user.userId;
       const waiting = user.userId !== actor.userId;
@@ -78,7 +87,7 @@ const ActionTimer: React.FC<ActionTimerProps> = (props) => {
       // Set action points
     }, 100);
     return () => clearInterval(interval);
-  }, [isPending, battle, user, timeDiff, state, setState]);
+  }, [isPending, battle, user, timeDiff, state, setState, precomputedActions]);
 
   return (
     <div className="pl-5">

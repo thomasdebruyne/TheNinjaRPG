@@ -910,7 +910,10 @@ export const EffectFormWrapper: React.FC<EffectFormWrapperProps> = (props) => {
   });
 
   const { data: jutsuData } = api.jutsu.getAllNames.useQuery(undefined, {
-    enabled: fields.includes("jutsus") || fields.includes("reward_jutsus"),
+    enabled:
+      fields.includes("jutsus") ||
+      fields.includes("reward_jutsus") ||
+      fields.includes("jutsuIds"),
   });
 
   const { data: itemData } = api.item.getAllNames.useQuery(undefined, {
@@ -1066,6 +1069,13 @@ export const EffectFormWrapper: React.FC<EffectFormWrapperProps> = (props) => {
         return {
           id: value,
           values: jutsuData,
+          multiple: true,
+          type: "db_values",
+        };
+      } else if ((value as string) === "jutsuIds" && jutsuData) {
+        return {
+          id: value,
+          values: jutsuData.filter((j) => j.injectableInBattle),
           multiple: true,
           type: "db_values",
         };

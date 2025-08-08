@@ -549,8 +549,6 @@ export const maskBattle = (battle: Battle, userId: string) => {
         ) as unknown as ReturnedUserState;
       }
     }),
-    usersEffects: battle.usersEffects as UserEffect[],
-    groundEffects: battle.groundEffects as GroundEffect[],
   };
 };
 
@@ -1137,12 +1135,17 @@ const calcEloChange = (user: number, opponent: number, kFactor = 32, won: boolea
 /**
  * Evaluate whether we should forward battle to next round
  */
-export const hasNoAvailableActions = (battle: ReturnedBattle, actorId: string) => {
+export const hasNoAvailableActions = (
+  battle: ReturnedBattle,
+  actorId: string,
+  precomputedActions?: CombatAction[],
+) => {
   const actor = battle.usersState.find((u) => u.userId === actorId);
   if (actor) {
     const done = actor.curHealth <= 0 || actor.fledBattle || actor.leftBattle;
     if (!done) {
-      const actions = availableUserActions(battle, actorId, !actor.isAi);
+      const actions =
+        precomputedActions ?? availableUserActions(battle, actorId, !actor.isAi);
       for (const j of actions.keys()) {
         const action = actions[j];
         if (action) {
@@ -1172,7 +1175,13 @@ export const refillActionPoints = (battle: ReturnedBattle) => {
  * - The action points of all users, in case of next round */
 export const alignBattle = (battle: CompleteBattle, userId?: string) => {
   const now = new Date();
-  const { actor, changedActor, progressRound } = calcActiveUser(battle, userId);
+  const precomputedActions = userId
+    ? availableUserActions(battle as unknown as ReturnedBattle, userId)
+    : undefined;
+  const { actor, changedActor, progressRound } = calcActiveUser(battle, userId, 0, {
+    precomputedUserId: userId,
+    precomputedActions: precomputedActions,
+  });
   // A variable for the current round to be used in the battle
   const actionRound = progressRound ? battle.round + 1 : battle.round;
   // Update round timer if new actor

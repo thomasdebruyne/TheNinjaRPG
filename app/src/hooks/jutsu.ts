@@ -107,6 +107,7 @@ export const useJutsuEditForm = (data: Jutsu, refetch: () => void) => {
     { id: "requiredRank", type: "str_array", values: UserRanks },
     { id: "target", type: "str_array", values: AttackTargets },
     { id: "hidden", type: "boolean" },
+    { id: "injectableInBattle", type: "boolean" },
   ];
 
   return { jutsu, effects, form, formData, loading, setEffects, handleJutsuSubmit };

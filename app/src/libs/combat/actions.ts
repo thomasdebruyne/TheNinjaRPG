@@ -1,4 +1,10 @@
-import { MoveTag, DamageTag, FleeTag, HealTag } from "@/libs/combat/types";
+import {
+  MoveTag,
+  DamageTag,
+  FleeTag,
+  HealTag,
+  InjectJutsusTag,
+} from "@/libs/combat/types";
 import { ClearTag, CleanseTag } from "@/libs/combat/types";
 import { nanoid } from "nanoid";
 import { getAffectedTiles } from "@/libs/combat/movement";
@@ -59,6 +65,11 @@ export const availableUserActions = (
   const isImmobilized = isUserImmobilized(userId, battle?.usersEffects);
   const elementalSeal = getUserElementalSeal(userId, battle?.usersEffects);
   const basicActions = getActiveBasicActions(battle, user);
+
+  // Handle injected jutsus
+  if (battle && user) {
+    user.jutsus = handleInjectedJutsus(battle, user);
+  }
 
   // Concatenate all actions
   let availableActions = [
@@ -501,6 +512,67 @@ export const userJutsuToAction = (
     level: userjutsu.level,
     data: userjutsu.jutsu,
   };
+};
+
+/**
+ * Handle injected jutsus
+ * @param battle - The battle to handle the injected jutsus for
+ * @param user - The user to handle the injected jutsus for
+ * @returns The active jutsus for the user
+ */
+export const handleInjectedJutsus = (
+  battle: ReturnedBattle,
+  user: ReturnedUserState,
+) => {
+  const injectEffects = battle?.usersEffects
+    ?.filter((e) => e.targetId === user.userId && isEffectActive(e))
+    ?.filter((e) => e.type === "injectjutsus");
+
+  // Inject jutsus (and remove expired ones) before processing actions
+  const extraJutsus = battle?.extraState.jutsus ?? [];
+  const userCurrentExtraJutsuIds =
+    user?.jutsus?.filter((j) => j.origin === "injected").map((j) => j.jutsu.id) ?? [];
+  let toBeRemovedIds: string[] = [];
+  let toBeAddedIds: string[] = [];
+  const toBeAddedJutsuPower: Record<string, number> = {};
+  injectEffects?.forEach((e) => {
+    const jutsuIds = InjectJutsusTag.parse(e).jutsuIds;
+    const tagJutsus = extraJutsus?.filter((j) => jutsuIds.includes(j.id)) ?? [];
+    const tagJutsuIds = tagJutsus.map((j) => j.id);
+    toBeRemovedIds.push(
+      ...(userCurrentExtraJutsuIds.filter((id) => !tagJutsuIds.includes(id)) ?? []),
+    );
+    tagJutsus.forEach((j) => {
+      if (!toBeRemovedIds.includes(j.id) && !userCurrentExtraJutsuIds.includes(j.id)) {
+        toBeAddedJutsuPower[j.id] = e.power;
+      }
+    });
+  });
+  toBeRemovedIds = [...new Set(toBeRemovedIds)];
+  toBeAddedIds = [...new Set(Object.keys(toBeAddedJutsuPower))];
+
+  // Define the user available jutsus
+  const activeJutsus = [
+    ...(user?.jutsus?.filter((j) => !toBeRemovedIds.includes(j.jutsu.id)) ?? []),
+    ...(extraJutsus
+      ?.filter((j) => toBeAddedIds.includes(j.id))
+      .map((jutsu) => ({
+        id: nanoid(),
+        userId: user.userId,
+        jutsuId: jutsu.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        finishTraining: null,
+        level: toBeAddedJutsuPower[jutsu.id] ?? 1,
+        experience: 0,
+        equipped: 1,
+        origin: "injected" as const,
+        lastUsedRound: -jutsu.cooldown,
+        originalCooldown: jutsu.cooldown,
+        jutsu,
+      })) ?? []),
+  ];
+  return activeJutsus;
 };
 
 export const insertAction = (info: {
@@ -972,6 +1044,7 @@ export const calcActiveUser = (
   battle: ReturnedBattle,
   userId?: string | null,
   timeDiff = 0,
+  options?: { precomputedUserId?: string | null; precomputedActions?: CombatAction[] },
 ) => {
   const syncedTime = Date.now() - timeDiff;
   const mseconds = syncedTime - new Date(battle.roundStartAt).getTime();
@@ -983,7 +1056,15 @@ export const calcActiveUser = (
   // Check 1: We have an active user, but the round is up
   const check1 = battle.activeUserId && secondsLeft <= 0;
   // Check 2: We have an active user, but he/she does not have any more action points
-  const check2 = activeUserId && hasNoAvailableActions(battle, activeUserId);
+  const check2 =
+    activeUserId &&
+    hasNoAvailableActions(
+      battle,
+      activeUserId,
+      options?.precomputedUserId === activeUserId
+        ? options?.precomputedActions
+        : undefined,
+    );
   // Check 3: Current active userID is not in active user array
   const check3 = activeUserId && !inBattleuserIds.includes(activeUserId);
   // Progress to next user in case of any checks went through

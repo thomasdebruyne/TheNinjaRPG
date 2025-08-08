@@ -8,6 +8,8 @@ import {
   actionLog,
   jutsuLoadout,
   bloodline,
+  skillTree,
+  item,
 } from "@/drizzle/schema";
 import { fetchUser, fetchUpdatedUser } from "./profile";
 import { canTrainJutsu } from "@/libs/train";
@@ -182,7 +184,7 @@ export const jutsuRouter = createTRPCRouter({
 
   getAllNames: publicProcedure.query(async ({ ctx }) => {
     return await ctx.drizzle.query.jutsu.findMany({
-      columns: { id: true, name: true, image: true },
+      columns: { id: true, name: true, image: true, injectableInBattle: true },
     });
   }),
 
@@ -348,26 +350,49 @@ export const jutsuRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
-      const user = await fetchUser(ctx.drizzle, ctx.userId);
-      const entry = await fetchJutsu(ctx.drizzle, input.id);
-      if (entry && canChangeContent(user.role)) {
-        await Promise.all([
-          ctx.drizzle.delete(jutsu).where(eq(jutsu.id, input.id)),
-          ctx.drizzle.delete(userJutsu).where(eq(userJutsu.jutsuId, input.id)),
-          ctx.drizzle.insert(actionLog).values({
-            id: nanoid(),
-            userId: ctx.userId,
-            tableName: "jutsu",
-            changes: [`Deleted: ${entry.name}`],
-            relatedId: entry.id,
-            relatedMsg: `Delete: ${entry.name}`,
-            relatedImage: entry.image,
-          }),
-        ]);
-        return { success: true, message: `Jutsu deleted` };
-      } else {
-        return { success: false, message: `Not allowed to delete jutsu` };
+      // Query in parallel for performance
+      const [user, entry, relations] = await Promise.all([
+        fetchUser(ctx.drizzle, ctx.userId),
+        fetchJutsu(ctx.drizzle, input.id),
+        getJutsuRelations(ctx.drizzle, input.id),
+      ]);
+      // Derived
+      const totalRelations =
+        relations.jutsuInjectors.length +
+        relations.bloodlineInjectors.length +
+        relations.skillInjectors.length +
+        relations.itemInjectors.length +
+        relations.aiUsingJutsu.length;
+      // Guard
+      if (!entry) return errorResponse("Jutsu not found");
+      if (!canChangeContent(user.role)) return errorResponse("Not allowed");
+      if (totalRelations > 0) {
+        const message = [
+          ...relations.jutsuInjectors.map((j) => `Jutsu: ${j.name}`),
+          ...relations.bloodlineInjectors.map((b) => `Bloodline: ${b.name}`),
+          ...relations.skillInjectors.map((s) => `Skill: ${s.name}`),
+          ...relations.itemInjectors.map((i) => `Item: ${i.name}`),
+          ...relations.aiUsingJutsu.map((a) => `AI: ${a.name}`),
+        ].join(", ");
+        return errorResponse(
+          `Justu is being used by: ${message}. So you cannot delete it.`,
+        );
       }
+      // Mutate
+      await Promise.all([
+        ctx.drizzle.delete(jutsu).where(eq(jutsu.id, input.id)),
+        ctx.drizzle.delete(userJutsu).where(eq(userJutsu.jutsuId, input.id)),
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "jutsu",
+          changes: [`Deleted: ${entry.name}`],
+          relatedId: entry.id,
+          relatedMsg: `Delete: ${entry.name}`,
+          relatedImage: entry.image,
+        }),
+      ]);
+      return { success: true, message: `Jutsu deleted` };
     }),
 
   forget: protectedProcedure
@@ -391,44 +416,65 @@ export const jutsuRouter = createTRPCRouter({
     .input(z.object({ id: z.string(), data: JutsuValidator }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
-      const user = await fetchUser(ctx.drizzle, ctx.userId);
-      const entry = await fetchJutsu(ctx.drizzle, input.id);
-      if (entry && canChangeContent(user.role)) {
-        // Diff
-        const diff = calculateContentDiff(entry, {
-          id: entry.id,
-          updatedAt: entry.updatedAt,
-          createdAt: entry.createdAt,
-          ...input.data,
-        });
-        // Update
-        await Promise.all([
-          ctx.drizzle.update(jutsu).set(input.data).where(eq(jutsu.id, input.id)),
-          ctx.drizzle.insert(actionLog).values({
-            id: nanoid(),
-            userId: ctx.userId,
-            tableName: "jutsu",
-            changes: diff,
-            relatedId: entry.id,
-            relatedMsg: `Update: ${entry.name}`,
-            relatedImage: entry.image,
-          }),
-          ...(input.data.hidden
-            ? [
-                ctx.drizzle
-                  .update(userJutsu)
-                  .set({ equipped: 0 })
-                  .where(eq(userJutsu.jutsuId, entry.id)),
-              ]
-            : []),
-        ]);
-        if (process.env.NODE_ENV !== "development") {
-          await callDiscordContent(user.username, entry.name, diff, entry.image);
+      // Query in parallel for performance
+      const [user, entry, relations] = await Promise.all([
+        fetchUser(ctx.drizzle, ctx.userId),
+        fetchJutsu(ctx.drizzle, input.id),
+        getJutsuRelations(ctx.drizzle, input.id),
+      ]);
+      // Guard
+      if (!entry) return errorResponse("Jutsu not found");
+      if (!canChangeContent(user.role)) return errorResponse("Not allowed");
+      if (!input.data.injectableInBattle) {
+        const totalRelations =
+          relations.jutsuInjectors.length +
+          relations.bloodlineInjectors.length +
+          relations.skillInjectors.length +
+          relations.itemInjectors.length;
+        if (totalRelations > 0) {
+          const message = [
+            ...relations.jutsuInjectors.map((j) => `Jutsu: ${j.name}`),
+            ...relations.bloodlineInjectors.map((b) => `Bloodline: ${b.name}`),
+            ...relations.skillInjectors.map((s) => `Skill: ${s.name}`),
+            ...relations.itemInjectors.map((i) => `Item: ${i.name}`),
+          ].join(", ");
+          return errorResponse(
+            `Justu is being injected by: ${message}. So you cannot disable it.`,
+          );
         }
-        return { success: true, message: `Data updated: ${diff.join(". ")}` };
-      } else {
-        return { success: false, message: `Not allowed to edit jutsu` };
       }
+      // Diff
+      const diff = calculateContentDiff(entry, {
+        id: entry.id,
+        updatedAt: entry.updatedAt,
+        createdAt: entry.createdAt,
+        ...input.data,
+      });
+      // Update
+      await Promise.all([
+        ctx.drizzle.update(jutsu).set(input.data).where(eq(jutsu.id, input.id)),
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "jutsu",
+          changes: diff,
+          relatedId: entry.id,
+          relatedMsg: `Update: ${entry.name}`,
+          relatedImage: entry.image,
+        }),
+        ...(input.data.hidden
+          ? [
+              ctx.drizzle
+                .update(userJutsu)
+                .set({ equipped: 0 })
+                .where(eq(userJutsu.jutsuId, entry.id)),
+            ]
+          : []),
+      ]);
+      if (process.env.NODE_ENV !== "development") {
+        await callDiscordContent(user.username, entry.name, diff, entry.image);
+      }
+      return { success: true, message: `Data updated: ${diff.join(". ")}` };
     }),
 
   getUserJutsus: protectedProcedure
@@ -794,11 +840,64 @@ export const jutsuRouter = createTRPCRouter({
 
       return { success: true, message: `Order updated` };
     }),
+  countInjectors: publicProcedure
+    .input(z.object({ jutsuId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const results = await getJutsuRelations(ctx.drizzle, input.jutsuId);
+      return results;
+    }),
 });
 
 /**
  * COMMON QUERIES/HELPERS
  */
+export const getJutsuRelations = async (client: DrizzleClient, jutsuId: string) => {
+  const [
+    jutsuInjectors,
+    bloodlineInjectors,
+    skillInjectors,
+    itemInjectors,
+    aiUsingJutsu,
+  ] = await Promise.all([
+    client.query.jutsu.findMany({
+      columns: { id: true, name: true },
+      where: sql`JSON_SEARCH(${jutsu.effects}, 'one', ${jutsuId}, NULL, '$[*].jutsuIds[*]') IS NOT NULL
+               AND JSON_SEARCH(${jutsu.effects}, 'one', 'injectjutsus', NULL, '$[*].type') IS NOT NULL`,
+    }),
+    client.query.bloodline.findMany({
+      columns: { id: true, name: true },
+      where: sql`JSON_SEARCH(${bloodline.effects}, 'one', ${jutsuId}, NULL, '$[*].jutsuIds[*]') IS NOT NULL
+               AND JSON_SEARCH(${bloodline.effects}, 'one', 'injectjutsus', NULL, '$[*].type') IS NOT NULL`,
+    }),
+    client.query.skillTree.findMany({
+      columns: { id: true, name: true },
+      where: sql`JSON_SEARCH(${skillTree.effects}, 'one', ${jutsuId}, NULL, '$[*].jutsuIds[*]') IS NOT NULL
+               AND JSON_SEARCH(${skillTree.effects}, 'one', 'injectjutsus', NULL, '$[*].type') IS NOT NULL`,
+    }),
+    client.query.item.findMany({
+      columns: { id: true, name: true },
+      where: sql`JSON_SEARCH(${item.effects}, 'one', ${jutsuId}, NULL, '$[*].jutsuIds[*]') IS NOT NULL
+               AND JSON_SEARCH(${item.effects}, 'one', 'injectjutsus', NULL, '$[*].type') IS NOT NULL`,
+    }),
+    client
+      .select({
+        name: userData.username,
+        id: userData.userId,
+      })
+      .from(userJutsu)
+      .innerJoin(userData, eq(userJutsu.userId, userData.userId))
+      .where(and(eq(userJutsu.jutsuId, jutsuId), eq(userData.isAi, true))),
+  ]);
+
+  return {
+    jutsuInjectors,
+    bloodlineInjectors,
+    skillInjectors,
+    itemInjectors,
+    aiUsingJutsu,
+  };
+};
+export type JutsuRelations = Awaited<ReturnType<typeof getJutsuRelations>>;
 
 export const fetchJutsuLoadouts = async (client: DrizzleClient, userId: string) => {
   return await client.query.jutsuLoadout.findMany({

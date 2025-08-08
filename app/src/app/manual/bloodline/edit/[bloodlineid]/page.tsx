@@ -9,6 +9,7 @@ import { api } from "@/app/_trpc/client";
 import { DamageTag } from "@/libs/combat/types";
 import { EditContent } from "@/layout/EditContent";
 import { EffectFormWrapper } from "@/layout/EditContent";
+import { BloodlineHelper } from "@/layout/ContentHelp";
 import { FilePlus, FileMinus } from "lucide-react";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { setNullsToEmptyStrings } from "@/utils/typeutils";
@@ -95,46 +96,49 @@ const SingleEditBloodline: React.FC<SingleEditBloodlineProps> = (props) => {
         defaultBackHref="/manual/bloodline"
         noRightAlign={true}
         topRightContent={
-          formData.find((e) => e.id === "description") ? (
-            <ChatInputField
-              inputProps={{
-                id: "chatInput",
-                placeholder: "Instruct ChatGPT to edit",
-              }}
-              aiProps={{
-                apiEndpoint: "/api/chat/bloodline",
-                systemMessage: `
-                  Current bloodline data: ${JSON.stringify(form.getValues())}. 
-                  Current effects: ${JSON.stringify(effects)}
-                `,
-              }}
-              onToolCall={(toolCall) => {
-                const data = toolCall.args as ZodBloodlineType;
-                let key: keyof typeof data;
-                for (key in data) {
-                  if (["villageId", "image"].includes(key)) {
-                    continue;
-                  } else if (key === "effects") {
-                    const newEffects = data.effects
-                      .map((effect) => {
-                        const schema = getTagSchema(effect.type);
-                        const parsed = schema.safeParse(effect);
-                        if (parsed.success) {
-                          return parsed.data;
-                        } else {
-                          return undefined;
-                        }
-                      })
-                      .filter((e): e is NonNullable<typeof e> => e !== undefined);
-                    setEffects(newEffects);
-                  } else {
-                    form.setValue(key, data[key]);
+          <div className="flex flex-row gap-2">
+            {formData.find((e) => e.id === "description") ? (
+              <ChatInputField
+                inputProps={{
+                  id: "chatInput",
+                  placeholder: "Instruct ChatGPT to edit",
+                }}
+                aiProps={{
+                  apiEndpoint: "/api/chat/bloodline",
+                  systemMessage: `
+                    Current bloodline data: ${JSON.stringify(form.getValues())}. 
+                    Current effects: ${JSON.stringify(effects)}
+                  `,
+                }}
+                onToolCall={(toolCall) => {
+                  const data = toolCall.args as ZodBloodlineType;
+                  let key: keyof typeof data;
+                  for (key in data) {
+                    if (["villageId", "image"].includes(key)) {
+                      continue;
+                    } else if (key === "effects") {
+                      const newEffects = data.effects
+                        .map((effect) => {
+                          const schema = getTagSchema(effect.type);
+                          const parsed = schema.safeParse(effect);
+                          if (parsed.success) {
+                            return parsed.data;
+                          } else {
+                            return undefined;
+                          }
+                        })
+                        .filter((e): e is NonNullable<typeof e> => e !== undefined);
+                      setEffects(newEffects);
+                    } else {
+                      form.setValue(key, data[key]);
+                    }
                   }
-                }
-                void form.trigger();
-              }}
-            />
-          ) : undefined
+                  void form.trigger();
+                }}
+              />
+            ) : undefined}
+            <BloodlineHelper bloodline={form.getValues()} />
+          </div>
         }
       >
         {!bloodline && <p>Could not find this bloodline</p>}

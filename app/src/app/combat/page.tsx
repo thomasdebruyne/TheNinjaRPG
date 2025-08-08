@@ -77,7 +77,10 @@ export default function CombatPage() {
   }, [data]);
 
   // Collect all possible actions for action selector
-  const actions = availableUserActions(battleState?.battle, userData?.userId);
+  const actions = useMemo(() => {
+    console.log(">>>>>>>>>>>>>>>");
+    return availableUserActions(battleState?.battle, userData?.userId);
+  }, [versionId]);
 
   // Battle scene
   const combat = useMemo(() => {

@@ -703,6 +703,7 @@ export const highlightTiles = (info: {
   battle: ReturnedBattle;
   grid: Grid<TerrainHex>;
   currentHighlights: Set<string>;
+  precomputedActions?: CombatAction[];
 }) => {
   // Definitions
   const { group_tiles, user, battle, currentHighlights, action, grid, timeDiff } = info;
@@ -712,7 +713,10 @@ export const highlightTiles = (info: {
   const origin = user && grid.getHex({ col: user.longitude, row: user.latitude });
 
   // Make sure the proper round & activeUser is shown when we draw combat
-  const { actor } = calcActiveUser(battle, user.userId, timeDiff);
+  const { actor } = calcActiveUser(battle, user.userId, timeDiff, {
+    precomputedUserId: user.userId,
+    precomputedActions: info.precomputedActions,
+  });
 
   // Check if we have enough action points to perform action
   const { canAct } = actionPointsAfterAction(user, battle, action);

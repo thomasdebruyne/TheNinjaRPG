@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, ExternalLink, Info } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,13 +9,22 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { findPredecessor } from "@/libs/objectives";
+import { useRequiredUserData } from "@/utils/UserContext";
+import { canChangeContent } from "@/utils/permissions";
 import type { ZodCombinedQuest } from "@/hooks/quest";
 import type { ZodItemType } from "@/libs/combat/types";
+import type { ZodJutsuType } from "@/libs/combat/types";
+import type { ZodSkillTreeType } from "@/libs/combat/types";
+import type { ZodBloodlineType } from "@/libs/combat/types";
 import type { DeepPartial } from "@/utils/typeutils";
 import type { AllObjectivesType } from "@/validators/objectives";
+import { api } from "@/app/_trpc/client";
+import type { ZodAllTags } from "@/libs/combat/types";
+import type { JutsuRelations } from "@/server/api/routers/jutsu";
 
 export interface QuestHelperProps {
   quest: DeepPartial<ZodCombinedQuest>;
@@ -23,6 +32,18 @@ export interface QuestHelperProps {
 
 export interface ItemHelperProps {
   item: DeepPartial<ZodItemType>;
+}
+
+export interface JutsuHelperProps {
+  jutsu: DeepPartial<ZodJutsuType>;
+}
+
+export interface SkillTreeHelperProps {
+  skillTree: DeepPartial<ZodSkillTreeType>;
+}
+
+export interface BloodlineHelperProps {
+  bloodline: DeepPartial<ZodBloodlineType>;
 }
 
 export const QuestHelper: React.FC<QuestHelperProps> = (props) => {
@@ -147,11 +168,295 @@ export const ItemHelper: React.FC<ItemHelperProps> = (props) => {
                 Type: <span className="font-medium">{item.itemType}</span>
               </p>
             </div>
-
             {renderItemTips(item)}
+            {item.effects && renderEffectsTips(item.effects as ZodAllTags[])}
           </div>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+};
+
+export const JutsuHelper: React.FC<JutsuHelperProps> = ({ jutsu }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { data: userData } = useRequiredUserData();
+
+  // Set initial state based on screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isDesktop = window.innerWidth >= 768; // md breakpoint
+      setIsOpen(isDesktop);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  // Load injector counts and references
+  const jutsuId = (jutsu as { id?: string })?.id ?? "";
+  const { data: injectorData } = api.jutsu.countInjectors.useQuery(
+    { jutsuId },
+    { enabled: !!jutsuId },
+  );
+
+  // Only show if user has permission
+  if (!userData) return null;
+  if (!canChangeContent(userData.role)) return null;
+
+  return (
+    <div className="inline-block">
+      <Sheet open={isOpen} onOpenChange={setIsOpen} modal={false}>
+        <SheetTrigger asChild>
+          <Button
+            className="flex items-center gap-2"
+            variant={isOpen ? "default" : "outline"}
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+
+        <SheetContent
+          side="right"
+          className="w-80 sm:w-96"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              Jutsu Helper
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            <div className="p-3 bg-gray-50 rounded-lg border">
+              <h3 className="font-medium text-gray-900 mb-2">Jutsu: {jutsu.name}</h3>
+              <p className="text-sm text-gray-600 capitalize">
+                Rank: <span className="font-medium">{jutsu.jutsuRank}</span>
+              </p>
+            </div>
+
+            {renderJutsuInformation()}
+            {renderJutseRelations(jutsu, injectorData)}
+            {jutsu.effects && renderEffectsTips(jutsu.effects as ZodAllTags[])}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+};
+
+export const SkillTreeHelper: React.FC<SkillTreeHelperProps> = ({ skillTree }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { data: userData } = useRequiredUserData();
+
+  // Set initial state based on screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isDesktop = window.innerWidth >= 768; // md breakpoint
+      setIsOpen(isDesktop);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  // Only show if user has permission
+  if (!userData) return null;
+  if (!canChangeContent(userData.role)) return null;
+
+  return (
+    <div>
+      <Sheet open={isOpen} onOpenChange={setIsOpen} modal={false}>
+        <SheetTrigger asChild>
+          <Button
+            className="flex items-center gap-2"
+            variant={isOpen ? "default" : "outline"}
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+
+        <SheetContent
+          side="right"
+          className="w-80 sm:w-96"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              SkillTree Helper
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            <div className="p-3 bg-gray-50 rounded-lg border">
+              <h3 className="font-medium text-gray-900 mb-2">
+                SkillTree: {skillTree.name}
+              </h3>
+              <p className="text-sm text-gray-600 capitalize">
+                Tier: <span className="font-medium">{skillTree.tier ?? 1}</span>
+              </p>
+              <p className="text-sm text-gray-600 capitalize">
+                Target:{" "}
+                <span className="font-medium">{skillTree.target ?? "SELF"}</span>
+              </p>
+            </div>
+
+            {renderSkillTreeWarnings(skillTree)}
+            {skillTree.effects && renderEffectsTips(skillTree.effects as ZodAllTags[])}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+};
+
+export const BloodlineHelper: React.FC<BloodlineHelperProps> = ({ bloodline }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { data: userData } = useRequiredUserData();
+
+  // Set initial state based on screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isDesktop = window.innerWidth >= 768; // md breakpoint
+      setIsOpen(isDesktop);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  // Only show if user has permission
+  if (!userData) return null;
+  if (!canChangeContent(userData.role)) return null;
+
+  return (
+    <div className="inline-block">
+      <Sheet open={isOpen} onOpenChange={setIsOpen} modal={false}>
+        <SheetTrigger asChild>
+          <Button
+            className="flex items-center gap-2"
+            variant={isOpen ? "default" : "outline"}
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+
+        <SheetContent
+          side="right"
+          className="w-80 sm:w-96"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              Bloodline Helper
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            <div className="p-3 bg-gray-50 rounded-lg border">
+              <h3 className="font-medium text-gray-900 mb-2">
+                Bloodline: {bloodline.name}
+              </h3>
+              <p className="text-sm text-gray-600 capitalize">
+                Rank: <span className="font-medium">{bloodline.rank}</span>
+              </p>
+            </div>
+
+            {bloodline.effects && renderEffectsTips(bloodline.effects as ZodAllTags[])}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+};
+
+/****************************************************  */
+/*                RENDERING FUNCTIONS                  */
+/****************************************************  */
+
+/**
+ * Renders tips for effects-related configuration
+ * @param effects - Array of effects to analyze
+ * @returns The tips for effects configuration
+ */
+const renderEffectsTips = (effects: ZodAllTags[]) => {
+  const tips = [];
+
+  // Check for injectjutsus effect
+  const hasInjectEffect = effects.some((e) => e.type === "injectjutsus");
+
+  if (hasInjectEffect) {
+    tips.push(
+      <div
+        key="injectjutsus-power"
+        className="p-3 bg-blue-50 rounded-lg border border-blue-200"
+      >
+        <h4 className="font-medium text-blue-900 mb-2">Power Attribute</h4>
+        <p className="text-blue-800 text-sm">
+          The <code className="bg-blue-100 px-1 rounded">injectjutsus</code> effect uses
+          the
+          <code className="bg-blue-100 px-1 rounded">power</code> attribute to determine
+          the level of the injected jutsu.
+        </p>
+      </div>,
+    );
+  }
+
+  // Return null if no tips to show
+  if (tips.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h4 className="font-medium text-gray-900">Effects Tips</h4>
+      {tips}
+    </div>
+  );
+};
+
+/**
+ * Renders warnings for skill tree configuration
+ * @param skillTree - The skill tree to analyze
+ * @returns The warnings for skill tree configuration
+ */
+const renderSkillTreeWarnings = (skillTree: DeepPartial<ZodSkillTreeType>) => {
+  const warnings = [];
+
+  // Check for tier > 1 without prerequisites
+  const tier = skillTree.tier ?? 1;
+  const requiredSkillIds = skillTree.requiredSkillIds ?? [];
+
+  if (tier > 1 && requiredSkillIds.length === 0) {
+    warnings.push(
+      <div
+        key="tier-prerequisites"
+        className="p-3 bg-red-50 rounded-lg border border-red-200"
+      >
+        <h4 className="font-medium text-red-900 mb-2">Missing Prerequisites</h4>
+        <p className="text-red-800 text-sm">
+          This skill has tier <code className="bg-red-100 px-1 rounded">{tier}</code>{" "}
+          but no prerequisite skills are defined. Consider adding required skills to{" "}
+          <code className="bg-red-100 px-1 rounded">requiredSkillIds</code> for proper
+          skill progression.
+        </p>
+      </div>,
+    );
+  }
+
+  // Return null if no warnings to show
+  if (warnings.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h4 className="font-medium text-gray-900">Skill Tree Warnings</h4>
+      {warnings}
     </div>
   );
 };
@@ -595,6 +900,155 @@ const renderItemTips = (item: DeepPartial<ZodItemType>) => {
             </p>
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Renders the tips for jutsu information
+ * @param jutsu - The jutsu to render the tips for
+ * @returns The tips for jutsu information
+ */
+const renderJutsuInformation = () => {
+  return (
+    <>
+      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <h4 className="font-medium text-blue-900 mb-2">Injectable In Battle</h4>
+        <p className="text-blue-800 text-sm">
+          The <code className="bg-blue-100 px-1 rounded">injectableInBattle</code> field
+          determines whether this jutsu can be injected by other effects.
+        </p>
+      </div>
+      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <h4 className="font-medium text-blue-900 mb-2">Pick a target</h4>
+        <p className="text-blue-800 text-sm">
+          The <code className="bg-blue-100 px-1 rounded">target</code> field determines
+          the target of this jutsu.
+        </p>
+      </div>
+    </>
+  );
+};
+
+const renderJutseRelations = (
+  jutsu: DeepPartial<ZodJutsuType>,
+  relations?: JutsuRelations,
+) => {
+  if (!relations) return null;
+
+  const {
+    jutsuInjectors,
+    bloodlineInjectors,
+    skillInjectors,
+    itemInjectors,
+    aiUsingJutsu,
+  } = relations;
+
+  // Define relation configurations with their specific routes
+  const relationConfigs = [
+    {
+      name: "Injector Jutsus",
+      data: jutsuInjectors,
+      route: "/manual/jutsu/edit",
+    },
+    {
+      name: "Injector Bloodlines",
+      data: bloodlineInjectors,
+      route: "/manual/bloodline/edit",
+    },
+    {
+      name: "Injector Skills",
+      data: skillInjectors,
+      route: "/manual/skillTree/edit",
+    },
+    {
+      name: "Injector Items",
+      data: itemInjectors,
+      route: "/manual/item/edit",
+    },
+    {
+      name: "AI Users",
+      data: aiUsingJutsu,
+      route: "/manual/ai/edit",
+    },
+  ];
+
+  const totalRelations = relationConfigs.reduce(
+    (sum, config) => sum + config.data.length,
+    0,
+  );
+
+  /**
+   * Renders a section for a specific relation type
+   */
+  const renderRelationSection = (config: (typeof relationConfigs)[0]) => {
+    if (config.data.length === 0) return null;
+
+    return (
+      <div key={config.name}>
+        <h5 className="text-sm font-medium text-gray-700 mb-1">
+          {config.name} ({config.data.length})
+        </h5>
+        <div className="space-y-1">
+          {config.data.map((ref) => (
+            <div key={ref.id} className="flex items-center justify-between text-sm">
+              <span>{ref.name}</span>
+              {config.route && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => window.open(`${config.route}/${ref.id}`, "_blank")}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Return null if no relations exist
+  if (totalRelations === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <h4 className="font-medium text-gray-900">Jutsu Relations</h4>
+
+      <div className="space-y-3 text-sm">
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2">
+            <span>
+              Total relations found:{" "}
+              <span className="font-medium">{totalRelations}</span>
+            </span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Related Content</h4>
+                  {relationConfigs.map(renderRelationSection)}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="mt-1 text-xs text-gray-700 space-y-0.5">
+            {relationConfigs.map((config) =>
+              config.data.length > 0 ? (
+                <p key={config.name}>
+                  • {config.name}: {config.data.length}
+                </p>
+              ) : null,
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

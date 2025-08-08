@@ -25,7 +25,13 @@ import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { AllTags, SuperRefineEffects } from "@/libs/combat/types";
-import type { ZodAllTags } from "@/libs/combat/types";
+import type {
+  ZodAllTags,
+  ExtraState,
+  BattleUserState,
+  UserEffect,
+  GroundEffect,
+} from "@/libs/combat/types";
 import type { QuestContentType } from "@/validators/objectives";
 import type { QuestTrackerType } from "@/validators/objectives";
 import type { ObjectiveRewardType } from "@/validators/objectives";
@@ -202,9 +208,10 @@ export const battle = mysqlTable(
       .notNull(),
     background: varchar("background", { length: 191 }).notNull(),
     battleType: mysqlEnum("battleType", consts.BattleTypes).notNull(),
-    usersState: json("usersState").notNull(),
-    usersEffects: json("usersEffects").notNull(),
-    groundEffects: json("groundEffects").notNull(),
+    usersState: json("usersState").$type<BattleUserState[]>().notNull(),
+    usersEffects: json("usersEffects").$type<UserEffect[]>().notNull(),
+    groundEffects: json("groundEffects").$type<GroundEffect[]>().notNull(),
+    extraState: json("extraState").$type<ExtraState>().notNull(),
     rewardScaling: double("rewardScaling").default(1).notNull(),
     version: int("version").default(1).notNull(),
     round: int("round").default(1).notNull(),
@@ -1150,6 +1157,7 @@ export const jutsu = mysqlTable(
     villageId: varchar("villageId", { length: 191 }),
     method: mysqlEnum("method", consts.AttackMethods).default("SINGLE").notNull(),
     hidden: boolean("hidden").default(false).notNull(),
+    injectableInBattle: boolean("injectableInBattle").default(false).notNull(),
   },
   (table) => {
     return {
@@ -1157,6 +1165,7 @@ export const jutsu = mysqlTable(
       imageKey: index("Jutsu_image_key").on(table.image),
       bloodlineIdIdx: index("Jutsu_bloodlineId_idx").on(table.bloodlineId),
       villageIdIdx: index("Jutsu_villageId_idx").on(table.villageId),
+      injectableIdx: index("Jutsu_injectable_idx").on(table.injectableInBattle),
     };
   },
 );

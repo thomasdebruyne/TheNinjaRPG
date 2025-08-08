@@ -315,6 +315,17 @@ export const mirror = (
   }
 };
 
+/** Inform user about injected jutsus */
+export const injectjutsus = (
+  effect: UserEffect,
+  target: BattleUserState,
+): ActionEffect | undefined => {
+  if (effect.isNew) {
+    return getInfo(target, effect, "gains temporary access to additional actions");
+  }
+  return undefined;
+};
+
 /** Prevent debuffing */
 export const debuffPrevent = (
   effect: UserEffect,

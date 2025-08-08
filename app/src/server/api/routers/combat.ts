@@ -702,6 +702,7 @@ export const combatRouter = createTRPCRouter({
           ...uj,
           lastUsedRound: -uj.jutsu.cooldown,
           originalCooldown: uj.jutsu.cooldown,
+          origin: "user",
         }));
       }
       if (iId && "items" in itemLoadoutResult && itemLoadoutResult.items) {
@@ -1031,6 +1032,7 @@ export const initiateBattle = async (
     previousBattleResults,
     loadoutJutsus,
     loadoutItems,
+    injectableJutsus,
   ] = await Promise.all([
     // Essentials
     fetchBattleEssentials(client),
@@ -1129,6 +1131,8 @@ export const initiateBattle = async (
     itemIds.length > 0
       ? client.query.item.findMany({ where: inArray(item.id, itemIds) })
       : [],
+    // Fetch all jutsus that can be injected in battle
+    client.query.jutsu.findMany({ where: eq(jutsu.injectableInBattle, true) }),
   ]);
 
   // If we have forced loadouts, overwrite user items and jutsus appropriately
@@ -1369,6 +1373,7 @@ export const initiateBattle = async (
       usersState: usersState,
       usersEffects: userEffects,
       groundEffects: groundEffects,
+      extraState: { jutsus: injectableJutsus },
       rewardScaling: rewardScaling,
       createdAt: startTime,
       updatedAt: startTime,

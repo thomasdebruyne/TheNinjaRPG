@@ -1884,6 +1884,13 @@
       "when": 1754629626837,
       "tag": "0268_happy_wiccan",
       "breakpoints": false
+    },
+    {
+      "idx": 269,
+      "version": "5",
+      "when": 1754647748841,
+      "tag": "0269_rich_hex",
+      "breakpoints": false
     }
   ]
 }

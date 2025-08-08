@@ -47,6 +47,7 @@ export type BattleWar = War & {
 export type BattleUserState = Omit<NonNullable<UserWithRelations>, "items"> & {
   jutsus: (UserJutsu & {
     jutsu: Jutsu;
+    origin: "user" | "injected";
     lastUsedRound: number;
     originalCooldown: number;
   })[];
@@ -112,6 +113,10 @@ export type BasicActions = {
   basicFlee: CombatAction;
 };
 
+export type ExtraState = {
+  jutsus?: Jutsu[];
+};
+
 // Create type for battle, which contains information on user current state
 export type CompleteBattle = {
   usersState: BattleUserState[];
@@ -128,6 +133,7 @@ export type CompleteBattle = {
   round: number;
   rewardScaling: number;
   forceKeepPools: boolean;
+  extraState: ExtraState;
 };
 
 /**
@@ -865,6 +871,17 @@ export const IncreaseMarriageSlots = z.object({
   type: z.literal("marriageslotincrease").default("marriageslotincrease"),
 });
 
+/**
+ * InjectJutsusTag: Grants access to selected jutsus flagged as injectableInBattle
+ * - editors must restrict selection to jutsus where injectableInBattle=true
+ */
+export const InjectJutsusTag = z.object({
+  ...BaseAttributes,
+  type: z.literal("injectjutsus").default("injectjutsus"),
+  description: msg("Temporarily adds selected jutsus to the user's action list"),
+  jutsuIds: z.array(z.string()).default([]),
+});
+
 /******************** */
 /** UNIONS OF TAGS   **/
 /******************** */
@@ -899,6 +916,7 @@ export const AllTags = z.union([
   IncreaseDamageTakenTag.default({}),
   IncreaseHealGivenTag.default({}),
   IncreaseMarriageSlots.default({}),
+  InjectJutsusTag.default({}),
   IncreasePoolCostTag.default({}),
   IncreaseRangeTag.default({}),
   IncreaseStatTag.default({}),
@@ -964,6 +982,7 @@ export const isPositiveUserEffect = (tag: ZodAllTags) => {
       "stealth",
       "stunprevent",
       "summon",
+      "injectjutsus",
     ].includes(tag.type)
   ) {
     return true;
@@ -1080,10 +1099,7 @@ interface ItemValidatorType
   effects: ZodAllTags[];
 }
 
-interface JutsuValidatorType
-  extends Omit<Jutsu, "id" | "createdAt" | "updatedAt" | "hidden"> {
-  effects: ZodAllTags[];
-}
+// Jutsu validation helpers use the raw schema inference
 
 /**
  * Convenience method for adding a custom zod validation error
@@ -1181,7 +1197,10 @@ const SuperRefineItem = (data: ItemValidatorType, ctx: z.RefinementCtx) => {
 /**
  * Validator specific to jutsus
  */
-const SuperRefineJutsu = (data: JutsuValidatorType, ctx: z.RefinementCtx) => {
+const SuperRefineJutsu = (
+  data: z.infer<typeof JutsuValidatorRawSchema>,
+  ctx: z.RefinementCtx,
+) => {
   const hasBloodlineRoll = data.effects.find((e) => e.type === "rollbloodline");
   const hasRemoveBloodline = data.effects.find((e) => e.type === "removebloodline");
   const hasNonCombatConsumeReward = data.effects.find(
@@ -1236,6 +1255,7 @@ export const JutsuValidatorRawSchema = z.object({
   range: z.coerce.number().int().min(0).max(5),
   statClassification: z.enum(StatTypes),
   hidden: z.coerce.boolean().optional(),
+  injectableInBattle: z.coerce.boolean().default(false),
   healthCost: z.coerce.number().min(0).max(10000),
   chakraCost: z.coerce.number().min(0).max(10000),
   staminaCost: z.coerce.number().min(0).max(10000),
