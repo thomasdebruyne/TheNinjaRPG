@@ -5,6 +5,7 @@ import { LetterRanks, UserRanks, WeaponTypes } from "@/drizzle/constants";
 import { ElementNames } from "@/drizzle/constants";
 import { DateTimeRegExp } from "@/utils/regex";
 import { StatTypes, GeneralTypes, PoolTypes } from "@/drizzle/constants";
+import { SkillTreeTargets } from "@/drizzle/constants";
 import {
   MAX_STATS_CAP,
   MAX_GENS_CAP,
@@ -1274,6 +1275,7 @@ export const SkillTreeValidator = z.object({
   name: z.string(),
   image: z.string(),
   description: z.string(),
+  target: z.enum(SkillTreeTargets).default("SELF"),
   tier: z.coerce.number().int().min(1).max(10),
   requiredSkillIds: z.array(z.string()),
   costSkillPoints: z.coerce.number().int().min(1),

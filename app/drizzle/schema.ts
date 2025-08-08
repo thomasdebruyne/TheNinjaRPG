@@ -403,6 +403,7 @@ export const skillTree = mysqlTable(
     image: varchar("image", { length: 191 }).notNull(),
     description: text("description").notNull(),
     effects: json("effects").$type<ZodAllTags[]>().notNull(),
+    target: mysqlEnum("target", consts.SkillTreeTargets).default("SELF").notNull(),
     tier: tinyint("tier").default(1).notNull(),
     requiredSkillIds: json("requiredSkillIds").$type<string[]>().default([]).notNull(),
     costSkillPoints: int("costSkillPoints").default(1).notNull(),

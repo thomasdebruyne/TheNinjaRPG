@@ -45,13 +45,13 @@ import { battle, battleAction, battleHistory, war, item } from "@/drizzle/schema
 import { villageAlliance, village, tournamentMatch, bounty } from "@/drizzle/schema";
 import { backgroundSchema, sector } from "@/drizzle/schema";
 import { performActionSchema, statSchema } from "@/libs/combat/types";
-import { performBattleAction } from "@/libs/combat/actions";
+import { performBattleAction, stillInBattle } from "@/libs/combat/actions";
 import { availableUserActions } from "@/libs/combat/actions";
 import { BarrierTag } from "@/libs/combat/types";
 import { fetchGameAssets } from "@/routers/misc";
 import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
 import { getRandomElement } from "@/utils/array";
-import { applyEffects } from "@/libs/combat/process";
+import { applyEffects, checkFriendlyFire } from "@/libs/combat/process";
 import { manuallyAssignUserStats, scaleUserStats } from "@/libs/profile";
 import { capUserStats } from "@/libs/profile";
 import { mockAchievementHistoryEntries } from "@/libs/quest";
@@ -1507,6 +1507,14 @@ export const processUsersForBattle = async (
   // Collect user effects here
   const allSummons: string[] = [];
   const userEffects: UserEffect[] = [];
+  const pendingSkillEffects: {
+    creatorId: string;
+    creatorVillageId: string | null;
+    skillId: string;
+    effects: UserEffect[];
+    level: number;
+    target: "ALLIES" | "ENEMIES";
+  }[] = [];
   const takenLocations: { x: number; y: number }[] = [];
 
   // Loop through users
@@ -1763,8 +1771,12 @@ export const processUsersForBattle = async (
       battleType !== "RANKED_SPARRING"
     ) {
       user.userSkills.forEach((userSkill) => {
-        if (userSkill.skill?.effects) {
-          userSkill.skill.effects.forEach((effect) => {
+        const skill = userSkill.skill;
+        if (!skill?.effects || skill.effects.length === 0) return;
+
+        // Self-targeted effects can be applied immediately
+        if (!skill.target || skill.target === "SELF") {
+          skill.effects.forEach((effect) => {
             const realized = realizeTag({
               tag: effect as UserEffect,
               user: user,
@@ -1777,6 +1789,15 @@ export const processUsersForBattle = async (
             realized.targetId = user.userId;
             realized.fromType = "skill";
             userEffects.push(realized);
+          });
+        } else if (skill.target === "ALLIES" || skill.target === "ENEMIES") {
+          pendingSkillEffects.push({
+            creatorId: user.userId,
+            creatorVillageId: user.villageId,
+            skillId: userSkill.skillId,
+            effects: skill.effects as unknown as UserEffect[],
+            level: user.level,
+            target: skill.target,
           });
         }
       });
@@ -2008,6 +2029,33 @@ export const processUsersForBattle = async (
       summonState.map((u) => (u.iAmHere = true));
       userEffects.push(...summonEffects);
       usersState.push(...summonState);
+    }
+  }
+
+  // Apply any pending skill tree effects that target allies/enemies now that usersState exists
+  if (pendingSkillEffects.length > 0) {
+    for (const pending of pendingSkillEffects) {
+      const creator = usersState.find((u) => u.userId === pending.creatorId);
+      if (!creator) continue;
+      const targets = usersState.filter(stillInBattle);
+      for (const target of targets) {
+        for (const effect of pending.effects) {
+          const realized = realizeTag({
+            tag: effect,
+            user: creator,
+            actionId: pending.skillId,
+            target,
+            level: pending.level,
+          });
+          realized.isNew = false;
+          realized.castThisRound = false;
+          realized.targetId = target.userId;
+          realized.fromType = "skill";
+          if (checkFriendlyFire(realized, target, usersState)) {
+            userEffects.push(realized);
+          }
+        }
+      }
     }
   }
 

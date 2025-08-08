@@ -1,0 +1,1 @@
+ALTER TABLE `SkillTree` ADD `target` enum('SELF','ENEMIES','ALLIES') DEFAULT 'SELF' NOT NULL;

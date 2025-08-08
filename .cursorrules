@@ -29,6 +29,7 @@ You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, 
 - Always preferthe query-syntax of drizzle, only as a last resort use raw SQL.
 - Always try to use `Promise.all()` for parallel database operations. It is very important to minimize the amounts of back and forth between database for speed.
 - Never use direct database transactions, instead use guards with where-statements and check return results.
+- Never create database migrations manually, instead use `make makemigrations` in the root of the project after having changed the schema file.
 
 # tRPC endpoints
 

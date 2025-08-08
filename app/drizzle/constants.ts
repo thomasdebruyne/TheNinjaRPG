@@ -304,6 +304,10 @@ export const AttackTargets = [
 ] as const;
 export type AttackTarget = (typeof AttackTargets)[number];
 
+// Targets for passive skill tree effects applied on battle start
+export const SkillTreeTargets = ["SELF", "ENEMIES", "ALLIES"] as const;
+export type SkillTreeTarget = (typeof SkillTreeTargets)[number];
+
 export const AttackMethods = [
   "SINGLE",
   "ALL",
