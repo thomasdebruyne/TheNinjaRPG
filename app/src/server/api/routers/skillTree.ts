@@ -8,7 +8,11 @@ import { fetchUpdatedUser } from "@/routers/profile";
 import { canChangeContent } from "@/utils/permissions";
 import { callDiscordContent } from "@/libs/discord";
 import { calculateContentDiff } from "@/utils/diff";
-import { IMG_AVATAR_DEFAULT, COST_SKILL_RESET } from "@/drizzle/constants";
+import {
+  IMG_AVATAR_DEFAULT,
+  COST_SKILL_RESET,
+  FederalStatus,
+} from "@/drizzle/constants";
 import { SkillTreeValidator } from "@/libs/combat/types";
 import { canUnequipAllUsers } from "@/utils/permissions";
 import { actionLog } from "@/drizzle/schema";
@@ -17,7 +21,12 @@ import {
   skillTreeFilteringSchema,
   type SkillTreeFilteringSchema,
 } from "@/validators/skillTree";
-import { SKILL_TREE_RESET_FREE_GOLD } from "@/drizzle/constants";
+import {
+  SKILL_TREE_RESET_FREE_GOLD,
+  SKILL_TREE_RESET_FREE_NORMAL,
+  SKILL_TREE_RESET_FREE_SILVER,
+} from "@/drizzle/constants";
+import type { ActionLog, UserData } from "@/drizzle/schema";
 import type { DrizzleClient } from "@/server/db";
 
 export const skillTreeRouter = createTRPCRouter({
@@ -272,10 +281,9 @@ export const skillTreeRouter = createTRPCRouter({
       if (!user) return errorResponse("User not found");
 
       // Determine if this reset should be free (GOLD supporters get first two per month free)
-      const isGoldSupporter = getUserFederalStatus(user) === "GOLD";
+      const freeResets = getFreeResetAmount(user);
       const freeResetsUsed = monthlyResets.length;
-      const isFreeReset =
-        isGoldSupporter && freeResetsUsed < SKILL_TREE_RESET_FREE_GOLD;
+      const isFreeReset = freeResetsUsed < freeResets;
 
       // Guard: if not free, ensure user can afford
       if (!isFreeReset && user.reputationPoints < COST_SKILL_RESET) {
@@ -343,10 +351,10 @@ export const skillTreeRouter = createTRPCRouter({
     // Guard
     if (!user) return { isFree: false, freeResetsUsed: 0, freeResetsRemaining: 0 };
     // Derived
-    const isGoldSupporter = getUserFederalStatus(user) === "GOLD";
+    const freeResets = getFreeResetAmount(user);
     const freeResetsUsed = monthlyResets.length;
-    const freeResetsRemaining = isGoldSupporter ? Math.max(0, 2 - freeResetsUsed) : 0;
-    const isFree = isGoldSupporter && freeResetsRemaining > 0;
+    const freeResetsRemaining = freeResets - freeResetsUsed;
+    const isFree = freeResetsRemaining > 0;
     // Return
     return { isFree, freeResetsUsed, freeResetsRemaining };
   }),
@@ -462,4 +470,23 @@ export const fetchMonthlyResets = async (client: DrizzleClient, userId: string) 
     columns: { id: true },
   });
   return results;
+};
+
+/**
+ * Get the free reset amount for a user
+ * @param user - The user
+ * @returns The free reset amount
+ */
+export const getFreeResetAmount = (user: UserData) => {
+  const status = getUserFederalStatus(user);
+  switch (status) {
+    case "NORMAL":
+      return SKILL_TREE_RESET_FREE_NORMAL;
+    case "SILVER":
+      return SKILL_TREE_RESET_FREE_SILVER;
+    case "GOLD":
+      return SKILL_TREE_RESET_FREE_GOLD;
+    default:
+      return 0;
+  }
 };

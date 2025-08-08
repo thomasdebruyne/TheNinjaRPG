@@ -1493,6 +1493,7 @@ export const actionLog = mysqlTable(
     };
   },
 );
+export type ActionLog = InferSelectModel<typeof actionLog>;
 
 export const actionLogRelations = relations(actionLog, ({ one }) => ({
   user: one(userData, {

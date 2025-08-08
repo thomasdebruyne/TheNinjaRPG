@@ -41,7 +41,20 @@ import { FED_SILVER_BANK_INTEREST } from "@/drizzle/constants";
 import { FED_GOLD_BANK_INTEREST } from "@/drizzle/constants";
 import { IMG_REPSHOP_BRONZE } from "@/drizzle/constants";
 import { IMG_REPSHOP_SILVER } from "@/drizzle/constants";
+import { SKILL_TREE_RESET_FREE_GOLD } from "@/drizzle/constants";
+import { SKILL_TREE_RESET_FREE_NORMAL } from "@/drizzle/constants";
+import { SKILL_TREE_RESET_FREE_SILVER } from "@/drizzle/constants";
 import { IMG_REPSHOP_GOLD } from "@/drizzle/constants";
+import { FED_EVENT_ITEMS_NORMAL } from "@/drizzle/constants";
+import { FED_EVENT_ITEMS_SILVER } from "@/drizzle/constants";
+import { FED_EVENT_ITEMS_GOLD } from "@/drizzle/constants";
+import { FED_EVENT_ITEMS_DEFAULT } from "@/drizzle/constants";
+import { FED_NORMAL_JUTSU_LOADOUTS } from "@/drizzle/constants";
+import { FED_SILVER_JUTSU_LOADOUTS } from "@/drizzle/constants";
+import { FED_GOLD_JUTSU_LOADOUTS } from "@/drizzle/constants";
+import { FED_NORMAL_ITEM_LOADOUTS } from "@/drizzle/constants";
+import { FED_SILVER_ITEM_LOADOUTS } from "@/drizzle/constants";
+import { FED_GOLD_ITEM_LOADOUTS } from "@/drizzle/constants";
 import { PAYPAL_DISCOUNT_PERCENT } from "@/drizzle/constants";
 import {
   Form,
@@ -371,9 +384,15 @@ const PayPalSubscriptionButton = (props: {
       <h2 className="font-bold">Normal Support</h2>
       <ul className="mx-2 mb-2 ml-6 list-disc text-xs">
         <li>Blue username in tavern</li>
-        <li>+{FED_NORMAL_INVENTORY_SLOTS} Inventory space</li>
+        <li>+{FED_NORMAL_INVENTORY_SLOTS} Normal Inventory space</li>
+        <li>
+          +{FED_EVENT_ITEMS_NORMAL - FED_EVENT_ITEMS_DEFAULT} Event inventory space
+        </li>
         <li>+{FED_NORMAL_JUTSU_SLOTS} Jutsu slot</li>
         <li>+{FED_NORMAL_BANK_INTEREST}% bank interest</li>
+        <li>{FED_NORMAL_JUTSU_LOADOUTS} jutsu loadouts</li>
+        <li>{FED_NORMAL_ITEM_LOADOUTS} item loadouts</li>
+        <li>+{SKILL_TREE_RESET_FREE_NORMAL} skill tree resets per month</li>
         <li>Custom avatar (512KB)</li>
       </ul>
     </>
@@ -384,9 +403,15 @@ const PayPalSubscriptionButton = (props: {
       <h2 className="font-bold">Silver Support</h2>
       <ul className="mx-2 mb-2 ml-6 list-disc text-xs">
         <li>Silver username in tavern</li>
-        <li>+{FED_SILVER_INVENTORY_SLOTS} Inventory space</li>
+        <li>+{FED_SILVER_INVENTORY_SLOTS} Normal Inventory space</li>
+        <li>
+          +{FED_EVENT_ITEMS_SILVER - FED_EVENT_ITEMS_DEFAULT} Event inventory space
+        </li>
         <li>+{FED_SILVER_JUTSU_SLOTS} Jutsu slots</li>
         <li>+{FED_SILVER_BANK_INTEREST}% bank interest</li>
+        <li>{FED_SILVER_JUTSU_LOADOUTS} jutsu loadouts</li>
+        <li>{FED_SILVER_ITEM_LOADOUTS} item loadouts</li>
+        <li>+{SKILL_TREE_RESET_FREE_SILVER} skill tree resets per month</li>
         <li>Custom avatar (1MB)</li>
       </ul>
     </>
@@ -397,9 +422,13 @@ const PayPalSubscriptionButton = (props: {
       <h2 className="font-bold">Gold Support</h2>
       <ul className="mx-2 mb-2 ml-6 list-disc text-xs">
         <li>Gold username in tavern</li>
-        <li>+{FED_GOLD_INVENTORY_SLOTS} Inventory space</li>
+        <li>+{FED_GOLD_INVENTORY_SLOTS} Normal Inventory space</li>
+        <li>+{FED_EVENT_ITEMS_GOLD - FED_EVENT_ITEMS_DEFAULT} Event inventory space</li>
         <li>+{FED_GOLD_JUTSU_SLOTS} Jutsu slots</li>
         <li>+{FED_GOLD_BANK_INTEREST}% bank interest</li>
+        <li>{FED_GOLD_JUTSU_LOADOUTS} jutsu loadouts</li>
+        <li>{FED_GOLD_ITEM_LOADOUTS} item loadouts</li>
+        <li>+{SKILL_TREE_RESET_FREE_GOLD} skill tree resets per month</li>
         <li>Custom avatar (2MB)</li>
       </ul>
     </>
