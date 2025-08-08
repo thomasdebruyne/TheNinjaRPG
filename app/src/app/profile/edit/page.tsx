@@ -1939,14 +1939,20 @@ const ResetSkills: React.FC = () => {
   const { data: userData } = useRequiredUserData();
   const utils = api.useUtils();
 
+  // Get reset info
+  const { data: resetInfo } = api.skillTree.getResetInfo.useQuery();
+
   // Mutations
   const { mutate: resetSkills, isPending } = api.skillTree.resetSkillPoints.useMutation(
     {
       onSuccess: async (data) => {
         showMutationToast(data);
         if (data.success) {
-          await utils.profile.getUser.invalidate();
-          await utils.skillTree.getUserSkills.invalidate();
+          await Promise.all([
+            utils.profile.getUser.invalidate(),
+            utils.skillTree.getUserSkills.invalidate(),
+            utils.skillTree.getResetInfo.invalidate(),
+          ]);
         }
       },
     },
@@ -1956,7 +1962,9 @@ const ResetSkills: React.FC = () => {
   if (!userData) return <Loader explanation="Loading user" />;
 
   // Guards
-  const canAfford = userData.reputationPoints >= COST_SKILL_RESET;
+  const isFree = resetInfo?.isFree;
+  const canAffordPaid = userData.reputationPoints >= COST_SKILL_RESET;
+  const canAfford = Boolean(isFree) || canAffordPaid;
 
   return (
     <div className="p-4 space-y-4">
@@ -1979,7 +1987,9 @@ const ResetSkills: React.FC = () => {
           >
             {isPending ? (
               <Loader size={5} />
-            ) : canAfford ? (
+            ) : isFree ? (
+              `Reset Skills (${resetInfo?.freeResetsRemaining} free GOLD resets remaining)`
+            ) : canAffordPaid ? (
               `Reset Skills for ${COST_SKILL_RESET} Reps`
             ) : (
               `Need ${COST_SKILL_RESET - userData.reputationPoints} More Reps`
@@ -1992,8 +2002,11 @@ const ResetSkills: React.FC = () => {
         }}
       >
         This will reset all your skill tree investments and refund all spent skill
-        points for {COST_SKILL_RESET} reputation points. This action cannot be undone.
-        Are you sure you want to continue?
+        points
+        {isFree
+          ? " (Free GOLD monthly reset)"
+          : ` for ${COST_SKILL_RESET} reputation points`}
+        . This action cannot be undone. Are you sure you want to continue?
       </Confirm2>
     </div>
   );

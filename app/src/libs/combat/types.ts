@@ -429,11 +429,22 @@ export const IncreaseRangeTag = z.object({
   actionsAffected: z.array(z.enum(AdjustableBasicActions)).optional(),
 });
 
-export const IncreaseRangePreventTag = z.object({
+export const IncreaseCooldownTag = z.object({
   ...BaseAttributes,
   ...PowerAttributes,
-  type: z.literal("increaserangeprevent").default("increaserangeprevent"),
-  description: msg("Prevents buffing of basic actions range"),
+  type: z.literal("increasecooldown").default("increasecooldown"),
+  description: msg("Increase cooldown of basic actions"),
+  calculation: z.enum(["static"]).default("static"),
+  actionsAffected: z.array(z.enum(AdjustableBasicActions)).optional(),
+});
+
+export const DecreaseCooldownTag = z.object({
+  ...BaseAttributes,
+  ...PowerAttributes,
+  type: z.literal("decreasecooldown").default("decreasecooldown"),
+  description: msg("Decrease cooldown of basic actions"),
+  calculation: z.enum(["static"]).default("static"),
+  actionsAffected: z.array(z.enum(AdjustableBasicActions)).optional(),
 });
 
 export const IncreaseStatTag = z.object({
@@ -869,6 +880,7 @@ export const AllTags = z.union([
   CopyTag.default({}),
   DamageTag.default({}),
   DebuffPreventTag.default({}),
+  DecreaseCooldownTag.default({}),
   DecreaseDamageGivenTag.default({}),
   DecreaseDamageTakenTag.default({}),
   DecreaseHealGivenTag.default({}),
@@ -881,13 +893,13 @@ export const AllTags = z.union([
   FleeTag.default({}),
   HealPreventTag.default({}),
   HealTag.default({}),
+  IncreaseCooldownTag.default({}),
   IncreaseDamageGivenTag.default({}),
   IncreaseDamageTakenTag.default({}),
   IncreaseHealGivenTag.default({}),
   IncreaseMarriageSlots.default({}),
   IncreasePoolCostTag.default({}),
   IncreaseRangeTag.default({}),
-  IncreaseRangePreventTag.default({}),
   IncreaseStatTag.default({}),
   LifeStealTag.default({}),
   MirrorTag.default({}),
@@ -939,6 +951,7 @@ export const isPositiveUserEffect = (tag: ZodAllTags) => {
       "increaseheal",
       "increasestat",
       "increaserange",
+      "decreasecooldown",
       "lifesteal",
       "move",
       "moveprevent",
@@ -981,7 +994,7 @@ export const isNegativeUserEffect = (tag: ZodAllTags) => {
       "healprevent",
       "increasedamagetaken",
       "increasepoolcost",
-      "increaserangeprevent",
+      "increasecooldown",
       "moveprevent",
       "onehitkill",
       "pierce",

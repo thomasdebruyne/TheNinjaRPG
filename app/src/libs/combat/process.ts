@@ -17,6 +17,8 @@ import {
   poison,
   finalStand,
   increaseRange,
+  increaseCooldown,
+  decreaseCooldown,
 } from "./tags";
 import { increaseStats, decreaseStats, copy, mirror } from "./tags";
 import { increaseDamageGiven, decreaseDamageGiven } from "./tags";
@@ -33,7 +35,6 @@ import {
   robPrevent,
   stealth,
   elementalseal,
-  increaseRangePrevent,
 } from "./tags";
 import { clear, cleanse, summon, summonPrevent, buffPrevent, weakness } from "./tags";
 import { cleansePrevent, clearPrevent, healPrevent, debuffPrevent } from "./tags";
@@ -682,10 +683,12 @@ export const applySingleEffect = (
           info = absorb(effect, usersEffects, consequences, curTarget);
         } else if (effect.type === "increasestat") {
           info = increaseStats(effect, newUsersEffects, curTarget);
+        } else if (effect.type === "increasecooldown") {
+          info = increaseCooldown(effect, usersEffects, curTarget);
+        } else if (effect.type === "decreasecooldown") {
+          info = decreaseCooldown(effect, usersEffects, curTarget);
         } else if (effect.type === "increaserange") {
           info = increaseRange(effect, usersEffects, curTarget);
-        } else if (effect.type === "increaserangeprevent") {
-          info = increaseRangePrevent(effect, curTarget);
         } else if (effect.type === "decreasestat") {
           info = decreaseStats(effect, newUsersEffects, curTarget);
         } else if (effect.type === "increasedamagetaken") {

@@ -6,7 +6,8 @@ You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, 
 - Use functional and declarative programming patterns; avoid classes.
 - Prefer iteration and modularization over code duplication.
 - Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
-- Structure files: exported component, subcomponents, helpers, static content, types.
+- Always review previous similar implementations to maintain style consistency.
+- Always review final implementation to see if something could be done in a more succint, more readable, or more dry manner.
 
 # Code & Naming Conventions
 
@@ -26,7 +27,7 @@ You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, 
 - We use drizzle-orm for interacting with our database.
 - The entire schema is located in `@/drizzle/schema.ts`.
 - Always preferthe query-syntax of drizzle, only as a last resort use raw SQL.
-- As much as possible run queries using Promise.all to optimize endpoints.
+- Always try to use `Promise.all()` for parallel database operations. It is very important to minimize the amounts of back and forth between database for speed.
 - Never use direct database transactions, instead use guards with where-statements and check return results.
 
 # tRPC endpoints

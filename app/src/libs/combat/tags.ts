@@ -1,6 +1,12 @@
 import { scaleUserStats } from "@/libs/profile";
 import { nanoid } from "nanoid";
-import { isPositiveUserEffect, isNegativeUserEffect, IncreaseRangeTag } from "./types";
+import {
+  isPositiveUserEffect,
+  isNegativeUserEffect,
+  IncreaseRangeTag,
+  IncreaseCooldownTag,
+  DecreaseCooldownTag,
+} from "./types";
 import { HealTag } from "@/libs/combat/types";
 import type { BattleUserState, Consequence } from "./types";
 import type { GroundEffect, UserEffect, ActionEffect } from "./types";
@@ -562,6 +568,49 @@ export const increaseStats = (
   return adjustStats(effect, target);
 };
 
+// ---------------------------------------------
+// Helper to adjust basic action attributes
+// ---------------------------------------------
+const adjustBasicAction = (
+  parsed: { actionsAffected?: string[] },
+  effect: UserEffect,
+  usersEffects: UserEffect[],
+  target: BattleUserState,
+  opts: { attr: "range" | "cooldown"; isBuff: boolean },
+): ActionEffect | undefined => {
+  const { attr, isBuff } = opts;
+  // Determine if blocked by (de)buff prevent
+  const preventKind = isBuff ? "buffprevent" : "debuffprevent";
+  const { pass, preventTag } = preventCheck(usersEffects, preventKind, target);
+  if (preventTag && preventTag.createdRound < effect.createdRound) {
+    if (!pass)
+      return preventResponse(
+        effect,
+        target,
+        `cannot be ${isBuff ? "buffed" : "debuffed"}`,
+      );
+  }
+
+  const { adverb, qualifier } = getPower(effect);
+  const affected = parsed.actionsAffected?.map((a) => noCase(a)).join(", ");
+
+  // Compose description
+  let verb: string;
+  if (attr === "range") {
+    verb = `range is ${adverb} by ${qualifier}`;
+  } else {
+    verb = isBuff
+      ? `cooldown is reduced by ${qualifier}`
+      : `cooldown is increased by ${qualifier}`;
+  }
+
+  return getInfo(
+    target,
+    effect,
+    `basic action${affected && "s"} [${affected}] ${verb}`,
+  );
+};
+
 /** Increase range of basic actions */
 export const increaseRange = (
   effect: UserEffect,
@@ -569,37 +618,36 @@ export const increaseRange = (
   target: BattleUserState,
 ): ActionEffect | undefined => {
   const parsed = IncreaseRangeTag.parse(effect);
-  const { pass, preventTag } = preventCheck(usersEffects, "buffprevent", target);
-  if (preventTag && preventTag.createdRound < effect.createdRound) {
-    if (!pass) return preventResponse(effect, target, "cannot be buffed");
-  }
-  const { adverb, qualifier } = getPower(effect);
-  const affected = parsed.actionsAffected?.map((a) => noCase(a)).join(", ");
-  return getInfo(
-    target,
-    effect,
-    `basic action${affected && "s"} [${affected}] range is ${adverb} by ${qualifier}`,
-  );
+  return adjustBasicAction(parsed, effect, usersEffects, target, {
+    attr: "range",
+    isBuff: true,
+  });
 };
 
-/** Prevent increasing range of basic actions with a static chance */
-export const increaseRangePrevent = (
+/** Increase cooldown of basic actions */
+export const increaseCooldown = (
   effect: UserEffect,
+  usersEffects: UserEffect[],
   target: BattleUserState,
 ): ActionEffect | undefined => {
-  const { power } = getPower(effect);
-  const mainCheck = Math.random() < power / 100;
-  if (mainCheck) {
-    const info = getInfo(target, effect, "cannot get basic action range increased");
-    effect.power = 100;
-    return info;
-  } else if (effect.isNew) {
-    effect.rounds = 0;
-    return {
-      txt: `${target.username} could not be prevented from getting basic action range increased`,
-      color: "blue",
-    };
-  }
+  const parsed = IncreaseCooldownTag.parse(effect);
+  return adjustBasicAction(parsed, effect, usersEffects, target, {
+    attr: "cooldown",
+    isBuff: false,
+  });
+};
+
+/** Decrease cooldown of basic actions */
+export const decreaseCooldown = (
+  effect: UserEffect,
+  usersEffects: UserEffect[],
+  target: BattleUserState,
+): ActionEffect | undefined => {
+  const parsed = DecreaseCooldownTag.parse(effect);
+  return adjustBasicAction(parsed, effect, usersEffects, target, {
+    attr: "cooldown",
+    isBuff: true,
+  });
 };
 
 export const decreaseStats = (

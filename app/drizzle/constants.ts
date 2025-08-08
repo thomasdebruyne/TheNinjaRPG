@@ -581,6 +581,9 @@ export const BLOODLINE_ROLL_TYPES = [
 ] as const;
 export const BLOODLINE_SWAP_COOLDOWN_HOURS = 48;
 
+// Skill tree config
+export const SKILL_TREE_RESET_FREE_GOLD = 2;
+
 // Jutsu level transfer config
 export const JUTSU_TRANSFER_DAYS = 20;
 export const JUTSU_TRANSFER_COST = 20;

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { eq, and, sql, like } from "drizzle-orm";
+import { eq, and, sql, like, gte, lt } from "drizzle-orm";
 import { skillTree, userSkill, userData } from "@/drizzle/schema";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/api/trpc";
 import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
@@ -12,10 +12,13 @@ import { IMG_AVATAR_DEFAULT, COST_SKILL_RESET } from "@/drizzle/constants";
 import { SkillTreeValidator } from "@/libs/combat/types";
 import { canUnequipAllUsers } from "@/utils/permissions";
 import { actionLog } from "@/drizzle/schema";
+import { getUserFederalStatus } from "@/utils/paypal";
 import {
   skillTreeFilteringSchema,
   type SkillTreeFilteringSchema,
 } from "@/validators/skillTree";
+import { SKILL_TREE_RESET_FREE_GOLD } from "@/drizzle/constants";
+import type { DrizzleClient } from "@/server/db";
 
 export const skillTreeRouter = createTRPCRouter({
   // Get single skill by ID
@@ -258,38 +261,95 @@ export const skillTreeRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Fetch user data
-      const { user } = await fetchUpdatedUser({
-        client: ctx.drizzle,
-        userId: ctx.userId,
-      });
-
+      const [{ user }, monthlyResets] = await Promise.all([
+        fetchUpdatedUser({
+          client: ctx.drizzle,
+          userId: ctx.userId,
+        }),
+        fetchMonthlyResets(ctx.drizzle, ctx.userId),
+      ]);
+      // Guard
       if (!user) return errorResponse("User not found");
 
-      // Check if user has enough reputation points
-      if (user.reputationPoints < COST_SKILL_RESET) {
+      // Determine if this reset should be free (GOLD supporters get first two per month free)
+      const isGoldSupporter = getUserFederalStatus(user) === "GOLD";
+      const freeResetsUsed = monthlyResets.length;
+      const isFreeReset =
+        isGoldSupporter && freeResetsUsed < SKILL_TREE_RESET_FREE_GOLD;
+
+      // Guard: if not free, ensure user can afford
+      if (!isFreeReset && user.reputationPoints < COST_SKILL_RESET) {
         return errorResponse(
           `Not enough reputation points. Need ${COST_SKILL_RESET} reputation points.`,
         );
       }
 
       // Perform the reset (parallel operations)
-      await Promise.all([
-        // Remove reputation points
-        ctx.drizzle
-          .update(userData)
-          .set({
-            reputationPoints: sql`${userData.reputationPoints} - ${COST_SKILL_RESET}`,
-          })
-          .where(eq(userData.userId, ctx.userId)),
-        // Delete all user skills (skill points remain, just reset used skills)
+      const updates: Promise<unknown>[] = [];
+      // Delete all user skills (skill points remain, just reset used skills)
+      updates.push(
         ctx.drizzle.delete(userSkill).where(eq(userSkill.userId, ctx.userId)),
-      ]);
+      );
+      if (!isFreeReset) {
+        updates.push(
+          ctx.drizzle
+            .update(userData)
+            .set({
+              reputationPoints: sql`${userData.reputationPoints} - ${COST_SKILL_RESET}`,
+            })
+            .where(eq(userData.userId, ctx.userId)),
+        );
+      }
+
+      // Log the reset for monthly tracking
+      updates.push(
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "skillReset",
+          changes: [
+            isFreeReset
+              ? "Skill tree reset (free GOLD monthly)"
+              : `Skill tree reset (-${COST_SKILL_RESET} reps)`,
+          ],
+          relatedId: null,
+          relatedMsg: isFreeReset
+            ? "Free monthly reset for GOLD supporter"
+            : `Charged ${COST_SKILL_RESET} reputation points`,
+          relatedImage: user.avatarLight,
+          relatedValue: isFreeReset ? 0 : COST_SKILL_RESET,
+        }),
+      );
+
+      // Execute all promises
+      await Promise.all(updates);
 
       return {
         success: true,
-        message: `Skills points reset!`,
+        message: `Skills points reset!${isFreeReset ? " (Free for GOLD supporter)" : ""}`,
       };
     }),
+
+  // Info: whether current user has a free reset available this month
+  getResetInfo: protectedProcedure.query(async ({ ctx }) => {
+    // Query
+    const [{ user }, monthlyResets] = await Promise.all([
+      fetchUpdatedUser({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+      }),
+      fetchMonthlyResets(ctx.drizzle, ctx.userId),
+    ]);
+    // Guard
+    if (!user) return { isFree: false, freeResetsUsed: 0, freeResetsRemaining: 0 };
+    // Derived
+    const isGoldSupporter = getUserFederalStatus(user) === "GOLD";
+    const freeResetsUsed = monthlyResets.length;
+    const freeResetsRemaining = isGoldSupporter ? Math.max(0, 2 - freeResetsUsed) : 0;
+    const isFree = isGoldSupporter && freeResetsRemaining > 0;
+    // Return
+    return { isFree, freeResetsUsed, freeResetsRemaining };
+  }),
 
   // Reset all users' skill points (staff only)
   resetAllUsersSkillPoints: protectedProcedure
@@ -376,4 +436,30 @@ export const skillTreeDatabaseFilter = (input: SkillTreeFilteringSchema) => {
   }
 
   return filters;
+};
+
+/**
+ * Fetch the number of monthly resets for a user
+ * @param client - The database client
+ * @param userId - The user ID
+ * @returns The number of monthly resets for the user
+ */
+export const fetchMonthlyResets = async (client: DrizzleClient, userId: string) => {
+  const now = new Date();
+  const startOfMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0),
+  );
+  const startOfNextMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
+  );
+  const results = await client.query.actionLog.findMany({
+    where: and(
+      eq(actionLog.userId, userId),
+      eq(actionLog.tableName, "skillReset"),
+      gte(actionLog.createdAt, startOfMonth),
+      lt(actionLog.createdAt, startOfNextMonth),
+    ),
+    columns: { id: true },
+  });
+  return results;
 };

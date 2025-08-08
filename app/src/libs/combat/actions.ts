@@ -9,7 +9,11 @@ import { calcPoolCost } from "@/libs/combat/util";
 import { hasNoAvailableActions } from "@/libs/combat/util";
 import { calcApReduction } from "@/libs/combat/util";
 import { getBarriersBetween } from "@/libs/combat/util";
-import { IncreaseRangeTag } from "@/libs/combat/types";
+import {
+  IncreaseRangeTag,
+  IncreaseCooldownTag,
+  DecreaseCooldownTag,
+} from "@/libs/combat/types";
 import { isUserStealthed, isUserImmobilized } from "@/libs/combat/util";
 import { getUserElementalSeal, isEffectActive } from "@/libs/combat/util";
 import { getPower } from "@/libs/combat/tags";
@@ -191,22 +195,31 @@ export const getActiveBasicActions = (
   active.basicCleanse.range = base.basicCleanse.range;
   active.basicAttack.range = base.basicAttack.range;
   active.basicHeal.range = base.basicHeal.range;
+  active.basicMove.cooldown = base.basicMove.cooldown;
+  active.basicClear.cooldown = base.basicClear.cooldown;
+  active.basicCleanse.cooldown = base.basicCleanse.cooldown;
+  active.basicAttack.cooldown = base.basicAttack.cooldown;
+  active.basicHeal.cooldown = base.basicHeal.cooldown;
 
-  // Apply range bonuses from increaserange tags (per-action)
-  const rangeBonusMap: Record<string, number> = {};
-  battle?.usersEffects
-    ?.filter((e) => e.type === "increaserange")
-    .filter((e) => e.targetId === userId && isEffectActive(e))
-    .forEach((e) => {
-      const parsed = IncreaseRangeTag.parse(e);
-      const { power } = getPower(e);
-      parsed.actionsAffected?.forEach((act) => {
-        rangeBonusMap[act] =
-          rangeBonusMap[act] !== undefined && rangeBonusMap[act] > power
-            ? rangeBonusMap[act]
-            : power;
-      });
-    });
+  // Collect active, targeted effects once
+  const userActiveEffects =
+    battle?.usersEffects?.filter((e) => e.targetId === userId && isEffectActive(e)) ??
+    [];
+
+  // Range bonuses from increaserange tags (per-action)
+  const rangeBonusMap: Record<string, number> = userActiveEffects
+    .filter((e) => e.type === "increaserange")
+    .reduce(
+      (acc, e) => {
+        const parsed = IncreaseRangeTag.parse(e);
+        const { power } = getPower(e);
+        parsed.actionsAffected?.forEach((act) => {
+          acc[act] = Math.max(acc[act] ?? 0, power);
+        });
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
   // Apply bonuses to relevant basic actions
   Object.entries(rangeBonusMap).forEach(([aid, bonus]) => {
@@ -216,7 +229,36 @@ export const getActiveBasicActions = (
       ba.range += bonus;
     }
   });
-  // Return actions
+
+  // Cooldown modifications from increasecooldown/decreasecooldown tags (per-action)
+  const cooldownModifierMap: Record<string, number> = userActiveEffects
+    .filter((e) => e.type === "increasecooldown" || e.type === "decreasecooldown")
+    .reduce(
+      (acc, e) => {
+        const { power } = getPower(e);
+        const val = e.type === "increasecooldown" ? power : -power;
+        const parsed =
+          e.type === "increasecooldown"
+            ? IncreaseCooldownTag.parse(e)
+            : DecreaseCooldownTag.parse(e);
+        parsed.actionsAffected?.forEach((act) => {
+          const prev = acc[act];
+          acc[act] = prev === undefined ? val : val < prev ? val : prev;
+        });
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+  // Apply modifiers to relevant basic actions
+  Object.entries(cooldownModifierMap).forEach(([aid, mod]) => {
+    if (mod === 0) return;
+    const ba = Object.values(active).find((a) => a.id === aid);
+    if (ba) {
+      ba.cooldown = Math.max(0, ba.cooldown + mod);
+    }
+  });
+
   return active;
 };
 
