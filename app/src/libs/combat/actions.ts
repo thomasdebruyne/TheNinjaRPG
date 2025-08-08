@@ -299,11 +299,6 @@ export const getDefaultBasicActions = (
           rounds: 0,
           appearAnimation: ID_ANIMATION_HIT,
         }),
-        IncreaseRangeTag.parse({
-          power: 2,
-          rounds: 5,
-          actionsAffected: ["basicAttack", "basicHeal", "move"],
-        }),
       ],
     },
     basicHeal: {
