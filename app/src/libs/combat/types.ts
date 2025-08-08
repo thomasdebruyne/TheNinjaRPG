@@ -1162,9 +1162,6 @@ const SuperRefineItem = (data: ItemValidatorType, ctx: z.RefinementCtx) => {
 
   if (costTypes.length === 0) {
     addIssue(ctx, "Must have either a ryo, reputation points, or seichi silver cost");
-  } else if (costTypes.length > 1) {
-    const costNames = costTypes.map((c) => c.name).join(", ");
-    addIssue(ctx, `Cannot have multiple cost types. Found: ${costNames}`);
   }
 
   if (data.itemType === "CONSUMABLE" && data.destroyOnUse === 0) {

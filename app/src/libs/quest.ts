@@ -211,7 +211,7 @@ export const getReward = (
     // Scale rewards
     const missionLike = ["mission", "crime"].includes(userQuest.quest.questType);
     let factor = boostFactor; // Start with shrine boost factor
-    
+
     // Apply daily mission limit penalty if applicable (after 9 missions), but keep shrine boost
     if (missionLike && user.dailyMissions > 9) {
       factor = ADDITIONAL_MISSION_REWARD_MULTIPLIER * boostFactor;
@@ -433,10 +433,10 @@ export const getNewTrackers = (
             if (objective.sectorType === "specific") {
               status.sector = objective.sector;
             } else if (objective.sectorType === "random") {
-              status.sector = Math.floor(Math.random() * MAP_TOTAL_SECTORS);
+              status.sector = Math.ceil(Math.random() * (MAP_TOTAL_SECTORS - 1));
             } else if (objective.sectorType === "from_list") {
               if (objective.sectorList.length === 0) {
-                status.sector = Math.floor(Math.random() * MAP_TOTAL_SECTORS);
+                status.sector = Math.ceil(Math.random() * (MAP_TOTAL_SECTORS - 1));
               } else {
                 const idx = Math.floor(Math.random() * objective.sectorList.length);
                 status.sector = Number(objective.sectorList?.[idx]);
@@ -460,8 +460,8 @@ export const getNewTrackers = (
               status.longitude = objective.longitude;
               status.latitude = objective.latitude;
             } else if (objective.locationType === "random") {
-              status.longitude = Math.floor(Math.random() * SECTOR_WIDTH);
-              status.latitude = Math.floor(Math.random() * SECTOR_HEIGHT);
+              status.longitude = Math.ceil(Math.random() * (SECTOR_WIDTH - 1));
+              status.latitude = Math.ceil(Math.random() * (SECTOR_HEIGHT - 1));
             }
             if (status.longitude !== undefined && status.latitude !== undefined) {
               consequences.push({ type: "update_user", ids: ["location_update"] });

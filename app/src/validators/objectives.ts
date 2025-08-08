@@ -133,7 +133,7 @@ export const attackerFields = {
   attackers: idsWithNumberField,
   attackers_scaled_to_user: z.coerce.boolean().default(false),
   attackers_scale_gains: z.coerce.number().min(0).max(1).default(1),
-  attackers_max_per_battle: z.coerce.number().min(0).max(100).default(5),
+  attackers_max_per_battle: z.coerce.number().min(0).max(100).default(1),
 };
 
 export const baseObjectiveFields = {
