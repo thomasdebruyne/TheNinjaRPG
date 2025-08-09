@@ -25,9 +25,9 @@ jobs:
       max_iterations: ${{ fromJson(vars.OPENHANDS_MAX_ITER || 100) }}
       base_container_image: ${{ vars.OPENHANDS_BASE_CONTAINER_IMAGE || '' }}
       LLM_MODEL: ${{ vars.LLM_MODEL || 'azure/gpt-5' }}
+      LLM_API_VERSION: ${{ vars.LLM_API_VERSION }}
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       PAT_USERNAME: ${{ secrets.PAT_USERNAME }}
       LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
       LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-      LLM_API_VERSION: ${{ secrets.LLM_API_VERSION }}
