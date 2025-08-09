@@ -240,16 +240,11 @@ jobs:
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_API_VERSION: ${{ inputs.LLM_API_VERSION }}
           OPENHANDS_SETTINGS_DIR: "/tmp/.openhands"
-          # Ensure Azure param compatibility even if settings file isn't loaded
-          LLM_DROP_PARAMS: '["max_tokens"]'
-          LLM_FORCE_PARAMS: '{"max_completion_tokens":2048}'
           PYTHONPATH: ""
           # Ensure OpenHands repo settings are available in the working dir used by resolver (\n# the resolver runs from /tmp)
         run: |
           mkdir -p /tmp/.openhands
           if [ -f .openhands/config.toml ]; then cp -f .openhands/config.toml /tmp/.openhands/config.toml; fi
-          echo "Listing /tmp/.openhands contents:" && ls -la /tmp/.openhands || true
-          echo "Config preview (first 100 lines if present):" && head -n 100 /tmp/.openhands/config.toml || true
           cd /tmp && python -m openhands.resolver.resolve_issue \
             --selected-repo ${{ github.repository }} \
             --issue-number ${{ env.ISSUE_NUMBER }} \
