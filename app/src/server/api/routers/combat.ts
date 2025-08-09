@@ -516,8 +516,7 @@ export const combatRouter = createTRPCRouter({
 
             // Stop profiling
             Sentry.profiler.stopProfiler();
-            const tempResult = await Sentry.flush(15000);
-            console.log("Sentry flush tempResult: ", tempResult);
+            await Sentry.flush(15000);
 
             // Return the new battle + result state if applicable
             return {
@@ -1159,6 +1158,7 @@ export const initiateBattle = async (
             craftingFinishedAt: null,
             isInAuction: false,
             imbuements: [],
+            dropChancePerc: 0,
           }));
         user.jutsus = loadoutJutsus
           .filter((jutsu) => userLoadout.loadout.jutsuIds.includes(jutsu.id))

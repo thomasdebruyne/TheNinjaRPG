@@ -68,7 +68,6 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
     objectives,
     form,
     formData,
-    consecutiveObjectives,
     setObjectives,
     handleQuestSubmit,
   } = useQuestEditForm(props.quest, props.refetch);
@@ -126,11 +125,11 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
       >
         <ObjectiveFormWrapper
           idx={i}
+          quest={currentValues}
           objective={objective}
           availableTags={[...allObjectiveTasks].sort()}
           objectives={objectives}
           setObjectives={setObjectives}
-          consecutiveObjectives={consecutiveObjectives}
         />
       </ContentBox>
     );
@@ -138,11 +137,11 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
 
   // Validate objective flow whenever objectives or consecutive flag changes
   const { check: isFlowValid, message: flowErrorMsg } = useMemo(() => {
-    if (!consecutiveObjectives) {
+    if (!currentValues.consecutiveObjectives) {
       return { check: true, message: "" };
     }
     return verifyQuestObjectiveFlow(objectives);
-  }, [objectives, consecutiveObjectives]);
+  }, [objectives, currentValues.consecutiveObjectives]);
 
   return (
     <>
@@ -227,12 +226,12 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
             relationId={props.quest.id}
             allowImageUpload={true}
             onAccept={handleQuestSubmit}
-            submitDisabled={consecutiveObjectives && !isFlowValid}
+            submitDisabled={currentValues.consecutiveObjectives && !isFlowValid}
           />
         )}
       </ContentBox>
       <ObjectiveFlowGraph
-        consecutiveObjectives={consecutiveObjectives}
+        consecutiveObjectives={currentValues.consecutiveObjectives}
         objectives={objectives}
         addObjectiveIcon={AddObjectiveIcon}
         selectedObjectiveId={selectedObjectiveId}
@@ -255,7 +254,7 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
 };
 
 interface ObjectiveFlowGraphProps {
-  consecutiveObjectives: boolean;
+  consecutiveObjectives?: boolean;
   objectives: AllObjectivesType[];
   addObjectiveIcon: React.ReactNode;
   selectedObjectiveId: string | null;
@@ -287,7 +286,7 @@ const ObjectiveFlowGraph: React.FC<ObjectiveFlowGraphProps> = ({
         classes: obj.id === selectedObjectiveId ? "selected" : "",
       };
     });
-    const edges = buildObjectiveEdges(objectives, consecutiveObjectives);
+    const edges = buildObjectiveEdges(objectives, consecutiveObjectives ?? false);
     return [...nodes, ...edges];
   }, [objectives, consecutiveObjectives, selectedObjectiveId]);
 

@@ -803,7 +803,13 @@ const Combat: React.FC<CombatProps> = (props) => {
                   );
                 }
               })}
+              {result.droppedItems && result.droppedItems.length > 0 && (
+                <p className="text-green-500">
+                  Looted: {result.droppedItems.map((d) => d.name).join(", ")}
+                </p>
+              )}
             </div>
+
             <div className="p-5 flex flex-row justify-center gap-2 ">
               <Link
                 href={toHospital ? "/hospital" : "/profile"}

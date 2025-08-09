@@ -195,10 +195,6 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
     control: form.control,
     name: "questType",
   });
-  const consecutiveObjectives = useWatch({
-    control: form.control,
-    name: "consecutiveObjectives",
-  });
 
   // Object for form values
   const formData: FormEntry<keyof ZodCombinedQuest>[] = [
@@ -351,7 +347,6 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
     form,
     formData,
     loading,
-    consecutiveObjectives,
     setObjectives,
     handleQuestSubmit,
   };

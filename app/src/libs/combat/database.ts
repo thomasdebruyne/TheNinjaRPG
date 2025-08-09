@@ -30,6 +30,7 @@ import type { BattleTypes, BattleDataEntryType } from "@/drizzle/constants";
 import type { DrizzleClient } from "@/server/db";
 import type { Battle } from "@/drizzle/schema";
 import type { CombatResult } from "@/libs/combat/types";
+import type { DroppedItem } from "@/libs/combat/types";
 import type { ActionEffect } from "@/libs/combat/types";
 import type { CompleteBattle } from "@/libs/combat/types";
 
@@ -696,6 +697,19 @@ export const updateUser = async (
             : { status: "AWAKE" }),
         })
         .where(eq(userData.userId, userId)),
+      // Handle dropped items transfer if present on result. Currently only AI have droppable items, so no need to delete from loser
+      ...(result.droppedItems.length > 0
+        ? [
+            client.insert(userItem).values(
+              result.droppedItems.map((d) => ({
+                id: nanoid(),
+                userId: user.userId,
+                itemId: d.itemId,
+                equipped: "NONE" as const,
+              })),
+            ),
+          ]
+        : []),
     ]);
     // Update map status
     if (

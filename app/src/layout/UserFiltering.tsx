@@ -112,7 +112,7 @@ const UserFiltering: React.FC<UserFilteringProps> = (props) => {
           <p className="hidden sm:block">Filter</p>
         </Button>
       </PopoverTrigger>
-      <PopoverContent>
+      <PopoverContent className="min-w-96">
         <div className="grid grid-cols-2 gap-1 gap-x-3">
           {/* USERNAME */}
           <div>

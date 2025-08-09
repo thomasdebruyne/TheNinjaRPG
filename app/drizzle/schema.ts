@@ -1859,7 +1859,14 @@ export const insertAiSchema = createInsertSchema(userData)
   .merge(
     z.object({
       jutsus: z.array(z.string()).optional(),
-      items: z.array(z.string()).optional(),
+      items: z
+        .array(
+          z.object({
+            ids: z.array(z.string()).default([]),
+            number: z.coerce.number(),
+          }),
+        )
+        .optional(),
       primaryElement: z.enum([...consts.ElementNames, ""]).nullish(),
       secondaryElement: z.enum([...consts.ElementNames, ""]).nullish(),
       level: z.coerce.number().min(1).max(200),
@@ -2052,6 +2059,7 @@ export const userItem = mysqlTable(
     storedAtHome: boolean("storedAtHome").default(false).notNull(),
     craftingFinishedAt: datetime("craftingFinishedAt", { mode: "date", fsp: 3 }),
     isInAuction: boolean("isInAuction").default(false).notNull(),
+    dropChancePerc: smallint("dropChancePerc", { unsigned: true }).default(0).notNull(),
   },
   (table) => {
     return {

@@ -149,6 +149,13 @@ export type ReturnedBattle = Omit<CompleteBattle, "usersState"> & {
   usersState: ReturnedUserState[];
 };
 
+export type DroppedItem = {
+  itemId: string;
+  name: string;
+  userItemId: string;
+  fromUserId: string;
+};
+
 /**
  * Result type for users when battle is ended
  */
@@ -187,6 +194,7 @@ export type CombatResult = {
   clanPoints: number;
   notifications: string[];
   bountiesClaimed: { bountyId: string; hunterId: string; amountRyo: number }[];
+  droppedItems: DroppedItem[];
 };
 
 export type CombatAction = {

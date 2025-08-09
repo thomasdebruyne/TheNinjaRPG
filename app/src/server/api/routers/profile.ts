@@ -885,13 +885,19 @@ export const profileRouter = createTRPCRouter({
       if (!canChangeContent(user.role)) return errorResponse("Not allowed");
 
       // Update jutsus & items
+      // Extract new item ids from ids-with-number array
+      const itemIdWithChance = (input.data.items ?? []).flatMap((o) =>
+        o.ids.map((id) => ({ id, chance: o.number })),
+      );
+      const newItemIds = itemIdWithChance.map((x) => x.id);
+
       const { jutsuChanges, itemChanges } = await updateUserContent({
         client: ctx.drizzle,
         userId: ai.userId,
         oldJutsuIds: ai.jutsus.map((j) => j.jutsuId),
         newJutsuIds: input.data.jutsus ?? [],
         oldItemIds: ai.items.map((j) => j.itemId),
-        newItemIds: input.data.items ?? [],
+        newItemIds,
       });
       delete input.data.jutsus;
       delete input.data.items;
@@ -925,6 +931,12 @@ export const profileRouter = createTRPCRouter({
           relatedMsg: `Update: ${ai.username}`,
           relatedImage: ai.avatar,
         }),
+        ...itemIdWithChance.map(({ id, chance }) =>
+          ctx.drizzle
+            .update(userItem)
+            .set({ dropChancePerc: chance })
+            .where(and(eq(userItem.userId, ai.userId), eq(userItem.itemId, id))),
+        ),
       ]);
 
       // Update discord channel
@@ -2059,18 +2071,18 @@ export const fetchPublicUsers = async (info: {
         ...(input.orderBy === "Staff" ? [notInArray(userData.role, ["USER"])] : []),
         ...(input.orderBy === "Outlaws" ? [eq(userData.isOutlaw, true)] : []),
         ...(input.isAi ? [eq(userData.isAi, true)] : []),
-        ...(input.inArena && input.isAi
-          ? [eq(userData.inArena, true)]
-          : [eq(userData.inArena, false)]),
-        ...(input.isEvent && input.isAi
-          ? [eq(userData.isEvent, true)]
-          : [eq(userData.isEvent, false)]),
-        ...(input.isSummon && input.isAi
-          ? [eq(userData.isSummon, true)]
-          : [eq(userData.isSummon, false)]),
-        ...(input.inShrines && input.isAi
-          ? [eq(userData.inShrines, true)]
-          : [eq(userData.inShrines, false)]),
+        ...(input.inArena !== undefined
+          ? [eq(userData.inArena, input.inArena ? true : false)]
+          : []),
+        ...(input.isEvent !== undefined
+          ? [eq(userData.isEvent, input.isEvent ? true : false)]
+          : []),
+        ...(input.isSummon !== undefined
+          ? [eq(userData.isSummon, input.isSummon ? true : false)]
+          : []),
+        ...(input.inShrines !== undefined
+          ? [eq(userData.inShrines, input.inShrines ? true : false)]
+          : []),
       ),
       columns: {
         avatar: true,

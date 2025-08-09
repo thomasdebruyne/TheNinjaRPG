@@ -50,6 +50,7 @@ import type { CombatAction, BattleUserState } from "./types";
 import type { ZodAllTags } from "./types";
 import type { GroundEffect, UserEffect, BattleEffect } from "@/libs/combat/types";
 import type { Battle } from "@/drizzle/schema";
+import type { DroppedItem } from "./types";
 
 /**
  * Check if a single tag is a shared cooldown tag
@@ -992,6 +993,27 @@ export const calcBattleResult = (
         });
       }
 
+      // Roll item drops from defeated opponents and include in result for frontend display
+      const droppedItems: DroppedItem[] = [];
+      if (didWin) {
+        targets
+          .filter((t) => !t.isSummon)
+          .forEach((t) => {
+            t.items.forEach((ui) => {
+              console.log("CHECKING: ", ui.dropChancePerc, ui.item?.name);
+              const chance = ui.dropChancePerc ?? 0;
+              if (chance > 0 && Math.random() * 100 < chance) {
+                droppedItems.push({
+                  itemId: ui.itemId,
+                  name: ui.item?.name ?? "Item",
+                  userItemId: ui.id,
+                  fromUserId: t.userId,
+                });
+              }
+            });
+          });
+      }
+
       // Result object
       const result: CombatResult = {
         outcome: outcome,
@@ -1028,6 +1050,7 @@ export const calcBattleResult = (
         clanPoints: clanPoints * battle.rewardScaling,
         notifications: [],
         bountiesClaimed: bountiesClaimed,
+        droppedItems: droppedItems,
       };
 
       // Things to reward for non-spars

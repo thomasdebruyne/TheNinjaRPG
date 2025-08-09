@@ -23,7 +23,12 @@ export const useAiEditForm = (
   const processedUser = {
     ...user,
     jutsus: user?.jutsus?.map((jutsu) => jutsu.jutsuId),
-    items: user?.items?.map((item) => item.itemId),
+    // For AI editor, allow configuring per-item drop chance using ids-with-number structure
+    items:
+      user?.items?.map((item) => ({
+        ids: [item.itemId],
+        number: item.dropChancePerc ?? 0,
+      })) ?? [],
   };
 
   // Form handling
@@ -167,14 +172,16 @@ export const useAiEditForm = (
     {
       id: "jutsus",
       type: "db_values",
+      label: "Equipped Jutsus",
       values: jutsus,
       multiple: true,
       doubleWidth: true,
     },
     {
       id: "items",
-      type: "db_values",
+      type: "db_values_with_number",
       values: items,
+      label: "Equipped Items [and drop chance%]",
       multiple: true,
       doubleWidth: true,
     },
