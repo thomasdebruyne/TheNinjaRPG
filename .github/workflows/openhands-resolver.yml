@@ -1,6 +1,28 @@
-name: Resolve Issue with OpenHands
+name: Auto-Fix Tagged Issue with OpenHands
 
 on:
+  workflow_call:
+    inputs:
+      max_iterations:
+        required: false
+        type: number
+        default: 50
+      macro:
+        required: false
+        type: string
+        default: "@openhands-agent"
+    secrets:
+      LLM_MODEL:
+        required: true
+      LLM_API_KEY:
+        required: true
+      LLM_BASE_URL:
+        required: false
+      PAT_TOKEN:
+        required: true
+      PAT_USERNAME:
+        required: true
+
   issues:
     types: [labeled]
   pull_request:
@@ -68,11 +90,8 @@ jobs:
       - name: Check required environment variables
         env:
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-          LLM_API_VERSION: ${{ secrets.LLM_API_VERSION }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_DROP_PARAMS: '["max_tokens"]'
-          LLM_FORCE_PARAMS: '{"max_completion_tokens":2048}'
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
           PAT_USERNAME: ${{ secrets.PAT_USERNAME }}
         run: |
@@ -137,9 +156,6 @@ jobs:
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_API_VERSION: ${{ secrets.LLM_API_VERSION }}
-          LLM_DROP_PARAMS: '["max_tokens"]'
-          LLM_FORCE_PARAMS: '{"max_completion_tokens":2048}'
           PYTHONPATH: ""
         run: |
           cd /tmp && python -m openhands_resolver.resolve_issue \
@@ -171,11 +187,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-          LLM_API_VERSION: ${{ secrets.LLM_API_VERSION }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_DROP_PARAMS: '["max_tokens"]'
-          LLM_FORCE_PARAMS: '{"max_completion_tokens":2048}'
           PYTHONPATH: ""
         run: |
           if [ "${{ steps.check_result.outputs.RESOLUTION_SUCCESS }}" == "true" ]; then
