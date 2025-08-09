@@ -247,11 +247,9 @@ jobs:
           # Ensure OpenHands repo settings are available in the working dir used by resolver (\n# the resolver runs from /tmp)
         run: |
           mkdir -p /tmp/.openhands
-          if [ -f .openhands/settings.yaml ]; then cp -f .openhands/settings.yaml /tmp/.openhands/settings.yaml; fi
-          if [ -f .openhands/config.yaml ]; then cp -f .openhands/config.yaml /tmp/.openhands/config.yaml; fi
-          if [ -f .openhands/config.yml ]; then cp -f .openhands/config.yml /tmp/.openhands/config.yml; fi
+          if [ -f .openhands/config.toml ]; then cp -f .openhands/config.toml /tmp/.openhands/config.toml; fi
           echo "Listing /tmp/.openhands contents:" && ls -la /tmp/.openhands || true
-          echo "Settings preview (first 100 lines if present):" && head -n 100 /tmp/.openhands/settings.yaml || true
+          echo "Config preview (first 100 lines if present):" && head -n 100 /tmp/.openhands/config.toml || true
           cd /tmp && python -m openhands.resolver.resolve_issue \
             --selected-repo ${{ github.repository }} \
             --issue-number ${{ env.ISSUE_NUMBER }} \
