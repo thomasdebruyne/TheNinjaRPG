@@ -740,14 +740,24 @@ export const questsRouter = createTRPCRouter({
         // Prepare data for insertion into database
         const data = input.data;
         // Check we only give ranks with exams
-        if (data.content.reward.reward_rank !== "NONE" && data.questType !== "exam") {
-          data.content.reward.reward_rank = "NONE";
+        let rankError = false;
+        if (
+          data.content.reward.reward_rank !== "NONE" &&
+          !["starter", "exam"].includes(data.questType)
+        ) {
+          rankError = true;
         }
         data.content.objectives.forEach((objective) => {
           if (objective.reward_rank !== "NONE" && data.questType !== "exam") {
-            objective.reward_rank = "NONE";
+            rankError = true;
           }
         });
+        if (rankError) {
+          return {
+            success: false,
+            message: `Ranks rewards are only allowed with starter or exam quests`,
+          };
+        }
         // Calculate diff
         const diff = calculateContentDiff(entry, {
           id: entry.id,
