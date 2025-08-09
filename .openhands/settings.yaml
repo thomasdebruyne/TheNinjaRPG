@@ -1,0 +1,16 @@
+# OpenHands repository-level settings
+# Resolves Azure error: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."
+
+llm:
+  request_overrides:
+    # Remove params Azure doesn't accept for certain models (e.g., Responses API models)
+    drop_params:
+      - max_tokens
+    # Provide the Azure-preferred token limit. Use ONE of the following depending on your API:
+    # - For OpenAI Responses API compatible deployments:
+    params:
+      max_completion_tokens: 4096
+    # - For Azure Responses API (if your deployment expects max_output_tokens), comment the above line
+    #   and uncomment the line below instead:
+    # params:
+    #   max_output_tokens: 2048
