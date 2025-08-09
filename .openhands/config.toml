@@ -2,10 +2,4 @@
 # Resolves Azure error: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."
 
 [llm]
-# Drop unsupported Azure parameters
-#drop_params = true
-
-# Set Azure-compatible token limit
-#max_output_tokens = 4096
-#max_completion_tokens = 4096
-#max_tokens = 4096
+disable_vision = true
