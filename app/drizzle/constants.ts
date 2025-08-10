@@ -599,6 +599,7 @@ export const BLOODLINE_ROLL_TYPES = [
   "PITY",
   "DIRECT",
   "QUEST",
+  "REGISTRATION",
 ] as const;
 export const BLOODLINE_SWAP_COOLDOWN_HOURS = 48;
 

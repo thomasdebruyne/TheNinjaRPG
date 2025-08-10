@@ -6,11 +6,12 @@ import { registrationSchema } from "@/validators/register";
 import { historicalIp } from "@/drizzle/schema";
 import { secondsFromNow } from "@/utils/time";
 import {
+  bloodline,
+  bloodlineRolls,
+  emailReminder,
+  userAttribute,
   userData,
   village,
-  userAttribute,
-  emailReminder,
-  bloodline,
 } from "@/drizzle/schema";
 
 export const registerRouter = createTRPCRouter({
@@ -87,6 +88,14 @@ export const registerRouter = createTRPCRouter({
           sector: villageData.sector,
           immunityUntil: secondsFromNow(24 * 3600),
           ...(reminder ? { earnedExperience: 10000 } : {}),
+        }),
+        ctx.drizzle.insert(bloodlineRolls).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          type: "REGISTRATION",
+          bloodlineId: selectedBloodline.id,
+          goal: selectedBloodline.rank,
+          used: 1,
         }),
         ...(ctx.userIp && !currentIp
           ? [

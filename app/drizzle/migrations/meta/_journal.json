@@ -1912,6 +1912,13 @@
       "when": 1754756179374,
       "tag": "0272_chilly_crystal",
       "breakpoints": false
+    },
+    {
+      "idx": 273,
+      "version": "5",
+      "when": 1754837535591,
+      "tag": "0273_massive_shadowcat",
+      "breakpoints": false
     }
   ]
 }
