@@ -12,6 +12,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import { getSearchValidator } from "@/validators/register";
+import { showUserRank } from "@/libs/profile";
 import {
   Form,
   FormControl,
@@ -51,7 +52,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrainingSpeeds } from "@/drizzle/constants";
 import GlowingBorder from "./GlowingBorder";
 import { TransactionHistory } from "src/app/points/page";
-import { capitalizeFirstLetter } from "@/utils/sanitize";
 import { EditContent } from "@/layout/EditContent";
 import {
   Flag,
@@ -89,7 +89,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { canCloneUser } from "@/utils/permissions";
-import type { Jutsu, UserBadge, Badge } from "@/drizzle/schema";
+import type { Jutsu, UserBadge, Badge, UserRank } from "@/drizzle/schema";
 import { NewConversationPrompt } from "@/app/inbox/page";
 import Table from "@/layout/Table";
 import {
@@ -643,7 +643,7 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
           <div>
             <b>General</b>
             <p>
-              Lvl. {profile.level} {capitalizeFirstLetter(profile.rank)}
+              Lvl. {profile.level} {showUserRank(profile)}
             </p>
             <p>Village: {profile.village?.name}</p>
             <p>Status: {profile.status}</p>
@@ -1682,9 +1682,10 @@ interface StudentsTabProps {
   students: Array<{
     userId: string;
     username: string;
-    rank: string;
+    rank: UserRank;
     level: number;
     avatar: string | null;
+    isOutlaw: boolean;
   }>;
 }
 
@@ -1711,7 +1712,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students }) => {
               <div>
                 <div className="font-bold">{user.username}</div>
                 <div>
-                  Lvl. {user.level} {capitalizeFirstLetter(user.rank)}
+                  Lvl. {user.level} {showUserRank(user)}
                 </div>
               </div>
             </Link>
@@ -1876,7 +1877,8 @@ interface RecruitedUsersTabProps {
   recruits: Array<{
     userId: string;
     username: string;
-    rank: string;
+    rank: UserRank;
+    isOutlaw: boolean;
     level: number;
     avatar: string | null;
   }>;
@@ -1924,7 +1926,7 @@ const RecruitedUsersTab: React.FC<RecruitedUsersTabProps> = ({
                 <div>
                   <div className="font-bold">{user.username}</div>
                   <div>
-                    Lvl. {user.level} {capitalizeFirstLetter(user.rank)}
+                    Lvl. {user.level} {showUserRank(user)}
                   </div>
                 </div>
               </Link>
