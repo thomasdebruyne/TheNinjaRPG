@@ -1,6 +1,7 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { baseServerResponse, errorResponse } from "@/server/api/trpc";
 import { fetchBadge } from "@/routers/badge";
+import { after } from "next/server";
 import { fetchAttributes } from "@/routers/profile";
 import { eq, ne, and, desc, sql } from "drizzle-orm";
 import {
@@ -100,10 +101,10 @@ export const staffRouter = createTRPCRouter({
       if (!canUseMonitoringTests(user.role)) {
         return errorResponse("Not allowed for you");
       }
-      // Flush an error directly to sentry
-      const error = new Error("Direct flush error");
-      Sentry.captureException(error);
-      await Sentry.flush(5000);
+      // Flushs error after the request is done
+      after(async () => {
+        await Sentry.flush(2000);
+      });
       // Mutate
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
