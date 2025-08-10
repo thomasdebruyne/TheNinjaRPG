@@ -260,6 +260,14 @@ export const ItemTypes = [
 ] as const;
 export type ItemType = (typeof ItemTypes)[number];
 
+export const NonActionItemTypes: ItemType[] = [
+  "MATERIAL",
+  "CRYSTAL",
+  "ARMOR",
+  "ACCESSORY",
+  "KEYSTONE",
+];
+
 export const BanStates = [
   "UNVIEWED",
   "REPORT_CLEARED",

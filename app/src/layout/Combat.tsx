@@ -803,11 +803,13 @@ const Combat: React.FC<CombatProps> = (props) => {
                   );
                 }
               })}
-              {result.droppedItems && result.droppedItems.length > 0 && (
-                <p className="text-green-500">
-                  Looted: {result.droppedItems.map((d) => d.name).join(", ")}
-                </p>
-              )}
+              {result.droppedItems &&
+                result.droppedItems.length > 0 &&
+                result.droppedItems.map((d) => (
+                  <p key={d.itemId} className="text-green-500">
+                    Looted: {d.name}
+                  </p>
+                ))}
             </div>
 
             <div className="p-5 flex flex-row justify-center gap-2 ">

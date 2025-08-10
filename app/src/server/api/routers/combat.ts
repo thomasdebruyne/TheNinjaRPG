@@ -15,6 +15,7 @@ import { COMBAT_HEIGHT, COMBAT_WIDTH } from "@/libs/combat/constants";
 import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/libs/travel/constants";
 import { COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { RANKS_RESTRICTED_FROM_PVP, AutoBattleTypes } from "@/drizzle/constants";
+import { NonActionItemTypes } from "@/drizzle/constants";
 import { secondsFromDate, secondsFromNow } from "@/utils/time";
 import { calcBattleResult, maskBattle, alignBattle } from "@/libs/combat/util";
 import { createAction, saveUsage } from "@/libs/combat/database";
@@ -1896,37 +1897,30 @@ export const processUsersForBattle = async (
       originalCooldown: number;
     })[] = [];
     user.items
-      .filter((useritem) => useritem.item && !useritem.item.preventBattleUsage)
-      .forEach((useritem) => {
+      .filter((ui) => ui.item && (!ui.item.preventBattleUsage || ui.dropChancePerc > 0))
+      .forEach((ui) => {
         // Add any imbuement effects to the item effects
-        const imbuementEffects = useritem.imbuements
+        const imbuementEffects = ui.imbuements
           ?.map((imbuement) => imbuement.item.effects as UserEffect[])
           .flat();
         // Parse item
-        const effects = [
-          ...(useritem.item.effects as UserEffect[]),
-          ...imbuementEffects,
-        ];
-        const itemType = useritem.item.itemType;
-        useritem.item.effects = effects;
-        useritem.imbuements = []; // Reset to avoid storing in battle table
+        const effects = [...(ui.item.effects as UserEffect[]), ...imbuementEffects];
+        const itemType = ui.item.itemType;
+        ui.item.effects = effects;
+        ui.imbuements = []; // Reset to avoid storing in battle table
         // Parse the effects
         effects
           .filter((e) => e.type === "summon")
           .forEach((e) => "aiId" in e && allSummons.push(e.aiId));
         // Add item effects to user
-        if (
-          itemType === "ARMOR" ||
-          itemType === "ACCESSORY" ||
-          itemType === "KEYSTONE"
-        ) {
-          if (useritem.item.effects && useritem.equipped !== "NONE") {
+        if (NonActionItemTypes.includes(itemType)) {
+          if (ui.item.effects && ui.equipped !== "NONE") {
             // Add item effects to user
             effects.forEach((effect) => {
               const realized = realizeTag({
                 tag: effect,
                 user: user,
-                actionId: useritem.itemId,
+                actionId: ui.itemId,
                 target: user,
                 level: user.level,
               });
@@ -1937,10 +1931,12 @@ export const processUsersForBattle = async (
               userEffects.push(realized);
             });
           }
-        } else {
-          useritem.lastUsedRound = -useritem.item.cooldown;
-          useritem.originalCooldown = useritem.item.cooldown;
-          items.push(useritem);
+        }
+        // If droppable or action type, keep in battle row
+        if (ui.dropChancePerc > 0 || !NonActionItemTypes.includes(itemType)) {
+          ui.lastUsedRound = -ui.item.cooldown;
+          ui.originalCooldown = ui.item.cooldown;
+          items.push(ui);
         }
       });
     user.items = items;

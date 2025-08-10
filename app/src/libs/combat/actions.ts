@@ -39,6 +39,7 @@ import {
   IMG_BASIC_MOVE,
   ID_ANIMATION_HEAL,
   ID_ANIMATION_HIT,
+  NonActionItemTypes,
 } from "@/drizzle/constants";
 import type { AttackTargets, ElementName } from "@/drizzle/constants";
 import type { BattleUserState, ReturnedUserState } from "@/libs/combat/types";
@@ -128,8 +129,9 @@ export const availableUserActions = (
       : []),
     ...(user?.items && !isStealth
       ? user.items
-          .filter((useritem) => useritem.quantity > 0)
-          .map((useritem) => userItemToAction(useritem, user))
+          .filter((ui) => ui.quantity > 0 && !ui.item.preventBattleUsage)
+          .filter((ui) => !NonActionItemTypes.includes(ui.item.itemType))
+          .map((ui) => userItemToAction(ui, user))
       : []),
   ];
   // If we only have move & end turn action, also add basic attack
