@@ -718,7 +718,7 @@ export const combatRouter = createTRPCRouter({
 
       const { userEffects: newUsersEffects, usersState: newUsersState } =
         await processUsersForBattle(ctx.drizzle, {
-          users: userBattle.usersState,
+          users: userBattle.usersState.filter((u) => !u.isSummon),
           settings: data.settings,
           relations: data.relations,
           wars: data.activeWars,
