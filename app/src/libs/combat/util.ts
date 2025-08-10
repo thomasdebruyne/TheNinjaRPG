@@ -1168,7 +1168,9 @@ export const hasNoAvailableActions = (
     const done = actor.curHealth <= 0 || actor.fledBattle || actor.leftBattle;
     if (!done) {
       const actions =
-        precomputedActions ?? availableUserActions(battle, actorId, !actor.isAi);
+        precomputedActions && precomputedActions.length > 0
+          ? precomputedActions
+          : availableUserActions(battle, actorId, !actor.isAi);
       for (const j of actions.keys()) {
         const action = actions[j];
         if (action) {
