@@ -24,6 +24,7 @@ import {
   SENSEI_STUDENT_MISSION_EXP_BOOST_PERC,
   SENSEI_MAX_STUDENT_LEVEL,
   HUNTING_RANKS,
+  QuestTypesWithMaxAttempts,
 } from "@/drizzle/constants";
 import { getShrineBoost } from "@/utils/village";
 import { SECTOR_WIDTH, SECTOR_HEIGHT } from "@/libs/travel/constants";
@@ -381,6 +382,7 @@ export type QuestConsequence = {
     | "reset_quest"
     | "update_user";
   ids: string[];
+  info?: string;
   scaleStats?: boolean;
   scaleGains?: number;
   forceKeepPools?: boolean;
@@ -575,7 +577,11 @@ export const getNewTrackers = (
           if (task === "win_quest") {
             status.done = true;
           } else if (task === "reset_quest") {
-            consequences.push({ type: "reset_quest", ids: [quest.id] });
+            consequences.push({
+              type: "reset_quest",
+              ids: [quest.id],
+              info: objective.resetObjectiveId,
+            });
           } else if (task === "fail_quest") {
             consequences.push({ type: "fail_quest", ids: [quest.id] });
             notifications.push(objective.description || `Failed: ${quest.name}`);
@@ -978,14 +984,13 @@ export const isAvailableUserQuests = (
   const huntingRankCheck = !reqHuntRankIdx || userHuntRankIdx >= reqHuntRankIdx;
 
   // Event specific tests
-  const previousCheckTypes = ["event", "story", "anbu", "starter"];
   const eventCompletedCheck =
-    !previousCheckTypes.includes(questAndUserQuestInfo.questType) ||
+    !QuestTypesWithMaxAttempts.includes(questAndUserQuestInfo.questType) ||
     !questAndUserQuestInfo.previousCompletes ||
     questAndUserQuestInfo.previousCompletes < maxCompletes;
   const eventAttemptsCheck =
     ignorePreviousAttempts ||
-    !previousCheckTypes.includes(questAndUserQuestInfo.questType) ||
+    !QuestTypesWithMaxAttempts.includes(questAndUserQuestInfo.questType) ||
     !questAndUserQuestInfo.previousAttempts ||
     questAndUserQuestInfo.previousAttempts < maxAttempts;
 

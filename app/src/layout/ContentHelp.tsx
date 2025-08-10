@@ -626,6 +626,7 @@ const renderBattlePyramidTips = (quest: DeepPartial<ZodCombinedQuest>) => {
     return !failId || failId !== resetQuestObjective?.id;
   });
 
+  console.log(resetQuestObjective);
   return (
     <div className="space-y-4">
       <Alert>
@@ -700,6 +701,20 @@ const renderBattlePyramidTips = (quest: DeepPartial<ZodCombinedQuest>) => {
           </div>
         )}
 
+        {/* Info for reset_quest objective without resetObjectiveId */}
+        {resetQuestObjective && !resetQuestObjective.resetObjectiveId && (
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="font-medium text-blue-900 mb-2">ℹ️ Quest Reset Behavior</h4>
+            <p className="text-blue-800">
+              The <code className="bg-blue-100 px-1 rounded">reset_quest</code>{" "}
+              objective does not have a{" "}
+              <code className="bg-blue-100 px-1 rounded">resetObjectiveId</code> field.
+              This means when triggered, the entire quest will be reset to the
+              beginning, allowing players to restart the full pyramid challenge.
+            </p>
+          </div>
+        )}
+
         {/* Warning for consecutiveObjectives */}
         {quest.consecutiveObjectives !== true && (
           <div className="p-3 bg-red-50 rounded-lg border border-red-200">
@@ -713,7 +728,7 @@ const renderBattlePyramidTips = (quest: DeepPartial<ZodCombinedQuest>) => {
         )}
 
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <h4 className="font-medium text-blue-900 mb-2">Objective Structure</h4>
+          <h4 className="font-medium text-blue-900 mb-2">ℹ️ Objective Structure</h4>
           <p className="text-blue-800">
             Battle pyramid quests work best with a series of{" "}
             <code className="bg-blue-100 px-1 rounded">start_battle</code> objectives,

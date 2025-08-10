@@ -44,7 +44,6 @@ export const SimpleTasks = [
 export const InstantTasks = [
   "fail_quest",
   "win_quest",
-  "reset_quest",
   "new_quest",
   "start_battle",
 ] as const;
@@ -63,6 +62,7 @@ export const allObjectiveTasks = [
   ...SimpleTasks,
   ...LocationTasks,
   ...InstantTasks,
+  "reset_quest",
   "dialog",
 ] as const;
 export type AllObjectiveTask = (typeof allObjectiveTasks)[number];
@@ -159,7 +159,14 @@ export const SimpleObjective = z.object({
 
 export const InstantWinLoseObjective = z.object({
   ...baseObjectiveFields,
-  task: z.enum(["reset_quest", "fail_quest", "win_quest"]),
+  task: z.enum(["fail_quest", "win_quest"]),
+  ...rewardFields,
+});
+
+export const ResetQuestObjective = z.object({
+  ...baseObjectiveFields,
+  task: z.literal("reset_quest").default("reset_quest"),
+  resetObjectiveId: z.string().optional(),
   ...rewardFields,
 });
 
@@ -287,6 +294,7 @@ export const DefeatOpponents = z.object({
 export const AllObjectives = z.union([
   SimpleObjective,
   InstantWinLoseObjective,
+  ResetQuestObjective,
   InstantNewQuestObjective,
   InstantStartBattleObjective,
   MoveToObjective,
@@ -369,8 +377,10 @@ export type ZodQuestType = z.infer<typeof QuestValidator>;
 export const getObjectiveSchema = (type: string) => {
   if (SimpleTasks.includes(type as (typeof SimpleTasks)[number])) {
     return SimpleObjective;
-  } else if (["fail_quest", "reset_quest", "win_quest"].includes(type)) {
+  } else if (["fail_quest", "win_quest"].includes(type)) {
     return InstantWinLoseObjective;
+  } else if (type === "reset_quest") {
+    return ResetQuestObjective;
   } else if (type === "new_quest") {
     return InstantNewQuestObjective;
   } else if (type === "start_battle") {

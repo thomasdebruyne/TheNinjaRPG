@@ -200,7 +200,8 @@ export const EditContent = <
       ].includes(id)
     )
       return "scene";
-    if (["nextObjectiveId", "failObjectiveId"].includes(id)) return "graph";
+    if (["nextObjectiveId", "failObjectiveId", "resetObjectiveId"].includes(id))
+      return "graph";
     return "default";
   };
 
@@ -1413,7 +1414,8 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
           if (form.formState.isDirty) {
             void form.trigger();
           }
-          if (form.formState.isValid) {
+          const hasErrors = Object.keys(form.formState.errors).length > 0;
+          if (!hasErrors) {
             setObjectives(newObjectives);
             form.reset(watchAll);
           }
@@ -1467,7 +1469,7 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
     .filter((value) => {
       return (
         props?.quest?.consecutiveObjectives ||
-        !["nextObjectiveId", "failObjectiveId"].includes(value)
+        !["nextObjectiveId", "failObjectiveId", "resetObjectiveId"].includes(value)
       );
     })
     .filter((value) => {
@@ -1611,7 +1613,10 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
             resetButton: true,
           };
         }
-      } else if (["failObjectiveId"].includes(value) && props.objectives) {
+      } else if (
+        ["failObjectiveId", "resetObjectiveId"].includes(value) &&
+        props.objectives
+      ) {
         const obejctiveIds = props.objectives.map((objective) => objective.id);
         return {
           id: value,
@@ -1710,7 +1715,8 @@ export const FORM_LABEL_MAP: Record<string, string> = {
   reward_badges: "Reward Badges",
   opponentAIs: "Opponent AIs [and number]",
   nextObjectiveId: "Next Objective ID",
-  failObjectiveId: "If fail, reset to Objective",
+  failObjectiveId: "If fail, go to objective",
+  resetObjectiveId: "Reset to specific objective",
   opponent_scaled_to_user: "Scale Opponent to user level",
   scaleGains: "Scale opponent combat gains",
   keepOriginalPools: "Reset pools after opponent battle",

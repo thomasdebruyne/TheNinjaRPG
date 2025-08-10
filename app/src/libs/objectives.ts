@@ -366,6 +366,25 @@ export const buildObjectiveEdges = (
         }
       }
     }
+
+    // Handle Reset Edges
+    if ("resetObjectiveId" in obj && obj.resetObjectiveId) {
+      const resetId = obj.resetObjectiveId;
+      if (resetId && validIds.has(resetId)) {
+        const edgeId = `${obj.id}__reset_to__${resetId}`;
+        if (!seen.has(edgeId)) {
+          seen.add(edgeId);
+          edges.push({
+            data: {
+              id: edgeId,
+              source: obj.id,
+              target: resetId,
+            },
+            classes: "reset-edge",
+          });
+        }
+      }
+    }
   });
 
   return edges;

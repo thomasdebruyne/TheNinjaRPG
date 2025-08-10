@@ -119,8 +119,8 @@ export const questsRouter = createTRPCRouter({
               ]
             : []),
           ...(input?.hidden !== undefined
-            ? [eq(quest.hidden, input.hidden)]
-            : [eq(quest.hidden, false)]),
+            ? [eq(quest.hidden, input.hidden ? true : false)]
+            : []),
         ),
         offset: skip,
         limit: input.limit,
@@ -1623,10 +1623,9 @@ export const handleQuestConsequences = async (
   notifications: string[],
 ) => {
   // Quests reset
-  const resetQuestIds = consequences
-    .filter((c) => c.type === "reset_quest")
-    .map((c) => c.ids)
-    .flat();
+  const resetQuests = consequences.filter(
+    (c) => c.type === "reset_quest" && c.ids.length > 0,
+  );
   // Quests ended
   const endedQuestIds = consequences
     .filter((c) => c.type === "fail_quest")
@@ -1690,8 +1689,26 @@ export const handleQuestConsequences = async (
     });
   }
   // If quests were reset, update the user's quest data
-  if (resetQuestIds.length > 0 && user.questData) {
-    user.questData = user.questData.filter((t) => !resetQuestIds.includes(t.id));
+  if (resetQuests.length > 0) {
+    resetQuests.forEach((resetQuest) => {
+      if (!user.questData) return;
+      // If no text, which contains the objective id, then reset the entire quest
+      if (!resetQuest.info) {
+        user.questData = user.questData.filter((t) => !resetQuest.ids.includes(t.id));
+      } else {
+        const questId = resetQuest.ids[0]; // We only reset one quest at a time ever
+        const quest = user.questData?.find((t) => t.id === questId);
+        if (quest) {
+          const objectiveIdsToRemove = [resetQuest.info];
+          let goal = quest.goals.find((g) => g.id === resetQuest.info);
+          while (goal?.selectedNextObjectiveId) {
+            objectiveIdsToRemove.push(goal.selectedNextObjectiveId);
+            goal = quest.goals.find((g) => g.id === goal?.selectedNextObjectiveId);
+          }
+          quest.goals = quest.goals.filter((g) => !objectiveIdsToRemove.includes(g.id));
+        }
+      }
+    });
   }
   // Database updates
   if (notifications.length > 0 || consequences.length > 0) {

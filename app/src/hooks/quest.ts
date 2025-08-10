@@ -222,7 +222,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
     },
   ];
 
-  if (questType === "event" || questType === "story" || questType === "anbu") {
+  if (["event", "story", "anbu", "battlepyramid"].includes(questType)) {
     formData.push({ id: "maxAttempts", type: "number", label: "Max Attempts" });
     formData.push({ id: "maxCompletes", type: "number", label: "Max Completes" });
     formData.push({ id: "retryDelay", type: "str_array", values: RetryQuestDelays });

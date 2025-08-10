@@ -361,7 +361,7 @@ const ObjectiveFlowGraph: React.FC<ObjectiveFlowGraphProps> = ({
       initialBreak={true}
       topRightContent={<div className="flex flex-row">{addObjectiveIcon}</div>}
     >
-      <div ref={containerRef} className="w-full h-96 relative">
+      <div ref={containerRef} className="w-full aspect-square relative">
         <CytoscapeComponent
           cy={(cy) => {
             cyRef.current = cy;
@@ -412,6 +412,13 @@ const ObjectiveFlowGraph: React.FC<ObjectiveFlowGraphProps> = ({
               style: {
                 "line-color": "#ef4444",
                 "target-arrow-color": "#ef4444",
+              },
+            },
+            {
+              selector: "edge.reset-edge",
+              style: {
+                "line-color": "#048700",
+                "target-arrow-color": "#048700",
               },
             },
           ]}
