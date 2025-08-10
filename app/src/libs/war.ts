@@ -36,29 +36,25 @@ export const findWarsWithUser = (
   userVillageId: string | null | undefined,
 ) => {
   return getUnique([...targetWars, ...userWars], "id").filter((w) => {
-    // Check if the user is in the war
+    const attackerVillageIds = [
+      w.attackerVillageId,
+      ...w.warAllies
+        .filter((wa) => wa.supportVillageId === w.attackerVillageId)
+        .map((wa) => wa.villageId),
+    ];
+    const defenderVillageIds = [
+      w.defenderVillageId,
+      ...w.warAllies
+        .filter((wa) => wa.supportVillageId === w.defenderVillageId)
+        .map((wa) => wa.villageId),
+    ];
     const check1 =
-      w.attackerVillageId === userVillageId && w.defenderVillageId === targetVillageId;
+      attackerVillageIds.includes(targetVillageId ?? "") &&
+      defenderVillageIds.includes(userVillageId ?? "");
     const check2 =
-      w.defenderVillageId === userVillageId && w.attackerVillageId === targetVillageId;
-    // Check if the user is an ally of the war
-    const check3 =
-      targetVillageId &&
-      [w.attackerVillageId, w.defenderVillageId].includes(targetVillageId) &&
-      w.warAllies.some(
-        (wa) =>
-          wa.villageId === userVillageId && wa.supportVillageId !== targetVillageId,
-      );
-    const check4 =
-      userVillageId &&
-      [w.attackerVillageId, w.defenderVillageId].includes(userVillageId) &&
-      w.warAllies.some(
-        (wa) =>
-          wa.villageId === targetVillageId && wa.supportVillageId !== userVillageId,
-      );
-
-    // Return true if any of the checks are true
-    return check1 || check2 || check3 || check4;
+      defenderVillageIds.includes(targetVillageId ?? "") &&
+      attackerVillageIds.includes(userVillageId ?? "");
+    return check1 || check2;
   });
 };
 
