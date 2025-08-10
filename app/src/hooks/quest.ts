@@ -10,6 +10,7 @@ import {
   MEDNIN_RANKS,
   HUNTING_RANKS,
   STARTER_VILLAGES,
+  QuestTypesWithMaxAttempts,
 } from "@/drizzle/constants";
 import { z } from "zod";
 import { api } from "@/app/_trpc/client";
@@ -222,7 +223,7 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
     },
   ];
 
-  if (["event", "story", "anbu", "battlepyramid"].includes(questType)) {
+  if (QuestTypesWithMaxAttempts.includes(questType)) {
     formData.push({ id: "maxAttempts", type: "number", label: "Max Attempts" });
     formData.push({ id: "maxCompletes", type: "number", label: "Max Completes" });
     formData.push({ id: "retryDelay", type: "str_array", values: RetryQuestDelays });
