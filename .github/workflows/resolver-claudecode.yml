@@ -16,6 +16,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  id-token: write
 
 jobs:
   claude-fix:
@@ -146,18 +147,18 @@ jobs:
       - name: Run Claude Code with AWS Bedrock
         uses: anthropics/claude-code-action@beta
         env:
-          # Set up AWS Bedrock authentication
+          # Set up AWS Bedrock authentication using the bearer token
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
           AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
           CLAUDE_CODE_USE_BEDROCK: "1"
           CLAUDE_CODE_MAX_OUTPUT_TOKENS: "4096"
           MAX_THINKING_TOKENS: "1024"
         with:
-          # Use environment variables for AWS Bedrock auth instead of direct API key
-          custom_instructions: ${{ env.CLAUDE_INSTRUCTIONS }}
+          # Provide GitHub token for authentication
+          github_token: ${{ github.token }}
 
-          # Optional: Specify Bedrock model
-          model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+          # Use custom instructions based on the issue
+          custom_instructions: ${{ env.CLAUDE_INSTRUCTIONS }}
 
           # Allow Claude to make changes
           allowed_tools: |
