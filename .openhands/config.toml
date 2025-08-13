@@ -1,5 +1,5 @@
-# OpenHands repository-level configuration
-# Resolves Azure error: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."
+[core]
+max_budget_per_task = 50.0
 
 [llm]
 disable_vision = true
