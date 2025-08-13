@@ -211,7 +211,6 @@ jobs:
             --issue-number ${{ env.ISSUE_NUMBER }} \
             --issue-type ${{ env.ISSUE_TYPE }} \
             --max-iterations ${{ env.MAX_ITERATIONS }} \
-            --max-budget-per-task 50 \
             --comment-id ${{ env.COMMENT_ID }} \
             --is-experimental ${{ steps.install_openhands.outputs.isExperimental }}
 
