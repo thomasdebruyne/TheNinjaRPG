@@ -62,7 +62,7 @@ jobs:
 
       - name: Check required environment variables
         env:
-          LLM_MODEL: ${{ vars.LLM_MODEL || 'azure/o3-global' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'azure/gpt-5' }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_API_VERSION: ${{ vars.LLM_API_VERSION || '2025-01-01-preview' }}
@@ -174,7 +174,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || github.token }}
           GITHUB_USERNAME: ${{ secrets.PAT_USERNAME || 'openhands-agent' }}
           GIT_USERNAME: ${{ secrets.PAT_USERNAME || 'openhands-agent' }}
-          LLM_MODEL: ${{ vars.LLM_MODEL || 'azure/o3-global' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'azure/gpt-5' }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_API_VERSION: ${{ vars.LLM_API_VERSION || '2025-01-01-preview' }}
@@ -216,7 +216,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || github.token }}
           GITHUB_USERNAME: ${{ secrets.PAT_USERNAME || 'openhands-agent' }}
           GIT_USERNAME: ${{ secrets.PAT_USERNAME || 'openhands-agent' }}
-          LLM_MODEL: ${{ vars.LLM_MODEL || 'azure/o3-global' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'azure/gpt-5' }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_API_VERSION: ${{ vars.LLM_API_VERSION || '2025-01-01-preview' }}
