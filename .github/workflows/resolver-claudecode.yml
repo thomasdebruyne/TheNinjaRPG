@@ -1,0 +1,313 @@
+name: Resolve Issue with Claude Code
+
+on:
+  issues:
+    types: [labeled]
+  pull_request:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-fix:
+    if: |
+      github.event.label.name == 'fix-me' ||
+      (
+        ((github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') &&
+        contains(github.event.comment.body, vars.CLAUDE_MACRO || '@claude') &&
+        (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER')
+        ) ||
+
+        (github.event_name == 'pull_request_review' &&
+        contains(github.event.review.body, vars.CLAUDE_MACRO || '@claude') &&
+        (github.event.review.author_association == 'OWNER' || github.event.review.author_association == 'COLLABORATOR' || github.event.review.author_association == 'MEMBER')
+        )
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Check required environment variables
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+        run: |
+          required_vars=("AWS_BEARER_TOKEN_BEDROCK")
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var}" ]; then
+              echo "Error: Required environment variable $var is not set."
+              exit 1
+            fi
+          done
+
+          if [ -z "$AWS_REGION" ]; then
+            echo "Warning: AWS_REGION is not set, will use us-east-1"
+          fi
+
+      - name: Set environment variables
+        env:
+          REVIEW_BODY: ${{ github.event.review.body || '' }}
+        run: |
+          # Handle pull request events first
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            echo "ISSUE_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+            echo "ISSUE_TYPE=pr" >> $GITHUB_ENV
+          # Handle pull request review events
+          elif [ -n "$REVIEW_BODY" ]; then
+            echo "ISSUE_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+            echo "ISSUE_TYPE=pr" >> $GITHUB_ENV
+          # Handle issue comment events that reference a PR
+          elif [ -n "${{ github.event.issue.pull_request }}" ]; then
+            echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+            echo "ISSUE_TYPE=pr" >> $GITHUB_ENV
+          # Handle regular issue events
+          else
+            echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+            echo "ISSUE_TYPE=issue" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$REVIEW_BODY" ]; then
+            echo "COMMENT_ID=${{ github.event.review.id || 'None' }}" >> $GITHUB_ENV
+          else
+            echo "COMMENT_ID=${{ github.event.comment.id || 'None' }}" >> $GITHUB_ENV
+          fi
+
+          echo "MAX_ITERATIONS=${{ fromJson(vars.CLAUDE_MAX_ITER || 30) }}" >> $GITHUB_ENV
+          echo "TARGET_BRANCH=main" >> $GITHUB_ENV
+
+      - name: Comment on issue with start message
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const issueType = process.env.ISSUE_TYPE;
+            github.rest.issues.createComment({
+              issue_number: ${{ env.ISSUE_NUMBER }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `[Claude Code](https://docs.anthropic.com/en/docs/claude-code) started fixing the ${issueType}! You can monitor the progress [here](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}).`
+            });
+
+      - name: Install Claude Code
+        run: |
+          pip install claude-code
+
+      - name: Create Claude Code configuration
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+        run: |
+          mkdir -p ~/.config/claude-code
+          cat > ~/.config/claude-code/config.json << EOF
+          {
+            "env": {
+              "AWS_BEARER_TOKEN_BEDROCK": "$AWS_BEARER_TOKEN_BEDROCK",
+              "CLAUDE_CODE_USE_BEDROCK": "1",
+              "AWS_REGION": "$AWS_REGION",
+              "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "4096",
+              "MAX_THINKING_TOKENS": "1024"
+            }
+          }
+          EOF
+
+      - name: Get issue/PR details and create prompt
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const issueNumber = process.env.ISSUE_NUMBER;
+            const issueType = process.env.ISSUE_TYPE;
+
+            let issueData;
+            if (issueType === 'pr') {
+              issueData = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: issueNumber
+              });
+            } else {
+              issueData = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+            }
+
+            const title = issueData.data.title;
+            const body = issueData.data.body || '';
+
+            const prompt = `Please help fix this GitHub ${issueType}:
+
+            Title: ${title}
+
+            Description:
+            ${body}
+
+            Please analyze the codebase, understand the issue, and implement a fix. Make sure to:
+            1. Understand the problem thoroughly
+            2. Identify the root cause
+            3. Implement a proper solution
+            4. Test that the solution works
+            5. Follow the project's coding standards and conventions
+            `;
+
+            fs.writeFileSync('/tmp/claude_prompt.txt', prompt);
+
+      - name: Run Claude Code to fix the issue
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          CLAUDE_CODE_MAX_OUTPUT_TOKENS: "4096"
+          MAX_THINKING_TOKENS: "1024"
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cd $GITHUB_WORKSPACE
+
+          # Read the prompt and run Claude Code
+          PROMPT=$(cat /tmp/claude_prompt.txt)
+
+          # Run Claude Code with the prompt
+          echo "$PROMPT" | claude-code --non-interactive --max-iterations ${{ env.MAX_ITERATIONS }} > /tmp/claude_output.txt 2>&1 || true
+
+          # Check if Claude Code made any changes
+          if git diff --quiet; then
+            echo "CLAUDE_MADE_CHANGES=false" >> $GITHUB_ENV
+            echo "No changes were made by Claude Code"
+          else
+            echo "CLAUDE_MADE_CHANGES=true" >> $GITHUB_ENV
+            echo "Claude Code made changes to the codebase"
+          fi
+
+      - name: Create commit and push changes
+        if: env.CLAUDE_MADE_CHANGES == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git config --global user.name "claude-bot"
+          git config --global user.email "claude-bot@anthropic.com"
+
+          # Create a new branch for the fix
+          BRANCH_NAME="claude-fix-${{ env.ISSUE_NUMBER }}-$(date +%s)"
+          git checkout -b "$BRANCH_NAME"
+
+          # Add all changes
+          git add .
+
+          # Commit changes
+          git commit -m "Fix issue #${{ env.ISSUE_NUMBER }} with Claude Code
+
+          This commit was automatically generated by Claude Code to address:
+          ${{ github.event.issue.title || github.event.pull_request.title }}
+
+          Changes were made after analyzing the issue and implementing a solution."
+
+          # Push the branch
+          git push origin "$BRANCH_NAME"
+
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Create pull request
+        if: env.CLAUDE_MADE_CHANGES == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const branchName = process.env.BRANCH_NAME;
+            const issueNumber = process.env.ISSUE_NUMBER;
+            const issueType = process.env.ISSUE_TYPE;
+
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Fix ${issueType} #${issueNumber} with Claude Code`,
+              head: branchName,
+              base: 'main',
+              body: `This pull request was automatically created by Claude Code to fix ${issueType} #${issueNumber}.
+
+              ## Changes Made
+              Claude Code analyzed the issue and implemented a solution. Please review the changes carefully before merging.
+
+              ## Related Issue
+              ${issueType === 'pr' ? 'Related to PR' : 'Fixes'} #${issueNumber}
+
+              ## Review Checklist
+              - [ ] Changes address the original issue
+              - [ ] Code follows project conventions
+              - [ ] No unintended side effects
+              - [ ] Tests pass (if applicable)
+              `,
+              draft: true
+            });
+
+            console.log(`Created PR #${pr.data.number}`);
+
+            // Comment on the original issue
+            await github.rest.issues.createComment({
+              issue_number: issueNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `A potential fix has been generated and a draft PR #${pr.data.number} has been created. Please review the changes.`
+            });
+
+      - name: Handle no changes case
+        if: env.CLAUDE_MADE_CHANGES == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const issueNumber = process.env.ISSUE_NUMBER;
+            const fs = require('fs');
+
+            let output = '';
+            try {
+              output = fs.readFileSync('/tmp/claude_output.txt', 'utf8');
+            } catch (error) {
+              output = 'No output available';
+            }
+
+            await github.rest.issues.createComment({
+              issue_number: issueNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Claude Code analyzed this issue but did not make any code changes. This could mean:
+
+              - The issue might need manual intervention
+              - The problem description needs more clarity
+              - The solution requires architectural changes that need human review
+
+              **Claude Code Output:**
+              \`\`\`
+              ${output.substring(0, 2000)}${output.length > 2000 ? '...(truncated)' : ''}
+              \`\`\`
+
+              Please review the analysis and consider providing more specific guidance or implementing the fix manually.`
+            });
+
+      - name: Upload Claude Code output as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-output
+          path: /tmp/claude_output.txt
+          retention-days: 30

@@ -25,13 +25,7 @@ This project is **TheNinja-RPG**, a browser-based RPG game built with Next.js 15
 - `make test` - Run unit tests with vitest
 - `make lint` - Run ESLint on the codebase
 - `make install` - Install dependencies with bun
-
-**Database Management:**
-
 - `make makemigrations` - Generate database migration files (after updating schema.ts)
-
-**Package Management:**
-
 - `make bun add [package]` - Add new package dependency
 
 # Repository Structure
@@ -88,15 +82,6 @@ The combat system is the most complex feature with dedicated organization:
 - `/app/src/libs/combat/database.ts` - Database operations for combat
 - `/app/src/libs/combat/ai_v2.ts` - AI behavior logic (rule-based system)
 - `/app/src/libs/combat/drawing.ts` - Three.js rendering for combat visuals
-
-# CI/CD Workflows
-
-Located in `.github/workflows/`:
-
-- `openhands-agent.yml` - OpenHands automated issue resolution with support for experimental versions
-  - Triggers on `fix-me` and `fix-me-experimental` labels
-  - Responds to `@openhands-agent` mentions in comments
-  - Creates draft PRs for successful fixes, branches for failures
 
 # Development Guidelines
 
