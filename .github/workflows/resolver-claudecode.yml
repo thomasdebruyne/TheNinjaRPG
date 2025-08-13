@@ -92,17 +92,15 @@ jobs:
           github-token: ${{ secrets.PAT_TOKEN || github.token }}
           script: |
             const issueType = process.env.ISSUE_TYPE;
-            
+
             // Create a comment that will trigger Claude Code Action
             const comment = await github.rest.issues.createComment({
               issue_number: ${{ env.ISSUE_NUMBER }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `@claude
-
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code) started fixing the ${issueType}! You can monitor the progress [here](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}).`
+              body: `@claude\n\n[Claude Code](https://docs.anthropic.com/en/docs/claude-code) started fixing the ${issueType}! You can monitor the progress [here](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}).`
             });
-            
+
             // Store the comment ID for the Claude Code Action to detect
             core.exportVariable('TRIGGER_COMMENT_ID', comment.data.id);
 
