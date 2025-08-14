@@ -350,7 +350,7 @@ const Register: React.FC = () => {
                       />
                     </div>
                   </CarouselItem>
-                  <CarouselItem className="flex flex-col gap-4">
+                  <CarouselItem className="flex flex-col gap-4 relative">
                     <div className="w-full flex justify-center">
                       <div className="relative w-full aspect-[491/89]">
                         <Image
@@ -548,14 +548,15 @@ const Register: React.FC = () => {
                       />
                     </div>
 
-                    <div className="flex justify-center px-3 mb-4">
+                    <div className="grid grid-cols-3 w-full gap-4 items-center px-3">
                       <Button
                         type="button"
                         size="sm"
+                        variant="outline"
                         onClick={randomizeAll}
-                        className="flex items-center gap-2 w-full"
+                        className="w-full"
                       >
-                        <Shuffle className="h-4 w-4" />
+                        <Shuffle className="h-5 w-5 mr-2" />
                         Randomize All
                       </Button>
                     </div>
