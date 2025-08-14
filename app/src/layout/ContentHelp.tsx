@@ -195,7 +195,7 @@ export const JutsuHelper: React.FC<JutsuHelperProps> = ({ jutsu }) => {
 
   // Load injector counts and references
   const jutsuId = (jutsu as { id?: string })?.id ?? "";
-  const { data: injectorData } = api.jutsu.countInjectors.useQuery(
+  const { data: injectorData } = api.jutsu.getJutsuRelations.useQuery(
     { jutsuId },
     { enabled: !!jutsuId },
   );

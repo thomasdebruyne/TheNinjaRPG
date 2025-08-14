@@ -841,7 +841,7 @@ export const jutsuRouter = createTRPCRouter({
 
       return { success: true, message: `Order updated` };
     }),
-  countInjectors: publicProcedure
+  getJutsuRelations: publicProcedure
     .input(z.object({ jutsuId: z.string() }))
     .query(async ({ ctx, input }) => {
       const results = await getJutsuRelations(ctx.drizzle, input.jutsuId);
