@@ -82,10 +82,14 @@ const Carousel = React.forwardRef<
 
     const handleKeyDown = React.useCallback(
       (event: React.KeyboardEvent<HTMLDivElement>) => {
+        console.log(event.key);
         if (event.key === "ArrowLeft") {
           event.preventDefault();
           scrollPrev();
         } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          scrollNext();
+        } else if (event.key === "Enter") {
           event.preventDefault();
           scrollNext();
         }
@@ -134,6 +138,7 @@ const Carousel = React.forwardRef<
           className={cn("relative", className)}
           role="region"
           aria-roledescription="carousel"
+          tabIndex={0}
           {...props}
         >
           {children}
