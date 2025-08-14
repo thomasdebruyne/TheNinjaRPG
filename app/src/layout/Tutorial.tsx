@@ -235,7 +235,7 @@ const TUTORIAL_STEPS: TutorialStepConfig[] = [
   {
     title: "Academy",
     description:
-      "Welcome to the academy. One we're done with this tutorial, press here to start your first lesson to get more familiar with the game. Good luck!",
+      "Welcome to the academy. Once we're done with this tutorial, press here to start your first lesson to get more familiar with the game. Good luck!",
     elementId: "tutorial-take-quest",
     page: "/academy",
   },
