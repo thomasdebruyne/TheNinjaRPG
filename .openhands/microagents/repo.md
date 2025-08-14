@@ -131,3 +131,4 @@ The combat system is the most complex feature with dedicated organization:
 - Use React Compiler patterns: use `useWatch` hook, not `watch`, for react-hook-form
 - Only run make commands in extreme cases; rely on editor integrations for linting
 - Never run git commands or GitHub CLI when using automated tools
+- If you implement backend functionality wrt. to a given issue, also implement corresponding frontend functionality!
