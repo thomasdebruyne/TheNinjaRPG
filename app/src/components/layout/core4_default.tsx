@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import MenuBoxProfile from "@/layout/MenuBoxProfile";
 import MenuBoxCombat from "@/layout/MenuBoxCombat";
 import Footer from "@/layout/Footer";
@@ -76,6 +76,7 @@ import type { UserWithRelations } from "@/server/api/routers/profile";
 import { usePathname } from "next/navigation";
 import { cn } from "src/libs/shadui";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useAudio } from "@/hooks/useAudio";
 export interface LayoutProps {
   children: React.ReactNode;
 }
@@ -129,35 +130,46 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     });
   };
 
-  // Initial value is derived only from server-side props to avoid hydration mismatches.
-  // We later synchronize with client-side localStorage once the component is mounted.
-  const [localAudioOn, setLocalAudioOn] = useState<boolean>(
-    userData ? userData.audioOn : true,
-  );
+  // Get initial audio preference from user data or localStorage
+  const getInitialAudioState = () => {
+    if (userData) return userData.audioOn;
 
-  // After mount, sync audio preference from localStorage (if present).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const saved = localStorage.getItem("audioOn");
-    if (saved !== null) {
-      setLocalAudioOn(JSON.parse(saved) as boolean);
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("audioOn");
+      if (saved !== null) return JSON.parse(saved) as boolean;
     }
-  }, []);
 
-  const toggleLocalAudio = () => {
-    setLocalAudioOn((prev) => {
-      const newState = !prev;
-      localStorage.setItem("audioOn", JSON.stringify(newState));
-      return newState;
-    });
+    return true; // Default to enabled
   };
 
+  // Initialize audio hook with all logic handled internally
+  const {
+    isPlaying,
+    requiresInteraction,
+    enabled: audioEnabled,
+    toggle: toggleAudio,
+    setEnabled: setAudioEnabled,
+  } = useAudio({
+    src: MUSIC_DEFAULT,
+    loop: true,
+    volume: 0.5,
+    preload: "metadata",
+    enabled: getInitialAudioState(),
+    autoPlay: true,
+  });
+
+  // Simple toggle function for local users (saves to localStorage)
+  const toggleLocalAudio = useCallback(async () => {
+    await toggleAudio();
+    localStorage.setItem("audioOn", JSON.stringify(!audioEnabled));
+  }, [toggleAudio, audioEnabled]);
+
+  // Sync with user data changes
   useEffect(() => {
     if (userData) {
-      setLocalAudioOn(userData.audioOn);
+      void setAudioEnabled(userData.audioOn);
     }
-  }, [userData]);
+  }, [userData, setAudioEnabled]);
 
   const pathname = usePathname();
 
@@ -171,7 +183,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   const navbarMenuItemsLeft = navbarMenuItems.slice(0, 3);
   const navbarMenuItemsRight = navbarMenuItems.slice(3);
 
-  // Toggle audio mutation
+  // Toggle audio mutation for logged-in users
   const { mutate: toggleAudioMutation } = api.profile.toggleAudio.useMutation({
     onSuccess: async (result) => {
       showMutationToast(result);
@@ -348,13 +360,24 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
       </Link>
       <div
         onClick={userData ? () => toggleAudioMutation() : toggleLocalAudio}
-        aria-label="Toggle Audio"
+        aria-label={
+          audioEnabled
+            ? requiresInteraction
+              ? "Audio enabled - Click to start playback"
+              : "Audio enabled - Click to disable"
+            : "Audio disabled - Click to enable"
+        }
+        title={
+          requiresInteraction && audioEnabled
+            ? "Audio requires user interaction on this browser. Click anywhere to start playback."
+            : undefined
+        }
       >
-        {localAudioOn ? (
-          <>
-            <Volume2 className="h-6 w-6 xl:h-7 xl:w-7 rounded-full mx-1 p-1 hover:cursor-pointer hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 " />
-            <audio autoPlay loop src={MUSIC_DEFAULT}></audio>
-          </>
+        {audioEnabled ? (
+          <Volume2
+            className="h-6 w-6 xl:h-7 xl:w-7 rounded-full mx-1 p-1 hover:cursor-pointer hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80"
+            suppressHydrationWarning
+          />
         ) : (
           <VolumeX
             className="h-6 w-6 xl:h-7 xl:w-7 rounded-full mx-1 p-1 hover:cursor-pointer hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80"
