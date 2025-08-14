@@ -144,7 +144,6 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
 
   // Initialize audio hook with all logic handled internally
   const {
-    isPlaying,
     requiresInteraction,
     enabled: audioEnabled,
     toggle: toggleAudio,
@@ -178,6 +177,19 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   const shownNotifications = notifications?.filter(
     (n) => n.color !== "toast" && n.color !== "hidden",
   );
+
+  // Add a notification that the user should go to the academy if they are in their village
+  if (
+    shownNotifications &&
+    userData?.village?.sector === userData?.sector &&
+    userData?.rank === "STUDENT"
+  ) {
+    shownNotifications.push({
+      href: "/academy",
+      name: "Go to Academy!",
+      color: "blue",
+    });
+  }
 
   // Split menu into two parts
   const navbarMenuItemsLeft = navbarMenuItems.slice(0, 3);
@@ -894,15 +906,21 @@ const NotificationList: React.FC<NotificationListProps> = ({
         }`}
       >
         {notification.color === "red" && (
-          <ShieldAlert className={`mr-1 ${isInPopover ? "h-4 w-4 mr-2" : "h-5 w-5"}`} />
+          <ShieldAlert
+            className={`text-white mr-1 ${isInPopover ? "h-4 w-4 mr-2" : "h-5 w-5"}`}
+          />
         )}
         {notification.color === "blue" && (
-          <Info className={`mr-1 ${isInPopover ? "h-4 w-4 mr-2" : "h-5 w-5"}`} />
+          <Info
+            className={`text-white mr-1 ${isInPopover ? "h-4 w-4 mr-2" : "h-5 w-5"}`}
+          />
         )}
         {notification.color === "green" && (
-          <ShieldCheck className={`mr-1 ${isInPopover ? "h-4 w-4 mr-2" : "h-5 w-5"}`} />
+          <ShieldCheck
+            className={`text-white mr-1 ${isInPopover ? "h-4 w-4 mr-2" : "h-5 w-5"}`}
+          />
         )}
-        <span className={isInPopover ? "text-white" : ""}>{notification.name}</span>
+        <span className="text-white">{notification.name}</span>
       </div>
     </Link>
   );

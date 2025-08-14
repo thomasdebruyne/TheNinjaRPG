@@ -515,13 +515,14 @@ const Tutorial: React.FC<TutorialProps> = ({
     });
   }, [updateTutorialStep, setIsVisible]);
 
-  // Add keyboard event listener for Enter key to forward tutorial
+  // Add keyboard event listener for Enter and ArrowLeft keys to forward tutorial
   useEffect(() => {
     // Only add keyboard listener when tutorial is visible (either regular or game menu)
     if (!isVisible && !showGameMenuTutorial) return;
 
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
+      // Check for Enter key or ArrowLeft key
+      if (event.key === "Enter" || event.key === "ArrowRight") {
         event.preventDefault();
         event.stopPropagation();
 
@@ -535,10 +536,11 @@ const Tutorial: React.FC<TutorialProps> = ({
       }
     };
 
-    window.addEventListener("keydown", handleKeyPress);
+    // Use capture phase to ensure we get the event before other handlers
+    window.addEventListener("keydown", handleKeyPress, true);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyPress);
+      window.removeEventListener("keydown", handleKeyPress, true);
     };
   }, [isVisible, showGameMenuTutorial, handleNextStep, setRightSideBarOpen]);
 
