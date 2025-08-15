@@ -5,12 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   type LinkPromotionInput,
-  type LinkPromotionReviewInput,
   linkPromotionSchema,
-  linkPromotionReviewSchema,
 } from "@/validators/linkPromotion";
 import AvatarImage from "@/layout/Avatar";
 import ContentBox from "@/layout/ContentBox";
+import NavTabs from "@/layout/NavTabs";
 import Table, { type ColumnDefinitionType } from "@/layout/Table";
 import Loader from "@/layout/Loader";
 import { ClipboardCopy } from "lucide-react";
@@ -34,27 +33,15 @@ import { CheckCircle2, ExternalLink, Loader2, Trophy } from "lucide-react";
 import Confirm2 from "@/layout/Confirm2";
 import { canReviewLinkPromotions } from "@/utils/permissions";
 import type { ArrayElement } from "@/utils/typeutils";
+import type { RecruitmentReward } from "@/drizzle/constants";
 
 export default function Recruit() {
   // State
   const { data: userData, updateUser } = useRequiredUserData();
-  const [copied, setCopied] = useState<boolean>(false);
   const [lastElement, setLastElement] = useState<HTMLDivElement | null>(null);
-
-  // Forms
-  const linkForm = useForm<LinkPromotionInput>({
-    resolver: zodResolver(linkPromotionSchema),
-    defaultValues: {
-      url: "",
-    },
-  });
-  const reviewForm = useForm<LinkPromotionReviewInput>({
-    resolver: zodResolver(linkPromotionReviewSchema),
-    defaultValues: { id: "", points: 0 },
-  });
+  const [recruitTab, setRecruitTab] = useState<string>("Link");
 
   // tRPC utility
-  const utils = api.useUtils();
 
   // mutations
   const { mutate: claimVotes, isPending } = api.profile.claimVotes.useMutation({
@@ -89,39 +76,6 @@ export default function Recruit() {
     },
   );
 
-  const { data: promotions } = api.linkPromotion.getLinkPromotions.useInfiniteQuery(
-    {
-      limit: 30,
-      userId: userData?.userId || "placeholder",
-    },
-    {
-      enabled: !!userData?.userId,
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-      placeholderData: (previousData) => previousData,
-      staleTime: 1000 * 60 * 5,
-    },
-  );
-
-  const submitPromotion = api.linkPromotion.submitLinkPromotion.useMutation({
-    onSuccess: (data) => {
-      showMutationToast(data);
-      if (data.success) {
-        linkForm.reset();
-        void utils.linkPromotion.getLinkPromotions.invalidate();
-      }
-    },
-  });
-
-  const reviewPromotion = api.linkPromotion.reviewLinkPromotion.useMutation({
-    onSuccess: (data) => {
-      showMutationToast(data);
-      if (data.success) {
-        reviewForm.reset();
-        void utils.linkPromotion.getLinkPromotions.invalidate();
-      }
-    },
-  });
-
   // Infinite pagination
   useInfinitePagination({ fetchNextPage, hasNextPage, lastElement });
 
@@ -138,67 +92,7 @@ export default function Recruit() {
 
   // Process data
   const allUsers = users?.pages.map((page) => page.data).flat() ?? [];
-  const rawPromotions = promotions?.pages.map((page) => page.data).flat() ?? [];
-  const allPromotions = rawPromotions.map((promotion) => ({
-    ...promotion,
-    reviewed: promotion.reviewed
-      ? promotion.points > 0
-        ? "Reviewed"
-        : "Rejected"
-      : "Pending",
-    user: canReviewLinkPromotions(userData?.role) ? (
-      <div className="w-20 text-center">
-        <AvatarImage
-          href={promotion.user.avatar}
-          alt={promotion.user.username || "Unknown"}
-          size={100}
-        />
-        <p>{promotion.user.username}</p>
-      </div>
-    ) : null,
-    actions:
-      !promotion.reviewed && canReviewLinkPromotions(userData?.role) ? (
-        <Confirm2
-          title="Review Link Promotion"
-          button={<Button>Review</Button>}
-          proceed_label="Award Points"
-          onAccept={() => {
-            const values = reviewForm.getValues();
-            reviewPromotion.mutate({
-              id: promotion.id,
-              points: Number(values.points),
-            });
-          }}
-        >
-          <Form {...reviewForm}>
-            <form className="space-y-4">
-              <p className="text-sm text-muted-foreground mb-4">URL: {promotion.url}</p>
-              <FormField
-                control={reviewForm.control}
-                name="points"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Points to award (0-100)"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        min={0}
-                        max={500}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </Confirm2>
-      ) : null,
-  }));
   type User = ArrayElement<typeof allUsers>;
-  type Promotion = ArrayElement<typeof allPromotions>;
 
   const recruitedColumns: ColumnDefinitionType<User, keyof User>[] = [
     { key: "avatar", header: "", type: "avatar" },
@@ -206,19 +100,6 @@ export default function Recruit() {
     { key: "level", header: "Level", type: "string" },
     { key: "reputationPointsTotal", header: "Reputation Points", type: "string" },
   ];
-
-  const linkColumns: ColumnDefinitionType<Promotion, keyof Promotion>[] = [
-    { key: "actions", header: "", type: "jsx" },
-    { key: "url", header: "URL", type: "string" },
-    { key: "points", header: "Points", type: "string" },
-    { key: "reviewed", header: "Status", type: "string" },
-  ];
-
-  if (canReviewLinkPromotions(userData?.role)) {
-    linkColumns.push({ key: "user", header: "", type: "jsx" });
-  }
-
-  const recruitUrl = `https://www.theninja-rpg.com/?ref=${userData.userId}`;
 
   return (
     <>
@@ -248,7 +129,7 @@ export default function Recruit() {
                     }
                   }}
                 >
-                  <span>Vote on {site}</span>
+                  <span>{site}</span>
                   {hasVoted ? (
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
                   ) : (
@@ -298,37 +179,18 @@ export default function Recruit() {
         title="Recruitment"
         subtitle="Recruit new members to your village"
         initialBreak
+        topRightContent={
+          <NavTabs
+            id="recruitmentTabs"
+            current={recruitTab}
+            options={["Link", "Guide", "Rewards"]}
+            setValue={setRecruitTab}
+          />
+        }
       >
-        <p className="italic">
-          Every new member you recruit for your village will potentially earn you
-          rewards. We hope you will help us spread the word of the game and invite your
-          friends (or strangers) to join you in your journey. (PS. recruitments during
-          alpha & beta versions of the game will still be active in final release)
-        </p>
-        <ul className="py-2">
-          <li className="py-2 px-2">
-            <strong>Money</strong> - Each time a recruited user levels up, you will
-            receive money in your bank account equal to the level they just reached
-            times 10.
-          </li>
-          <li className="py-2 px-2">
-            <strong>Reputation Points</strong> - Every time a recruited user buys
-            reputation points, you will also receive an amount of reputation points
-            equal to 10% of what they bought.
-          </li>
-        </ul>
-        <div
-          className={`w-full bg-card rounded-lg p-4 italic hover:bg-popover text-card-foreground flex flex-row items-center border ${
-            !copied ? "cursor-copy" : "cursor-no-drop"
-          }`}
-          onClick={async () => {
-            await navigator.clipboard.writeText(recruitUrl);
-            setCopied(true);
-          }}
-        >
-          <p className="grow">{recruitUrl}</p>
-          <ClipboardCopy className="h-8 w-8" />
-        </div>
+        {recruitTab === "Link" && <RecruitLinkTab />}
+        {recruitTab === "Guide" && <RecruitGuideTab />}
+        {recruitTab === "Rewards" && <RecruitRewardsTab />}
       </ContentBox>
 
       {allUsers && allUsers.length > 0 && (
@@ -347,99 +209,320 @@ export default function Recruit() {
           />
         </ContentBox>
       )}
+    </>
+  );
+}
 
-      <ContentBox
-        title="Link Promotion Guide"
-        subtitle="Maximize your rewards by promoting effectively"
-        initialBreak
+// Subcomponents
+const RecruitLinkTab: React.FC = () => {
+  // State
+  const { data: userData } = useRequiredUserData();
+  const recruitUrl = `https://www.theninja-rpg.com/?ref=${userData?.userId ?? ""}`;
+  const [copied, setCopied] = useState<boolean>(false);
+
+  // Render
+  return (
+    <div>
+      <p className="italic">
+        Every new member you recruit for your village will potentially earn you rewards.
+        We hope you will help us spread the word of the game and invite your friends (or
+        strangers) to join you in your journey. (PS. recruitments during alpha & beta
+        versions of the game will still be active in final release)
+      </p>
+      <ul className="py-2">
+        <li className="py-2 px-2">
+          <strong>Money</strong>
+          <br />
+          Each time a recruited user levels up, you will receive money in your bank
+          account according to the following formula: <code>10 x level³</code>. i.e. if
+          a person you recruited achieved level 50, you get {(1250000).toLocaleString()}{" "}
+          ryo.
+        </li>
+        <li className="py-2 px-2">
+          <strong>Reputation Points</strong>
+          <br />
+          Every time a recruited user buys reputation points, you will also receive an
+          amount of reputation points equal to 10% of what they bought.
+        </li>
+        <li className="py-2 px-2">
+          <strong>Village Prestige</strong>
+          <br />
+          Every time a recruited user earns village prestige from quests, you will
+          receive 10% of the prestige they earn.
+        </li>
+      </ul>
+      <div
+        className={`w-full bg-card rounded-lg p-4 italic hover:bg-popover text-card-foreground flex flex-row items-center border ${
+          !copied ? "cursor-copy" : "cursor-no-drop"
+        }`}
+        onClick={async () => {
+          await navigator.clipboard.writeText(recruitUrl);
+          setCopied(true);
+        }}
       >
-        <div>
-          Share your recruitment link on other websites and social media to earn
-          additional reputation points! A high-quality blog post on a high authority
-          gaming site can earn you up to 300 reputation points. In addition, for the
-          duration of the beta, we will monitor the links performing the best (based on
-          below evaluation criteria), and will award <b>a random S-rank bloodline</b> to
-          the user who post the best promotion link. Our review system evaluates
-          multiple factors to determine the reward amount:
-          <div className="bg-card p-4 rounded-lg space-y-1">
-            <h3 className="font-semibold">Evaluation Criteria:</h3>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>
-                Website reputation and visibility (high-profile gaming sites receive
-                better rewards)
-              </li>
-              <li>Relevance to the gaming community and target audience</li>
-              <li>
-                Quality and engagement of recruited players (their activity level and
-                progression)
-              </li>
-              <li>Overall presentation and context of your promotion</li>
-            </ul>
-          </div>
-          <div className="bg-card p-4 rounded-lg space-y-1">
-            <h3 className="font-semibold">Recommended Promotion Strategies:</h3>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>Write detailed blog posts or reviews about your game experience</li>
-              <li>
-                Share on popular gaming forums (Reddit, GameFAQs, MMORPG.com,
-                medium.com, etc.)
-              </li>
-              <li>Create content on gaming-focused social media channels</li>
-              <li>
-                Participate in relevant gaming communities and share your experiences
-              </li>
-              <li>
-                <b>Focus on sharing your link in publicly accessible locations</b>
-              </li>
-              <li className="text-red-500">
-                <b>Always follow the rules whereever you decide to promote!</b>
-              </li>
-            </ul>
-          </div>
+        <p className="grow">{recruitUrl}</p>
+        <ClipboardCopy className="h-8 w-8" />
+      </div>
+    </div>
+  );
+};
+
+const RecruitGuideTab: React.FC = () => {
+  // State
+  const { data: userData } = useRequiredUserData();
+
+  // Form
+  const linkForm = useForm<LinkPromotionInput>({
+    resolver: zodResolver(linkPromotionSchema),
+    defaultValues: { url: "" },
+  });
+
+  // tRPC utility
+  const utils = api.useUtils();
+
+  // Mutations
+  const submitPromotion = api.linkPromotion.submitLinkPromotion.useMutation({
+    onSuccess: (data) => {
+      showMutationToast(data);
+      if (data.success) {
+        linkForm.reset();
+        void utils.linkPromotion.getLinkPromotions.invalidate();
+      }
+    },
+  });
+  const reviewPromotion = api.linkPromotion.reviewLinkPromotion.useMutation({
+    onSuccess: (data) => {
+      showMutationToast(data);
+    },
+  });
+
+  // Queries
+  const {
+    data: promotions,
+    fetchNextPage,
+    hasNextPage,
+  } = api.linkPromotion.getLinkPromotions.useInfiniteQuery(
+    {
+      limit: 30,
+      userId: userData?.userId || "placeholder",
+    },
+    {
+      enabled: !!userData?.userId,
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      placeholderData: (previousData) => previousData,
+      staleTime: 1000 * 60 * 5,
+    },
+  );
+  const rawPromotions = promotions?.pages.map((page) => page.data).flat() ?? [];
+  const allPromotions = rawPromotions.map((promotion) => ({
+    ...promotion,
+    reviewed: promotion.reviewed
+      ? promotion.points > 0
+        ? "Reviewed"
+        : "Rejected"
+      : "Pending",
+    user:
+      userData && canReviewLinkPromotions(userData.role) ? (
+        <div className="w-20 text-center">
+          <AvatarImage
+            href={promotion.user.avatar}
+            alt={promotion.user.username || "Unknown"}
+            size={100}
+          />
+          <p>{promotion.user.username}</p>
+        </div>
+      ) : null,
+    actions:
+      !promotion.reviewed && userData && canReviewLinkPromotions(userData.role) ? (
+        <Confirm2
+          title="Review Link Promotion"
+          button={<Button>Review</Button>}
+          proceed_label="Award Points"
+          onAccept={() => {
+            const values = linkForm.getValues();
+            reviewPromotion.mutate({
+              id: promotion.id,
+              points: Number(values.url) || 0,
+            });
+          }}
+        >
           <Form {...linkForm}>
-            <form
-              onSubmit={linkForm.handleSubmit((data) => {
-                submitPromotion.mutate(data);
-              })}
-              className="flex flex-row gap-2 mt-4"
-            >
+            <form className="space-y-4">
+              <p className="text-sm text-muted-foreground mb-4">URL: {promotion.url}</p>
               <FormField
                 control={linkForm.control}
                 name="url"
                 render={({ field }) => (
-                  <FormItem className="flex-1">
+                  <FormItem>
                     <FormControl>
-                      <Input
-                        placeholder="Enter URL where you promoted your link..."
-                        {...field}
-                      />
+                      <Input placeholder="Update URL" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={submitPromotion.isPending}>
-                Submit
-              </Button>
             </form>
           </Form>
-        </div>
-      </ContentBox>
+        </Confirm2>
+      ) : null,
+  }));
 
-      {allPromotions.length > 0 && (
-        <ContentBox
-          title="Link Promotions"
-          subtitle={
-            canReviewLinkPromotions(userData.role)
-              ? "Promotions for Review"
-              : "Your submitted promotions"
-          }
-          initialBreak={true}
-          padding={false}
-        >
-          <Table data={allPromotions} columns={linkColumns} />
-        </ContentBox>
-      )}
-    </>
+  // Table definitions
+  type Promotion = ArrayElement<typeof allPromotions>;
+  const linkColumns: ColumnDefinitionType<Promotion, keyof Promotion>[] = [
+    { key: "actions", header: "", type: "jsx" },
+    { key: "url", header: "URL", type: "string" },
+    { key: "points", header: "Points", type: "string" },
+    { key: "reviewed", header: "Status", type: "string" },
+  ];
+  if (userData) linkColumns.push({ key: "user", header: "", type: "jsx" });
+  const [lastElement, setLastElement] = useState<HTMLDivElement | null>(null);
+  useInfinitePagination({ fetchNextPage, hasNextPage, lastElement });
+
+  // Render
+  return (
+    <div>
+      <div>
+        Share your recruitment link on other websites and social media to earn
+        additional reputation points! A high-quality blog post on a high authority
+        gaming site can earn you up to 300 reputation points. In addition, for the
+        duration of the beta, we will monitor the links performing the best (based on
+        below evaluation criteria), and will award <b>a random S-rank bloodline</b> to
+        the user who post the best promotion link. Our review system evaluates multiple
+        factors to determine the reward amount:
+        <div className="bg-card p-4 rounded-lg space-y-1">
+          <h3 className="font-semibold">Evaluation Criteria:</h3>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>
+              Website reputation and visibility (high-profile gaming sites receive
+              better rewards)
+            </li>
+            <li>Relevance to the gaming community and target audience</li>
+            <li>
+              Quality and engagement of recruited players (their activity level and
+              progression)
+            </li>
+            <li>Overall presentation and context of your promotion</li>
+          </ul>
+        </div>
+        <div className="bg-card p-4 rounded-lg space-y-1">
+          <h3 className="font-semibold">Recommended Promotion Strategies:</h3>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>Write detailed blog posts or reviews about your game experience</li>
+            <li>
+              Share on popular gaming forums (Reddit, GameFAQs, MMORPG.com, medium.com,
+              etc.)
+            </li>
+            <li>Create content on gaming-focused social media channels</li>
+            <li>
+              Participate in relevant gaming communities and share your experiences
+            </li>
+            <li>
+              <b>Focus on sharing your link in publicly accessible locations</b>
+            </li>
+            <li className="text-red-500">
+              <b>Always follow the rules whereever you decide to promote!</b>
+            </li>
+          </ul>
+        </div>
+        <Form {...linkForm}>
+          <form
+            onSubmit={linkForm.handleSubmit((data) => submitPromotion.mutate(data))}
+            className="flex flex-row gap-2 mt-4"
+          >
+            <FormField
+              control={linkForm.control}
+              name="url"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      placeholder="Enter URL where you promoted your link..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={submitPromotion.isPending}>
+              Submit
+            </Button>
+          </form>
+        </Form>
+        {allPromotions.length > 0 && (
+          <div className="mt-4">
+            <Table
+              data={allPromotions}
+              columns={linkColumns}
+              setLastElement={setLastElement}
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
-}
+};
+
+type RewardRow = {
+  id: string;
+  type: RecruitmentReward;
+  amount: number;
+  createdAt: Date;
+  recruitedUser?: { username?: string | null; avatar?: string | null } | null;
+};
+
+const RecruitRewardsTab: React.FC = () => {
+  // State
+  const { data: userData } = useRequiredUserData();
+
+  // Query
+  const {
+    data: rewardsQuery,
+    fetchNextPage,
+    hasNextPage,
+  } = api.profile.getRecruitmentRewards.useInfiniteQuery(
+    { limit: 30 },
+    {
+      enabled: !!userData?.userId,
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      placeholderData: (previousData) => previousData,
+      staleTime: 1000 * 60 * 5,
+    },
+  );
+  const rewards = rewardsQuery?.pages?.flatMap((p) => p.data) ?? [];
+  const [lastElement, setLastElement] = useState<HTMLDivElement | null>(null);
+  useInfinitePagination({ fetchNextPage, hasNextPage, lastElement });
+
+  // Table data
+  const tableData = rewards.map((r) => ({
+    ...r,
+    recruited: (
+      <div className="w-20 text-center">
+        <AvatarImage
+          href={r.recruitedUser?.avatar || ""}
+          alt={r.recruitedUser?.username || ""}
+          size={100}
+        />
+        <p>{r.recruitedUser?.username}</p>
+      </div>
+    ),
+  }));
+
+  // Table definitions
+  type Reward = ArrayElement<typeof tableData>;
+  const cols: ColumnDefinitionType<Reward, keyof Reward>[] = [
+    { key: "type", header: "Type", type: "string" },
+    { key: "amount", header: "Amount", type: "number" },
+    { key: "createdAt", header: "Date", type: "date" },
+    { key: "recruited", header: "Recruited", type: "jsx" },
+  ];
+  return (
+    <div>
+      {tableData.length === 0 && <p>No rewards yet.</p>}
+      {tableData.length > 0 && (
+        <Table data={tableData} columns={cols} setLastElement={setLastElement} />
+      )}
+    </div>
+  );
+};

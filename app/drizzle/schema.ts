@@ -1313,6 +1313,44 @@ export const rankedPvpQueueRelations = relations(rankedPvpQueue, ({ one }) => ({
   }),
 }));
 
+export const recruitmentRewards = mysqlTable(
+  "RecruitmentRewards",
+  {
+    id: varchar("id", { length: 191 }).primaryKey().notNull(),
+    userId: varchar("userId", { length: 191 }).notNull(),
+    type: mysqlEnum("type", consts.RECRUITMENT_REWARDS).notNull(),
+    recruitedUserId: varchar("recruitedUserId", { length: 191 }).notNull(),
+    amount: int("amount").notNull(),
+    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+    updatedAt: datetime("updatedAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      userIdIdx: index("RecruitmentRewards_userId_idx").on(table.userId),
+      recruitedUserIdIdx: index("RecruitmentRewards_recruitedUserId_idx").on(
+        table.recruitedUserId,
+      ),
+      typeIdx: index("RecruitmentRewards_type_idx").on(table.type),
+    };
+  },
+);
+export type RecruitmentRewards = InferSelectModel<typeof recruitmentRewards>;
+
+export const recruitmentRewardsRelations = relations(recruitmentRewards, ({ one }) => ({
+  user: one(userData, {
+    fields: [recruitmentRewards.userId],
+    references: [userData.userId],
+  }),
+  recruitedUser: one(userData, {
+    fields: [recruitmentRewards.recruitedUserId],
+    references: [userData.userId],
+  }),
+}));
+
 export const notification = mysqlTable(
   "Notification",
   {

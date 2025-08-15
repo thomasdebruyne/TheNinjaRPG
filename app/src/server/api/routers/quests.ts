@@ -23,6 +23,7 @@ import {
   clan,
   bloodline,
   bloodlineRolls,
+  recruitmentRewards,
 } from "@/drizzle/schema";
 import { getHuntingItemDrops } from "@/libs/hunting";
 import { getGatheringItemDrops } from "@/libs/gathering";
@@ -1301,6 +1302,9 @@ export const updateRewards = async (info: {
     updatedUserData[questCounterField] = sql`${userData[questCounterField]} + 1`;
   }
 
+  // Recruitment logic
+  const prestigeReward = Math.ceil(rewards.reward_prestige * 0.1);
+
   // Update database
   await Promise.all([
     // Update userdata
@@ -1308,6 +1312,24 @@ export const updateRewards = async (info: {
       .update(userData)
       .set(updatedUserData)
       .where(eq(userData.userId, user.userId)),
+    // If recruited by someone, check if we should reward prestige points
+    ...(user.recruiterId && prestigeReward > 0
+      ? [
+          client
+            .update(userData)
+            .set({
+              villagePrestige: sql`${userData.villagePrestige} + ${prestigeReward}`,
+            })
+            .where(eq(userData.userId, user.recruiterId)),
+          client.insert(recruitmentRewards).values({
+            id: nanoid(),
+            userId: user.recruiterId,
+            recruitedUserId: user.userId,
+            amount: prestigeReward,
+            type: "PRESTIGE",
+          }),
+        ]
+      : []),
     // If new rank, then delete sensei requests
     getNewRank ? deleteRequests(client, user.userId) : undefined,
     // If reputation points, store that

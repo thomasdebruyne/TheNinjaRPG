@@ -41,6 +41,8 @@ export type IMG_ORIENTATION = (typeof IMG_ORIENTATIONS)[number];
 // How many seconds to regen a given regen value
 export const REGEN_SECONDS = 30;
 
+//
+
 export const ContentTypes = [
   "asset",
   "ai",
@@ -557,6 +559,15 @@ export const REMOVAL_COST = 5;
 
 export const Sentiment = ["POSITIVE", "NEGATIVE", "NEUTRAL"] as const;
 export type SentimentType = (typeof Sentiment)[number];
+
+// Recruitment rewards config
+export const RECRUITMENT_REWARDS = [
+  "MONEY",
+  "REPUTATION",
+  "PRESTIGE",
+  "CLAN_POINTS",
+] as const;
+export type RecruitmentReward = (typeof RECRUITMENT_REWARDS)[number];
 
 // Bank config
 export const BankTransferTypes = ["bank", "sensei", "recruiter"] as const;

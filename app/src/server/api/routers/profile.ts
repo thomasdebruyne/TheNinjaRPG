@@ -12,7 +12,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { serverError, baseServerResponse, errorResponse } from "../trpc";
 import {
   actionLog,
-  bankTransfers,
+  recruitmentRewards,
   battleHistory,
   gameSetting,
   item,
@@ -312,17 +312,18 @@ export const profileRouter = createTRPCRouter({
       })
       .where(and(eq(userData.userId, ctx.userId), eq(userData.level, user.level)));
     if (result.rowsAffected > 0 && user.recruiterId) {
-      const amount = newLevel * 10;
+      const amount = 10 * newLevel * newLevel * newLevel;
       await Promise.all([
         ctx.drizzle
           .update(userData)
           .set({ bank: sql`${userData.bank} + ${amount}` })
           .where(eq(userData.userId, user.recruiterId)),
-        ctx.drizzle.insert(bankTransfers).values({
-          senderId: ctx.userId,
-          receiverId: user.recruiterId,
+        ctx.drizzle.insert(recruitmentRewards).values({
+          id: nanoid(),
+          userId: user.recruiterId,
+          recruitedUserId: ctx.userId,
           amount: amount,
-          type: "recruiter",
+          type: "MONEY",
         }),
       ]);
     }
@@ -1359,6 +1360,32 @@ export const profileRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       return fetchPublicUsers({ client: ctx.drizzle, input, userId: ctx.userId });
     }),
+
+  // Get recruitment rewards for current user
+  getRecruitmentRewards: protectedProcedure
+    .input(
+      z.object({
+        cursor: z.number().nullish(),
+        limit: z.number().min(1).max(500),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const currentCursor = input.cursor ?? 0;
+      const skip = currentCursor * input.limit;
+      const results = await ctx.drizzle.query.recruitmentRewards.findMany({
+        where: eq(recruitmentRewards.userId, ctx.userId),
+        with: {
+          recruitedUser: {
+            columns: { userId: true, username: true, avatar: true },
+          },
+        },
+        offset: skip,
+        limit: input.limit,
+        orderBy: desc(recruitmentRewards.createdAt),
+      });
+      const nextCursor = results.length < input.limit ? null : currentCursor + 1;
+      return { data: results, nextCursor };
+    }),
   // Toggle deletion of user
   toggleDeletionTimer: protectedProcedure
     .input(z.object({ userId: z.string() }))
@@ -2053,6 +2080,9 @@ export const fetchPublicUsers = async (info: {
           ),
           desc(userData.experience),
         ];
+      case "Recruiters":
+        // Most efficient: use denormalized counter maintained on userData
+        return [desc(userData.nRecruited), desc(userData.experience)];
     }
   };
   const [users, user] = await Promise.all([
@@ -2089,6 +2119,7 @@ export const fetchPublicUsers = async (info: {
         avatar3d: true,
         avatarLight: true,
         experience: true,
+        nRecruited: true,
         inArena: true,
         inShrines: true,
         isAi: true,

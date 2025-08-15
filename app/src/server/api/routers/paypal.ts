@@ -9,6 +9,7 @@ import { dollars2reps, calcFedUgradeCost } from "@/utils/paypal";
 import { plan2FedStatus, fedStatusRepsCost } from "@/utils/paypal";
 import { serverError } from "../trpc";
 import { fetchUser } from "./profile";
+import { recruitmentRewards } from "@/drizzle/schema";
 import { FederalStatuses } from "@/drizzle/constants";
 import { canSeeSecretData } from "@/utils/permissions";
 import { searchPaypalTransactionSchema } from "@/validators/points";
@@ -496,6 +497,15 @@ export const updateReps = async (input: {
     type: input.type,
     rawData: input.raw,
   });
+  if (input.type === "REFERRAL") {
+    await input.client.insert(recruitmentRewards).values({
+      id: nanoid(),
+      userId: input.affectedUserId,
+      recruitedUserId: input.createdById,
+      amount: input.reps,
+      type: "REPUTATION",
+    });
+  }
   // If we succeed, that means the transaction was not already in the database.
   // We can then update the user
   return await input.client

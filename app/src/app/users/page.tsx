@@ -37,6 +37,7 @@ export default function Users() {
     "Crafting",
     "Medical",
     "Staff",
+    "Recruiters",
     ...(userData?.role !== "USER" ? ["Dailies"] : []),
   ];
   type TabName =
@@ -50,6 +51,7 @@ export default function Users() {
     | "Crafting"
     | "Medical"
     | "Staff"
+    | "Recruiters"
     | "Dailies";
   const [activeTab, setActiveTab] = useState<TabName>("Online");
   const [lastElement, setLastElement] = useState<HTMLDivElement | null>(null);
@@ -124,6 +126,8 @@ export default function Users() {
   } else if (activeTab === "Staff") {
     columns.push({ key: "tavernMessages", header: "Yapper Rank", type: "string" });
     columns.push({ key: "role", header: "Role", type: "capitalized" });
+  } else if (activeTab === "Recruiters") {
+    columns.push({ key: "nRecruited", header: "Recruits", type: "string" });
   } else if (activeTab === "Dailies") {
     const currentHour = new Date().getUTCHours();
     const currentMinutes = new Date().getUTCMinutes();

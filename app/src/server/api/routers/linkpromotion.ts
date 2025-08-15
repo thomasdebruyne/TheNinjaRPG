@@ -56,6 +56,9 @@ export const linkPromotionRouter = createTRPCRouter({
       });
       // Guard
       if (result) return errorResponse("URL already submitted");
+      if (input.url.includes("https://www.theninja-rpg.com")) {
+        return errorResponse("Cannot submit link to TNR");
+      }
       // Mutate
       await ctx.drizzle.insert(linkPromotion).values({
         id: nanoid(),
