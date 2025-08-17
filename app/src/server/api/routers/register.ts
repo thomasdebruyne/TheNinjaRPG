@@ -6,6 +6,7 @@ import { registrationSchema } from "@/validators/register";
 import { historicalIp } from "@/drizzle/schema";
 import { secondsFromNow } from "@/utils/time";
 import { checkForBadWords } from "@/utils/profanity";
+import { referralSource } from "@/drizzle/schema";
 import {
   bloodline,
   bloodlineRolls,
@@ -115,6 +116,15 @@ export const registerRouter = createTRPCRouter({
                 .update(userData)
                 .set({ nRecruited: sql`${userData.nRecruited} + 1` })
                 .where(eq(userData.userId, input.recruiter_userid)),
+            ]
+          : []),
+        ...(input.utm_source
+          ? [
+              ctx.drizzle.insert(referralSource).values({
+                id: nanoid(),
+                userId: ctx.userId,
+                source: input.utm_source,
+              }),
             ]
           : []),
       ]);

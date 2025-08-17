@@ -358,8 +358,12 @@ export default Welcome;
 function SetReferal() {
   const searchParams = useSearchParams();
   useEffect(() => {
+    // Set reference user
     const ref = searchParams?.get("ref");
     if (ref) localStorage.setItem("ref", ref);
+    // Source
+    const utm_source = searchParams?.get("utm_source");
+    if (utm_source) localStorage.setItem("utm_source", utm_source);
   }, [searchParams]);
   return null;
 }

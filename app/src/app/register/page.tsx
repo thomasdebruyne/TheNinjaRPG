@@ -178,9 +178,15 @@ const Register: React.FC = () => {
 
   // If we have local storage referrer, set it as default value
   useEffect(() => {
+    // Recruiter user
     const referrer = localStorage.getItem("ref");
     if (referrer) {
       form.setValue("recruiter_userid", referrer);
+    }
+    // Source
+    const source = localStorage.getItem("utm_source");
+    if (source) {
+      form.setValue("utm_source", source);
     }
   }, [form]);
 

@@ -3720,3 +3720,12 @@ export const cannedResponseRelations = relations(cannedResponse, ({ one }) => ({
     references: [userData.userId],
   }),
 }));
+
+/**
+ * Internal analytics data
+ */
+export const referralSource = mysqlTable("ReferralSource", {
+  id: varchar("id", { length: 191 }).primaryKey().notNull(),
+  userId: varchar("userId", { length: 191 }).notNull(),
+  source: varchar("source", { length: 191 }).notNull(),
+});

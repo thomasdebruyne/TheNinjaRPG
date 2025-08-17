@@ -54,6 +54,17 @@ export const registrationSchema = z
     read_privacy: z.literal(true),
     read_earlyaccess: z.literal(true),
     recruiter_userid: z.string().optional().nullish(),
+    utm_source: z
+      .string()
+      .trim()
+      .max(64, "UTM source too long")
+      .regex(/^[a-zA-Z0-9_\-\.]+$/, {
+        message:
+          "UTM source can only contain letters, numbers, dashes, underscores, and dots",
+      })
+      .optional()
+      .nullish()
+      .catch(() => ""),
     bloodlineId: z.string().min(1, "Bloodline selection is required"),
   })
   .strict()
