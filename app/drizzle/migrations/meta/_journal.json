@@ -1954,6 +1954,13 @@
       "when": 1755408878540,
       "tag": "0278_giant_blink",
       "breakpoints": false
+    },
+    {
+      "idx": 279,
+      "version": "5",
+      "when": 1755504696957,
+      "tag": "0279_nasty_lady_mastermind",
+      "breakpoints": false
     }
   ]
 }
