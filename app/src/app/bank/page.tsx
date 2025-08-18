@@ -57,7 +57,7 @@ export default function Bank() {
 
   // Current interest
   const boost = getStrucBoost("bankInterestPerLvl", userData?.village?.structures);
-  const interest = calcBankInterest(boost);
+  const interest = calcBankInterest(boost, userData);
 
   // Pending interest query
   const { data: pendingInterest, refetch: refetchPendingInterest } =

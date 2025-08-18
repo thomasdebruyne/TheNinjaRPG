@@ -3,7 +3,14 @@ import { calcIsInVillage } from "@/libs/travel/controls";
 import type { UserWithRelations } from "@/routers/profile";
 import type { Village, VillageStructure, VillageAlliance } from "@/drizzle/schema";
 import type { StructureRoute, SHRINE_BOOST_TYPE } from "@/drizzle/constants";
-import { SHRINE_BOOST_PERC } from "@/drizzle/constants";
+import { getUserFederalStatus } from "@/utils/paypal";
+import {
+  FED_NORMAL_BANK_INTEREST,
+  FED_SILVER_BANK_INTEREST,
+  FED_GOLD_BANK_INTEREST,
+  SHRINE_BOOST_PERC,
+} from "@/drizzle/constants";
+import type { UserData } from "@/drizzle/schema";
 
 /**
  * Checks if a user can access a specific structure in a village.
@@ -108,8 +115,19 @@ export const getShrineBoost = (
  * @param boost - The boost value to calculate the interest rate.
  * @returns The calculated bank interest rate.
  */
-export const calcBankInterest = (boost: number) => {
-  return boost > 1 ? 1 + (boost - 1) * 0.1 : 1;
+export const calcBankInterest = (boost: number, user?: UserData) => {
+  const baseFactor = boost > 1 ? 1 + (boost - 1) * 0.1 : 1;
+  if (!user) return baseFactor;
+  const status = getUserFederalStatus(user);
+  switch (status) {
+    case "NORMAL":
+      return baseFactor + FED_NORMAL_BANK_INTEREST / 100;
+    case "SILVER":
+      return baseFactor + FED_SILVER_BANK_INTEREST / 100;
+    case "GOLD":
+      return baseFactor + FED_GOLD_BANK_INTEREST / 100;
+  }
+  return baseFactor;
 };
 
 /**
