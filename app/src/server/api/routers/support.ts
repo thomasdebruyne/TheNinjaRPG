@@ -583,6 +583,7 @@ export const supportRouter = createTRPCRouter({
               ticketCategoryToGithubLabel(ticket.category),
               ticketPriorityToGithubLabel(ticket.priority),
             ],
+            type: ticketCategoryToGithubType(ticket.category),
           }),
         });
 
@@ -627,6 +628,22 @@ export const supportRouter = createTRPCRouter({
       }
     }),
 });
+
+/**
+ * Convert a support ticket category to a GitHub type
+ * @param category - The support ticket category
+ * @returns The GitHub type
+ */
+export const ticketCategoryToGithubType = (category: SupportTicketCategory) => {
+  switch (category) {
+    case "BUG_REPORT":
+      return "Bug";
+    case "FEATURE_REQUEST":
+      return "Feature";
+    default:
+      return "Task";
+  }
+};
 
 /**
  * Convert a support ticket category to a GitHub label
