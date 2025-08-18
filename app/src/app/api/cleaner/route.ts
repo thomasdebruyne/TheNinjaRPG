@@ -82,9 +82,13 @@ export async function GET() {
     );
 
     // Step 8a: Delete conversation comments older than 14 days
-    await drizzleDB
-      .delete(conversationComment)
-      .where(lte(conversationComment.createdAt, new Date(Date.now() - oneDay * 14)));
+    await drizzleDB.execute(
+      sql`
+        DELETE a FROM ${conversationComment} a
+        INNER JOIN ${conversation} b ON a.conversationId = b.id
+        WHERE a.createdAt < CURRENT_TIMESTAMP(3) - INTERVAL 14 DAY AND b.isStaffAvailable = false
+      `,
+    );
 
     // Step 8b: Delete global tavern conversation comments older than 2 hours
     await drizzleDB.execute(
@@ -99,7 +103,7 @@ export async function GET() {
       sql`
         DELETE a FROM ${conversationComment} a 
         INNER JOIN ${conversation} b ON a.conversationId = b.id
-        WHERE b.isPublic AND b.title != 'Global' AND a.createdAt < CURRENT_TIMESTAMP(3) - INTERVAL 2 DAY`,
+        WHERE b.isPublic AND b.title != 'Global' AND a.createdAt < CURRENT_TIMESTAMP(3) - INTERVAL 2 DAY AND b.isStaffAvailable = false`,
     );
 
     // Step 9: Delete user2conversation where the conversation does not exist anymore

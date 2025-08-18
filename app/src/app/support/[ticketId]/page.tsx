@@ -234,7 +234,7 @@ export default function TicketDetail(props: { params: Promise<{ ticketId: string
                   </Badge>
                 </PopoverTrigger>
                 {canUpdateTicket && (
-                  <PopoverContent className="w-48 p-2 space-y-1">
+                  <PopoverContent className="w-56 p-2 space-y-1">
                     {availableStatusTransitions.map((status) => (
                       <button
                         key={status}
@@ -249,7 +249,7 @@ export default function TicketDetail(props: { params: Promise<{ ticketId: string
                           status === ticket.status ? "font-semibold" : ""
                         }`}
                       >
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2 whitespace-nowrap">
                           {getStatusIcon(status)} {status.replace("_", " ")}
                         </span>
                         {status === ticket.status && (
