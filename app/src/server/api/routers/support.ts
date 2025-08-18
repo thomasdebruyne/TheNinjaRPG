@@ -35,6 +35,8 @@ import { GITHUB_API_ENDPOINT } from "@/drizzle/constants";
 import { createConvo } from "@/server/api/routers/comments";
 import { reduceByKey } from "@/utils/grouping";
 import { fetchUser } from "@/server/api/routers/profile";
+import type { SupportTicketCategory } from "@/drizzle/constants";
+import type { SupportTicketPriority } from "@/drizzle/constants";
 import type { UserData } from "@/drizzle/schema";
 import type { DrizzleClient } from "@/server/db";
 
@@ -578,8 +580,8 @@ export const supportRouter = createTRPCRouter({
             body: issueBody,
             labels: [
               "support",
-              ticket.category.toLowerCase(),
-              ticket.priority.toLowerCase(),
+              ticketCategoryToGithubLabel(ticket.category),
+              ticketPriorityToGithubLabel(ticket.priority),
             ],
           }),
         });
@@ -625,6 +627,52 @@ export const supportRouter = createTRPCRouter({
       }
     }),
 });
+
+/**
+ * Convert a support ticket category to a GitHub label
+ * @param category - The support ticket category
+ * @returns The GitHub label
+ */
+export const ticketCategoryToGithubLabel = (category: SupportTicketCategory) => {
+  switch (category) {
+    case "BUG_REPORT":
+      return "bug";
+    case "FEATURE_REQUEST":
+      return "new feature";
+    case "ACCOUNT_ISSUE":
+      return "account issue";
+    case "GAMEPLAY_QUESTION":
+      return "question";
+    case "PAYMENT_ISSUE":
+      return "payment";
+    case "TECHNICAL_SUPPORT":
+      return "technical support";
+    case "MODERATION_SUPPORT":
+      return "moderation support";
+    case "OTHER":
+      return "other";
+    default:
+      return "other";
+  }
+};
+
+/**
+ * Convert a support ticket priority to a GitHub label
+ * @param priority - The support ticket priority
+ * @returns The GitHub label
+ */
+export const ticketPriorityToGithubLabel = (priority: SupportTicketPriority) => {
+  switch (priority) {
+    case "LOW":
+      return "low";
+    case "MEDIUM":
+      return "medium";
+    case "HIGH":
+      return "high";
+    case "URGENT":
+      return "urgent";
+  }
+};
 
 /**
  * Fetch a canned response
