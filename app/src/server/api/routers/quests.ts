@@ -1481,7 +1481,9 @@ export const fetchUncompletedQuests = async (
       ),
     )
     .orderBy((table) => [asc(table.Quest.requiredLevel), asc(table.Quest.tierLevel)]);
-  return history.map((quest) => quest.Quest);
+  return history
+    .map((quest) => quest.Quest)
+    .filter((q) => !q.hidden || canPlayHiddenQuests(user.role));
 };
 
 /** Upsert quest entries for all users by selector. NOTE: selector determined which users get updated/inserted entries */
@@ -1612,10 +1614,8 @@ export const insertNextQuest = async (
   const history = await fetchUncompletedQuests(client, user, type);
   const nextQuest = history?.[0];
   if (nextQuest) {
-    if (!nextQuest.hidden || canPlayHiddenQuests(user.role)) {
-      const logEntry = await upsertQuestEntry(client, user, nextQuest);
-      return { ...logEntry, quest: nextQuest };
-    }
+    const logEntry = await upsertQuestEntry(client, user, nextQuest);
+    return { ...logEntry, quest: nextQuest };
   }
   return undefined;
 };
