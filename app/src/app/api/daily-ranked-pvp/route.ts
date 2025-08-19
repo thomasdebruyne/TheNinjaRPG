@@ -6,7 +6,7 @@ import { lockWithDailyTimer, handleEndpointError } from "@/libs/gamesettings";
 import { cookies } from "next/headers";
 import { endRankedSeason } from "@/server/api/routers/pvprank";
 
-const ENDPOINT_NAME = "daily-pvp";
+const ENDPOINT_NAME = "daily-ranked-pvp";
 
 export async function GET() {
   // disable cache for this server action (https://github.com/vercel/next.js/discussions/50045)
