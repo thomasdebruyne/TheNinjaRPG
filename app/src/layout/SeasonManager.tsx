@@ -290,10 +290,10 @@ export function SeasonManager() {
                   return (
                     <div
                       key={index}
-                      className="flex items-center justify-between rounded-md border bg-muted/50 px-3 py-2"
+                      className="grid grid-cols-4 items-center justify-between rounded-md border bg-muted/50 px-3 py-2"
                     >
-                      <span className="font-medium basis-1/4">{division.division}</span>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="font-medium">{division.division}</span>
+                      <span className="text-sm text-muted-foreground col-span-3">
                         {rewardSummary}
                       </span>
                     </div>
