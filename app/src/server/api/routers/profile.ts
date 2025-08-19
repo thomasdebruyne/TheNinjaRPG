@@ -1908,6 +1908,24 @@ export const fetchUpdatedUser = async (props: {
     }
   }
 
+  // Ensure that we have a tier quest
+  let questTier = user?.userQuests?.find((q) => q.quest.questType === "tier");
+  if (!questTier && user) {
+    questTier = await insertNextQuest(client, user, "tier");
+    if (questTier) {
+      forceRegen = true;
+    }
+  }
+
+  // Ensure that we have an exam quest
+  let questExam = user?.userQuests?.find((q) => q.quest.questType === "exam");
+  if (!questExam && user) {
+    questExam = await insertNextQuest(client, user, "exam");
+    if (questExam) {
+      forceRegen = true;
+    }
+  }
+
   // Rewards, e.g. for activity streak
   const toastMessages: string[] = [];
 
@@ -1949,22 +1967,6 @@ export const fetchUpdatedUser = async (props: {
       user.updatedAt = now;
       user.regenAt = now;
 
-      // Ensure that we have a tier quest
-      let questTier = user.userQuests?.find((q) => q.quest.questType === "tier");
-      if (!questTier) {
-        questTier = await insertNextQuest(client, user, "tier");
-        if (questTier) {
-          user.userQuests.push(questTier);
-        }
-      }
-      // Ensure that we have an exam quest
-      let questExam = user.userQuests?.find((q) => q.quest.questType === "exam");
-      if (!questExam) {
-        questExam = await insertNextQuest(client, user, "exam");
-        if (questExam) {
-          user.userQuests.push(questExam);
-        }
-      }
       // Ensure that the user has elements
       const rankId = UserRanks.findIndex((r) => r === user.rank);
       if (rankId >= 1 && !user.primaryElement) {

@@ -41,7 +41,7 @@ const Logbook: React.FC = () => {
     <ContentBox
       id="tutorial-logbook"
       title="LogBook"
-      subtitle="Character Activites"
+      subtitle="Character Activities"
       initialBreak={true}
       padding={false}
       topRightContent={
@@ -157,6 +157,9 @@ const LogbookActive: React.FC = () => {
           )
         );
       })}
+      {quests?.length === 0 && (
+        <div className="text-muted-foreground p-3">No active quests</div>
+      )}
     </div>
   );
 };
