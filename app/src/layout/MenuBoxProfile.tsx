@@ -648,6 +648,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
   const damageGivenEffects = collapsedEffects.filter((e) => e.type === "damagegiven");
   const damageTakenEffects = collapsedEffects.filter((e) => e.type === "damagetaken");
   const statEffects = collapsedEffects.filter((e) => e.type === "stat");
+  const damageEffects = collapsedEffects.filter((e) => e.type === "damage");
 
   const statusLabel: Record<string, string> = {
     reflect: "Reflect",
@@ -784,6 +785,15 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
         <div>
           <div className="font-semibold mb-1">Stats</div>
           <div className="grid grid-cols-2 gap-1">{statEffects.map(renderCompact)}</div>
+        </div>
+      )}
+
+      {damageEffects.length > 0 && (
+        <div>
+          <div className="font-semibold mb-1">Residual Damage</div>
+          <div className="grid grid-cols-2 gap-1">
+            {damageEffects.map(renderCompact)}
+          </div>
         </div>
       )}
     </div>
