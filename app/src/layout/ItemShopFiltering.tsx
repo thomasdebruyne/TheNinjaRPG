@@ -86,6 +86,7 @@ export const useShopFiltering = (defaultType: ItemType) => {
   }
   return {
     ...cf.values,
+    onlyInShop: true,
     cf,
     setEffect: cf.setters.effect,
     setName: cf.setters.name,
