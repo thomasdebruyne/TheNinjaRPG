@@ -1,184 +1,78 @@
-import React, { useState } from "react";
-
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { MultiSelect } from "@/components/ui/multi-select";
-import { Filter } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
-import { BattleTypes, UserRanks, STARTER_VILLAGES } from "@/drizzle/constants";
-import type { BattleType, UserRank, StarterVillage } from "@/drizzle/constants";
-
-/**
- * STATE HOOK
- */
-export const useFiltering = () => {
-  const [battleTypes, setBattleTypes] = useState<BattleType[]>([]);
-  const [minCount, setMinCount] = useState<number>(1);
-  const [userRanks, setUserRanks] = useState<UserRank[]>([]);
-  const [villages, setVillages] = useState<StarterVillage[]>([]);
-  const [minLevel, setMinLevel] = useState<number>(1);
-  const [maxLevel, setMaxLevel] = useState<number>(100);
-
-  return {
-    battleTypes,
-    minCount,
-    userRanks,
-    villages,
-    minLevel,
-    maxLevel,
-    setBattleTypes,
-    setMinCount,
-    setUserRanks,
-    setVillages,
-    setMinLevel,
-    setMaxLevel,
-  };
-};
-
-export type AiBalanceFilteringState = ReturnType<typeof useFiltering>;
+import {
+  ContentFiltering,
+  useContentFiltering,
+  buildFilter,
+  defineFilteringSchema,
+  toOptions,
+} from "@/layout/ContentFiltering";
+import { BattleTypes, STARTER_VILLAGES, UserRanks } from "@/drizzle/constants";
 
 interface AiBalanceFilteringProps {
   state: AiBalanceFilteringState;
 }
 
-/**
- * MAIN COMPONENT
- */
+const makeSchema = () =>
+  defineFilteringSchema({
+    fields: [
+      {
+        id: "battleTypes",
+        label: "Battle Types",
+        type: "multi-select",
+        defaultValue: [],
+        options: toOptions(BattleTypes),
+      },
+      {
+        id: "minCount",
+        label: "Minimum Count",
+        type: "number",
+        defaultValue: undefined,
+      },
+      {
+        id: "userRanks",
+        label: "User Ranks",
+        type: "multi-select",
+        defaultValue: [],
+        options: toOptions(UserRanks),
+      },
+      {
+        id: "villages",
+        label: "Villages",
+        type: "multi-select",
+        defaultValue: [],
+        dataSource: "villages",
+      },
+      { id: "minLevel", label: "Min Level", type: "number", defaultValue: undefined },
+      { id: "maxLevel", label: "Max Level", type: "number", defaultValue: undefined },
+    ] as const,
+  });
+
 const AiBalanceFiltering: React.FC<AiBalanceFilteringProps> = (props) => {
-  const {
-    battleTypes,
-    minCount,
-    userRanks,
-    villages,
-    minLevel,
-    maxLevel,
-    setBattleTypes,
-    setMinCount,
-    setUserRanks,
-    setVillages,
-    setMinLevel,
-    setMaxLevel,
-  } = props.state;
-
-  // Count filters
-  const numBattleTypes = battleTypes.length;
-  const numUserRanks = userRanks.length;
-  const numVillages = villages.length;
-  const numMinCount = minCount > 1 ? 1 : 0;
-  const numMinLevel = minLevel > 1 ? 1 : 0;
-  const numMaxLevel = maxLevel < 100 ? 1 : 0;
-  const numFilters =
-    numBattleTypes +
-    numUserRanks +
-    numVillages +
-    numMinCount +
-    numMinLevel +
-    numMaxLevel;
-
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button count={numFilters}>
-          <Filter className="sm:mr-2 h-6 w-6 hover:text-orange-500" />
-          <p className="hidden sm:block">Filter</p>
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent className="min-w-96">
-        <div className="grid grid-cols-1 gap-4">
-          {/* Battle Types */}
-          <div>
-            <Label>Battle Types</Label>
-            <MultiSelect
-              selected={battleTypes}
-              options={BattleTypes.map((type) => ({ value: type, label: type }))}
-              onChange={(e) => setBattleTypes(e as BattleType[])}
-            />
-          </div>
-
-          {/* Minimum Count */}
-          <div>
-            <Label>Minimum Count</Label>
-            <Input
-              type="number"
-              placeholder="Minimum count"
-              min={1}
-              value={minCount}
-              onChange={(e) => setMinCount(Number(e.target.value) || 1)}
-            />
-          </div>
-
-          {/* User Ranks */}
-          <div>
-            <Label>User Ranks</Label>
-            <MultiSelect
-              selected={userRanks}
-              options={UserRanks.map((rank) => ({
-                value: rank,
-                label: rank,
-              }))}
-              onChange={(e) => setUserRanks(e as UserRank[])}
-            />
-          </div>
-
-          {/* Villages */}
-          <div>
-            <Label>Villages</Label>
-            <MultiSelect
-              selected={villages}
-              options={STARTER_VILLAGES.map((village) => ({
-                value: village,
-                label: village,
-              }))}
-              onChange={(e) => setVillages(e as StarterVillage[])}
-            />
-          </div>
-
-          {/* Level Range */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Min Level</Label>
-              <Input
-                type="number"
-                placeholder="Min level"
-                min={1}
-                max={100}
-                value={minLevel}
-                onChange={(e) => setMinLevel(Number(e.target.value) || 1)}
-              />
-            </div>
-            <div>
-              <Label>Max Level</Label>
-              <Input
-                type="number"
-                placeholder="Max level"
-                min={1}
-                max={100}
-                value={maxLevel}
-                onChange={(e) => setMaxLevel(Number(e.target.value) || 100)}
-              />
-            </div>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <ContentFiltering
+      schema={makeSchema()}
+      state={props.state.cf}
+      triggerButtonId="filter-ai-balance"
+    />
   );
 };
 
 export default AiBalanceFiltering;
 
-/**
- * Combine filters into final object
- */
-export const getFilter = (state: AiBalanceFilteringState) => {
+export const getFilter = (state: AiBalanceFilteringState) =>
+  buildFilter(state.cf, makeSchema());
+
+export const useFiltering = () => {
+  const cf = useContentFiltering(makeSchema());
   return {
-    battleTypes: state.battleTypes.length > 0 ? state.battleTypes : undefined,
-    minCount: state.minCount,
-    userRanks: state.userRanks.length > 0 ? state.userRanks : undefined,
-    villages: state.villages.length > 0 ? state.villages : undefined,
-    minLevel: state.minLevel,
-    maxLevel: state.maxLevel,
+    ...cf.values,
+    cf,
+    setBattleTypes: cf.setters.battleTypes,
+    setMinCount: cf.setters.minCount,
+    setUserRanks: cf.setters.userRanks,
+    setVillages: cf.setters.villages,
+    setMinLevel: cf.setters.minLevel,
+    setMaxLevel: cf.setters.maxLevel,
   };
 };
+
+export type AiBalanceFilteringState = ReturnType<typeof useFiltering>;

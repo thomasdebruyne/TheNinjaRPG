@@ -33,7 +33,6 @@ import { CheckCircle2, ExternalLink, Loader2, Trophy } from "lucide-react";
 import Confirm2 from "@/layout/Confirm2";
 import { canReviewLinkPromotions } from "@/utils/permissions";
 import type { ArrayElement } from "@/utils/typeutils";
-import type { RecruitmentReward } from "@/drizzle/constants";
 
 export default function Recruit() {
   // State
@@ -462,14 +461,6 @@ const RecruitGuideTab: React.FC = () => {
       </div>
     </div>
   );
-};
-
-type RewardRow = {
-  id: string;
-  type: RecruitmentReward;
-  amount: number;
-  createdAt: Date;
-  recruitedUser?: { username?: string | null; avatar?: string | null } | null;
 };
 
 const RecruitRewardsTab: React.FC = () => {

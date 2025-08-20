@@ -1,0 +1,27 @@
+import { useCallback, useEffect, useState } from "react";
+
+/**
+ * useDebouncedState
+ * - Returns a stateful value, a setter, and a debounced version of the value.
+ * - The debounced value updates only after the specified delay without changes.
+ */
+export function useDelayState<T>(
+  initialValue: T,
+  delayMs = 500,
+): [T, T, React.Dispatch<React.SetStateAction<T>>] {
+  const [immediateValue, setImmediateValue] = useState<T>(initialValue);
+  const [debouncedValue, setDebouncedValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(immediateValue), delayMs);
+    return () => clearTimeout(timer);
+  }, [immediateValue, delayMs]);
+
+  const setValue = useCallback((update: React.SetStateAction<T>) => {
+    setImmediateValue((prev) =>
+      typeof update === "function" ? (update as (p: T) => T)(prev) : update,
+    );
+  }, []);
+
+  return [immediateValue, debouncedValue, setValue];
+}

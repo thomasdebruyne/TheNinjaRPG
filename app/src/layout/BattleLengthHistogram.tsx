@@ -59,9 +59,9 @@ export const BattleLengthHistogram: React.FC<BattleLengthHistogramProps> = ({
         if (!battleTypeGroups.has(item.battleType)) {
           battleTypeGroups.set(item.battleType, []);
         }
-        battleTypeGroups.get(item.battleType)!.push({
+        battleTypeGroups.get(item.battleType)?.push({
           rounds: item.rounds,
-          count: item.count,
+          count: item.normalized,
         });
       });
 

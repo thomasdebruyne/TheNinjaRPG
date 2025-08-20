@@ -345,6 +345,17 @@
   }
 }
 
+/* Ensure native date picker icon is visible (black) on white inputs */
+@layer base {
+  input[type="date"] {
+    color-scheme: light; /* hint browsers to use light UI (black icons) */
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0); /* ensure black icon in WebKit */
+    opacity: 1;
+  }
+}
+
 ::-webkit-scrollbar {
   @apply w-5 h-2.5;
 }

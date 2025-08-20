@@ -21,7 +21,7 @@ export type ZodGameAssetType = z.infer<typeof gameAssetValidator>;
 
 export const gameAssetSchema = z.object({
   name: z.string().optional(),
-  type: z.enum(GameAssetTypes),
+  type: z.enum(GameAssetTypes).optional(),
   tags: z.array(z.string()).optional(),
   folder: z.string().optional(),
 });

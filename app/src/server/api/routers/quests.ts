@@ -126,7 +126,6 @@ export const questsRouter = createTRPCRouter({
         offset: skip,
         limit: input.limit,
       });
-      console.log("===========", results);
       results.forEach((r) => controlShownQuestLocationInformation(r));
       const nextCursor = results.length < input.limit ? null : currentCursor + 1;
       return {

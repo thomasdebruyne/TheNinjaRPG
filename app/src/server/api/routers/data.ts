@@ -678,9 +678,7 @@ export const dataRouter = createTRPCRouter({
 
       // Build village filter if needed
       if (input.villages && input.villages.length > 0) {
-        whereConditions.push(
-          inArray(userData.villageId, input.villages as StarterVillage[]),
-        );
+        whereConditions.push(inArray(userData.villageId, input.villages));
       }
 
       // Build level range filter
@@ -751,7 +749,7 @@ export const dataRouter = createTRPCRouter({
       const havingClause = gte(sql`SUM(${logBattleLengths.count})`, input.minCount);
 
       // Fetch battle length data
-      const battleLengths = await ctx.drizzle
+      const battleLengthsRaw = await ctx.drizzle
         .select({
           battleType: logBattleLengths.battleType,
           rounds: logBattleLengths.rounds,
@@ -762,6 +760,23 @@ export const dataRouter = createTRPCRouter({
         .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
         .having(havingClause)
         .orderBy(asc(logBattleLengths.rounds));
+
+      // Normalize counts per battleType
+      const totalCountsByType = battleLengthsRaw.reduce<Record<string, number>>(
+        (acc, entry) => {
+          acc[entry.battleType] = (acc[entry.battleType] ?? 0) + (entry.count ?? 0);
+          return acc;
+        },
+        {},
+      );
+
+      const battleLengths = battleLengthsRaw.map((entry) => ({
+        ...entry,
+        normalized:
+          (totalCountsByType[entry.battleType] ?? 0) > 0
+            ? (entry.count ?? 0) / (totalCountsByType?.[entry.battleType] ?? 0)
+            : 0,
+      }));
 
       return battleLengths;
     }),
