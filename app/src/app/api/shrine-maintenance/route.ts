@@ -3,6 +3,7 @@ import { sector } from "@/drizzle/schema";
 import { eq, lte } from "drizzle-orm";
 import { lockWithDailyTimer, handleEndpointError } from "@/libs/gamesettings";
 import { updateGameSetting } from "@/libs/gamesettings";
+import { fetchVillages } from "@/server/api/routers/village";
 import { cookies } from "next/headers";
 
 const ENDPOINT_NAME = "shrine-maintenance";
@@ -19,16 +20,19 @@ export async function GET() {
     const now = new Date();
 
     // Find all sectors with overdue maintenance
-    const overdueSectors = await drizzleDB.query.sector.findMany({
-      where: lte(sector.nextMaintainanceDueDate, now),
-      with: {
-        village: {
-          columns: {
-            name: true,
+    const [overdueSectors, villages] = await Promise.all([
+      drizzleDB.query.sector.findMany({
+        where: lte(sector.nextMaintainanceDueDate, now),
+        with: {
+          village: {
+            columns: {
+              name: true,
+            },
           },
         },
-      },
-    });
+      }),
+      fetchVillages(drizzleDB),
+    ]);
 
     const sectorsChecked = overdueSectors.length;
     let shrinesDowngraded = 0;
@@ -36,20 +40,24 @@ export async function GET() {
 
     if (overdueSectors.length > 0) {
       // Process each overdue sector
-      const downgradePromises = overdueSectors.map((sectorData) => {
-        const newLevel = sectorData.shrineLevel - 1;
-
-        if (newLevel < 1) {
-          shrinesDestroyed++;
-          return drizzleDB.delete(sector).where(eq(sector.id, sectorData.id));
-        } else {
-          shrinesDowngraded++;
-          return drizzleDB
-            .update(sector)
-            .set({ shrineLevel: newLevel })
-            .where(eq(sector.id, sectorData.id));
-        }
-      });
+      const downgradePromises = overdueSectors
+        .filter((sectorData) => {
+          const hasVillage = villages?.find((v) => v.sector === sectorData.sector);
+          return !hasVillage;
+        })
+        .map((sectorData) => {
+          const newLevel = sectorData.shrineLevel - 1;
+          if (newLevel < 1) {
+            shrinesDestroyed++;
+            return drizzleDB.delete(sector).where(eq(sector.id, sectorData.id));
+          } else {
+            shrinesDowngraded++;
+            return drizzleDB
+              .update(sector)
+              .set({ shrineLevel: newLevel })
+              .where(eq(sector.id, sectorData.id));
+          }
+        });
 
       // Execute all downgrades in parallel
       await Promise.all(downgradePromises);
