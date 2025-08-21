@@ -29,6 +29,7 @@ import {
   poll,
   pollOption,
   questHistory,
+  rankedUserRewards,
   reportLog,
   ryoTrade,
   sector,
@@ -410,22 +411,29 @@ export const staffRouter = createTRPCRouter({
       if (canCloneUser(target.role)) {
         return { success: false, message: "Cannot copy people able to clone" };
       }
-      const [targetJutsus, targetItems, targetQuestHistory] = await Promise.all([
-        ctx.drizzle.query.userJutsu.findMany({
-          where: eq(userJutsu.userId, input.userId),
-        }),
-        ctx.drizzle.query.userItem.findMany({
-          where: eq(userItem.userId, input.userId),
-        }),
-        ctx.drizzle.query.questHistory.findMany({
-          where: eq(questHistory.userId, input.userId),
-        }),
-      ]);
+      const [targetJutsus, targetItems, targetQuestHistory, targetRankedUserRewards] =
+        await Promise.all([
+          ctx.drizzle.query.userJutsu.findMany({
+            where: eq(userJutsu.userId, input.userId),
+          }),
+          ctx.drizzle.query.userItem.findMany({
+            where: eq(userItem.userId, input.userId),
+          }),
+          ctx.drizzle.query.questHistory.findMany({
+            where: eq(questHistory.userId, input.userId),
+          }),
+          ctx.drizzle.query.rankedUserRewards.findMany({
+            where: eq(rankedUserRewards.userId, input.userId),
+          }),
+        ]);
       await Promise.all([
         ctx.drizzle.delete(userJutsu).where(eq(userJutsu.userId, user.userId)),
         ctx.drizzle.delete(userItem).where(eq(userItem.userId, user.userId)),
         ctx.drizzle.delete(questHistory).where(eq(questHistory.userId, user.userId)),
         ctx.drizzle.delete(userAttribute).where(eq(userAttribute.userId, user.userId)),
+        ctx.drizzle
+          .delete(rankedUserRewards)
+          .where(eq(rankedUserRewards.userId, user.userId)),
         ctx.drizzle
           .update(userData)
           .set({
@@ -465,42 +473,64 @@ export const staffRouter = createTRPCRouter({
           })
           .where(eq(userData.userId, ctx.userId)),
       ]);
-      if (targetJutsus.length > 0) {
-        await ctx.drizzle.insert(userJutsu).values(
-          targetJutsus.map((userjutsu) => ({
-            ...userjutsu,
-            userId: ctx.userId,
-            id: nanoid(),
-          })),
-        );
-      }
-      if (targetItems.length > 0) {
-        await ctx.drizzle.insert(userItem).values(
-          targetItems.map((useritem) => ({
-            ...useritem,
-            userId: ctx.userId,
-            id: nanoid(),
-          })),
-        );
-      }
-      if (targetQuestHistory.length > 0) {
-        await ctx.drizzle.insert(questHistory).values(
-          targetQuestHistory.map((questhistory) => ({
-            ...questhistory,
-            userId: ctx.userId,
-            id: nanoid(),
-          })),
-        );
-      }
-      if (targetAttributes) {
-        await ctx.drizzle.insert(userAttribute).values(
-          targetAttributes.map((attribute) => ({
-            ...attribute,
-            userId: ctx.userId,
-            id: nanoid(),
-          })),
-        );
-      }
+      // Insert data
+      await Promise.all([
+        ...(targetJutsus.length > 0
+          ? [
+              ctx.drizzle.insert(userJutsu).values(
+                targetJutsus.map((userjutsu) => ({
+                  ...userjutsu,
+                  userId: ctx.userId,
+                  id: nanoid(),
+                })),
+              ),
+            ]
+          : []),
+        ...(targetItems.length > 0
+          ? [
+              ctx.drizzle.insert(userItem).values(
+                targetItems.map((useritem) => ({
+                  ...useritem,
+                  userId: ctx.userId,
+                  id: nanoid(),
+                })),
+              ),
+            ]
+          : []),
+        ...(targetQuestHistory.length > 0
+          ? [
+              ctx.drizzle.insert(questHistory).values(
+                targetQuestHistory.map((questhistory) => ({
+                  ...questhistory,
+                  userId: ctx.userId,
+                  id: nanoid(),
+                })),
+              ),
+            ]
+          : []),
+        ...(targetRankedUserRewards.length > 0
+          ? [
+              ctx.drizzle.insert(rankedUserRewards).values(
+                targetRankedUserRewards.map((rankedUserReward) => ({
+                  ...rankedUserReward,
+                  userId: ctx.userId,
+                  id: nanoid(),
+                })),
+              ),
+            ]
+          : []),
+        ...(targetAttributes.length > 0
+          ? [
+              ctx.drizzle.insert(userAttribute).values(
+                targetAttributes.map((attribute) => ({
+                  ...attribute,
+                  userId: ctx.userId,
+                  id: nanoid(),
+                })),
+              ),
+            ]
+          : []),
+      ]);
       return { success: true, message: "User copied" };
     }),
   getUserHistoricalIps: protectedProcedure
