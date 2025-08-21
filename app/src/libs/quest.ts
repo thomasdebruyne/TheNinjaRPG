@@ -314,18 +314,42 @@ export const collapseRewards = (
 
   rewards.forEach((reward) => {
     // Sum numeric rewards
-    collapsed.reward_money += reward.reward_money;
-    collapsed.reward_seichi_silver += reward.reward_seichi_silver;
-    collapsed.reward_clanpoints += reward.reward_clanpoints;
-    collapsed.reward_anbupoints += reward.reward_anbupoints;
-    collapsed.reward_exp += reward.reward_exp;
-    collapsed.reward_tokens += reward.reward_tokens;
-    collapsed.reward_prestige += reward.reward_prestige;
-    collapsed.reward_reputation += reward.reward_reputation;
-    collapsed.reward_medical_experience += reward.reward_medical_experience;
-    collapsed.reward_hunting_experience += reward.reward_hunting_experience;
-    collapsed.reward_crafting_experience += reward.reward_crafting_experience;
-    collapsed.reward_gathering_experience += reward.reward_gathering_experience;
+    if (reward.reward_money) {
+      collapsed.reward_money += reward.reward_money;
+    }
+    if (reward.reward_seichi_silver) {
+      collapsed.reward_seichi_silver += reward.reward_seichi_silver;
+    }
+    if (reward.reward_clanpoints) {
+      collapsed.reward_clanpoints += reward.reward_clanpoints;
+    }
+    if (reward.reward_anbupoints) {
+      collapsed.reward_anbupoints += reward.reward_anbupoints;
+    }
+    if (reward.reward_exp) {
+      collapsed.reward_exp += reward.reward_exp;
+    }
+    if (reward.reward_tokens) {
+      collapsed.reward_tokens += reward.reward_tokens;
+    }
+    if (reward.reward_prestige) {
+      collapsed.reward_prestige += reward.reward_prestige;
+    }
+    if (reward.reward_reputation) {
+      collapsed.reward_reputation += reward.reward_reputation;
+    }
+    if (reward.reward_medical_experience) {
+      collapsed.reward_medical_experience += reward.reward_medical_experience;
+    }
+    if (reward.reward_hunting_experience) {
+      collapsed.reward_hunting_experience += reward.reward_hunting_experience;
+    }
+    if (reward.reward_crafting_experience) {
+      collapsed.reward_crafting_experience += reward.reward_crafting_experience;
+    }
+    if (reward.reward_gathering_experience) {
+      collapsed.reward_gathering_experience += reward.reward_gathering_experience;
+    }
 
     // Only set reward hunter items to true if any of the rewards have it
     if (reward.reward_hunter_items) {
@@ -338,8 +362,12 @@ export const collapseRewards = (
     }
 
     // Concatenate valid ids
-    collapsed.reward_hunter_items_ids.push(...reward.reward_hunter_items_ids);
-    collapsed.reward_gathering_items_ids.push(...reward.reward_gathering_items_ids);
+    if (reward.reward_hunter_items_ids) {
+      collapsed.reward_hunter_items_ids.push(...reward.reward_hunter_items_ids);
+    }
+    if (reward.reward_gathering_items_ids) {
+      collapsed.reward_gathering_items_ids.push(...reward.reward_gathering_items_ids);
+    }
 
     // Concatenate array rewards
     collapsed.reward_items.push(...reward.reward_items);
