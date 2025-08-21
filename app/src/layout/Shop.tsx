@@ -60,6 +60,8 @@ const Shop: React.FC<ShopProps> = (props) => {
       eventItems: props.eventItems,
       limit: 500,
       ...getShopFilter(filteringState),
+      onlyInShop: true,
+      hidden: false,
     },
     {
       enabled: userData !== undefined,
