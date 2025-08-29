@@ -18,7 +18,6 @@ export const STARTER_VILLAGES = [
 export type StarterVillage = (typeof STARTER_VILLAGES)[number];
 
 export const ACTIVE_VOTING_SITES = [
-  "top100Arena",
   "mmoHub",
   "arenaTop100",
   "bbogd",
@@ -434,6 +433,24 @@ export const QuestTypes = [
 ] as const;
 export type QuestType = (typeof QuestTypes)[number];
 export const QUESTS_CONCURRENT_LIMIT = 4;
+
+// Quest reward metrics used in balance statistics and filters
+export const QuestRewardMetrics = [
+  "reward_money",
+  "reward_seichi_silver",
+  "reward_clanpoints",
+  "reward_anbupoints",
+  "reward_exp",
+  "reward_tokens",
+  "reward_prestige",
+  "reward_reputation",
+  "reward_skillpoints",
+  "reward_medical_experience",
+  "reward_hunting_experience",
+  "reward_crafting_experience",
+  "reward_gathering_experience",
+] as const;
+export type QuestRewardMetric = (typeof QuestRewardMetrics)[number];
 
 export const QuestTypesWithMaxAttempts = [
   "event",

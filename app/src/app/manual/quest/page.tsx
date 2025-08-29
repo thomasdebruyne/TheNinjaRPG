@@ -6,6 +6,8 @@ import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ChartCandlestick } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import { FilePlus } from "lucide-react";
 import { canChangeContent } from "@/utils/permissions";
@@ -71,6 +73,15 @@ export default function ManualQuests() {
         title="Quests"
         subtitle="Tasks to perform around the world"
         defaultBackHref="/manual"
+        topRightContent={
+          <div className="flex flex-row gap-1">
+            <Link href="/manual/quest/balance">
+              <Button id="quest-statistics" hoverText="Balance Statistics">
+                <ChartCandlestick className="h-6 w-6" />
+              </Button>
+            </Link>
+          </div>
+        }
       >
         Quests covers a wide range of activities within the game, including:
         <ul>

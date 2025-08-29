@@ -55,6 +55,7 @@ export interface TextFieldConfig<Id extends string> {
   type: "text";
   defaultValue: string;
   filterKey?: string;
+  doubleWidth?: boolean;
   countActive?: (value: string) => number;
   normalizeForFilter?: (value: string) => unknown;
   visibleIf?: (ctx?: unknown) => boolean;
@@ -67,6 +68,7 @@ export interface DateFieldConfig<Id extends string> {
   type: "date";
   defaultValue: string;
   filterKey?: string;
+  doubleWidth?: boolean;
   countActive?: (value: string) => number;
   normalizeForFilter?: (value: string) => unknown;
   visibleIf?: (ctx?: unknown) => boolean;
@@ -79,6 +81,7 @@ export interface NumberFieldConfig<Id extends string> {
   type: "number";
   defaultValue: number | undefined;
   filterKey?: string;
+  doubleWidth?: boolean;
   countActive?: (value: number | undefined) => number;
   normalizeForFilter?: (value: number | undefined) => unknown;
   visibleIf?: (ctx?: unknown) => boolean;
@@ -101,6 +104,7 @@ export interface SingleSelectFieldConfig<
   noneOption?: Option<NV>;
   emptyValues?: ReadonlyArray<V | NV> | (V | NV)[];
   filterKey?: string;
+  doubleWidth?: boolean;
   countActive?: (value: V | NV) => number;
   normalizeForFilter?: (value: V | NV) => unknown;
   visibleIf?: (ctx?: unknown) => boolean;
@@ -119,6 +123,7 @@ export interface MultiSelectFieldConfig<Id extends string, V extends string> {
   noneOption?: Option<string>;
   emptyValues?: never;
   filterKey?: string;
+  doubleWidth?: boolean;
   countActive?: (value: V[]) => number;
   normalizeForFilter?: (value: V[]) => unknown;
   visibleIf?: (ctx?: unknown) => boolean;
@@ -132,6 +137,7 @@ export interface TriStateFieldConfig<Id extends string> {
   defaultValue: boolean | undefined;
   triStateLabels?: { labelActive: string; labelInactive: string; labelAll: string };
   filterKey?: string;
+  doubleWidth?: boolean;
   countActive?: (value: boolean | undefined) => number;
   normalizeForFilter?: (value: boolean | undefined) => unknown;
   visibleIf?: (ctx?: unknown) => boolean;
@@ -627,7 +633,7 @@ export const ContentFiltering = <
             switch (field.type) {
               case "text":
                 return (
-                  <div key={field.id}>
+                  <div key={field.id} className={field.doubleWidth ? "col-span-2" : ""}>
                     <Label>{field.label}</Label>
                     <Input
                       value={(value as string) ?? ""}
@@ -638,7 +644,7 @@ export const ContentFiltering = <
                 );
               case "date":
                 return (
-                  <div key={field.id}>
+                  <div key={field.id} className={field.doubleWidth ? "col-span-2" : ""}>
                     <Label>{field.label}</Label>
                     <Input
                       type="date"
@@ -649,7 +655,7 @@ export const ContentFiltering = <
                 );
               case "number":
                 return (
-                  <div key={field.id}>
+                  <div key={field.id} className={field.doubleWidth ? "col-span-2" : ""}>
                     <Label>{field.label}</Label>
                     <Input
                       type="number"
@@ -665,23 +671,25 @@ export const ContentFiltering = <
                 );
               case "single-select":
                 return (
-                  <FilterSelect
-                    key={field.id}
-                    label={field.label}
-                    value={
-                      (value as string) ??
-                      ("noneOption" in field && field.noneOption?.value) ??
-                      "None"
-                    }
-                    onValueChange={(v) => setter(v)}
-                    options={options}
-                    includeNone={"includeNone" in field ? field.includeNone : true}
-                    noneOption={"noneOption" in field ? field.noneOption : undefined}
-                  />
+                  <div className={field.doubleWidth ? "col-span-2" : ""}>
+                    <FilterSelect
+                      key={field.id}
+                      label={field.label}
+                      value={
+                        (value as string) ??
+                        ("noneOption" in field && field.noneOption?.value) ??
+                        "None"
+                      }
+                      onValueChange={(v) => setter(v)}
+                      options={options}
+                      includeNone={"includeNone" in field ? field.includeNone : true}
+                      noneOption={"noneOption" in field ? field.noneOption : undefined}
+                    />
+                  </div>
                 );
               case "multi-select":
                 return (
-                  <div key={field.id}>
+                  <div key={field.id} className={field.doubleWidth ? "col-span-2" : ""}>
                     <Label>{field.label}</Label>
                     <MultiSelect
                       selected={(value as string[]) ?? []}
@@ -694,7 +702,10 @@ export const ContentFiltering = <
                 );
               case "tri-state":
                 return (
-                  <div key={field.id} className="mt-1">
+                  <div
+                    key={field.id}
+                    className={field.doubleWidth ? "col-span-2 mt-1" : "mt-1"}
+                  >
                     <Label>{field.label}</Label>
                     <TriStateToggle
                       verticalLayout

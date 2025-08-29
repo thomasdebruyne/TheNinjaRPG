@@ -57,6 +57,13 @@ import { RANKED_RANKS } from "@/drizzle/constants";
 import { logQueueLengths } from "@/drizzle/schema";
 import { getRankedRank } from "@/libs/ranked_pvp";
 import { fetchSanninRankedPlayers } from "@/server/api/routers/pvprank";
+import { quest } from "@/drizzle/schema";
+import {
+  QuestTypes,
+  QuestRewardMetrics,
+  type QuestRewardMetric,
+} from "@/drizzle/constants";
+import type { ObjectiveRewardType, AllObjectivesType } from "@/validators/objectives";
 
 export const dataRouter = createTRPCRouter({
   // Recruitment analytics
@@ -1487,6 +1494,50 @@ export const dataRouter = createTRPCRouter({
         });
 
       return distribution;
+    }),
+  // Quest reward statistics per quest (quest reward + sum of all objective rewards)
+  getQuestRewardStatistics: publicProcedure
+    .input(
+      z.object({
+        reward: z.enum(QuestRewardMetrics).default("reward_money"),
+        questTypes: z.array(z.enum(QuestTypes)).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const whereConditions: QueryCondition[] = [];
+      if (input.questTypes && input.questTypes.length > 0)
+        whereConditions.push(inArray(quest.questType, input.questTypes));
+
+      const rows = await ctx.drizzle
+        .select({
+          id: quest.id,
+          name: quest.name,
+          questRank: quest.questRank,
+          questType: quest.questType,
+          requiredLevel: quest.requiredLevel,
+          content: quest.content,
+        })
+        .from(quest)
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
+
+      const metric = input.reward;
+      return rows.map((q) => {
+        const content = q.content;
+        const base = Number(content?.reward?.[metric] ?? 0);
+        const objectiveSum = (content?.objectives ?? []).reduce((acc, obj) => {
+          const v = Number(obj?.[metric] ?? 0);
+          return acc + (Number.isFinite(v) ? v : 0);
+        }, 0);
+        const total = base + objectiveSum;
+        return {
+          id: q.id,
+          name: q.name,
+          questRank: q.questRank,
+          questType: q.questType,
+          requiredLevel: q.requiredLevel,
+          value: total,
+        };
+      });
     }),
   getStatistics: publicProcedure
     .input(
