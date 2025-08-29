@@ -1967,10 +1967,11 @@ const RecruitedUsersTab: React.FC<RecruitedUsersTabProps> = ({
 const RankedMatchesTab: React.FC<TabComponentProps> = ({ userId, isActive }) => {
   const { data: currentUser } = useUserData();
 
-  const { data: history, isPending } = api.combat.getBattleHistory.useQuery(
-    { userId, combatTypes: ["RANKED_PVP"] },
-  );
-  
+  const { data: history, isPending } = api.combat.getBattleHistory.useQuery({
+    userId,
+    combatTypes: ["RANKED_PVP"],
+  });
+
   const rankedMatches = history?.map((e) => ({
     attackerUsername: e.attacker?.username || "Deleted User",
     attackerUserId: e.attacker?.userId || "Deleted User",

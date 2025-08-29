@@ -60,6 +60,12 @@ function MultiSelect({
     }
   };
 
+  const sortedSelected = selected.sort((a, b) => {
+    const aOption = options.find((o) => o.value === a);
+    const bOption = options.find((o) => o.value === b);
+    return aOption?.label.localeCompare(bOption?.label ?? "") ?? 0;
+  });
+
   return (
     <Popover open={open} onOpenChange={setOpen} {...props}>
       <PopoverTrigger asChild>
@@ -74,8 +80,8 @@ function MultiSelect({
           onClick={() => setOpen(!open)}
         >
           <div className="flex gap-1 flex-wrap">
-            {selected.length > 0 ? (
-              selected.map((item, i) => {
+            {sortedSelected.length > 0 ? (
+              sortedSelected.map((item, i) => {
                 const option = options.find((o) => o.value === item);
                 return (
                   <Badge
