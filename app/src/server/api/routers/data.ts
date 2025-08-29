@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { and, eq, gte, lte, sql, asc, inArray, or } from "drizzle-orm";
+import { and, eq, gte, lte, sql, asc, inArray, or, ne } from "drizzle-orm";
 import {
   userJutsu,
   userItem,
@@ -8,6 +8,8 @@ import {
   bloodline,
   skillTree,
   userSkill,
+  referralSource,
+  questHistory,
 } from "@/drizzle/schema";
 import {
   dataBattleAction,
@@ -17,7 +19,11 @@ import {
   logBattleLengths,
   logRankedPicks,
 } from "@/drizzle/schema";
-import { BattleDataEntryType } from "@/drizzle/constants";
+import {
+  BattleDataEntryType,
+  RecruitmentMetrics,
+  RecruitmentMetricMax,
+} from "@/drizzle/constants";
 import {
   createTRPCRouter,
   publicProcedure,
@@ -43,10 +49,9 @@ import type {
   LetterRank,
   StatType,
   UserRank,
-  StarterVillage,
   RankedRank,
 } from "@/drizzle/constants";
-import { canChangeContent } from "@/utils/permissions";
+import { canChangeContent, canViewRecruitmentAnalytics } from "@/utils/permissions";
 import type { QueryCondition } from "@/utils/typeutils";
 import { RANKED_RANKS } from "@/drizzle/constants";
 import { logQueueLengths } from "@/drizzle/schema";
@@ -54,6 +59,463 @@ import { getRankedRank } from "@/libs/ranked_pvp";
 import { fetchSanninRankedPlayers } from "@/server/api/routers/pvprank";
 
 export const dataRouter = createTRPCRouter({
+  // Recruitment analytics
+  getReferralSources: protectedProcedure.query(async ({ ctx }) => {
+    // Query
+    const user = await fetchUser(ctx.drizzle, ctx.userId);
+    // Guard
+    if (!canViewRecruitmentAnalytics(user.role)) {
+      throw serverError("UNAUTHORIZED", "Insufficient permissions");
+    }
+    // Query
+    const rows = await ctx.drizzle
+      .selectDistinct({ source: referralSource.source })
+      .from(referralSource)
+      .where(ne(referralSource.source, ""))
+      .orderBy(asc(referralSource.source));
+    const base = rows.map((r) => r.source);
+    const set = new Set(base);
+    set.add("Dynamic");
+    set.add("Recruited");
+    return Array.from(set.values());
+  }),
+  getRecruitmentLevelDistribution: protectedProcedure
+    .input(
+      z.object({
+        sources: z.array(z.string()).optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        metric: z.enum(RecruitmentMetrics).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canViewRecruitmentAnalytics(user.role)) {
+        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      }
+      // Filtering
+      const selected = input.sources?.length ? input.sources : undefined;
+      const wantsDynamic = selected?.includes("Dynamic") ?? false;
+      const wantsRecruited = selected?.includes("Recruited") ?? false;
+      const realSources = selected?.filter((s) => s !== "Dynamic" && s !== "Recruited");
+      const metric = input.metric ?? "level";
+      // Build referred and dynamic queries and run in parallel when applicable
+      const wantReal = !selected || (realSources && realSources.length > 0);
+
+      // Base where clauses shared by all branches
+      const baseUserWhere: QueryCondition[] = [eq(userData.isAi, false)];
+      if (input.startDate)
+        baseUserWhere.push(gte(userData.createdAt, new Date(input.startDate)));
+      if (input.endDate)
+        baseUserWhere.push(lte(userData.createdAt, new Date(input.endDate)));
+
+      // Referrals-specific where
+      const realWhere: QueryCondition[] = [...baseUserWhere];
+      if (!selected) {
+        // all referred via inner join
+      } else if (realSources && realSources.length > 0) {
+        realWhere.push(inArray(referralSource.source, realSources));
+      }
+      // Dynamic and Recruited specifics
+      const dynamicWhere: QueryCondition[] = [
+        ...baseUserWhere,
+        sql`NOT EXISTS(SELECT 1 FROM ${referralSource} rs2 WHERE rs2.userId = ${userData.userId})`,
+      ];
+      const recruitedWhere: QueryCondition[] = [
+        ...baseUserWhere,
+        sql`${userData.recruiterId} IS NOT NULL`,
+      ];
+
+      const metricColumn = (() => {
+        switch (metric) {
+          case "level":
+            return userData.level;
+          case "pveFights":
+            return userData.pveFights;
+          case "pvpFights":
+            return userData.pvpFights;
+          case "missionsD":
+            return userData.missionsD;
+          case "missionsC":
+            return userData.missionsC;
+          case "missionsB":
+            return userData.missionsB;
+          case "missionsA":
+            return userData.missionsA;
+          case "crimesD":
+            return userData.crimesD;
+          case "crimesC":
+            return userData.crimesC;
+          case "crimesB":
+            return userData.crimesB;
+          case "crimesA":
+            return userData.crimesA;
+          default:
+            return userData.level;
+        }
+      })();
+
+      const clampMax = RecruitmentMetricMax[metric] ?? 1000;
+      const clampedExpr = sql<number>`LEAST(GREATEST(${metricColumn}, 0), ${clampMax})`;
+
+      // Small helpers to aggregate per-user rows into level counts
+      const aggregateCounts = (rows: { level: number; userId: string }[]) => {
+        const counts = new Map<number, number>();
+        rows.forEach((r) => {
+          counts.set(r.level, (counts.get(r.level) ?? 0) + 1);
+        });
+        return Array.from(counts.entries()).map(([level, count]) => ({ level, count }));
+      };
+      const aggregateCountsBySource = (
+        rows: { source: string; level: number; userId: string }[],
+      ) => {
+        const bySource = new Map<string, Map<number, number>>();
+        rows.forEach((r) => {
+          if (!bySource.has(r.source)) bySource.set(r.source, new Map());
+          const inner = bySource.get(r.source)!;
+          inner.set(r.level, (inner.get(r.level) ?? 0) + 1);
+        });
+        const out: { source: string; level: number; count: number }[] = [];
+        bySource.forEach((lvlMap, src) =>
+          lvlMap.forEach((cnt, lvl) =>
+            out.push({ source: src, level: lvl, count: cnt }),
+          ),
+        );
+        return out;
+      };
+
+      // Referred users from various sources
+      const realPromise = wantReal
+        ? metric !== "completedQuests"
+          ? ctx.drizzle
+              .select({
+                source: referralSource.source,
+                level: clampedExpr,
+                count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+              })
+              .from(userData)
+              .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
+              .where(and(...realWhere))
+              .groupBy(referralSource.source, clampedExpr)
+              .orderBy(asc(referralSource.source), asc(clampedExpr))
+          : ctx.drizzle
+              .select({
+                source: referralSource.source,
+                level:
+                  sql<number>`COALESCE(SUM(CASE WHEN ${questHistory.completed} = 1 THEN 1 ELSE 0 END), 0)`.mapWith(
+                    Number,
+                  ),
+                userId: userData.userId,
+              })
+              .from(userData)
+              .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
+              .leftJoin(questHistory, eq(questHistory.userId, userData.userId))
+              .where(and(...realWhere))
+              .groupBy(referralSource.source, userData.userId)
+              .then((rows) =>
+                aggregateCountsBySource(
+                  rows as { source: string; level: number; userId: string }[],
+                ),
+              )
+        : Promise.resolve([] as { source: string; level: number; count: number }[]);
+
+      // Dynamic signups (non recruited or from referral sources)
+      const dynPromise =
+        !selected || wantsDynamic
+          ? metric !== "completedQuests"
+            ? ctx.drizzle
+                .select({
+                  level: clampedExpr,
+                  count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+                })
+                .from(userData)
+                .where(and(...dynamicWhere))
+                .groupBy(clampedExpr)
+                .orderBy(asc(clampedExpr))
+            : ctx.drizzle
+                .select({
+                  level:
+                    sql<number>`COALESCE(SUM(CASE WHEN ${questHistory.completed} = 1 THEN 1 ELSE 0 END), 0)`.mapWith(
+                      Number,
+                    ),
+                  userId: userData.userId,
+                })
+                .from(userData)
+                .leftJoin(questHistory, eq(questHistory.userId, userData.userId))
+                .where(and(...dynamicWhere))
+                .groupBy(userData.userId)
+                .then((rows) =>
+                  aggregateCounts(rows as { level: number; userId: string }[]),
+                )
+          : Promise.resolve([] as { level: number; count: number }[]);
+
+      // Recruited users
+      const recruitedPromise =
+        !selected || wantsRecruited
+          ? metric !== "completedQuests"
+            ? ctx.drizzle
+                .select({
+                  level: clampedExpr,
+                  count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+                })
+                .from(userData)
+                .where(and(...recruitedWhere))
+                .groupBy(clampedExpr)
+                .orderBy(asc(clampedExpr))
+            : ctx.drizzle
+                .select({
+                  level:
+                    sql<number>`COALESCE(SUM(CASE WHEN ${questHistory.completed} = 1 THEN 1 ELSE 0 END), 0)`.mapWith(
+                      Number,
+                    ),
+                  userId: userData.userId,
+                })
+                .from(userData)
+                .leftJoin(questHistory, eq(questHistory.userId, userData.userId))
+                .where(and(...recruitedWhere))
+                .groupBy(userData.userId)
+                .then((rows) =>
+                  aggregateCounts(rows as { level: number; userId: string }[]),
+                )
+          : Promise.resolve([] as { level: number; count: number }[]);
+
+      const [rows, dynamicRows, recruitedRows] = await Promise.all([
+        realPromise,
+        dynPromise,
+        recruitedPromise,
+      ]);
+
+      // Group result by source for frontend
+      const bySource = new Map<string, { level: number; count: number }[]>();
+      if (rows.length > 0) {
+        rows.forEach((r) => {
+          if (!bySource.has(r.source)) bySource.set(r.source, []);
+          bySource.get(r.source)!.push({ level: r.level, count: r.count });
+        });
+      }
+      if (dynamicRows.length > 0) {
+        bySource.set("Dynamic", dynamicRows);
+      }
+      if (recruitedRows.length > 0) {
+        bySource.set("Recruited", recruitedRows);
+      }
+      return Array.from(bySource.entries()).map(([source, levelDistribution]) => ({
+        source,
+        levelDistribution,
+      }));
+    }),
+  getRecruitmentDailyLevelStats: protectedProcedure
+    .input(
+      z.object({
+        sources: z.array(z.string()).optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canViewRecruitmentAnalytics(user.role)) {
+        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      }
+      // Filtering
+      const selected = input.sources?.length ? input.sources : undefined;
+      const wantsDynamic = selected?.includes("Dynamic") ?? false;
+      const wantsRecruited = selected?.includes("Recruited") ?? false;
+      const realSources = selected?.filter((s) => s !== "Dynamic" && s !== "Recruited");
+      const dayExpr = sql<string>`CAST(${userData.createdAt} AS DATE)`;
+
+      // No selection: only users with any referral source (historical behavior)
+      const rows = await ctx.drizzle
+        .select({
+          day: dayExpr,
+          mean: sql<number>`AVG(${userData.level})`.mapWith(Number),
+          std: sql<number>`STDDEV_SAMP(${userData.level})`.mapWith(Number),
+          count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+        })
+        .from(userData)
+        .leftJoin(referralSource, eq(referralSource.userId, userData.userId))
+        .where(
+          selected
+            ? and(
+                eq(userData.isAi, false),
+                ...(input.startDate
+                  ? [gte(userData.createdAt, new Date(input.startDate))]
+                  : []),
+                ...(input.endDate
+                  ? [lte(userData.createdAt, new Date(input.endDate))]
+                  : []),
+                or(
+                  ...(realSources && realSources.length > 0
+                    ? [inArray(referralSource.source, realSources)]
+                    : []),
+                  ...(wantsDynamic ? [sql`(${referralSource.userId} IS NULL)`] : []),
+                  ...(wantsRecruited
+                    ? [sql`(${userData.recruiterId} IS NOT NULL)`]
+                    : []),
+                ),
+              )
+            : and(
+                eq(userData.isAi, false),
+                ...(input.startDate
+                  ? [gte(userData.createdAt, new Date(input.startDate))]
+                  : []),
+                ...(input.endDate
+                  ? [lte(userData.createdAt, new Date(input.endDate))]
+                  : []),
+                sql`${referralSource.userId} IS NOT NULL`,
+              ),
+        )
+        .groupBy(dayExpr)
+        .orderBy(asc(dayExpr));
+      return rows.map((r) => ({
+        date: r.day as unknown as string,
+        mean: Number(r.mean ?? 0),
+        std: Number(r.std ?? 0),
+        count: Number(r.count ?? 0),
+      }));
+    }),
+  getRecruitmentDailyCountsBySource: protectedProcedure
+    .input(
+      z.object({
+        sources: z.array(z.string()).optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canViewRecruitmentAnalytics(user.role)) {
+        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      }
+      // Filtering
+      const selected = input.sources?.length ? input.sources : undefined;
+      const wantsDynamic = selected?.includes("Dynamic") ?? false;
+      const wantsRecruited = selected?.includes("Recruited") ?? false;
+      const realSources = selected?.filter((s) => s !== "Dynamic" && s !== "Recruited");
+      const wantReal = !selected || (realSources && realSources.length > 0);
+
+      const dayExpr = sql<string>`CAST(${userData.createdAt} AS DATE)`;
+
+      // Referred series
+      const realWhere: QueryCondition[] = [eq(userData.isAi, false)];
+      if (input.startDate)
+        realWhere.push(gte(userData.createdAt, new Date(input.startDate)));
+      if (input.endDate)
+        realWhere.push(lte(userData.createdAt, new Date(input.endDate)));
+      if (!selected) {
+        // all referred
+      } else if (realSources && realSources.length > 0) {
+        realWhere.push(inArray(referralSource.source, realSources));
+      }
+
+      const realPromise = wantReal
+        ? ctx.drizzle
+            .select({
+              day: dayExpr,
+              source: referralSource.source,
+              count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+            })
+            .from(userData)
+            .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
+            .where(and(...realWhere))
+            .groupBy(dayExpr, referralSource.source)
+            .orderBy(asc(dayExpr), asc(referralSource.source))
+        : Promise.resolve(
+            [] as { day: Date | string; source: string; count: number }[],
+          );
+
+      // Dynamic series
+      const dynPromise =
+        !selected || wantsDynamic
+          ? ctx.drizzle
+              .select({
+                day: dayExpr,
+                count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+              })
+              .from(userData)
+              .where(
+                and(
+                  eq(userData.isAi, false),
+                  sql`${userData.recruiterId} IS NULL`,
+                  sql`NOT EXISTS(SELECT 1 FROM ${referralSource} rs2 WHERE rs2.userId = ${userData.userId})`,
+                  ...(input.startDate
+                    ? [gte(userData.createdAt, new Date(input.startDate))]
+                    : []),
+                  ...(input.endDate
+                    ? [lte(userData.createdAt, new Date(input.endDate))]
+                    : []),
+                ),
+              )
+              .groupBy(dayExpr)
+              .orderBy(asc(dayExpr))
+          : Promise.resolve([] as { day: Date | string; count: number }[]);
+
+      const recPromise =
+        !selected || wantsRecruited
+          ? ctx.drizzle
+              .select({
+                day: dayExpr,
+                count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+              })
+              .from(userData)
+              .where(
+                and(
+                  eq(userData.isAi, false),
+                  sql`${userData.recruiterId} IS NOT NULL`,
+                  ...(input.startDate
+                    ? [gte(userData.createdAt, new Date(input.startDate))]
+                    : []),
+                  ...(input.endDate
+                    ? [lte(userData.createdAt, new Date(input.endDate))]
+                    : []),
+                ),
+              )
+              .groupBy(dayExpr)
+              .orderBy(asc(dayExpr))
+          : Promise.resolve([] as { day: Date | string; count: number }[]);
+
+      const [rows, dynamicRows, recruitedRows] = await Promise.all([
+        realPromise,
+        dynPromise,
+        recPromise,
+      ]);
+
+      const bySource = new Map<string, { date: string; count: number }[]>();
+      (rows as { day: Date | string; source: string; count: number }[]).forEach((r) => {
+        const d = (r.day as unknown as string) ?? String(r.day);
+        if (!bySource.has(r.source)) bySource.set(r.source, []);
+        bySource.get(r.source)!.push({ date: d, count: r.count });
+      });
+      if (dynamicRows.length > 0) {
+        bySource.set(
+          "Dynamic",
+          (dynamicRows as { day: Date | string; count: number }[]).map((r) => ({
+            date: (r.day as unknown as string) ?? String(r.day),
+            count: r.count,
+          })),
+        );
+      }
+      if (recruitedRows.length > 0) {
+        bySource.set(
+          "Recruited",
+          (recruitedRows as { day: Date | string; count: number }[]).map((r) => ({
+            date: (r.day as unknown as string) ?? String(r.day),
+            count: r.count,
+          })),
+        );
+      }
+
+      return Array.from(bySource.entries()).map(([source, series]) => ({
+        source,
+        series,
+      }));
+    }),
   deleteSingleDataBattleAction: protectedProcedure
     .input(
       z.object({

@@ -15,6 +15,7 @@ import {
   IMG_MANUAL_BADGE,
   IMG_MANUAL_ASSET,
   IMG_MANUAL_OPINION,
+  IMG_MANUAL_RECRUITMENT,
   IMG_MANUAL_AWARDS,
   IMG_MANUAL_POLLS,
   IMG_MANUAL_RANKED,
@@ -24,13 +25,16 @@ import {
 } from "@/drizzle/constants";
 import ContentBox from "@/layout/ContentBox";
 import { useUserData } from "@/utils/UserContext";
-import { canControlBackups } from "@/utils/permissions";
+import { canControlBackups, canViewRecruitmentAnalytics } from "@/utils/permissions";
 
 export default function ManualMain() {
   const { data: userData } = useUserData();
-  const hasBackupAccess = canControlBackups(userData?.role ?? "USER");
+  const role = userData?.role ?? "USER";
+  const hasBackupAccess = canControlBackups(role);
+  const canSeeRecruitment = canViewRecruitmentAnalytics(role);
 
   const baseEntries = [
+    // recruitment added conditionally below
     { name: "combat", img: IMG_MANUAL_COMBAT },
     { name: "travel", img: IMG_MANUAL_TRAVEL },
     { name: "bloodline", img: IMG_MANUAL_BLOODLINE },
@@ -50,9 +54,12 @@ export default function ManualMain() {
     { name: "balance", img: IMG_MANUAL_BALANCE },
   ];
 
-  const entries = hasBackupAccess
-    ? [{ name: "content_backups", img: IMG_MANUAL_BACKUP }, ...baseEntries]
+  const withRecruitment = canSeeRecruitment
+    ? [{ name: "recruitment", img: IMG_MANUAL_RECRUITMENT }, ...baseEntries]
     : baseEntries;
+  const entries = hasBackupAccess
+    ? [{ name: "content_backups", img: IMG_MANUAL_BACKUP }, ...withRecruitment]
+    : withRecruitment;
 
   return (
     <ContentBox

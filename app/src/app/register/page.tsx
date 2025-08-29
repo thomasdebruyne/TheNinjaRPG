@@ -89,7 +89,7 @@ const Register: React.FC = () => {
         if (data.success) {
           await utils.profile.getUser.invalidate();
           createAvatar.mutate();
-          sendGTMEvent({ event: "register" });
+          sendGTMEvent({ event: "register", userId: userData?.userId ?? "" });
         }
       },
     });

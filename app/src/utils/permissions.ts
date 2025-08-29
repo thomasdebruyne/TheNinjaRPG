@@ -22,6 +22,13 @@ export const canControlBackups = (role: UserRole) => {
   return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };
 
+// Recruitment analytics visibility (admins only)
+export const canViewRecruitmentAnalytics = (role: UserRole) => {
+  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN", "MODERATOR-ADMIN"].includes(
+    role,
+  );
+};
+
 export const canPlayHiddenQuests = (role: UserRole) => {
   return ["CONTENT", "EVENT", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };

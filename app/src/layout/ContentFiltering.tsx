@@ -95,7 +95,7 @@ export interface SingleSelectFieldConfig<
   type: "single-select";
   defaultValue: V | NV;
   options?: Option<V>[];
-  dataSource?: "bloodlines" | "assets" | "villages";
+  dataSource?: "bloodlines" | "assets" | "villages" | "referralSources";
   filterOptions?: (options: Option<string>[], ctx?: unknown) => Option<string>[];
   includeNone?: boolean;
   noneOption?: Option<NV>;
@@ -113,7 +113,7 @@ export interface MultiSelectFieldConfig<Id extends string, V extends string> {
   type: "multi-select";
   defaultValue: V[];
   options?: Option<V>[];
-  dataSource?: "bloodlines" | "assets" | "villages";
+  dataSource?: "bloodlines" | "assets" | "villages" | "referralSources";
   filterOptions?: (options: Option<string>[], ctx?: unknown) => Option<string>[];
   includeNone?: boolean;
   noneOption?: Option<string>;
@@ -539,6 +539,7 @@ export const ContentFiltering = <
   const { data: bloodlineNames } = api.bloodline.getAllNames.useQuery(undefined);
   const { data: assetNames } = api.misc.getAllGameAssetNames.useQuery(undefined);
   const { data: villageNames } = api.village.getAllNames.useQuery(undefined);
+  const { data: referralSources } = api.data.getReferralSources.useQuery(undefined);
 
   // Resolve options for a field: prefer static options, otherwise derive from data source
   const resolveOptions = (field: AnyFieldConfig): Option[] => {
@@ -551,6 +552,9 @@ export const ContentFiltering = <
     }
     if (!opts && "dataSource" in field && field.dataSource === "villages") {
       opts = (villageNames ?? []).map((v) => ({ value: v.id, label: v.name }));
+    }
+    if (!opts && "dataSource" in field && field.dataSource === "referralSources") {
+      opts = (referralSources ?? []).map((s) => ({ value: s, label: s }));
     }
     const finalOpts = opts ?? [];
     return "filterOptions" in field && field.filterOptions

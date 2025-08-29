@@ -66,6 +66,241 @@ export const LevelStats: React.FC<LevelStatsProps> = (props) => {
   );
 };
 
+interface GroupedLevelStatsProps {
+  datasets: {
+    source: string;
+    levelDistribution: { level: number; count: number }[];
+  }[];
+  title: string;
+  xaxis: string;
+}
+
+export const GroupedLevelStats: React.FC<GroupedLevelStatsProps> = (props) => {
+  const { datasets, title, xaxis } = props;
+  const chartRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const ctx = chartRef?.current?.getContext("2d");
+    if (!ctx) return;
+
+    // Collect all unique levels across datasets, sort asc
+    const allLevels = Array.from(
+      new Set(datasets.flatMap((d) => d.levelDistribution.map((x) => x.level))),
+    ).sort((a, b) => a - b);
+
+    // Build datasets aligned on allLevels
+    const chartDatasets = datasets.map((d, i) => {
+      const map = new Map(d.levelDistribution.map((x) => [x.level, x.count] as const));
+      const colorHue = (i * 53) % 360;
+      return {
+        label: d.source,
+        data: allLevels.map((lvl) => map.get(lvl) ?? 0),
+        borderColor: `hsl(${colorHue} 70% 45%)`,
+        backgroundColor: `hsl(${colorHue} 70% 60% / 0.7)`,
+      };
+    });
+
+    const myChart = new ChartJS(ctx, {
+      type: "bar",
+      options: {
+        scales: {
+          x: {
+            type: "linear",
+            ticks: { stepSize: 1 },
+            title: { display: true, text: xaxis },
+          },
+          y: {
+            type: "linear",
+            min: 0.0,
+            title: { display: true, text: "#Users" },
+          },
+        },
+      },
+      data: {
+        labels: allLevels,
+        datasets: chartDatasets as unknown as { data: number[]; label: string }[],
+      },
+    });
+
+    return () => myChart.destroy();
+  }, [datasets, title, xaxis]);
+
+  return (
+    <div className="relative w-[99%]">
+      <canvas ref={chartRef} id="groupedLevelDistribution"></canvas>
+    </div>
+  );
+};
+
+interface DailyMeanStdProps {
+  data: {
+    date: string; // YYYY-MM-DD
+    mean: number;
+    std: number;
+    count: number;
+  }[];
+  title: string;
+  yaxis?: string;
+}
+
+// Renders a time-like series with mean ± std as a band
+export const DailyMeanStdChart: React.FC<DailyMeanStdProps> = (props) => {
+  const { data, title, yaxis = "User Level" } = props;
+  const chartRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const ctx = chartRef?.current?.getContext("2d");
+    if (!ctx) return;
+
+    const labels = data.map((d) => d.date);
+    const mean = data.map((d) => d.mean);
+    const lower = data.map((d) => Math.max(0, d.mean - d.std));
+    const upper = data.map((d) => d.mean + d.std);
+
+    const myChart = new ChartJS(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: `${title} (lower)`,
+            data: lower,
+            borderColor: "hsl(210 10% 75%)",
+            backgroundColor: "hsla(210, 70%, 60%, 0.18)",
+            pointRadius: 0,
+            borderWidth: 0,
+          },
+          {
+            label: `${title} (upper)`,
+            data: upper,
+            borderColor: "hsl(210 10% 75%)",
+            backgroundColor: "hsla(210, 70%, 60%, 0.18)",
+            fill: "-1", // fill to previous (lower) dataset
+            pointRadius: 0,
+            borderWidth: 0,
+          },
+          {
+            label: `${title} (mean)`,
+            data: mean,
+            borderColor: "hsl(210 70% 45%)",
+            backgroundColor: "hsl(210 70% 45%)",
+            pointRadius: 2,
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        maintainAspectRatio: false,
+        responsive: true,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: {
+            type: "category",
+            title: { display: true, text: "Date" },
+          },
+          y: {
+            type: "linear",
+            min: 0,
+            title: { display: true, text: yaxis },
+          },
+        },
+        plugins: {
+          legend: { display: true },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const i = ctx.dataIndex;
+                const m = mean[i] ?? 0;
+                const up = upper[i] ?? m;
+                const lo = lower[i] ?? m;
+                const s = (up - lo) / 2;
+                const n = data[i]?.count ?? 0;
+                const isMean = ctx.dataset.label?.includes("mean");
+                const label = isMean ? "Mean" : (ctx.dataset.label ?? title);
+                return `${label}: ${m.toFixed(2)} (±${s.toFixed(2)}) [n=${n}]`;
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return () => myChart.destroy();
+  }, [data, title, yaxis]);
+
+  return (
+    <div className="relative w-[99%]" style={{ height: 360 }}>
+      <canvas ref={chartRef} id="dailyMeanStd"></canvas>
+    </div>
+  );
+};
+
+interface DailyCountsBySourceProps {
+  datasets: {
+    source: string;
+    series: { date: string; count: number }[];
+  }[];
+  title: string;
+}
+
+export const DailyCountsBySourceChart: React.FC<DailyCountsBySourceProps> = (props) => {
+  const { datasets, title } = props;
+  const chartRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const ctx = chartRef?.current?.getContext("2d");
+    if (!ctx) return;
+
+    // Collect all unique dates across datasets
+    const allDates = Array.from(
+      new Set(datasets.flatMap((d) => d.series.map((x) => x.date))),
+    ).sort();
+
+    // Build dataset per source aligned to allDates
+    const chartDatasets = datasets.map((d, i) => {
+      const map = new Map(d.series.map((x) => [x.date, x.count] as const));
+      const hue = (i * 57) % 360;
+      return {
+        label: d.source,
+        data: allDates.map((dt) => map.get(dt) ?? 0),
+        borderColor: `hsl(${hue} 70% 45%)`,
+        backgroundColor: `hsl(${hue} 70% 60% / 0.35)`,
+        pointRadius: 2,
+        borderWidth: 2,
+      };
+    });
+
+    const chart = new ChartJS(ctx, {
+      type: "line",
+      data: {
+        labels: allDates,
+        datasets: chartDatasets as unknown as { data: number[]; label: string }[],
+      },
+      options: {
+        maintainAspectRatio: false,
+        responsive: true,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { type: "category", title: { display: true, text: "Date" } },
+          y: {
+            type: "linear",
+            min: 0,
+            title: { display: true, text: "#Recruited Users" },
+          },
+        },
+      },
+    });
+
+    return () => chart.destroy();
+  }, [datasets, title]);
+
+  return (
+    <div className="relative w-[99%]" style={{ height: 360 }}>
+      <canvas ref={chartRef} id="dailyCountsBySource"></canvas>
+    </div>
+  );
+};
+
 interface UsageStatsProps {
   usage: {
     battleWon: number;

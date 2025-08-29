@@ -559,6 +559,39 @@ export const REMOVAL_COST = 5;
 export const Sentiment = ["POSITIVE", "NEGATIVE", "NEUTRAL"] as const;
 export type SentimentType = (typeof Sentiment)[number];
 
+// Recruitment analytics metric options (used by frontend and backend)
+export const RecruitmentMetrics = [
+  "level",
+  "pveFights",
+  "pvpFights",
+  "missionsD",
+  "missionsC",
+  "missionsB",
+  "missionsA",
+  "crimesD",
+  "crimesC",
+  "crimesB",
+  "crimesA",
+  "completedQuests",
+] as const;
+export type RecruitmentMetric = (typeof RecruitmentMetrics)[number];
+
+// Default clamp maxima for recruitment metrics (min is always 0)
+export const RecruitmentMetricMax: Record<RecruitmentMetric, number> = {
+  level: 50,
+  pveFights: 50,
+  pvpFights: 50,
+  missionsD: 50,
+  missionsC: 50,
+  missionsB: 50,
+  missionsA: 50,
+  crimesD: 50,
+  crimesC: 50,
+  crimesB: 50,
+  crimesA: 50,
+  completedQuests: 50,
+};
+
 // Recruitment rewards config
 export const RECRUITMENT_REWARDS = [
   "MONEY",
@@ -1355,6 +1388,8 @@ export const IMG_MANUAL_ASSET =
   "https://utfs.io/f/Hzww9EQvYURJaGvHErYYfKMcJ2B5EmWt6VsNgqxpG8OSXAQk";
 export const IMG_MANUAL_OPINION =
   "https://utfs.io/f/Hzww9EQvYURJ0dX0Z3grYldRWJcD6vE10SjNsXHeA9pVMfQi";
+export const IMG_MANUAL_RECRUITMENT =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJTB8H7n5IU29dZYJPoOKSh5vmlqatMub3EigH";
 export const IMG_MANUAL_POLLS =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJRc1v3JK0udmODoNtpa0FMcwI4k2Eq7nJhyvj";
 export const IMG_LAYOUT_USERBANNER_MIDDLE =

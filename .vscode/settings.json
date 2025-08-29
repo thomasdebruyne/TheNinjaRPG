@@ -8,5 +8,6 @@
   "prettier.printWidth": 300,
   "prettier.prettierPath": "./app/node_modules/prettier",
   "typescript.tsserver.maxTsServerMemory": 4048,
-  "typescript.tsdk": "/workspace/app/node_modules/typescript/lib"
+  "typescript.tsdk": "/workspace/app/node_modules/typescript/lib",
+  "chatgpt.openOnStartup": true
 }
