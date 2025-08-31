@@ -2,7 +2,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { serverError, baseServerResponse } from "@/api/trpc";
-import { getTableColumns, eq, desc, like, and, inArray, sql } from "drizzle-orm";
+import { getTableColumns, eq, ne, desc, like, and, inArray, sql } from "drizzle-orm";
 import { gameAsset, gameAssetTag } from "@/drizzle/schema";
 import { actionLog, contentTag } from "@/drizzle/schema";
 import { gameAssetValidator } from "@/validators/asset";
@@ -16,6 +16,39 @@ import { gameAssetSchema } from "@/validators/asset";
 import type { DrizzleClient } from "@/server/db";
 
 export const gameAssetRouter = createTRPCRouter({
+  getAnimationNameTags: publicProcedure
+    .input(
+      z.object({
+        selected: z.array(z.string()).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Fetch all animation names filtered by selected tokens (AND semantics)
+      const names = await ctx.drizzle.query.gameAsset.findMany({
+        columns: { name: true },
+        where: and(
+          eq(gameAsset.type, "ANIMATION"),
+          ...(input.selected
+            ? input.selected.map((t) => like(gameAsset.name, `%${t}%`))
+            : []),
+        ),
+      });
+
+      // Build unique tokens from names by splitting on '-' and '_'
+      const tokenSet = new Set<string>();
+      for (const n of names) {
+        if (!n.name) continue;
+        const parts = n.name
+          .replace(/\d+/g, "")
+          .split(/[-_]+/)
+          .map((p) => p.trim())
+          .filter((p) => p.length > 1);
+        for (const p of parts) tokenSet.add(p);
+      }
+      const tags = Array.from(tokenSet);
+      tags.sort((a, b) => a.localeCompare(b));
+      return { tags };
+    }),
   getAllNames: publicProcedure
     .input(
       z.object({
@@ -45,16 +78,23 @@ export const gameAssetRouter = createTRPCRouter({
       .innerJoin(contentTag, eq(gameAssetTag.tagId, contentTag.id));
   }),
   getAllFolders: publicProcedure.query(async ({ ctx }) => {
+    // Return unique folders with counts
     return await ctx.drizzle
-      .selectDistinct({ folder: gameAsset.folder })
+      .select({
+        folder: gameAsset.folder,
+        count: sql<number>`count(*)`.mapWith(Number),
+      })
       .from(gameAsset)
-      .where(sql`${gameAsset.folder} != ''`);
+      .where(sql`${gameAsset.folder} != ''`)
+      .groupBy(gameAsset.folder)
+      .orderBy(gameAsset.folder);
   }),
   getAll: publicProcedure
     .input(
       gameAssetSchema.extend({
         cursor: z.number().nullish(),
         limit: z.number().min(1).max(500),
+        nameTokens: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -69,8 +109,13 @@ export const gameAssetRouter = createTRPCRouter({
         .where(
           and(
             ...(input.name ? [like(gameAsset.name, `%${input.name}%`)] : []),
-            ...(input.type ? [eq(gameAsset.type, input.type)] : []),
+            ...(input.type
+              ? [eq(gameAsset.type, input.type)]
+              : [ne(gameAsset.type, "ANIMATION")]),
             ...(input.tags ? [inArray(contentTag.name, input.tags)] : []),
+            ...(input.nameTokens
+              ? input.nameTokens.map((t) => like(gameAsset.name, `%${t}%`))
+              : []),
             ...(input.folder ? [like(gameAsset.folder, `%${input.folder}%`)] : []),
           ),
         )

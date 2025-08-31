@@ -6,12 +6,13 @@ import {
   toOptions,
 } from "@/layout/ContentFiltering";
 import { GameAssetTypes } from "@/drizzle/constants";
+import { api } from "@/app/_trpc/client";
 
 interface GameAssetFilteringProps {
   state: GameAssetFilteringState;
 }
 
-const makeGameAssetSchema = () =>
+const makeGameAssetSchema = (folderOptions: { value: string; label: string }[]) =>
   defineFilteringSchema({
     fields: [
       { id: "name", label: "Name", type: "text", defaultValue: "" },
@@ -19,19 +20,36 @@ const makeGameAssetSchema = () =>
         id: "type",
         label: "Type",
         type: "single-select",
-        defaultValue: "STATIC",
-        includeNone: false,
-        emptyValues: [],
-        options: toOptions(GameAssetTypes),
+        defaultValue: "ALL",
+        includeNone: true,
+        emptyValues: ["ALL"],
+        noneOption: { value: "ALL", label: "All" },
+        options: toOptions(GameAssetTypes.filter((type) => type !== "ANIMATION")),
       },
-      { id: "folder", label: "Folder", type: "text", defaultValue: "" },
+      {
+        id: "folder",
+        label: "Folder",
+        type: "single-select",
+        defaultValue: "None",
+        includeNone: true,
+        emptyValues: ["None"],
+        noneOption: { value: "None", label: "All" },
+        options: folderOptions,
+      },
     ] as const,
   });
 
 const GameAssetFiltering: React.FC<GameAssetFilteringProps> = (props) => {
+  // Fetch folders with counts to populate dropdown
+  const { data: folders } = api.gameAsset.getAllFolders.useQuery(undefined);
+  const folderOptions = (folders ?? [])
+    .filter((f) => f.folder && f.folder.length > 0)
+    .map((f) => ({ value: f.folder, label: `${f.folder} (${f.count})` }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   return (
     <ContentFiltering
-      schema={makeGameAssetSchema()}
+      schema={makeGameAssetSchema(folderOptions)}
       state={props.state.cf}
       triggerButtonId="filter-assets"
     />
@@ -41,10 +59,12 @@ const GameAssetFiltering: React.FC<GameAssetFilteringProps> = (props) => {
 export default GameAssetFiltering;
 
 export const getFilter = (state: GameAssetFilteringState) =>
-  buildFilter(state.cf, makeGameAssetSchema());
+  // Build with an empty options list; options don't affect filter shape
+  buildFilter(state.cf, makeGameAssetSchema([]));
 
 export const useFiltering = () => {
-  const cf = useContentFiltering(makeGameAssetSchema());
+  // Initialize with empty folder options; will be replaced at render time
+  const cf = useContentFiltering(makeGameAssetSchema([]));
   return {
     ...cf.values,
     cf,
