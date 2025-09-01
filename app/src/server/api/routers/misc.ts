@@ -12,6 +12,7 @@ import {
   userRewards,
   emailReminder,
   supportReview,
+  visitorLog,
 } from "@/drizzle/schema";
 import { canAwardReputation } from "@/utils/permissions";
 import { nanoid } from "nanoid";
@@ -29,6 +30,41 @@ import { Sentiment } from "@/drizzle/constants";
 import type { DrizzleClient } from "@/server/db";
 
 export const miscRouter = createTRPCRouter({
+  trackVisitor: publicProcedure
+    .input(
+      z.object({
+        ref: z.string().max(191).optional(),
+        utmSource: z.string().max(191).optional(),
+      }),
+    )
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      // Only track if not logged in
+      if (ctx.userId) return { success: true, message: "Already logged in" };
+      const ip = ctx.userIp ?? "unknown";
+      if (ip === "unknown") return { success: false, message: "No IP detected" };
+
+      // Check if IP already recorded
+      const existing = await ctx.drizzle.query.visitorLog.findFirst({
+        where: eq(visitorLog.ip, ip),
+      });
+      if (existing) {
+        return { success: true, message: "IP already tracked" };
+      }
+
+      // Insert new visitor
+      const result = await ctx.drizzle.insert(visitorLog).values({
+        id: nanoid(),
+        ip,
+        ref: input.ref,
+        utmSource: input.utmSource,
+        userAgent: ctx.userAgent,
+      });
+      if (result.rowsAffected === 0) {
+        return { success: false, message: "Failed to insert visitor" };
+      }
+      return { success: true, message: "Visitor tracked" };
+    }),
   getAllGameAssetNames: publicProcedure.query(async ({ ctx }) => {
     return await fetchGameAssets(ctx.drizzle);
   }),

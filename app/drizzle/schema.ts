@@ -3760,3 +3760,27 @@ export const referralSource = mysqlTable("ReferralSource", {
   userId: varchar("userId", { length: 191 }).notNull(),
   source: varchar("source", { length: 191 }).notNull(),
 });
+
+// Tracks unique anonymous visitors before account creation
+export const visitorLog = mysqlTable(
+  "VisitorLog",
+  {
+    id: varchar("id", { length: 191 }).primaryKey().notNull(),
+    ip: varchar("ip", { length: 191 }).notNull(),
+    ref: varchar("ref", { length: 191 }),
+    utmSource: varchar("utmSource", { length: 191 }),
+    userAgent: varchar("userAgent", { length: 191 }),
+    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      ipUnique: uniqueIndex("VisitorLog_ip_key").on(table.ip),
+      refIdx: index("VisitorLog_ref_idx").on(table.ref),
+      utmSourceIdx: index("VisitorLog_utmSource_idx").on(table.utmSource),
+      createdAtIdx: index("VisitorLog_createdAt_idx").on(table.createdAt),
+    };
+  },
+);
+export type VisitorLog = InferSelectModel<typeof visitorLog>;

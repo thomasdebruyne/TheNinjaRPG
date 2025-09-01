@@ -24,6 +24,8 @@ import { IMG_FRONTPAGE_SCREENSHOT_GLOBAL } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_SECTOR } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_VILLAGE } from "@/drizzle/constants";
 import type { CarouselApi } from "@/components/ui/carousel";
+import { api } from "@/app/_trpc/client";
+import { useUser } from "@clerk/nextjs";
 
 const Welcome: React.FC = () => {
   // Carousel state
@@ -357,6 +359,10 @@ export default Welcome;
 
 function SetReferal() {
   const searchParams = useSearchParams();
+  const { isSignedIn, isLoaded } = useUser();
+  const { mutate: trackVisitor } = api.misc.trackVisitor.useMutation({
+    onMutate: undefined,
+  });
   useEffect(() => {
     // Set reference user
     const ref = searchParams?.get("ref");
@@ -364,6 +370,14 @@ function SetReferal() {
     // Source
     const utm_source = searchParams?.get("utm_source");
     if (utm_source) localStorage.setItem("utm_source", utm_source);
-  }, [searchParams]);
+    // Track anonymous visitor once
+    const alreadyTracked = localStorage.getItem("visitor_tracked");
+    if (!alreadyTracked && isLoaded && !isSignedIn) {
+      const savedRef = localStorage.getItem("ref") ?? undefined;
+      const savedUtm = localStorage.getItem("utm_source") ?? undefined;
+      trackVisitor({ ref: savedRef, utmSource: savedUtm });
+      localStorage.setItem("visitor_tracked", "1");
+    }
+  }, [searchParams, isLoaded, isSignedIn, trackVisitor]);
   return null;
 }
