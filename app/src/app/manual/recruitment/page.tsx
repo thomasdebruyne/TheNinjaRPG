@@ -36,6 +36,7 @@ import VisitorFiltering, {
   getFilter as getVisitorFilter,
 } from "@/layout/VisitorFiltering";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AbTestResults from "@/layout/AbTestResults";
 
 export default function ManualRecruitment() {
   const { data: currentUser } = useUserData();
@@ -331,6 +332,8 @@ export default function ManualRecruitment() {
           </div>
         )}
       </ContentBox>
+
+      {allowed && <AbTestResults />}
 
       {allowed && (
         <ContentBox

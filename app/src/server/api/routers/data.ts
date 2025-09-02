@@ -10,6 +10,7 @@ import {
   userSkill,
   referralSource,
   paypalTransaction,
+  abEvent,
   visitorLog,
   historicalIp,
   questHistory,
@@ -69,6 +70,51 @@ import { quest } from "@/drizzle/schema";
 import { QuestTypes, QuestRewardMetrics } from "@/drizzle/constants";
 
 export const dataRouter = createTRPCRouter({
+  // AB tests summaries (protected)
+  getAbTests: protectedProcedure.query(async ({ ctx }) => {
+    // Query
+    const user = await fetchUser(ctx.drizzle, ctx.userId);
+    // Guard
+    if (!canViewRecruitmentAnalytics(user.role)) {
+      throw serverError("UNAUTHORIZED", "Insufficient permissions");
+    }
+    // Query
+    const rows = await ctx.drizzle
+      .select({
+        experiment: abEvent.experiment,
+        variant: abEvent.variant,
+        event: abEvent.event,
+        count: sql<number>`COUNT(${abEvent.id})`.mapWith(Number),
+      })
+      .from(abEvent)
+      .groupBy(abEvent.experiment, abEvent.variant, abEvent.event)
+      .orderBy(asc(abEvent.experiment), asc(abEvent.variant));
+
+    const experiments = new Map<
+      string,
+      Record<string, { loaded: number; register: number }>
+    >();
+    rows.forEach((r) => {
+      const exp = r.experiment ?? "";
+      const variant = r.variant ?? "";
+      const event = r.event ?? "";
+      const count = Number(r.count ?? 0);
+      if (!experiments.has(exp)) experiments.set(exp, {});
+      const map = experiments.get(exp)!;
+      if (!map[variant]) map[variant] = { loaded: 0, register: 0 };
+      if (event === "loaded") map[variant].loaded += count;
+      if (event === "register") map[variant].register += count;
+    });
+
+    return Array.from(experiments.entries()).map(([experiment, variants]) => ({
+      experiment,
+      variants: Object.entries(variants).map(([variant, vals]) => ({
+        variant,
+        loaded: vals.loaded,
+        register: vals.register,
+      })),
+    }));
+  }),
   // Visitor analytics
   getVisitorUtmSources: protectedProcedure.query(async ({ ctx }) => {
     // Query
@@ -189,10 +235,7 @@ export const dataRouter = createTRPCRouter({
           ),
         ctx.drizzle
           .select({
-            totalUsd:
-              sql<number>`COALESCE(SUM(CASE WHEN ${paypalTransaction.currency} = 'USD' THEN ${paypalTransaction.amount} ELSE 0 END), 0)`.mapWith(
-                Number,
-              ),
+            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
           })
           .from(paypalTransaction)
           .innerJoin(
@@ -274,10 +317,7 @@ export const dataRouter = createTRPCRouter({
       const rows = await ctx.drizzle
         .select({
           source: referralSource.source,
-          totalUsd:
-            sql<number>`COALESCE(SUM(CASE WHEN ${paypalTransaction.currency} = 'USD' THEN ${paypalTransaction.amount} ELSE 0 END), 0)`.mapWith(
-              Number,
-            ),
+          totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
         })
         .from(referralSource)
         .leftJoin(

@@ -1989,6 +1989,13 @@
       "when": 1756819572724,
       "tag": "0283_futuristic_annihilus",
       "breakpoints": false
+    },
+    {
+      "idx": 284,
+      "version": "5",
+      "when": 1756833695437,
+      "tag": "0284_first_tenebrous",
+      "breakpoints": false
     }
   ]
 }

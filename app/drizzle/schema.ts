@@ -3755,11 +3755,20 @@ export const cannedResponseRelations = relations(cannedResponse, ({ one }) => ({
 /**
  * Internal analytics data
  */
-export const referralSource = mysqlTable("ReferralSource", {
-  id: varchar("id", { length: 191 }).primaryKey().notNull(),
-  userId: varchar("userId", { length: 191 }).notNull(),
-  source: varchar("source", { length: 191 }).notNull(),
-});
+export const referralSource = mysqlTable(
+  "ReferralSource",
+  {
+    id: varchar("id", { length: 191 }).primaryKey().notNull(),
+    userId: varchar("userId", { length: 191 }).notNull(),
+    source: varchar("source", { length: 191 }).notNull(),
+  },
+  (table) => {
+    return {
+      userIdIdx: index("ReferralSource_userId_idx").on(table.userId),
+      sourceIdx: index("ReferralSource_source_idx").on(table.source),
+    };
+  },
+);
 
 export const abEvent = mysqlTable(
   "AbEvent",
