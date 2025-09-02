@@ -463,7 +463,14 @@ export type QuestTypeWithMaxAttempts = (typeof QuestTypesWithMaxAttempts)[number
 
 export const SmileyEmotions = ["like", "love", "laugh"] as const;
 
-export const TrainingSpeeds = ["15min", "1hr", "4hrs", "8hrs", "12hrs", "24hrs"] as const;
+export const TrainingSpeeds = [
+  "15min",
+  "1hr",
+  "4hrs",
+  "8hrs",
+  "12hrs",
+  "24hrs",
+] as const;
 export type TrainingSpeed = (typeof TrainingSpeeds)[number];
 
 export const JUTSU_MAX_RESIDUAL_EQUIPPED = 4;
@@ -608,6 +615,16 @@ export const RecruitmentMetricMax: Record<RecruitmentMetric, number> = {
   crimesA: 50,
   completedQuests: 50,
 };
+
+export const RECRUITMENT_CTR = 0.00944;
+export const RECRUITMENT_GOALS = {
+  CTR_PERCENT: 1,
+  SIGNUP_RATE_PERCENT: 10,
+  LEVEL_RATE_PERCENT: 40,
+  RANK_RATE_PERCENT: 30,
+  PVP_RATE_PERCENT: 5,
+  CLICK_VALUE_USD: 0.07,
+} as const;
 
 // Recruitment rewards config
 export const RECRUITMENT_REWARDS = [
@@ -1207,15 +1224,15 @@ export const IMG_OCCUPATION_CRAFTING =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJ7YhkcAXKPBOUWGyFuM4DlL1v5HNTZhkte0z6";
 
 export const IMG_FRONTPAGE_SCREENSHOT_COMBAT =
-  "https://utfs.io/f/Hzww9EQvYURJmap513HE4IMO5Goa7cgLxPJ0VC6lU8vbt1Ap";
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJliyD90rWYxAsuC7ofQn9pM45OD0ERqkdBXJU";
 export const IMG_FRONTPAGE_SCREENSHOT_JUTSUS =
-  "https://utfs.io/f/Hzww9EQvYURJhf79QHMfUBdnwAX5LTajlNc4mrgzi0RJtqpM";
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJyD4wioukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp";
 export const IMG_FRONTPAGE_SCREENSHOT_GLOBAL =
-  "https://utfs.io/f/Hzww9EQvYURJn24vk3mojJ0EqeDCvBrNmZaXVdY97gSpOWiA";
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJeCMiuXvyV3OvUJQExAi0bGoIZDF74LqSnHRd";
 export const IMG_FRONTPAGE_SCREENSHOT_SECTOR =
-  "https://utfs.io/f/Hzww9EQvYURJdVdE0WP62PI3ciLaYzgVX8FopBADxSrGmvQl";
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJYfcD9oOMAlNnPZ41ev6fCGcFK3hmjX9I8W7d";
 export const IMG_FRONTPAGE_SCREENSHOT_VILLAGE =
-  "https://utfs.io/f/Hzww9EQvYURJAPlRYqoZUC4muiGcQNzjfEndY5y1w20B8hTW";
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJzuU9cvZemvaQu94EYJs8HpxVzofny6iPtbgC";
 
 export const IMG_FRONTPAGE_SCREENSHOT_COMBAT_HR =
   "https://utfs.io/f/Hzww9EQvYURJhuLmX5MfUBdnwAX5LTajlNc4mrgzi0RJtqpM";
@@ -1450,8 +1467,10 @@ export const IMG_LAYOUT_HANDSIGN_HALLOWEEN =
 export const IMG_LAYOUT_WELCOME_IMG =
   "https://tnr-storage-cdn.b-cdn.net/welcomeimage_compressed.webp";
 // "https://utfs.io/f/Hzww9EQvYURJqbkFzRdkOZgJQ8mGRcdx3SsWvPelyYFTt5Vn";
+// export const IMG_LOGO_FULL =
+//   "https://utfs.io/f/Hzww9EQvYURJ8b0eqBkkp45TvAnoIBa0rtCf1lbyXYjVKQ2q";
 export const IMG_LOGO_FULL =
-  "https://utfs.io/f/Hzww9EQvYURJ8b0eqBkkp45TvAnoIBa0rtCf1lbyXYjVKQ2q";
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJHeJzt0QvYURJhgs76VZtf9wxpMa13Cq0iOnr";
 export const IMG_LOGO_SHORT =
   "https://utfs.io/f/Hzww9EQvYURJCClYWI26OYrIJuNP1pvSyz29edFtKbngjRcA";
 export const IMG_LOADER =

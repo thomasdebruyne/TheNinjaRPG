@@ -13,6 +13,7 @@ import {
   emailReminder,
   supportReview,
   visitorLog,
+  abEvent,
 } from "@/drizzle/schema";
 import { canAwardReputation } from "@/utils/permissions";
 import { nanoid } from "nanoid";
@@ -52,15 +53,26 @@ export const miscRouter = createTRPCRouter({
         return { success: true, message: "IP already tracked" };
       }
 
-      // Insert new visitor
-      const result = await ctx.drizzle.insert(visitorLog).values({
-        id: nanoid(),
-        ip,
-        ref: input.ref,
-        utmSource: input.utmSource,
-        userAgent: ctx.userAgent,
-      });
-      if (result.rowsAffected === 0) {
+      // Insert new visitor and log AB welcome loaded event (if applicable) in parallel
+      const [visitorResult] = await Promise.all([
+        ctx.drizzle.insert(visitorLog).values({
+          id: nanoid(),
+          ip,
+          ref: input.ref,
+          utmSource: input.utmSource,
+          userAgent: ctx.userAgent,
+        }),
+        ctx.abWelcomeVariant
+          ? ctx.drizzle.insert(abEvent).values({
+              id: nanoid(),
+              userId: null,
+              experiment: "welcome_ab",
+              variant: ctx.abWelcomeVariant,
+              event: "loaded",
+            })
+          : Promise.resolve(null),
+      ]);
+      if (visitorResult.rowsAffected === 0) {
         return { success: false, message: "Failed to insert visitor" };
       }
       return { success: true, message: "Visitor tracked" };

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { and, eq, gte, lte, sql, asc, inArray, or, ne } from "drizzle-orm";
+import { and, eq, gte, lte, sql, asc, inArray, or, ne, gt } from "drizzle-orm";
 import {
   userJutsu,
   userItem,
@@ -9,6 +9,9 @@ import {
   skillTree,
   userSkill,
   referralSource,
+  paypalTransaction,
+  visitorLog,
+  historicalIp,
   questHistory,
 } from "@/drizzle/schema";
 import {
@@ -23,6 +26,7 @@ import {
   BattleDataEntryType,
   RecruitmentMetrics,
   RecruitmentMetricMax,
+  RECRUITMENT_CTR,
 } from "@/drizzle/constants";
 import {
   createTRPCRouter,
@@ -51,21 +55,184 @@ import type {
   UserRank,
   RankedRank,
 } from "@/drizzle/constants";
-import { canChangeContent, canViewRecruitmentAnalytics } from "@/utils/permissions";
+import {
+  canChangeContent,
+  canViewRecruitmentAnalytics,
+  canViewRevenueAnalytics,
+} from "@/utils/permissions";
 import type { QueryCondition } from "@/utils/typeutils";
 import { RANKED_RANKS } from "@/drizzle/constants";
 import { logQueueLengths } from "@/drizzle/schema";
 import { getRankedRank } from "@/libs/ranked_pvp";
 import { fetchSanninRankedPlayers } from "@/server/api/routers/pvprank";
 import { quest } from "@/drizzle/schema";
-import {
-  QuestTypes,
-  QuestRewardMetrics,
-  type QuestRewardMetric,
-} from "@/drizzle/constants";
-import type { ObjectiveRewardType, AllObjectivesType } from "@/validators/objectives";
+import { QuestTypes, QuestRewardMetrics } from "@/drizzle/constants";
 
 export const dataRouter = createTRPCRouter({
+  // Visitor analytics
+  getVisitorUtmSources: protectedProcedure.query(async ({ ctx }) => {
+    // Query
+    const user = await fetchUser(ctx.drizzle, ctx.userId);
+    // Guard
+    if (!canViewRecruitmentAnalytics(user.role)) {
+      throw serverError("UNAUTHORIZED", "Insufficient permissions");
+    }
+    // Query
+    const rows = await ctx.drizzle
+      .selectDistinct({ utmSource: visitorLog.utmSource })
+      .from(visitorLog)
+      .where(
+        and(sql`${visitorLog.utmSource} IS NOT NULL`, ne(visitorLog.utmSource, "")),
+      )
+      .orderBy(asc(visitorLog.utmSource));
+    return rows.map((r) => r.utmSource!).filter((v) => typeof v === "string");
+  }),
+  getRecruitmentMainMetrics: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        utmSource: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canViewRecruitmentAnalytics(user.role)) {
+        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      }
+      // Filtering
+      const visitorWhere: QueryCondition[] = [];
+      if (input.startDate)
+        visitorWhere.push(gte(visitorLog.createdAt, new Date(input.startDate)));
+      if (input.endDate)
+        visitorWhere.push(lte(visitorLog.createdAt, new Date(input.endDate)));
+      if (input.utmSource && input.utmSource.length > 0) {
+        visitorWhere.push(eq(visitorLog.utmSource, input.utmSource));
+      } else {
+        visitorWhere.push(ne(visitorLog.utmSource, ""));
+      }
+
+      const [
+        visitorsRow,
+        signupsRow,
+        leveledSignupsRow,
+        nonStudentSignupsRow,
+        pvpSignupsRow,
+        totalRevenueRow,
+      ] = await Promise.all([
+        ctx.drizzle
+          .select({
+            count: sql<number>`COUNT(${visitorLog.id})`.mapWith(Number),
+          })
+          .from(visitorLog)
+          .where(visitorWhere.length > 0 ? and(...visitorWhere) : undefined),
+        ctx.drizzle
+          .select({
+            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+            ),
+          ),
+        ctx.drizzle
+          .select({
+            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+              gt(userData.level, 1),
+            ),
+          ),
+        ctx.drizzle
+          .select({
+            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+              ne(userData.rank, "STUDENT"),
+            ),
+          ),
+        ctx.drizzle
+          .select({
+            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+              gt(userData.pvpFights, 0),
+            ),
+          ),
+        ctx.drizzle
+          .select({
+            totalUsd:
+              sql<number>`COALESCE(SUM(CASE WHEN ${paypalTransaction.currency} = 'USD' THEN ${paypalTransaction.amount} ELSE 0 END), 0)`.mapWith(
+                Number,
+              ),
+          })
+          .from(paypalTransaction)
+          .innerJoin(
+            userData,
+            or(
+              eq(paypalTransaction.affectedUserId, userData.userId),
+              eq(paypalTransaction.createdById, userData.userId),
+            ),
+          )
+          .innerJoin(historicalIp, eq(historicalIp.userId, userData.userId))
+          .innerJoin(visitorLog, eq(visitorLog.ip, historicalIp.ip))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+            ),
+          ),
+      ]);
+
+      const clicks = visitorsRow?.[0]?.count ?? 0;
+      const signups = signupsRow?.[0]?.count ?? 0;
+      const signupRate = clicks > 0 ? signups / clicks : 0;
+      const leveledSignups = leveledSignupsRow?.[0]?.count ?? 0;
+      const nonStudentSignups = nonStudentSignupsRow?.[0]?.count ?? 0;
+      const pvpSignups = pvpSignupsRow?.[0]?.count ?? 0;
+      const totalRevenueUsd = totalRevenueRow?.[0]?.totalUsd ?? 0;
+      const clickValueUsd = clicks > 0 ? totalRevenueUsd / clicks : 0;
+
+      return {
+        ctr: RECRUITMENT_CTR,
+        signupRate,
+        visitors: clicks,
+        signups,
+        leveledBeyond1: leveledSignups,
+        nonStudentSignups,
+        pvpSignups,
+        clickValueUsd,
+      };
+    }),
   // Recruitment analytics
   getReferralSources: protectedProcedure.query(async ({ ctx }) => {
     // Query
@@ -86,6 +253,46 @@ export const dataRouter = createTRPCRouter({
     set.add("Recruited");
     return Array.from(set.values());
   }),
+  getRevenueByReferralSource: protectedProcedure
+    .input(
+      z.object({ startDate: z.string().optional(), endDate: z.string().optional() }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canViewRevenueAnalytics(user.role)) {
+        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      }
+      // Filtering
+      const whereClauses: QueryCondition[] = [ne(referralSource.source, "")];
+      if (input.startDate)
+        whereClauses.push(gte(paypalTransaction.createdAt, new Date(input.startDate)));
+      if (input.endDate)
+        whereClauses.push(lte(paypalTransaction.createdAt, new Date(input.endDate)));
+
+      const rows = await ctx.drizzle
+        .select({
+          source: referralSource.source,
+          totalUsd:
+            sql<number>`COALESCE(SUM(CASE WHEN ${paypalTransaction.currency} = 'USD' THEN ${paypalTransaction.amount} ELSE 0 END), 0)`.mapWith(
+              Number,
+            ),
+        })
+        .from(referralSource)
+        .leftJoin(
+          paypalTransaction,
+          or(
+            eq(paypalTransaction.createdById, referralSource.userId),
+            eq(paypalTransaction.affectedUserId, referralSource.userId),
+          ),
+        )
+        .where(and(...whereClauses))
+        .groupBy(referralSource.source)
+        .orderBy(asc(referralSource.source));
+
+      return rows;
+    }),
   getRecruitmentLevelDistribution: protectedProcedure
     .input(
       z.object({

@@ -7,6 +7,7 @@ import { historicalIp } from "@/drizzle/schema";
 import { secondsFromNow } from "@/utils/time";
 import { checkForBadWords } from "@/utils/profanity";
 import { referralSource } from "@/drizzle/schema";
+import { abEvent } from "@/drizzle/schema";
 import {
   bloodline,
   bloodlineRolls,
@@ -102,6 +103,18 @@ export const registerRouter = createTRPCRouter({
           goal: selectedBloodline.rank,
           used: 1,
         }),
+        // Log AB variant used for welcome page when registering, if present
+        ...(ctx.abWelcomeVariant
+          ? [
+              ctx.drizzle.insert(abEvent).values({
+                id: nanoid(),
+                userId: ctx.userId,
+                experiment: "welcome_ab",
+                variant: ctx.abWelcomeVariant,
+                event: "register",
+              }),
+            ]
+          : []),
         ...(ctx.userIp && !currentIp
           ? [
               ctx.drizzle.insert(historicalIp).values({

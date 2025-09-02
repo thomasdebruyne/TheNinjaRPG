@@ -29,6 +29,11 @@ export const canViewRecruitmentAnalytics = (role: UserRole) => {
   );
 };
 
+// Revenue analytics visibility (coding admin only)
+export const canViewRevenueAnalytics = (role: UserRole) => {
+  return ["CODING-ADMIN", "CONTENT-ADMIN"].includes(role);
+};
+
 export const canPlayHiddenQuests = (role: UserRole) => {
   return ["CONTENT", "EVENT", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
 };

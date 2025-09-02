@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 // import type { NextRequest } from "next/server";
 // import * as UAParser from "ua-parser-js";
 
@@ -41,6 +42,18 @@ export default clerkMiddleware(
     }
     // Ensure valid user agent
     // return uaMiddleware(request);
+    // A/B test: landing page split between welcome-old and welcome-new (only for signed-out users)
+    const { pathname } = request.nextUrl;
+    const { userId } = await auth();
+    if (pathname === "/" && !userId) {
+      const cookie = request.cookies.get("ab_welcome_variant");
+      const variant = cookie?.value ?? (Math.random() < 0.5 ? "new" : "old");
+      const url = request.nextUrl.clone();
+      url.pathname = variant === "new" ? "/welcome-new" : "/welcome-old";
+      const res = NextResponse.rewrite(url);
+      if (!cookie) res.cookies.set("ab_welcome_variant", variant, { path: "/" });
+      return res;
+    }
   },
   { clockSkewInMs: 1000 * 60 * 30 },
 );

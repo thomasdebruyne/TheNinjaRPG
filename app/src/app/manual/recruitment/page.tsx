@@ -5,7 +5,10 @@ import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import { api } from "@/app/_trpc/client";
 import { useUserData } from "@/utils/UserContext";
-import { canViewRecruitmentAnalytics } from "@/utils/permissions";
+import {
+  canViewRecruitmentAnalytics,
+  canViewRevenueAnalytics,
+} from "@/utils/permissions";
 import RecruitmentFiltering, {
   useFiltering as useRecruitmentFiltering,
   getFilter as getRecruitmentFilter,
@@ -15,6 +18,7 @@ import {
   DailyMeanStdChart,
   DailyCountsBySourceChart,
 } from "@/layout/UsageStatistics";
+import { RevenueBySourceBar } from "@/layout/UsageStatistics";
 import {
   Select,
   SelectContent,
@@ -22,7 +26,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RecruitmentMetrics, type RecruitmentMetric } from "@/drizzle/constants";
+import {
+  RecruitmentMetrics,
+  RECRUITMENT_GOALS,
+  type RecruitmentMetric,
+} from "@/drizzle/constants";
+import VisitorFiltering, {
+  useFiltering as useVisitorFiltering,
+  getFilter as getVisitorFilter,
+} from "@/layout/VisitorFiltering";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ManualRecruitment() {
   const { data: currentUser } = useUserData();
@@ -34,6 +47,19 @@ export default function ManualRecruitment() {
     endDate?: string;
     metric?: RecruitmentMetric;
   };
+
+  const visitorFilterState = useVisitorFiltering();
+  const visitorFilter = getVisitorFilter(visitorFilterState) as {
+    startDate?: string;
+    endDate?: string;
+    utmSource?: string;
+  };
+
+  const { data: mainMetrics, isFetching: isFetchingMain } =
+    api.data.getRecruitmentMainMetrics.useQuery(visitorFilter, {
+      staleTime: 1000 * 60,
+      enabled: allowed,
+    });
 
   const [metric, setMetric] = React.useState<RecruitmentMetric>("level");
   const metricLabel =
@@ -60,12 +86,41 @@ export default function ManualRecruitment() {
       enabled: allowed,
     });
 
+  const canSeeRevenue = canViewRevenueAnalytics(currentUser?.role ?? "USER");
+  const { data: revenueBySource, isFetching: isFetchingRevenue } =
+    api.data.getRevenueByReferralSource.useQuery(
+      {},
+      { enabled: allowed && canSeeRevenue },
+    );
+
+  const goals = {
+    ctr: RECRUITMENT_GOALS.CTR_PERCENT,
+    signupRate: RECRUITMENT_GOALS.SIGNUP_RATE_PERCENT,
+    levelRate: RECRUITMENT_GOALS.LEVEL_RATE_PERCENT,
+    rankRate: RECRUITMENT_GOALS.RANK_RATE_PERCENT,
+    pvpRate: RECRUITMENT_GOALS.PVP_RATE_PERCENT,
+  } as const;
+
+  const getColorClass = (valuePct: number, goalPct: number) => {
+    if (valuePct >= goalPct) return "text-green-600";
+    if (valuePct >= goalPct * 0.9) return "text-orange-500";
+    return "text-red-600";
+  };
+
+  const getClickValueColor = (valueUsd: number) => {
+    const goal = RECRUITMENT_GOALS.CLICK_VALUE_USD;
+    if (valueUsd >= goal) return "text-green-600";
+    if (valueUsd >= goal * 0.9) return "text-orange-500";
+    return "text-red-600";
+  };
+
   return (
     <>
       <ContentBox
         title="Recruitment"
         subtitle="Overview of recruitment statistics"
         defaultBackHref="/manual"
+        topRightContent={<VisitorFiltering state={visitorFilterState} />}
       >
         {!allowed && <p>You do not have permission to view this page.</p>}
         {allowed && (
@@ -73,6 +128,207 @@ export default function ManualRecruitment() {
             This page shows recruitment insights, which are used to track user adoption
             and optimize game experience.
           </p>
+        )}
+
+        {allowed && (
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">
+                  Click-Through Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading CTR" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.ctr ?? 0) * 100,
+                        goals.ctr,
+                      )}`}
+                    >
+                      {((mainMetrics?.ctr ?? 0) * 100).toFixed(3)}%
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.ctr}%
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Signup Rate</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading signup rate" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.signupRate ?? 0) * 100,
+                        goals.signupRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.signupRate ?? 0) * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.signupRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    {mainMetrics.signups} / {mainMetrics.visitors}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Leveled Beyond 1</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading leveled signups" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.leveledBeyond1 ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
+                              100
+                          : 0,
+                        goals.levelRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.leveledBeyond1 ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
+                          100
+                        : 0
+                      ).toFixed(1)}
+                      %
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.levelRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    out of {mainMetrics.signups} signups
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Click Value (USD)</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading click value" />
+                ) : (
+                  <div
+                    className={`text-xl font-bold ${getClickValueColor(
+                      Number(mainMetrics?.clickValueUsd ?? 0),
+                    )}`}
+                  >
+                    ${mainMetrics?.clickValueUsd?.toFixed(2) ?? "0.00"}
+                  </div>
+                )}
+                <div className="text-xs text-foreground-muted">
+                  Total revenue / Paid Clicks (Goal: $
+                  {RECRUITMENT_GOALS.CLICK_VALUE_USD.toFixed(2)})
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">
+                  Beyond Student Rank
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading rank progress" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
+                              100
+                          : 0,
+                        goals.rankRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
+                          100
+                        : 0
+                      ).toFixed(1)}
+                      %
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.rankRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    out of {mainMetrics.signups} signups
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Did PvP Fight</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading PvP signups" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.pvpSignups ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
+                              100
+                          : 0,
+                        goals.pvpRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.pvpSignups ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
+                          100
+                        : 0
+                      ).toFixed(1)}
+                      %
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.pvpRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    {mainMetrics.pvpSignups} / {mainMetrics.signups}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </ContentBox>
 
@@ -163,6 +419,22 @@ export default function ManualRecruitment() {
             (!dailyBySource || dailyBySource.length === 0) && (
               <p>No data found for filters.</p>
             )}
+        </ContentBox>
+      )}
+
+      {allowed && canSeeRevenue && (
+        <ContentBox
+          title="Revenue by Referral Source"
+          subtitle="Sum of USD transactions grouped by referral source"
+          initialBreak={true}
+        >
+          {isFetchingRevenue && <Loader explanation="Loading revenue by source" />}
+          {revenueBySource && revenueBySource.length > 0 && (
+            <RevenueBySourceBar data={revenueBySource} title="Total USD" />
+          )}
+          {revenueBySource && revenueBySource.length === 0 && (
+            <p>No revenue data found.</p>
+          )}
         </ContentBox>
       )}
     </>

@@ -3761,6 +3761,29 @@ export const referralSource = mysqlTable("ReferralSource", {
   source: varchar("source", { length: 191 }).notNull(),
 });
 
+export const abEvent = mysqlTable(
+  "AbEvent",
+  {
+    id: varchar("id", { length: 191 }).primaryKey().notNull(),
+    userId: varchar("userId", { length: 191 }),
+    experiment: varchar("experiment", { length: 191 }).notNull(),
+    variant: varchar("variant", { length: 191 }).notNull(),
+    event: varchar("event", { length: 191 }).notNull(),
+    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      userIdIdx: index("AbEvent_userId_idx").on(table.userId),
+      experimentIdx: index("AbEvent_experiment_idx").on(table.experiment),
+      eventIdx: index("AbEvent_event_idx").on(table.event),
+      createdAtIdx: index("AbEvent_createdAt_idx").on(table.createdAt),
+    };
+  },
+);
+export type AbEvent = InferSelectModel<typeof abEvent>;
+
 // Tracks unique anonymous visitors before account creation
 export const visitorLog = mysqlTable(
   "VisitorLog",

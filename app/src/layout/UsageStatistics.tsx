@@ -301,6 +301,59 @@ export const DailyCountsBySourceChart: React.FC<DailyCountsBySourceProps> = (pro
   );
 };
 
+interface RevenueBySourceProps {
+  data: { source: string; totalUsd: number }[];
+  title: string;
+}
+
+export const RevenueBySourceBar: React.FC<RevenueBySourceProps> = (props) => {
+  const { data, title } = props;
+  const chartRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const ctx = chartRef?.current?.getContext("2d");
+    if (!ctx) return;
+
+    const labels = data.map((d) => d.source || "(none)");
+    const values = data.map((d) => d.totalUsd || 0);
+
+    const chart = new ChartJS(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: title,
+            data: values,
+            borderColor: "hsl(210 70% 45%)",
+            backgroundColor: "hsl(210 70% 60% / 0.6)",
+          },
+        ],
+      },
+      options: {
+        maintainAspectRatio: false,
+        responsive: true,
+        scales: {
+          x: { type: "category", title: { display: true, text: "Referral Source" } },
+          y: {
+            type: "linear",
+            title: { display: true, text: "USD" },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+
+    return () => chart.destroy();
+  }, [data, title]);
+
+  return (
+    <div className="relative w-[99%]" style={{ height: 360 }}>
+      <canvas ref={chartRef} id="revenueBySource"></canvas>
+    </div>
+  );
+};
+
 interface UsageStatsProps {
   usage: {
     battleWon: number;
