@@ -572,10 +572,22 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
             loading="lazy"
           />
           <div
-            className={`relative top-[100px] h-[15px] w-full shrink-0 bg-fill bg-repeat-x md:hidden`}
+            className={cn(
+              "relative h-[15px] w-full shrink-0 bg-fill bg-repeat-x md:hidden",
+              shownNotifications && shownNotifications.length > 0
+                ? "top-[100px]"
+                : "top-[80px]",
+            )}
             style={{ backgroundImage: `url(${IMG_LAYOUT_MOBILE_TOP})` }}
           ></div>
-          <div className="relative top-[100px] md:top-[-122px] flex flex-row z-10 h-full">
+          <div
+            className={cn(
+              "relative md:top-[-122px] flex flex-row z-10 h-full",
+              shownNotifications && shownNotifications.length > 0
+                ? "top-[100px]"
+                : "top-[80px]",
+            )}
+          >
             {/* LEFT SIDEBANNER DESKTOP */}
             <div className="hidden md:block relative w-[200px] lg:w-[250px] shrink-0">
               <div className="relative">
@@ -813,8 +825,6 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
 
                       // Check if it's any other interactive element
                       const isOtherInteractive =
-                        target.closest("button") ||
-                        target.closest("a") ||
                         target.closest("input") ||
                         target.closest("select") ||
                         target.closest("textarea");
@@ -828,7 +838,11 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                       const isInteractive =
                         isTabElement || isOtherInteractive || hasPointerCursor;
 
-                      if (!isInteractive) {
+                      const isButtonOrLink =
+                        target.tagName.toLowerCase() === "button" ||
+                        target.tagName.toLowerCase() === "a";
+
+                      if (!isInteractive || isButtonOrLink) {
                         setRightSideBarOpen(false);
                       }
                     }}
