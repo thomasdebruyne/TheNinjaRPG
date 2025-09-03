@@ -16,8 +16,8 @@ export default function SignupUser() {
           routing="path"
           appearance={{
             elements: {
-              rootBox: "w-full",
-              cardBox: "w-full",
+              rootBox: "!w-full",
+              cardBox: "!w-full",
             },
           }}
         />

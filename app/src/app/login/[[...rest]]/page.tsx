@@ -17,8 +17,8 @@ export default function LoginUser() {
           signUpUrl="/signup"
           appearance={{
             elements: {
-              rootBox: "w-full",
-              cardBox: "w-full",
+              rootBox: "!w-full",
+              cardBox: "!w-full",
             },
           }}
         />
