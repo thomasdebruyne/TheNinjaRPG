@@ -1996,6 +1996,13 @@
       "when": 1756833695437,
       "tag": "0284_first_tenebrous",
       "breakpoints": false
+    },
+    {
+      "idx": 285,
+      "version": "5",
+      "when": 1756837447735,
+      "tag": "0285_bright_sunfire",
+      "breakpoints": false
     }
   ]
 }

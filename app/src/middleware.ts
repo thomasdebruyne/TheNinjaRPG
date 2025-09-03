@@ -47,7 +47,7 @@ export default clerkMiddleware(
     const { userId } = await auth();
     if (pathname === "/" && !userId) {
       const cookie = request.cookies.get("ab_welcome_variant");
-      const variant = cookie?.value ?? (Math.random() < 0.5 ? "new" : "old");
+      const variant = cookie?.value ?? (Math.random() < 0.5 ? "treatment" : "control");
       const url = request.nextUrl.clone();
       url.pathname = variant === "new" ? "/welcome-new" : "/welcome-old";
       const res = NextResponse.rewrite(url);

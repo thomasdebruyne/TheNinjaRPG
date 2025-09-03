@@ -5,38 +5,45 @@ import ContentBox from "@/layout/ContentBox";
 import { api } from "@/app/_trpc/client";
 import Loader from "@/layout/Loader";
 import { Chart as ChartJS } from "chart.js/auto";
+import {
+  betaPosterior,
+  betaPdf,
+  kde,
+  mean,
+  quantile,
+  sampleBeta,
+} from "@/libs/statistics";
 
 type VariantAgg = { variant: string; loaded: number; register: number };
 type ExperimentAgg = { experiment: string; variants: VariantAgg[] };
 
-const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+// statistical helpers are imported from @/libs/statistics
 
-// Beta posterior moments with uniform prior Beta(1,1)
-const betaPosterior = (conversions: number, total: number) => {
-  const a = conversions + 1;
-  const b = total - conversions + 1;
-  const mean = a / (a + b);
-  const variance = (a * b) / ((a + b) ** 2 * (a + b + 1));
-  return { mean, variance };
-};
-
-// Standard normal CDF approximation
-const stdNormCDF = (x: number) => {
-  // Abramowitz and Stegun approximation
-  const t = 1 / (1 + 0.2316419 * Math.abs(x));
-  const d = 0.3989423 * Math.exp((-x * x) / 2);
-  let prob =
-    d *
-    t *
-    (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
-  if (x > 0) prob = 1 - prob;
-  return prob;
-};
-
-const normPDF = (x: number, mean: number, sd: number) => {
-  if (sd <= 0) return 0;
-  const z = (x - mean) / sd;
-  return (1 / (sd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * z * z);
+const inferControlTreatment = (
+  variants: VariantAgg[],
+): {
+  a?: VariantAgg;
+  b?: VariantAgg;
+  ambiguous: boolean;
+} => {
+  if (variants.length < 2) return { a: undefined, b: undefined, ambiguous: true };
+  const byHeuristic = [...variants].sort((x, y) => {
+    const rx = x.variant.toLowerCase();
+    const ry = y.variant.toLowerCase();
+    const score = (s: string) =>
+      (/(^|\b)(control|baseline|original)(\b|$)/i.test(s) ? -10 : 0) +
+      (/(^|\b)(treatment|variant\s*b)(\b|$)/i.test(s) ? 10 : 0) +
+      (/(^|\b)variant\s*a(\b|$)/i.test(s) ? -5 : 0) +
+      (/(^|\b)variant\s*b(\b|$)/i.test(s) ? 5 : 0);
+    return score(rx) - score(ry) || rx.localeCompare(ry);
+  });
+  if (byHeuristic.length < 2) return { a: undefined, b: undefined, ambiguous: true };
+  const aVar = byHeuristic[0]!;
+  const bVar = byHeuristic[1]!;
+  const ambiguous = !/(^|\b)(control|baseline|original|variant\s*a)(\b|$)/i.test(
+    aVar.variant,
+  );
+  return { a: aVar, b: bVar, ambiguous };
 };
 
 const DistributionChart: React.FC<{
@@ -91,51 +98,180 @@ const DistributionChart: React.FC<{
 };
 
 const ExperimentRow: React.FC<{ exp: ExperimentAgg }> = ({ exp }) => {
-  const [a, b] = useMemo(() => {
-    const vs = [...exp.variants].sort((x, y) => x.variant.localeCompare(y.variant));
-    return [vs[0], vs[1]] as [VariantAgg | undefined, VariantAgg | undefined];
-  }, [exp.variants]);
+  const { a, b, ambiguous } = useMemo(
+    () => inferControlTreatment(exp.variants),
+    [exp.variants],
+  );
 
-  if (!a || !b) return null;
+  const haveTwo = !!a && !!b;
+  const aV: VariantAgg = a ?? {
+    variant: exp.variants[0]?.variant ?? "Variant A",
+    loaded: 0,
+    register: 0,
+  };
+  const bV: VariantAgg = b ?? {
+    variant: exp.variants[1]?.variant ?? "Variant B",
+    loaded: 0,
+    register: 0,
+  };
 
-  const aStats = betaPosterior(a.register, Math.max(1, a.loaded));
-  const bStats = betaPosterior(b.register, Math.max(1, b.loaded));
-  const aMean = aStats.mean;
-  const bMean = bStats.mean;
-  const aSd = Math.sqrt(aStats.variance);
-  const bSd = Math.sqrt(bStats.variance);
-  const diffMean = bMean - aMean;
-  const diffSd = Math.sqrt(aSd * aSd + bSd * bSd);
-  const pBgtA = 1 - stdNormCDF((0 - diffMean) / diffSd);
-  const pAgtB = 1 - pBgtA;
-  const relLift = (bMean - aMean) / Math.max(1e-9, aMean);
+  const aPost = betaPosterior(aV.register, Math.max(1, aV.loaded));
+  const bPost = betaPosterior(bV.register, Math.max(1, bV.loaded));
+  const aMean = aPost.mean;
+  const bMean = bPost.mean;
 
-  const x = Array.from({ length: 200 }, (_, i) => i / 199);
-  const aPdf = x.map((xi) => normPDF(xi, clamp01(aMean), aSd));
-  const bPdf = x.map((xi) => normPDF(xi, clamp01(bMean), bSd));
+  // Monte Carlo posterior sampling
+  const SAMPLES = 8000;
+  const aSamples = useMemo(
+    () => Array.from({ length: SAMPLES }, () => sampleBeta(aPost.a, aPost.b)),
+    [aPost.a, aPost.b],
+  );
+  const bSamples = useMemo(
+    () => Array.from({ length: SAMPLES }, () => sampleBeta(bPost.a, bPost.b)),
+    [bPost.a, bPost.b],
+  );
 
-  const impX = Array.from({ length: 200 }, (_, i) => -0.5 + (i / 199) * 1.0);
-  const impPdf = impX.map((xi) => normPDF(xi, diffMean, diffSd));
-  // Build a smooth, filled shape for the improvement distribution
-  // Guard against undefined by defaulting to 0 for masked points
-  const posPdf = impX.map((xi, i) => (xi >= 0 ? (impPdf?.[i] ?? 0) : 0));
-  const negPdf = impX.map((xi, i) => (xi < 0 ? (impPdf?.[i] ?? 0) : 0));
+  const pBgtA = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i < SAMPLES; i++)
+      if ((bSamples[i] ?? 0) > (aSamples[i] ?? 0)) count++;
+    return count / SAMPLES;
+  }, [aSamples, bSamples]);
+
+  const impSamples = useMemo(
+    () => aSamples.map((x, i) => (bSamples[i] ?? 0) - x),
+    [aSamples, bSamples],
+  );
+
+  const aCI = useMemo(
+    () => [quantile(aSamples, 0.025), quantile(aSamples, 0.975)] as [number, number],
+    [aSamples],
+  );
+  const bCI = useMemo(
+    () => [quantile(bSamples, 0.025), quantile(bSamples, 0.975)] as [number, number],
+    [bSamples],
+  );
+
+  const relLiftMean = useMemo(() => {
+    const arr = new Array<number>(SAMPLES);
+    for (let i = 0; i < SAMPLES; i++)
+      arr[i] =
+        ((bSamples[i] ?? 0) - (aSamples[i] ?? 0)) / Math.max(1e-9, aSamples[i] ?? 0);
+    return mean(arr);
+  }, [aSamples, bSamples]);
+
+  // Beta PDFs over [0,1]
+  const x = useMemo(() => Array.from({ length: 200 }, (_, i) => i / 199), []);
+  const aPdf = useMemo(
+    () =>
+      x.map((xi) =>
+        betaPdf(Math.min(1 - 1e-9, Math.max(1e-9, xi)), aPost.a ?? 1, aPost.b ?? 1),
+      ),
+    [x, aPost.a, aPost.b],
+  );
+  const bPdf = useMemo(
+    () =>
+      x.map((xi) =>
+        betaPdf(Math.min(1 - 1e-9, Math.max(1e-9, xi)), bPost.a ?? 1, bPost.b ?? 1),
+      ),
+    [x, bPost.a, bPost.b],
+  );
+
+  // Improvement KDE on a smart grid based on quantiles
+  const impGrid = useMemo(() => {
+    const lo = Math.max(-1, quantile(impSamples, 0.01));
+    const hi = Math.min(1, quantile(impSamples, 0.99));
+    const a = Number.isFinite(lo) ? lo : -0.5;
+    const bnd = Number.isFinite(hi) ? hi : 0.5;
+    return Array.from({ length: 200 }, (_, i) => a + (i / 199) * (bnd - a));
+  }, [impSamples]);
+
+  const impPdf = useMemo(() => kde(impSamples, impGrid), [impSamples, impGrid]);
+  const posPdf = useMemo(
+    () => impGrid.map((xi, i) => (xi >= 0 ? (impPdf[i] ?? 0) : 0)),
+    [impGrid, impPdf],
+  );
+  const negPdf = useMemo(
+    () => impGrid.map((xi, i) => (xi < 0 ? (impPdf[i] ?? 0) : 0)),
+    [impGrid, impPdf],
+  );
+
+  // Observed rates
+  const aObserved = aV.loaded > 0 ? aV.register / aV.loaded : 0;
+  const bObserved = bV.loaded > 0 ? bV.register / bV.loaded : 0;
+
+  // Guardrails & notices
+  const MIN_CONVERSIONS = 100;
+  const MIN_EXPOSURES = 500;
+  const totalLoaded = aV.loaded + bV.loaded;
+  const trafficShareA = totalLoaded > 0 ? aV.loaded / totalLoaded : 0.5;
+  const unbalancedTraffic = trafficShareA < 0.4 || trafficShareA > 0.6;
+  const insufficientConversions =
+    aV.register < MIN_CONVERSIONS || bV.register < MIN_CONVERSIONS;
+  const insufficientExposures = aV.loaded < MIN_EXPOSURES || bV.loaded < MIN_EXPOSURES;
+  const hasWarnings =
+    unbalancedTraffic || insufficientConversions || insufficientExposures;
+
+  const moreThanTwo = exp.variants.length > 2;
 
   return (
     <div className="rounded-md border p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+      {!haveTwo && (
+        <div className="md:col-span-2 text-xs rounded-md border border-red-200 bg-red-50 p-2 text-red-900">
+          Need at least two variants to compare. Showing placeholders.
+        </div>
+      )}
+      {moreThanTwo && (
+        <div className="md:col-span-2 text-xs rounded-md border border-blue-200 bg-blue-50 p-2 text-blue-900">
+          More than two variants detected. Showing a pairwise comparison. Consider
+          running pairwise comparisons across all variants for full insight.
+        </div>
+      )}
+      {ambiguous && (
+        <div className="md:col-span-2 text-xs rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-900">
+          Control/Treatment naming is ambiguous; ordering may be arbitrary.
+        </div>
+      )}
+      {hasWarnings && (
+        <div className="md:col-span-2 text-xs rounded-md border border-yellow-200 bg-yellow-50 p-2 text-yellow-900">
+          Preliminary results — recommended guardrails not met:
+          <ul className="list-disc pl-5">
+            {insufficientConversions && (
+              <li>
+                Low conversions (min {MIN_CONVERSIONS} each). A: {aV.register}, B:{" "}
+                {bV.register}.
+              </li>
+            )}
+            {insufficientExposures && (
+              <li>
+                Low sample size (min {MIN_EXPOSURES} each). A: {aV.loaded}, B:{" "}
+                {bV.loaded}.
+              </li>
+            )}
+            {unbalancedTraffic && (
+              <li>
+                Unbalanced traffic split (A share = {(trafficShareA * 100).toFixed(1)}
+                %).
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
       <div className="flex flex-col gap-2">
-        <div className="text-sm font-semibold">Conversion Rate Distributions</div>
+        <div className="text-sm font-semibold">
+          Conversion Rate Distributions (Beta posterior)
+        </div>
         <DistributionChart
           title="Conversion rate"
           labels={x}
           datasets={[
             {
-              label: `${a.variant} (n=${a.loaded}, conv=${a.register})`,
+              label: `${aV.variant} (n=${aV.loaded}, conv=${aV.register})`,
               data: aPdf,
               color: "hsl(42 90% 45%)",
             },
             {
-              label: `${b.variant} (n=${b.loaded}, conv=${b.register})`,
+              label: `${bV.variant} (n=${bV.loaded}, conv=${bV.register})`,
               data: bPdf,
               color: "hsl(210 70% 45%)",
             },
@@ -143,13 +279,15 @@ const ExperimentRow: React.FC<{ exp: ExperimentAgg }> = ({ exp }) => {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <div className="text-sm font-semibold">Improvement Distribution</div>
+        <div className="text-sm font-semibold">
+          Improvement Distribution (Treatment − Control)
+        </div>
         <DistributionChart
-          title={`Improvement (${b.variant} - ${a.variant})`}
-          labels={impX}
+          title={`Improvement (${bV.variant} - ${aV.variant})`}
+          labels={impGrid}
           datasets={[
             {
-              label: `${b.variant} better`,
+              label: `${bV.variant} better`,
               data: posPdf,
               color: "hsl(210 70% 45%)",
               fill: true,
@@ -157,7 +295,7 @@ const ExperimentRow: React.FC<{ exp: ExperimentAgg }> = ({ exp }) => {
               borderWidth: 1,
             },
             {
-              label: `${a.variant} better`,
+              label: `${aV.variant} better`,
               data: negPdf,
               color: "hsl(42 90% 45%)",
               fill: true,
@@ -176,17 +314,34 @@ const ExperimentRow: React.FC<{ exp: ExperimentAgg }> = ({ exp }) => {
       </div>
       <div className="md:col-span-2 text-sm">
         <div className="font-semibold">Executive Summary</div>
-        <div>
-          {b.variant}’s observed conversion rate ({(bMean * 100).toFixed(1)}%) was{" "}
-          {(Math.abs(relLift) * 100).toFixed(1)}% {relLift >= 0 ? "higher" : "lower"}{" "}
-          than {a.variant}’s conversion rate ({(aMean * 100).toFixed(1)}%).
-        </div>
-        <div>
-          There is a {(pBgtA * 100).toFixed(1)}% chance that {b.variant} has a higher
-          conversion rate and {(pAgtB * 100).toFixed(1)}% chance that {a.variant} has a
-          higher conversion rate. The green area under the improvement curve shows where{" "}
-          {b.variant} outperforms {a.variant}, and the red area shows where
-          {a.variant} performs better.
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div>
+            <div>
+              What happened so far (raw data): out of every 100 visitors — {aV.variant}
+              {": "}
+              {(aObserved * 100).toFixed(1)}% convert, {bV.variant}
+              {": "}
+              {(bObserved * 100).toFixed(1)}% convert.
+            </div>
+            <div>
+              Best estimate with 95% range (accounts for noise): {aV.variant}{" "}
+              {(aMean * 100).toFixed(1)}% [{(aCI[0] * 100).toFixed(1)}%,{" "}
+              {(aCI[1] * 100).toFixed(1)}%] and {bV.variant} {(bMean * 100).toFixed(1)}%
+              [{(bCI[0] * 100).toFixed(1)}%, {(bCI[1] * 100).toFixed(1)}%]. This is the
+              range we expect the true conversion rates to fall within.
+            </div>
+          </div>
+          <div>
+            <div>
+              How likely {bV.variant} is better than {aV.variant}:{" "}
+              {(pBgtA * 100).toFixed(1)}%. This is the chance that {bV.variant} truly
+              converts better, given the data we have.
+            </div>
+            <div>
+              Typical difference if you chose {bV.variant}:{" "}
+              {(relLiftMean * 100).toFixed(1)}% vs {aV.variant} (positive means better).
+            </div>
+          </div>
         </div>
       </div>
     </div>

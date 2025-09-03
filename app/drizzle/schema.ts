@@ -1917,6 +1917,7 @@ export const userData = mysqlTable(
       senseiIdx: index("UserData_senseiId_idx").on(table.senseiId),
       latitudeIdx: index("UserData_latitude_idx").on(table.latitude),
       longitudeIdx: index("UserData_longitude_idx").on(table.longitude),
+      createdAtIdx: index("UserData_createdAt_idx").on(table.createdAt),
     };
   },
 );
@@ -2065,6 +2066,8 @@ export const historicalIp = mysqlTable(
   (table) => {
     return {
       userIdIpKey: uniqueIndex("HistoricalIp_userId_ip_key").on(table.userId, table.ip),
+      userIdIdx: index("HistoricalIp_userId_idx").on(table.userId),
+      userIpIdx: index("HistoricalIp_userIp_idx").on(table.ip),
     };
   },
 );
