@@ -308,28 +308,77 @@ export const dataRouter = createTRPCRouter({
         throw serverError("UNAUTHORIZED", "Insufficient permissions");
       }
       // Filtering
-      const whereClauses: QueryCondition[] = [ne(referralSource.source, "")];
+      const baseWhere: QueryCondition[] = [ne(referralSource.source, "")];
+      const dateWhere: QueryCondition[] = [];
       if (input.startDate)
-        whereClauses.push(gte(paypalTransaction.createdAt, new Date(input.startDate)));
+        dateWhere.push(gte(paypalTransaction.createdAt, new Date(input.startDate)));
       if (input.endDate)
-        whereClauses.push(lte(paypalTransaction.createdAt, new Date(input.endDate)));
+        dateWhere.push(lte(paypalTransaction.createdAt, new Date(input.endDate)));
 
-      const rows = await ctx.drizzle
-        .select({
-          source: referralSource.source,
-          totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
-        })
-        .from(referralSource)
-        .leftJoin(
-          paypalTransaction,
-          or(
+      // Avoid OR on large paypalTransaction by running two index-friendly joins in parallel
+      // and subtracting the double-counted self-purchases (createdById === affectedUserId).
+      const [byCreator, byAffected, bySelf] = await Promise.all([
+        ctx.drizzle
+          .select({
+            source: referralSource.source,
+            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
+          })
+          .from(referralSource)
+          .innerJoin(
+            paypalTransaction,
             eq(paypalTransaction.createdById, referralSource.userId),
+          )
+          .where(and(...baseWhere, ...(dateWhere.length > 0 ? dateWhere : [])))
+          .groupBy(referralSource.source),
+        ctx.drizzle
+          .select({
+            source: referralSource.source,
+            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
+          })
+          .from(referralSource)
+          .innerJoin(
+            paypalTransaction,
             eq(paypalTransaction.affectedUserId, referralSource.userId),
-          ),
-        )
-        .where(and(...whereClauses))
-        .groupBy(referralSource.source)
-        .orderBy(asc(referralSource.source));
+          )
+          .where(and(...baseWhere, ...(dateWhere.length > 0 ? dateWhere : [])))
+          .groupBy(referralSource.source),
+        ctx.drizzle
+          .select({
+            source: referralSource.source,
+            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
+          })
+          .from(referralSource)
+          .innerJoin(
+            paypalTransaction,
+            and(
+              eq(paypalTransaction.createdById, referralSource.userId),
+              eq(paypalTransaction.affectedUserId, referralSource.userId),
+            ),
+          )
+          .where(and(...baseWhere, ...(dateWhere.length > 0 ? dateWhere : [])))
+          .groupBy(referralSource.source),
+      ]);
+
+      const totalsBySource = new Map<string, number>();
+      const add = (rows: { source: string | null; totalUsd: number | null }[]) => {
+        rows.forEach((r) => {
+          const src = r.source ?? "";
+          const prev = totalsBySource.get(src) ?? 0;
+          totalsBySource.set(src, prev + Number(r.totalUsd ?? 0));
+        });
+      };
+      add(byCreator);
+      add(byAffected);
+      // subtract self-purchases counted in both creator and affected queries
+      bySelf.forEach((r) => {
+        const src = r.source ?? "";
+        const prev = totalsBySource.get(src) ?? 0;
+        totalsBySource.set(src, prev - Number(r.totalUsd ?? 0));
+      });
+
+      const rows = Array.from(totalsBySource.entries())
+        .map(([source, totalUsd]) => ({ source, totalUsd }))
+        .sort((a, b) => a.source.localeCompare(b.source));
 
       return rows;
     }),
