@@ -40,8 +40,6 @@ export type IMG_ORIENTATION = (typeof IMG_ORIENTATIONS)[number];
 // How many seconds to regen a given regen value
 export const REGEN_SECONDS = 30;
 
-//
-
 export const ContentTypes = [
   "asset",
   "ai",
@@ -60,6 +58,8 @@ export const MAP_RESERVED_SECTORS = [
   283, 284, 340, 334, 330, 331, 332, 337, 342, 336, 341, 335, 113, 109, 443,
 ];
 export const MAP_TOTAL_SECTORS = 443;
+export const MAP_WAKE_ISLAND_SECTOR = 222;
+export const MAP_GLOBAL_TRAVEL_TIME_CAP_SECS = 10;
 
 export const CoreVillages = [
   "Shine",

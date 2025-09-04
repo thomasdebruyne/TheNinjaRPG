@@ -320,6 +320,10 @@ export default function Travel() {
       : "The world of Seichi";
   const consumableItems = userItems?.filter((i) => nonCombatConsume(i.item, userData));
   const shownConsumables = consumableItems?.map((ui) => ({ ...ui.item, ...ui }));
+
+  console.log("showSector", showSector);
+
+  // Render
   return (
     <>
       <ContentBox

@@ -17,9 +17,12 @@ interface QuestPickerProps {
   questType: QuestType;
   title: string;
   subtitle: string;
+  defaultBackHref?: string;
   introduction?: string;
   unavailableText?: string;
   initialBreak?: boolean;
+  activeQuestId?: string;
+  setActiveQuestId?: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const QuestPicker: React.FC<QuestPickerProps> = (props) => {
@@ -27,8 +30,12 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
   const util = api.useUtils();
 
   // State
-  const [activeElement, setActiveElement] = useState<string>("");
+  const [localActiveElement, setLocalActiveElement] = useState<string>("");
   const { data: userData } = useRequiredUserData();
+
+  // State management
+  const activeElement = props.activeQuestId || localActiveElement;
+  const setActiveElement = props.setActiveQuestId || setLocalActiveElement;
 
   // Query
   const { data: quests } = api.quests.specificQuests.useQuery({
@@ -62,9 +69,8 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
         setActiveElement(quests[0].name);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData, activeElement, props.questType, quests]);
-
-  if (!userData) return null;
 
   // Filter for story quests only
   const availableQuests = quests ?? [];
@@ -75,6 +81,7 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
       subtitle={props.subtitle}
       initialBreak={props.initialBreak}
       padding={false}
+      defaultBackHref={props.defaultBackHref}
     >
       {props.introduction && (
         <p className="text-center text-xl font-bold mb-4 px-3 pt-3">
@@ -82,7 +89,8 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
         </p>
       )}
       {isPending && <Loader explanation="Starting quest..." />}
-      {!isPending && (
+      {!userData && <Loader explanation="Loading userdata..." />}
+      {!isPending && userData && (
         <div className="bg-popover">
           {availableQuests.length === 0 && (
             <p className="font-bold p-3">
