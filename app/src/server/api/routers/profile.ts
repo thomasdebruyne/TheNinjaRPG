@@ -868,6 +868,15 @@ export const profileRouter = createTRPCRouter({
         input.data.reason,
       );
       if (!aiCheck.allowUpdate) {
+        await ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "user",
+          changes: {},
+          relatedId: target.userId,
+          relatedMsg: `Updated attempted. Reason rejected by AI: ${input.data.reason}`,
+          relatedImage: target.avatarLight,
+        });
         return errorResponse(aiCheck.comment);
       }
 
