@@ -223,7 +223,7 @@ export const travelRouter = createTRPCRouter({
 
       // Guard: Only awake users can scout
       if (!["AWAKE", "TRAVEL"].includes(user.status)) {
-        throw serverError("UNAUTHORIZED", "You must be awake to scout the sector");
+        return { users: [], village: null, sectorData: null, warData: null };
       }
       const [users, villageData, sectorData, warData] = await Promise.all([
         ctx.drizzle.query.userData.findMany({
