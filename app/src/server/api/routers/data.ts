@@ -121,7 +121,7 @@ export const dataRouter = createTRPCRouter({
     const user = await fetchUser(ctx.drizzle, ctx.userId);
     // Guard
     if (!canViewRecruitmentAnalytics(user.role)) {
-      throw serverError("UNAUTHORIZED", "Insufficient permissions to get UTM sources");
+      return [];
     }
     // Query
     const rows = await ctx.drizzle
@@ -285,10 +285,7 @@ export const dataRouter = createTRPCRouter({
     const user = await fetchUser(ctx.drizzle, ctx.userId);
     // Guard
     if (!canViewRecruitmentAnalytics(user.role)) {
-      throw serverError(
-        "UNAUTHORIZED",
-        "Insufficient permissions to get referral sources",
-      );
+      return [];
     }
     // Query
     const rows = await ctx.drizzle
