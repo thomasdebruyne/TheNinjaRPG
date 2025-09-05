@@ -665,7 +665,7 @@ export const questsRouter = createTRPCRouter({
       }
       const current = user?.userQuests?.find((q) => q.questId === input.id && !q.endAt);
       if (!current) {
-        throw serverError("PRECONDITION_FAILED", `No active quest with id ${input.id}`);
+        return { success: true, message: `Quest already abandoned` };
       }
       if (
         ![
