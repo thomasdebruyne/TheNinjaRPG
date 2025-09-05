@@ -24,9 +24,7 @@ export const canControlBackups = (role: UserRole) => {
 
 // Recruitment analytics visibility (admins only)
 export const canViewRecruitmentAnalytics = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN", "MODERATOR-ADMIN"].includes(
-    role,
-  );
+  return role !== "USER";
 };
 
 // Revenue analytics visibility (coding admin only)
