@@ -30,6 +30,7 @@ Sentry.init({
     "TypeError: undefined is not an object (evaluating 'this.updateVisibleFocusableElements.bind')", // Cookiebot error: https://github.com/getsentry/sentry-javascript/issues/16850
     "Failed to read a named property 'Element' from 'Window': Blocked a frame with origin \"https://www.theninja-rpg.com\"", // Sentry iframe error?
     "Cannot read properties of undefined (reading 'bind')", // Cookiebot error on resize
+    "UnrecognizedActionError", // New deployment
   ],
 
   // Only enable Sentry in production

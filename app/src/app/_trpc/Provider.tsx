@@ -4,7 +4,7 @@ import superjson from "superjson";
 import { useState } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TRPCClientError, httpBatchLink, loggerLink } from "@trpc/client";
+import { TRPCClientError, httpBatchLink, retryLink, loggerLink } from "@trpc/client";
 import { toast } from "@/components/ui/use-toast";
 import { QueryCache, MutationCache } from "@tanstack/react-query";
 import { api, useGlobalOnMutateProtect } from "./client";
@@ -51,6 +51,25 @@ export default function TrpcClientProvider(props: { children: React.ReactNode })
   const [trpcClient] = useState(() =>
     api.createClient({
       links: [
+        retryLink({
+          retry(opts) {
+            // Don't retry on non-500s
+            if (
+              opts.error.data &&
+              (opts.error.data as { code?: string }).code !== "INTERNAL_SERVER_ERROR"
+            ) {
+              return false;
+            }
+            // Only retry queries
+            if (opts.op.type !== "query") {
+              return false;
+            }
+            // Retry up to 3 times
+            return opts.attempts <= 3;
+          },
+          // Double every attempt, with max of 30 seconds (starting at 1 second)
+          retryDelayMs: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        }),
         loggerLink({
           enabled: (opts) =>
             process.env.NODE_ENV === "development" ||
