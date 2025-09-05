@@ -116,7 +116,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     if (typeof document === "undefined") return false;
     const value = document.cookie
       .split("; ")
-      .find((row) => row.startsWith("ab_welcome_variant="))
+      .find((row) => row.startsWith("ab_welcome_variantion="))
       ?.split("=")[1];
     // Handle both expected values just in case: "treatment" (preferred) or legacy "new"
     return value === "treatment" || value === "new";
