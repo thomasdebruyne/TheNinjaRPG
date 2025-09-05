@@ -76,7 +76,7 @@ export const dataRouter = createTRPCRouter({
     const user = await fetchUser(ctx.drizzle, ctx.userId);
     // Guard
     if (!canViewRecruitmentAnalytics(user.role)) {
-      throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      throw serverError("UNAUTHORIZED", "Insufficient permissions to get AB tests");
     }
     // Query
     const rows = await ctx.drizzle
@@ -121,7 +121,7 @@ export const dataRouter = createTRPCRouter({
     const user = await fetchUser(ctx.drizzle, ctx.userId);
     // Guard
     if (!canViewRecruitmentAnalytics(user.role)) {
-      throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      throw serverError("UNAUTHORIZED", "Insufficient permissions to get UTM sources");
     }
     // Query
     const rows = await ctx.drizzle
@@ -146,7 +146,10 @@ export const dataRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       // Guard
       if (!canViewRecruitmentAnalytics(user.role)) {
-        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+        throw serverError(
+          "UNAUTHORIZED",
+          "Insufficient permissions to get recruitment main metrics",
+        );
       }
       // Filtering
       const visitorWhere: QueryCondition[] = [];
@@ -282,7 +285,10 @@ export const dataRouter = createTRPCRouter({
     const user = await fetchUser(ctx.drizzle, ctx.userId);
     // Guard
     if (!canViewRecruitmentAnalytics(user.role)) {
-      throw serverError("UNAUTHORIZED", "Insufficient permissions");
+      throw serverError(
+        "UNAUTHORIZED",
+        "Insufficient permissions to get referral sources",
+      );
     }
     // Query
     const rows = await ctx.drizzle
@@ -305,7 +311,10 @@ export const dataRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       // Guard
       if (!canViewRevenueAnalytics(user.role)) {
-        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+        throw serverError(
+          "UNAUTHORIZED",
+          "Insufficient permissions to get revenue by referral source",
+        );
       }
       // Filtering
       const baseWhere: QueryCondition[] = [ne(referralSource.source, "")];
@@ -396,7 +405,10 @@ export const dataRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       // Guard
       if (!canViewRecruitmentAnalytics(user.role)) {
-        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+        throw serverError(
+          "UNAUTHORIZED",
+          "Insufficient permissions to get recruitment level distribution",
+        );
       }
       // Filtering
       const selected = input.sources?.length ? input.sources : undefined;
@@ -622,7 +634,10 @@ export const dataRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       // Guard
       if (!canViewRecruitmentAnalytics(user.role)) {
-        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+        throw serverError(
+          "UNAUTHORIZED",
+          "Insufficient permissions to get recruitment daily level stats",
+        );
       }
       // Filtering
       const selected = input.sources?.length ? input.sources : undefined;
@@ -694,7 +709,10 @@ export const dataRouter = createTRPCRouter({
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       // Guard
       if (!canViewRecruitmentAnalytics(user.role)) {
-        throw serverError("UNAUTHORIZED", "Insufficient permissions");
+        throw serverError(
+          "UNAUTHORIZED",
+          "Insufficient permissions to get recruitment daily counts by source",
+        );
       }
       // Filtering
       const selected = input.sources?.length ? input.sources : undefined;

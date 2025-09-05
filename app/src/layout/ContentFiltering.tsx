@@ -551,12 +551,52 @@ export const ContentFiltering = <
     f.visibleIf ? f.visibleIf(context) : true,
   );
 
-  // Built-in data sources (called unconditionally to keep hooks order stable)
-  const { data: bloodlineNames } = api.bloodline.getAllNames.useQuery(undefined);
-  const { data: assetNames } = api.misc.getAllGameAssetNames.useQuery(undefined);
-  const { data: villageNames } = api.village.getAllNames.useQuery(undefined);
-  const { data: referralSources } = api.data.getReferralSources.useQuery(undefined);
-  const { data: visitorUtmSources } = api.data.getVisitorUtmSources.useQuery(undefined);
+  // Determine which dynamic data sources are needed by the currently visible fields
+  const needsDataSource = useMemo(() => {
+    const mutableRequired: Record<
+      "bloodlines" | "assets" | "villages" | "referralSources" | "visitorUtmSources",
+      boolean
+    > = {
+      bloodlines: false,
+      assets: false,
+      villages: false,
+      referralSources: false,
+      visitorUtmSources: false,
+    };
+    for (const field of fieldsToRender) {
+      if (!("dataSource" in field)) continue;
+      const hasStaticOptions =
+        "options" in field && Array.isArray(field.options) && field.options.length > 0;
+      if (hasStaticOptions) continue;
+      if (
+        field.dataSource === "bloodlines" ||
+        field.dataSource === "assets" ||
+        field.dataSource === "villages" ||
+        field.dataSource === "referralSources" ||
+        field.dataSource === "visitorUtmSources"
+      ) {
+        mutableRequired[field.dataSource] = true;
+      }
+    }
+    return mutableRequired;
+  }, [fieldsToRender]);
+
+  // Built-in data sources (queries are always called but only enabled when needed)
+  const { data: bloodlineNames } = api.bloodline.getAllNames.useQuery(undefined, {
+    enabled: needsDataSource.bloodlines,
+  });
+  const { data: assetNames } = api.misc.getAllGameAssetNames.useQuery(undefined, {
+    enabled: needsDataSource.assets,
+  });
+  const { data: villageNames } = api.village.getAllNames.useQuery(undefined, {
+    enabled: needsDataSource.villages,
+  });
+  const { data: referralSources } = api.data.getReferralSources.useQuery(undefined, {
+    enabled: needsDataSource.referralSources,
+  });
+  const { data: utmSources } = api.data.getVisitorUtmSources.useQuery(undefined, {
+    enabled: needsDataSource.visitorUtmSources,
+  });
 
   // Resolve options for a field: prefer static options, otherwise derive from data source
   const resolveOptions = (field: AnyFieldConfig): Option[] => {
@@ -574,7 +614,7 @@ export const ContentFiltering = <
       opts = (referralSources ?? []).map((s) => ({ value: s, label: s }));
     }
     if (!opts && "dataSource" in field && field.dataSource === "visitorUtmSources") {
-      opts = (visitorUtmSources ?? []).map((s) => ({ value: s, label: s }));
+      opts = (utmSources ?? []).map((s) => ({ value: s, label: s }));
     }
     const finalOpts = opts ?? [];
     return "filterOptions" in field && field.filterOptions
