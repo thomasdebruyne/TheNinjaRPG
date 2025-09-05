@@ -60,7 +60,7 @@ export const miscRouter = createTRPCRouter({
           ip,
           ref: input.ref,
           utmSource: input.utmSource,
-          userAgent: ctx.userAgent,
+          userAgent: String(ctx.userAgent).slice(0, 180),
         }),
         ctx.abWelcomeVariant
           ? ctx.drizzle.insert(abEvent).values({
