@@ -121,7 +121,7 @@ export default function ManualRecruitment() {
         title="Recruitment"
         subtitle="Overview of recruitment statistics"
         defaultBackHref="/manual"
-        topRightContent={<VisitorFiltering state={visitorFilterState} />}
+        topRightContent={allowed && <VisitorFiltering state={visitorFilterState} />}
       >
         {!allowed && <p>You do not have permission to view this page.</p>}
         {allowed && (

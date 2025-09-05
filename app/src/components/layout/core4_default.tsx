@@ -111,14 +111,20 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     return "light";
   });
 
-  // Detect A/B test variant (treatment/control) from cookie to control audio autoplay
+  // Mount flag to keep SSR/CSR output in sync
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Detect A/B test variant (treatment/control) from cookie to control audio autoplay.
+  // Only evaluate on client to avoid SSR/CSR mismatches.
   const [isWelcomeTreatment] = useState<boolean>(() => {
     if (typeof document === "undefined") return false;
     const value = document.cookie
       .split("; ")
       .find((row) => row.startsWith("ab_welcome_variantion="))
       ?.split("=")[1];
-    // Handle both expected values just in case: "treatment" (preferred) or legacy "new"
     return value === "treatment" || value === "new";
   });
 
@@ -170,8 +176,10 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     loop: true,
     volume: 0.5,
     preload: "metadata",
-    enabled: getInitialAudioState(),
-    autoPlay: true,
+    // Important: keep SSR/CSR consistent. Start disabled during SSR/first paint,
+    // then enable on client after mount based on real preference.
+    enabled: isClient ? getInitialAudioState() : false,
+    autoPlay: isClient,
   });
 
   // Simple toggle function for local users (saves to localStorage)
@@ -182,10 +190,15 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
 
   // Sync with user data changes
   useEffect(() => {
+    if (!isClient) return;
     if (userData) {
       void setAudioEnabled(userData.audioOn);
+    } else {
+      // No user logged in: sync from local preference when mounting on client
+      void setAudioEnabled(getInitialAudioState());
     }
-  }, [userData, setAudioEnabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, userData]);
 
   const pathname = usePathname();
 
