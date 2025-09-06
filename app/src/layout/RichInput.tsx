@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import EmojiPicker from "emoji-picker-react";
+import EmojiPicker from "@/layout/EmojiPicker";
 import { SendHorizontal, PartyPopper } from "lucide-react";
 import { Controller } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
@@ -276,21 +276,16 @@ const RichInput: React.FC<RichInputProps> = (props) => {
           className="z-50 absolute top-0 left-[50%] translate-x-[-50%]"
           ref={emojiRef}
         >
-          <EmojiPicker
-            open={emojiOpen}
-            lazyLoadEmojis={true}
-            onEmojiClick={(emojiData) => {
-              const current = (field.value as string) || "";
-              field.onChange(current + emojiData.emoji);
-              setEmojiOpen(false);
-            }}
-            style={
-              {
-                "--epr-emoji-gap": "2px",
-                "--epr-emoji-size": "16px",
-              } as React.CSSProperties
-            }
-          />
+          {emojiOpen && (
+            <EmojiPicker
+              onSelect={(native) => {
+                const current = (field.value as string) || "";
+                field.onChange(current + native);
+                setEmojiOpen(false);
+              }}
+              onClickOutside={() => setEmojiOpen(false)}
+            />
+          )}
         </div>
 
         <div className="flex flex-row items-center absolute top-[50%] translate-y-[-50%] right-5">

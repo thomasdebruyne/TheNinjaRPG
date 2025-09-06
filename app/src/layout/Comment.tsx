@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import EmojiPicker from "@/layout/EmojiPicker";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SquarePen, Trash2, Flag, BarChart2 } from "lucide-react";
@@ -13,7 +14,6 @@ import { mutateCommentSchema } from "@/validators/comments";
 import { api } from "@/app/_trpc/client";
 import { useUserData } from "@/utils/UserContext";
 import { showMutationToast } from "@/libs/toast";
-import EmojiPicker from "emoji-picker-react";
 import type { systems } from "@/validators/reports";
 import type { ConversationComment } from "@/drizzle/schema";
 import type { ForumPost } from "@/drizzle/schema";
@@ -236,20 +236,16 @@ const BaseComment: React.FC<BaseCommentProps> = (props) => {
                   onClick={() => setEmojiOpen(!emojiOpen)}
                 />
                 <div className="z-50 absolute top-0 right-2" ref={emojiRef}>
-                  <EmojiPicker
-                    open={emojiOpen}
-                    lazyLoadEmojis={true}
-                    reactionsDefaultOpen={true}
-                    style={
-                      {
-                        "--epr-emoji-gap": "2px",
-                        "--epr-emoji-size": "16px",
-                      } as React.CSSProperties
-                    }
-                    onEmojiClick={(emojiData) => {
-                      props.toggleReaction?.(emojiData.emoji);
-                    }}
-                  />
+                  {emojiOpen && (
+                    <EmojiPicker
+                      perLine={12}
+                      onSelect={(native) => {
+                        props.toggleReaction?.(native);
+                        setEmojiOpen(false);
+                      }}
+                      onClickOutside={() => setEmojiOpen(false)}
+                    />
+                  )}
                 </div>
               </>
             )}

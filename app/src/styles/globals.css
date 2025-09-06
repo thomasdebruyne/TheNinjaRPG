@@ -226,6 +226,10 @@
       padding: 0.5em !important;
     }
   }
+  em-emoji-picker {
+    width: 100%;
+    min-width: 300px;
+  }
 }
 
 @layer utilities {
