@@ -293,6 +293,9 @@ export const blackMarketRouter = createTRPCRouter({
       if (user.reputationPoints < COST_CUSTOM_TITLE) {
         return errorResponse("Not enough reputation points");
       }
+      if (input.title === user.customTitle) {
+        return errorResponse("Custom title is the same");
+      }
       if (user.isBanned) return errorResponse("You are banned");
       // Mutate
       const result = await ctx.drizzle
