@@ -64,6 +64,11 @@ type StatDistribution = {
   speed: number;
 };
 
+/**
+ * Cap user stats to the user's rank's caps
+ * @param user - the user to cap the stats of
+ * @returns void
+ */
 export function capUserStats(user: UserData) {
   const stats_cap = USER_CAPS[user.rank].STATS_CAP;
   const gens_cap = USER_CAPS[user.rank].GENS_CAP;
@@ -79,6 +84,18 @@ export function capUserStats(user: UserData) {
   if (user.speed > gens_cap) user.speed = gens_cap;
   if (user.intelligence > gens_cap) user.intelligence = gens_cap;
   if (user.willpower > gens_cap) user.willpower = gens_cap;
+}
+
+/**
+ * The purpose of this function is to calculate the user experience, capped at the soft experience cap
+ * i.e. the point where the user has one full offence, all 4 defences, and all 4 generals.
+ * @param user
+ * @returns
+ */
+export function getSoftCappedExperience(user: UserData) {
+  const stats_cap = USER_CAPS[user.rank].STATS_CAP;
+  const gens_cap = USER_CAPS[user.rank].GENS_CAP;
+  return 5 * stats_cap + 4 * gens_cap;
 }
 
 /** Scale stats of user, and return total number of experience / stat points */

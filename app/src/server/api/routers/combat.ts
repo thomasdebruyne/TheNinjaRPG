@@ -55,10 +55,9 @@ import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
 import { getRandomElement } from "@/utils/array";
 import { applyEffects, checkFriendlyFire } from "@/libs/combat/process";
 import { manuallyAssignUserStats, scaleUserStats } from "@/libs/profile";
-import { capUserStats } from "@/libs/profile";
+import { capUserStats, getSoftCappedExperience } from "@/libs/profile";
 import { mockAchievementHistoryEntries } from "@/libs/quest";
 import { canAccessStructure } from "@/utils/village";
-
 import { fetchSectorVillage } from "@/routers/village";
 import { fetchAiProfileById } from "@/routers/ai";
 import { getBattleGrid } from "@/libs/combat/util";
@@ -1333,6 +1332,9 @@ export const initiateBattle = async (
       manuallyAssignUserStats(user, info?.userStatDistribution);
     }
 
+    // Apply caps to user stats
+    capUserStats(user);
+
     // If PvP rank, set pools to max & level to 100
     if (battleType === "RANKED_PVP" || battleType === "RANKED_SPARRING") {
       user.maxHealth = calcHP(100);
@@ -1345,13 +1347,12 @@ export const initiateBattle = async (
       user.experience = calcLevelRequirements(100);
       user.rank = "ELITE JONIN";
       user.medicalExperience = 100000;
+    } else {
+      user.experience = Math.min(user.experience, getSoftCappedExperience(user));
     }
 
     // Add achievements to users for tracking
     user.userQuests.push(...mockAchievementHistoryEntries(achievements, user));
-
-    // Apply caps to user stats
-    capUserStats(user);
   }
 
   // Check immunity on defenders
