@@ -668,7 +668,7 @@ const computePathIfNeeded = (
 
 /** Returns the per-frame movement speed for a tile */
 const getTileSpeed = (tile: TerrainHex): number => {
-  return (tile.width / 50) * 3; // tripled speed
+  return (tile.width / 50) * 5; // tripled speed
 };
 
 /** Steps the mesh along its path or directly to target with clamped constant speed */
@@ -679,19 +679,26 @@ const stepAlongPath = (
   speed: number,
 ) => {
   const { x: curX, y: curY } = userMesh.position;
-  const moveTowards = (tx: number, ty: number) => {
+  const moveTowards = (tx: number, ty: number, maxStep: number) => {
     const dx = tx - curX;
     const dy = ty - curY;
     const dist = Math.hypot(dx, dy);
-    if (dist <= speed || dist === 0) {
+    if (dist <= maxStep || dist === 0) {
       userMesh.position.set(tx, ty, 0);
       return true;
     } else {
       const nx = dx / dist;
       const ny = dy / dist;
-      userMesh.position.set(curX + nx * speed, curY + ny * speed, 0);
+      userMesh.position.set(curX + nx * maxStep, curY + ny * maxStep, 0);
       return false;
     }
+  };
+
+  // Easing function for speed multiplier: 0 at ends, 1 in middle. Clamp to a minimum to avoid stall
+  const easedMultiplier = (progress: number, min = 0.35) => {
+    const p = Math.max(0, Math.min(1, progress));
+    const s = Math.sin(Math.PI * p);
+    return Math.max(min, s);
   };
 
   const path = meshData.movement?.path;
@@ -699,7 +706,13 @@ const stepAlongPath = (
   if (path && index < path.length) {
     const nextTile = path[index]!;
     const { x, y } = nextTile.center;
-    const reached = moveTowards(-x, -y);
+    // Compute progress along current segment for easing
+    const startCenter = meshData.hex?.center ?? nextTile.center;
+    const totalDist = Math.hypot((startCenter?.x ?? 0) - x, (startCenter?.y ?? 0) - y);
+    const remaining = Math.hypot(-x - curX, -y - curY);
+    const progress = totalDist > 0 ? 1 - remaining / totalDist : 1;
+    const step = speed * easedMultiplier(progress);
+    const reached = moveTowards(-x, -y, step);
     if (reached) {
       meshData.hex = nextTile;
       index += 1;
@@ -713,7 +726,12 @@ const stepAlongPath = (
     }
   } else {
     const { x, y } = targetTile.center;
-    const reached = moveTowards(-x, -y);
+    const startCenter = meshData.hex?.center ?? targetTile.center;
+    const totalDist = Math.hypot((startCenter?.x ?? 0) - x, (startCenter?.y ?? 0) - y);
+    const remaining = Math.hypot(-x - curX, -y - curY);
+    const progress = totalDist > 0 ? 1 - remaining / totalDist : 1;
+    const step = speed * easedMultiplier(progress);
+    const reached = moveTowards(-x, -y, step);
     if (reached) {
       meshData.hex = targetTile;
     }
