@@ -112,6 +112,7 @@ export const registerRouter = createTRPCRouter({
                 experiment: "welcome_optimized_ab",
                 variant: ctx.abWelcomeVariant,
                 event: "register",
+                source: input.utm_source ?? undefined,
               }),
             ]
           : []),

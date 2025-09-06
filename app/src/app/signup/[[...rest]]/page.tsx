@@ -9,6 +9,7 @@ export default function SignupUser() {
       title="Create Account"
       subtitle="To create please use one of below providers"
       alreadyHasH1
+      defaultBackHref="/"
     >
       <div className="flex flex-row items-center justify-center">
         <SignUp

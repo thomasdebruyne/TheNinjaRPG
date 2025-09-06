@@ -13,6 +13,10 @@ import {
   quantile,
   sampleBeta,
 } from "@/libs/statistics";
+import VisitorFiltering, {
+  useFiltering as useVisitorFiltering,
+  getFilter as getVisitorFilter,
+} from "@/layout/VisitorFiltering";
 
 type VariantAgg = { variant: string; loaded: number; register: number };
 type ExperimentAgg = { experiment: string; variants: VariantAgg[] };
@@ -349,12 +353,20 @@ const ExperimentRow: React.FC<{ exp: ExperimentAgg }> = ({ exp }) => {
 };
 
 export const AbTestResults: React.FC = () => {
-  const { data, isFetching } = api.data.getAbTests.useQuery(undefined, {
-    staleTime: 60_000,
-  });
+  const visitorFilterState = useVisitorFiltering();
+
+  const { data, isFetching } = api.data.getAbTests.useQuery(
+    { ...getVisitorFilter(visitorFilterState) },
+    { staleTime: 60_000 },
+  );
 
   return (
-    <ContentBox title="A/B Tests" subtitle="Live results from experiments" initialBreak>
+    <ContentBox
+      title="A/B Tests"
+      subtitle="Live results from experiments"
+      initialBreak
+      topRightContent={<VisitorFiltering state={visitorFilterState} />}
+    >
       {isFetching && <Loader explanation="Loading A/B test results" />}
       {!isFetching && (!data || data.length === 0) && <p>No experiments found.</p>}
       {!isFetching && data && data.length > 0 && (

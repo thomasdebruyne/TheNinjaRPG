@@ -9,10 +9,7 @@ import {
   canViewRecruitmentAnalytics,
   canViewRevenueAnalytics,
 } from "@/utils/permissions";
-import RecruitmentFiltering, {
-  useFiltering as useRecruitmentFiltering,
-  getFilter as getRecruitmentFilter,
-} from "@/layout/RecruitmentFiltering";
+
 import {
   GroupedLevelStats,
   DailyMeanStdChart,
@@ -31,6 +28,10 @@ import {
   RECRUITMENT_GOALS,
   type RecruitmentMetric,
 } from "@/drizzle/constants";
+import RecruitmentFiltering, {
+  useFiltering as useRecruitmentFiltering,
+  getFilter as getRecruitmentFilter,
+} from "@/layout/RecruitmentFiltering";
 import VisitorFiltering, {
   useFiltering as useVisitorFiltering,
   getFilter as getVisitorFilter,
@@ -50,17 +51,15 @@ export default function ManualRecruitment() {
   };
 
   const visitorFilterState = useVisitorFiltering();
-  const visitorFilter = getVisitorFilter(visitorFilterState) as {
-    startDate?: string;
-    endDate?: string;
-    utmSource?: string;
-  };
 
   const { data: mainMetrics, isFetching: isFetchingMain } =
-    api.data.getRecruitmentMainMetrics.useQuery(visitorFilter, {
-      staleTime: 1000 * 60,
-      enabled: allowed,
-    });
+    api.data.getRecruitmentMainMetrics.useQuery(
+      { ...getVisitorFilter(visitorFilterState) },
+      {
+        staleTime: 1000 * 60,
+        enabled: allowed,
+      },
+    );
 
   const [metric, setMetric] = React.useState<RecruitmentMetric>("level");
   const metricLabel =
@@ -100,6 +99,7 @@ export default function ManualRecruitment() {
     levelRate: RECRUITMENT_GOALS.LEVEL_RATE_PERCENT,
     rankRate: RECRUITMENT_GOALS.RANK_RATE_PERCENT,
     pvpRate: RECRUITMENT_GOALS.PVP_RATE_PERCENT,
+    tutorialRate: RECRUITMENT_GOALS.TUTORIAL_RATE_PERCENT,
   } as const;
 
   const getColorClass = (valuePct: number, goalPct: number) => {
@@ -190,6 +190,45 @@ export default function ManualRecruitment() {
             </Card>
             <Card>
               <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Finished Tutorial</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading tutorial completion" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.tutorialFinishedSignups ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
+                              100
+                          : 0,
+                        goals.tutorialRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.tutorialFinishedSignups ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
+                          100
+                        : 0
+                      ).toFixed(1)}
+                      %
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.tutorialRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    {mainMetrics.tutorialFinishedSignups} / {mainMetrics.signups}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
                 <CardTitle className="text-sm font-medium">Leveled Beyond 1</CardTitle>
               </CardHeader>
               <CardContent className="py-1">
@@ -227,28 +266,7 @@ export default function ManualRecruitment() {
                 )}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">Click Value (USD)</CardTitle>
-              </CardHeader>
-              <CardContent className="py-1">
-                {isFetchingMain ? (
-                  <Loader explanation="Loading click value" />
-                ) : (
-                  <div
-                    className={`text-xl font-bold ${getClickValueColor(
-                      Number(mainMetrics?.clickValueUsd ?? 0),
-                    )}`}
-                  >
-                    ${mainMetrics?.clickValueUsd?.toFixed(2) ?? "0.00"}
-                  </div>
-                )}
-                <div className="text-xs text-foreground-muted">
-                  Total revenue / Paid Clicks (Goal: $
-                  {RECRUITMENT_GOALS.CLICK_VALUE_USD.toFixed(2)})
-                </div>
-              </CardContent>
-            </Card>
+
             <Card>
               <CardHeader className="pb-0 pt-2">
                 <CardTitle className="text-sm font-medium">
@@ -327,6 +345,28 @@ export default function ManualRecruitment() {
                     {mainMetrics.pvpSignups} / {mainMetrics.signups}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Click Value (USD)</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading click value" />
+                ) : (
+                  <div
+                    className={`text-xl font-bold ${getClickValueColor(
+                      Number(mainMetrics?.clickValueUsd ?? 0),
+                    )}`}
+                  >
+                    ${mainMetrics?.clickValueUsd?.toFixed(2) ?? "0.00"}
+                  </div>
+                )}
+                <div className="text-xs text-foreground-muted">
+                  Total revenue / Paid Clicks (Goal: $
+                  {RECRUITMENT_GOALS.CLICK_VALUE_USD.toFixed(2)})
+                </div>
               </CardContent>
             </Card>
           </div>

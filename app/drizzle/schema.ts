@@ -3783,6 +3783,7 @@ export const abEvent = mysqlTable(
     experiment: varchar("experiment", { length: 191 }).notNull(),
     variant: varchar("variant", { length: 191 }).notNull(),
     event: varchar("event", { length: 191 }).notNull(),
+    source: varchar("source", { length: 191 }),
     createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
@@ -3792,6 +3793,7 @@ export const abEvent = mysqlTable(
       userIdIdx: index("AbEvent_userId_idx").on(table.userId),
       experimentIdx: index("AbEvent_experiment_idx").on(table.experiment),
       eventIdx: index("AbEvent_event_idx").on(table.event),
+      sourceIdx: index("AbEvent_source_idx").on(table.source),
       createdAtIdx: index("AbEvent_createdAt_idx").on(table.createdAt),
     };
   },

@@ -69,6 +69,7 @@ export const miscRouter = createTRPCRouter({
               experiment: "welcome_optimized_ab",
               variant: ctx.abWelcomeVariant,
               event: "loaded",
+              source: input.utmSource,
             })
           : Promise.resolve(null),
       ]);

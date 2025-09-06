@@ -28,6 +28,7 @@ import {
   RecruitmentMetrics,
   RecruitmentMetricMax,
   RECRUITMENT_CTR,
+  TUTORIAL_STEPS_COUNT,
 } from "@/drizzle/constants";
 import {
   createTRPCRouter,
@@ -71,50 +72,66 @@ import { QuestTypes, QuestRewardMetrics } from "@/drizzle/constants";
 
 export const dataRouter = createTRPCRouter({
   // AB tests summaries (protected)
-  getAbTests: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const user = await fetchUser(ctx.drizzle, ctx.userId);
-    // Guard
-    if (!canViewRecruitmentAnalytics(user.role)) {
-      throw serverError("UNAUTHORIZED", "Insufficient permissions to get AB tests");
-    }
-    // Query
-    const rows = await ctx.drizzle
-      .select({
-        experiment: abEvent.experiment,
-        variant: abEvent.variant,
-        event: abEvent.event,
-        count: sql<number>`COUNT(${abEvent.id})`.mapWith(Number),
-      })
-      .from(abEvent)
-      .groupBy(abEvent.experiment, abEvent.variant, abEvent.event)
-      .orderBy(asc(abEvent.experiment), asc(abEvent.variant));
+  getAbTests: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        utmSource: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canViewRecruitmentAnalytics(user.role)) {
+        throw serverError("UNAUTHORIZED", "Insufficient permissions to get AB tests");
+      }
+      // Query
+      const whereConds: QueryCondition[] = [];
+      if (input?.startDate)
+        whereConds.push(gte(abEvent.createdAt, new Date(input.startDate)));
+      if (input?.endDate)
+        whereConds.push(lte(abEvent.createdAt, new Date(input.endDate)));
+      if (input?.utmSource && input.utmSource.length > 0)
+        whereConds.push(eq(abEvent.source, input.utmSource));
+      const rows = await ctx.drizzle
+        .select({
+          experiment: abEvent.experiment,
+          variant: abEvent.variant,
+          event: abEvent.event,
+          count: sql<number>`COUNT(${abEvent.id})`.mapWith(Number),
+        })
+        .from(abEvent)
+        .where(whereConds.length > 0 ? and(...whereConds) : undefined)
+        .groupBy(abEvent.experiment, abEvent.variant, abEvent.event)
+        .orderBy(asc(abEvent.experiment), asc(abEvent.variant));
 
-    const experiments = new Map<
-      string,
-      Record<string, { loaded: number; register: number }>
-    >();
-    rows.forEach((r) => {
-      const exp = r.experiment ?? "";
-      const variant = r.variant ?? "";
-      const event = r.event ?? "";
-      const count = Number(r.count ?? 0);
-      if (!experiments.has(exp)) experiments.set(exp, {});
-      const map = experiments.get(exp)!;
-      if (!map[variant]) map[variant] = { loaded: 0, register: 0 };
-      if (event === "loaded") map[variant].loaded += count;
-      if (event === "register") map[variant].register += count;
-    });
+      const experiments = new Map<
+        string,
+        Record<string, { loaded: number; register: number }>
+      >();
+      rows.forEach((r) => {
+        const exp = r.experiment ?? "";
+        const variant = r.variant ?? "";
+        const event = r.event ?? "";
+        const count = Number(r.count ?? 0);
+        if (!experiments.has(exp)) experiments.set(exp, {});
+        const map = experiments.get(exp)!;
+        if (!map[variant]) map[variant] = { loaded: 0, register: 0 };
+        if (event === "loaded") map[variant].loaded += count;
+        if (event === "register") map[variant].register += count;
+      });
 
-    return Array.from(experiments.entries()).map(([experiment, variants]) => ({
-      experiment,
-      variants: Object.entries(variants).map(([variant, vals]) => ({
-        variant,
-        loaded: vals.loaded,
-        register: vals.register,
-      })),
-    }));
-  }),
+      return Array.from(experiments.entries()).map(([experiment, variants]) => ({
+        experiment,
+        variants: Object.entries(variants).map(([variant, vals]) => ({
+          variant,
+          loaded: vals.loaded,
+          register: vals.register,
+        })),
+      }));
+    }),
   // Visitor analytics
   getVisitorUtmSources: protectedProcedure.query(async ({ ctx }) => {
     // Query
@@ -169,6 +186,7 @@ export const dataRouter = createTRPCRouter({
         leveledSignupsRow,
         nonStudentSignupsRow,
         pvpSignupsRow,
+        tutorialFinishedSignupsRow,
         totalRevenueRow,
       ] = await Promise.all([
         ctx.drizzle
@@ -238,6 +256,22 @@ export const dataRouter = createTRPCRouter({
           ),
         ctx.drizzle
           .select({
+            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+              // Consider tutorial finished when tutorialStep is set to the last index (skipped) or beyond the last step
+              gte(userData.tutorialStep, TUTORIAL_STEPS_COUNT),
+            ),
+          ),
+        ctx.drizzle
+          .select({
             totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
           })
           .from(paypalTransaction)
@@ -265,6 +299,7 @@ export const dataRouter = createTRPCRouter({
       const leveledSignups = leveledSignupsRow?.[0]?.count ?? 0;
       const nonStudentSignups = nonStudentSignupsRow?.[0]?.count ?? 0;
       const pvpSignups = pvpSignupsRow?.[0]?.count ?? 0;
+      const tutorialFinishedSignups = tutorialFinishedSignupsRow?.[0]?.count ?? 0;
       const totalRevenueUsd = totalRevenueRow?.[0]?.totalUsd ?? 0;
       const clickValueUsd = clicks > 0 ? totalRevenueUsd / clicks : 0;
 
@@ -276,6 +311,7 @@ export const dataRouter = createTRPCRouter({
         leveledBeyond1: leveledSignups,
         nonStudentSignups,
         pvpSignups,
+        tutorialFinishedSignups,
         clickValueUsd,
       };
     }),

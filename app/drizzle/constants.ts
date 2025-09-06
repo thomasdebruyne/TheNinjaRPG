@@ -626,8 +626,12 @@ export const RECRUITMENT_GOALS = {
   LEVEL_RATE_PERCENT: 40,
   RANK_RATE_PERCENT: 30,
   PVP_RATE_PERCENT: 5,
+  TUTORIAL_RATE_PERCENT: 95,
   CLICK_VALUE_USD: 0.07,
 } as const;
+
+// Number of tutorial steps used by the onboarding flow (see Tutorial.tsx)
+export const TUTORIAL_STEPS_COUNT = 29;
 
 // Recruitment rewards config
 export const RECRUITMENT_REWARDS = [
