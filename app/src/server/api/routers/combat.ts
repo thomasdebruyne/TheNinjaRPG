@@ -1347,7 +1347,7 @@ export const initiateBattle = async (
       user.experience = calcLevelRequirements(100);
       user.rank = "ELITE JONIN";
       user.medicalExperience = 100000;
-    } else {
+    } else if (!user.isAi) {
       user.experience = Math.min(user.experience, getSoftCappedExperience(user));
     }
 
