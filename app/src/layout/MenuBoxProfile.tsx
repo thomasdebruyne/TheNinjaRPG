@@ -600,7 +600,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
   const roundsTxt = (e: CollapsedEffect) =>
     e.rounds.length > 0 ? `↻ ${Math.max(...e.rounds)}` : "";
 
-  const renderCompact = (e: CollapsedEffect) => {
+  const renderCompact = (e: CollapsedEffect, i: number) => {
     // Determine if this effect is beneficial (green) or detrimental (red)
     const isPositiveEffect = (() => {
       switch (e.type) {
@@ -614,7 +614,10 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
     })();
 
     return (
-      <div key={`${e.type}-${e.category}`} className="flex flex-row items-center gap-2">
+      <div
+        key={`${i}-${e.type}-${e.category}`}
+        className="flex flex-row items-center gap-2"
+      >
         <ElementImage element={e.category} className="w-6 h-6 shrink-0" />
         <div className="flex flex-col leading-none">
           <div

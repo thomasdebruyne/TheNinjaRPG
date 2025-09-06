@@ -30,7 +30,7 @@ export default function CombatPage() {
   const [actionId, setActionId] = useAtom(combatActionIdAtom);
   const [showGridNumbers, setShowGridNumbers] = useLocalStorage<boolean>(
     "showGridNumbers",
-    true,
+    false,
   );
   const [battleState, setBattleState] = useState<BattleState | undefined>(undefined);
   const [lastViewedVersion, setLastViewedVersion] = useState<number>(0);

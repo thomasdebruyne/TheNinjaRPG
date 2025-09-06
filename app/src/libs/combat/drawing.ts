@@ -14,7 +14,7 @@ import {
   Sprite,
 } from "three";
 import { loadTexture, createTexture } from "@/libs/threejs/util";
-import { getPossibleActionTiles, findHex } from "../hexgrid";
+import { getPossibleActionTiles, findHex, PathCalculator } from "../hexgrid";
 import { COMBAT_WIDTH } from "./constants";
 import { getAffectedTiles } from "./movement";
 import { actionPointsAfterAction } from "./actions";
@@ -595,6 +595,131 @@ export const setVisible = (obj: Object3D | Group | Sprite, visible: boolean) => 
   }
 };
 
+// Track current tile (visual) and target tile (logical)
+type MovementState = { path?: TerrainHex[]; index: number };
+type UserMeshData = {
+  hex?: TerrainHex;
+  targetHex?: TerrainHex;
+  movement?: MovementState;
+  initialized?: boolean;
+};
+type GroupUsersData = { pathFinder?: PathCalculator };
+
+/** Returns a cached PathCalculator on the users group, creating it if missing */
+const getOrCreatePathFinder = (
+  group_users: Group,
+  grid: Grid<TerrainHex>,
+): PathCalculator => {
+  const data = (group_users.userData as GroupUsersData) ?? {};
+  let ensured = data.pathFinder;
+  if (!ensured) {
+    ensured = new PathCalculator(grid);
+    data.pathFinder = ensured;
+    (group_users as unknown as { userData: GroupUsersData }).userData = data;
+  }
+  return ensured;
+};
+
+/** Ensures meshData exists and initializes current visual tile/position when first seen */
+const getOrInitUserMeshData = (
+  userMesh: Group,
+  targetTile: TerrainHex,
+): UserMeshData => {
+  const meshData = (userMesh.userData as UserMeshData) ?? ({} as UserMeshData);
+  if (!meshData.initialized) {
+    meshData.hex = meshData.hex ?? targetTile;
+    const { x, y } = targetTile.center;
+    userMesh.position.set(-x, -y, 0);
+    meshData.initialized = true;
+  }
+  meshData.movement = meshData.movement || { path: undefined, index: 0 };
+  return meshData;
+};
+
+/** Computes a new path if target changed or path exhausted; updates meshData.targetHex */
+const computePathIfNeeded = (
+  meshData: UserMeshData,
+  pathFinder: PathCalculator,
+  targetTile: TerrainHex,
+) => {
+  const prevTarget = meshData.targetHex;
+  const targetChanged =
+    !prevTarget ||
+    prevTarget.col !== targetTile.col ||
+    prevTarget.row !== targetTile.row;
+  const needNewPath =
+    targetChanged ||
+    !meshData.movement?.path ||
+    (meshData.movement?.index ?? 0) >= (meshData.movement?.path?.length ?? 0);
+  if (needNewPath) {
+    const start: TerrainHex = meshData.hex ?? targetTile;
+    const path = pathFinder.getShortestPath(start, targetTile) || [];
+    const trimmed =
+      path.length > 0 &&
+      path[0] &&
+      path[0].col === start.col &&
+      path[0].row === start.row
+        ? path.slice(1)
+        : path;
+    meshData.movement = { path: trimmed, index: 0 };
+  }
+  meshData.targetHex = targetTile;
+};
+
+/** Returns the per-frame movement speed for a tile */
+const getTileSpeed = (tile: TerrainHex): number => {
+  return (tile.width / 50) * 3; // tripled speed
+};
+
+/** Steps the mesh along its path or directly to target with clamped constant speed */
+const stepAlongPath = (
+  userMesh: Group,
+  meshData: UserMeshData,
+  targetTile: TerrainHex,
+  speed: number,
+) => {
+  const { x: curX, y: curY } = userMesh.position;
+  const moveTowards = (tx: number, ty: number) => {
+    const dx = tx - curX;
+    const dy = ty - curY;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= speed || dist === 0) {
+      userMesh.position.set(tx, ty, 0);
+      return true;
+    } else {
+      const nx = dx / dist;
+      const ny = dy / dist;
+      userMesh.position.set(curX + nx * speed, curY + ny * speed, 0);
+      return false;
+    }
+  };
+
+  const path = meshData.movement?.path;
+  let index = meshData.movement?.index ?? 0;
+  if (path && index < path.length) {
+    const nextTile = path[index]!;
+    const { x, y } = nextTile.center;
+    const reached = moveTowards(-x, -y);
+    if (reached) {
+      meshData.hex = nextTile;
+      index += 1;
+      meshData.movement = { path, index };
+      if (!path || index >= path.length) {
+        const { x: tx, y: ty } = targetTile.center;
+        userMesh.position.set(-tx, -ty, 0);
+        meshData.hex = targetTile;
+        meshData.movement = { path: undefined, index: 0 };
+      }
+    }
+  } else {
+    const { x, y } = targetTile.center;
+    const reached = moveTowards(-x, -y);
+    if (reached) {
+      meshData.hex = targetTile;
+    }
+  }
+};
+
 /**
  * Draw/update the users on the map. Should be called on every render
  */
@@ -607,6 +732,8 @@ export const drawCombatUsers = (info: {
 }) => {
   // Destruct
   const { users, group_users, grid, playerId, userData } = info;
+  // Cache or create a pathfinder for this group
+  const pathFinder = getOrCreatePathFinder(group_users, grid);
   // Draw the users
   const drawnIds = new Set<string>();
   users.forEach((user) => {
@@ -630,35 +757,13 @@ export const drawCombatUsers = (info: {
       // Get location
       if (userMesh && grid) {
         userMesh.visible = true;
-        userMesh.userData.tile = hex;
-        const { x, y } = hex.center;
-        const { width } = hex;
-        const { x: curX, y: curY } = userMesh.position;
-        const speed = width / 50;
-        let targetX = -x;
-        let targetY = -y;
-        if (curX !== 0 || curY !== 0) {
-          const xDiff = targetX - curX;
-          const yDiff = targetY - curY;
-          if (xDiff) {
-            const xToYratio = yDiff ? Math.abs(xDiff / yDiff) : 1;
-            const deltaX = (xDiff > 0 ? 1 : -1) * speed * xToYratio;
-            if (xDiff > 0) {
-              targetX = curX + deltaX >= targetX ? targetX : curX + deltaX;
-            } else {
-              targetX = curX + deltaX <= targetX ? targetX : curX + deltaX;
-            }
-          }
-          if (yDiff) {
-            const deltaY = (targetY - curY > 0 ? 1 : -1) * speed;
-            if (yDiff > 0) {
-              targetY = curY + deltaY >= targetY ? targetY : curY + deltaY;
-            } else {
-              targetY = curY + deltaY <= targetY ? targetY : curY + deltaY;
-            }
-          }
-        }
-        userMesh.position.set(targetX, targetY, 0);
+
+        const targetTile: TerrainHex = hex;
+        const meshData = getOrInitUserMeshData(userMesh, targetTile);
+        computePathIfNeeded(meshData, pathFinder, targetTile);
+        const speed = getTileSpeed(meshData.hex ?? targetTile);
+        stepAlongPath(userMesh, meshData, targetTile, speed);
+        userMesh.userData = meshData;
         // Handle remove users from combat.
         if (!stillInBattle(user) && user.hidden === undefined) {
           setVisible(userMesh, false);
