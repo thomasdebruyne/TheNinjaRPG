@@ -34,6 +34,7 @@ export default function ManualJutsuBalance() {
   // Queries
   const { data, isPending } = api.jutsu.getAll.useQuery({ limit: 500 }, {});
   const allJutsus = data?.data;
+  const { data: gameAssets } = api.misc.getAllGameAssetNames.useQuery(undefined);
 
   // Jutsu details query for modal
   const { data: jutsuDetails, isPending: isJutsuDetailsPending } =
@@ -59,10 +60,23 @@ export default function ManualJutsuBalance() {
         ? 1
         : 0;
 
-      if (jutsu.name.includes("Titan")) {
-        console.log(jutsu.name, jutsu.description.length, description);
-      }
-      const total = effects + description + battleDescription + missingGraphic;
+      // Check: referenced asset IDs exist in gameAsset table
+      const assetIdSet = new Set((gameAssets ?? []).map((a) => a.id));
+      const invalidAssets = gameAssets
+        ? jutsu.effects.some((e) =>
+            [
+              e.appearAnimation,
+              e.disappearAnimation,
+              e.staticAnimation,
+              e.staticAssetPath,
+            ].every((v) => v && !assetIdSet.has(v)),
+          )
+          ? 1
+          : 0
+        : 0;
+
+      const total =
+        effects + description + battleDescription + missingGraphic + invalidAssets;
       // Return summary
       return {
         name: jutsu.name,
@@ -101,9 +115,14 @@ export default function ManualJutsuBalance() {
           <CircleCheckBig className="h-4 w-4 text-green-500" />
         ),
         missingGraphic: missingGraphic ? (
-          <CircleCheckBig className="h-4 w-4 text-green-500" />
-        ) : (
           <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
+        ),
+        assetsExist: invalidAssets ? (
+          <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
         ),
         total: total,
       };
@@ -118,8 +137,10 @@ export default function ManualJutsuBalance() {
     { key: "links", header: "Links", type: "jsx" },
     { key: "effects", header: "Effects", type: "jsx" },
     { key: "missingGraphic", header: "Graphics", type: "jsx" },
+    { key: "assetsExist", header: "Assets Exist", type: "jsx" },
     { key: "description", header: "Description", type: "jsx" },
     { key: "battleDescription", header: "Battle Desc", type: "jsx" },
+    { key: "total", header: "Total", type: "jsx" },
   ];
 
   // Counts per classification

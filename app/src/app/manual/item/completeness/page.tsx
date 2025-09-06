@@ -34,6 +34,7 @@ export default function ManualItemBalance() {
   // Queries
   const { data, isPending } = api.item.getAll.useQuery({ limit: 500 }, {});
   const allItems = data?.data;
+  const { data: gameAssets } = api.misc.getAllGameAssetNames.useQuery(undefined);
 
   // Item details query for modal
   const { data: itemDetails, isPending: isItemDetailsPending } = api.item.get.useQuery(
@@ -50,18 +51,33 @@ export default function ManualItemBalance() {
       // Checks
       const noBattleUsage =
         item.preventBattleUsage || ["MATERIAL", "CRYSTAL"].includes(item.itemType);
-      const effects = item.effects.length === 0 ? 1 : 0;
+      const effects = item.effects.length === 0 && !noBattleUsage ? 1 : 0;
       const description = item.description === "New item description" ? 1 : 0;
-      const missingGraphic = !item.effects.some(
-        (e) =>
-          e.appearAnimation ||
-          e.disappearAnimation ||
-          e.staticAnimation ||
-          e.staticAssetPath,
-      )
-        ? 1
+      const missingGraphic =
+        !item.effects.some(
+          (e) =>
+            e.appearAnimation ||
+            e.disappearAnimation ||
+            e.staticAnimation ||
+            e.staticAssetPath,
+        ) && !noBattleUsage
+          ? 1
+          : 0;
+      // Check: referenced asset IDs exist in gameAsset table
+      const assetIdSet = new Set((gameAssets ?? []).map((a) => a.id));
+      const invalidAssets = gameAssets
+        ? item.effects.some((e) =>
+            [
+              e.appearAnimation,
+              e.disappearAnimation,
+              e.staticAnimation,
+              e.staticAssetPath,
+            ].every((v) => v && !assetIdSet.has(v)),
+          ) && !noBattleUsage
+          ? 1
+          : 0
         : 0;
-      const total = effects + description + missingGraphic;
+      const total = effects + description + missingGraphic + invalidAssets;
       // Return summary
       return {
         name: item.name,
@@ -84,23 +100,26 @@ export default function ManualItemBalance() {
             />
           </div>
         ),
-        effects:
-          effects && !noBattleUsage ? (
-            <CircleMinus className="h-4 w-4 text-red-500" />
-          ) : (
-            <CircleCheckBig className="h-4 w-4 text-green-500" />
-          ),
+        effects: effects ? (
+          <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
+        ),
         description: description ? (
           <CircleMinus className="h-4 w-4 text-red-500" />
         ) : (
           <CircleCheckBig className="h-4 w-4 text-green-500" />
         ),
-        missingGraphic:
-          missingGraphic && !noBattleUsage ? (
-            <CircleMinus className="h-4 w-4 text-red-500" />
-          ) : (
-            <CircleCheckBig className="h-4 w-4 text-green-500" />
-          ),
+        missingGraphic: missingGraphic ? (
+          <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
+        ),
+        assetsExist: invalidAssets ? (
+          <CircleMinus className="h-4 w-4 text-red-500" />
+        ) : (
+          <CircleCheckBig className="h-4 w-4 text-green-500" />
+        ),
         total: total,
       };
     })
@@ -114,7 +133,9 @@ export default function ManualItemBalance() {
     { key: "links", header: "Links", type: "jsx" },
     { key: "effects", header: "Effects", type: "jsx" },
     { key: "missingGraphic", header: "Graphics", type: "jsx" },
+    { key: "assetsExist", header: "Asset Missing", type: "jsx" },
     { key: "description", header: "Description", type: "jsx" },
+    { key: "total", header: "Total", type: "jsx" },
   ];
 
   // Counts per classification

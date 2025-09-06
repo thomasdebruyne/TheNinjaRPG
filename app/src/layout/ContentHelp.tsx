@@ -169,7 +169,11 @@ export const ItemHelper: React.FC<ItemHelperProps> = (props) => {
               </p>
             </div>
             {renderItemTips(item)}
+            {renderItemDescriptionWarnings(item)}
             {item.effects && renderEffectsTips(item.effects as ZodAllTags[])}
+            {item.effects &&
+              !isItemNoBattleUsage(item) &&
+              renderEffectsGraphicsWarning(item.effects as ZodAllTags[])}
           </div>
         </SheetContent>
       </Sheet>
@@ -238,8 +242,11 @@ export const JutsuHelper: React.FC<JutsuHelperProps> = ({ jutsu }) => {
             </div>
 
             {renderJutsuInformation()}
+            {renderJutsuDescriptionWarnings(jutsu)}
             {renderJutseRelations(jutsu, injectorData)}
             {jutsu.effects && renderEffectsTips(jutsu.effects as ZodAllTags[])}
+            {jutsu.effects &&
+              renderEffectsGraphicsWarning(jutsu.effects as ZodAllTags[])}
           </div>
         </SheetContent>
       </Sheet>
@@ -417,6 +424,107 @@ const renderEffectsTips = (effects: ZodAllTags[]) => {
     <div className="space-y-3">
       <h4 className="font-medium text-gray-900">Effects Tips</h4>
       {tips}
+    </div>
+  );
+};
+
+/**
+ * Returns true if any effect has a visual configured
+ */
+const hasAnyEffectGraphics = (effects: ZodAllTags[]) => {
+  console.log(effects);
+  return effects.some(
+    (e) =>
+      e.appearAnimation ||
+      e.disappearAnimation ||
+      e.staticAnimation ||
+      e.staticAssetPath,
+  );
+};
+
+/**
+ * Single utility: render a graphics warning for a list of effects
+ */
+const renderEffectsGraphicsWarning = (effects: ZodAllTags[]) => {
+  if (effects.length === 0) return null;
+  if (hasAnyEffectGraphics(effects)) return null;
+
+  return (
+    <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+      <h4 className="font-medium text-red-900 mb-2">Missing Effect Graphics</h4>
+      <p className="text-red-800 text-sm">
+        No effect visuals configured. Consider adding
+        <code className="bg-red-100 px-1 rounded ml-1 mr-1">appearAnimation</code>,{" "}
+        <code className="bg-red-100 px-1 rounded mr-1">disappearAnimation</code>,{" "}
+        <code className="bg-red-100 px-1 rounded mr-1">staticAnimation</code>
+        or <code className="bg-red-100 px-1 rounded ml-1">staticAssetPath</code>
+        to at least one effect to improve battle visuals.
+      </p>
+    </div>
+  );
+};
+
+/** Item helper: skip graphics warning for items not used in battle */
+const isItemNoBattleUsage = (item: DeepPartial<ZodItemType>) => {
+  return (
+    !!item.preventBattleUsage ||
+    ["MATERIAL", "CRYSTAL"].includes((item.itemType as string) || "")
+  );
+};
+
+/** Jutsu description warnings */
+const renderJutsuDescriptionWarnings = (jutsu: DeepPartial<ZodJutsuType>) => {
+  const warnings = [] as { title: string; msg: string }[];
+  const desc = jutsu.description || "";
+  const battleDesc = jutsu.battleDescription || "";
+
+  if (desc.length < 50) {
+    warnings.push({
+      title: "Short Description",
+      msg: "Description is very short. Aim for at least 50 characters for clarity.",
+    });
+  }
+  if (battleDesc.length < 50) {
+    warnings.push({
+      title: "Short Battle Description",
+      msg: "Battle description is very short. Aim for at least 50 characters to explain in-battle behavior.",
+    });
+  }
+
+  if (warnings.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      {warnings.map((w, idx) => (
+        <div key={idx} className="p-3 bg-red-50 rounded-lg border border-red-200">
+          <h4 className="font-medium text-red-900 mb-2">{w.title}</h4>
+          <p className="text-red-800 text-sm">{w.msg}</p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** Item description warnings */
+const renderItemDescriptionWarnings = (item: DeepPartial<ZodItemType>) => {
+  const warnings = [] as { title: string; msg: string }[];
+  const desc = item.description || "";
+
+  if (desc === "New item description") {
+    warnings.push({
+      title: "Placeholder Description",
+      msg: "Item description is still the default placeholder. Please write a proper description.",
+    });
+  }
+
+  if (warnings.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      {warnings.map((w, idx) => (
+        <div key={idx} className="p-3 bg-red-50 rounded-lg border border-red-200">
+          <h4 className="font-medium text-red-900 mb-2">{w.title}</h4>
+          <p className="text-red-800 text-sm">{w.msg}</p>
+        </div>
+      ))}
     </div>
   );
 };
