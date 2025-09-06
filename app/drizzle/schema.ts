@@ -2725,6 +2725,7 @@ export const dataBattleAction = mysqlTable(
         table.battleWon,
         table.relatedBloodlineId,
       ),
+      countIdx: index("DataBattleActions_count_idx").on(table.count),
       createdAt: index("DataBattleActions_createdAt").on(table.createdAt),
     };
   },

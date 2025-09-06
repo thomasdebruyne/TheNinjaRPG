@@ -5,11 +5,11 @@ import {
   defineFilteringSchema,
 } from "@/layout/ContentFiltering";
 
-// Helper: get date string (YYYY-MM-DD) for N months ago
-const dateStringMonthsAgo = (months: number) => {
+// Helper: get date string (YYYY-MM-DD) for N days ago
+const dateStringDaysAgo = (days: number) => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
-  d.setMonth(d.getMonth() - months);
+  d.setDate(d.getDate() - days);
   const y = d.getFullYear();
   const m = `${d.getMonth() + 1}`.padStart(2, "0");
   const day = `${d.getDate()}`.padStart(2, "0");
@@ -33,7 +33,7 @@ const visitorFilteringSchema = defineFilteringSchema({
       id: "startDate",
       label: "First Visit (From)",
       type: "date",
-      defaultValue: dateStringMonthsAgo(3),
+      defaultValue: dateStringDaysAgo(7),
     },
     {
       id: "endDate",

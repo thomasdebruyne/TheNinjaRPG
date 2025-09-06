@@ -2017,6 +2017,13 @@
       "when": 1757136883627,
       "tag": "0287_bumpy_iron_monger",
       "breakpoints": false
+    },
+    {
+      "idx": 288,
+      "version": "5",
+      "when": 1757145612719,
+      "tag": "0288_boring_sunspot",
+      "breakpoints": false
     }
   ]
 }
