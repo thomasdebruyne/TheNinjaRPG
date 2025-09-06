@@ -25,10 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { MonitorPlay, Shuffle } from "lucide-react";
+import { MonitorPlay } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { registrationSchema } from "@/validators/register";
@@ -94,6 +95,29 @@ const Register: React.FC = () => {
       },
     });
 
+  // Prepare initial randomized defaults for style-related fields
+  const validAttributes = attributes.filter(
+    (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
+  );
+  const shuffledAttributes = [...validAttributes].sort(() => 0.5 - Math.random());
+  const [initialAttr1, initialAttr2, initialAttr3] = shuffledAttributes.slice(0, 3);
+
+  const validColors = colors.filter(
+    (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+  );
+  const validSkinColors = skin_colors.filter(
+    (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+  );
+  const validGenders = genders.filter(
+    (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
+  );
+
+  const initialHairColor = validColors[Math.floor(Math.random() * validColors.length)]!;
+  const initialEyeColor = validColors[Math.floor(Math.random() * validColors.length)]!;
+  const initialSkinColor =
+    validSkinColors[Math.floor(Math.random() * validSkinColors.length)]!;
+  const initialGender = validGenders[Math.floor(Math.random() * validGenders.length)]!;
+
   // Form handling
   const form = useForm<RegistrationSchema>({
     mode: "all",
@@ -102,13 +126,13 @@ const Register: React.FC = () => {
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       username: "",
-      gender: undefined,
-      hair_color: undefined,
-      eye_color: undefined,
-      skin_color: undefined,
-      attribute_1: undefined,
-      attribute_2: undefined,
-      attribute_3: undefined,
+      gender: initialGender,
+      hair_color: initialHairColor,
+      eye_color: initialEyeColor,
+      skin_color: initialSkinColor,
+      attribute_1: initialAttr1,
+      attribute_2: initialAttr2,
+      attribute_3: initialAttr3,
       bloodlineId: undefined,
     },
   });
@@ -151,6 +175,54 @@ const Register: React.FC = () => {
     name: "attribute_3",
     defaultValue: undefined,
   });
+  const watchHairColor = useWatch({
+    control: form.control,
+    name: "hair_color",
+    defaultValue: undefined,
+  });
+  const watchEyeColor = useWatch({
+    control: form.control,
+    name: "eye_color",
+    defaultValue: undefined,
+  });
+  const watchSkinColor = useWatch({
+    control: form.control,
+    name: "skin_color",
+    defaultValue: undefined,
+  });
+  const watchBloodlineId = useWatch({
+    control: form.control,
+    name: "bloodlineId",
+    defaultValue: undefined,
+  });
+
+  const isStep1Ready =
+    watchUsername.trim().length >= 2 &&
+    Boolean(watchGender) &&
+    !form.formState.errors.username &&
+    !form.formState.errors.gender;
+  const isStep2Ready =
+    Boolean(watchHairColor) &&
+    Boolean(watchEyeColor) &&
+    Boolean(watchSkinColor) &&
+    Boolean(watchAttr1) &&
+    Boolean(watchAttr2) &&
+    Boolean(watchAttr3) &&
+    !form.formState.errors.hair_color &&
+    !form.formState.errors.eye_color &&
+    !form.formState.errors.skin_color &&
+    !form.formState.errors.attribute_1 &&
+    !form.formState.errors.attribute_2 &&
+    !form.formState.errors.attribute_3;
+  const isStep3Ready = Boolean(watchBloodlineId) && !form.formState.errors.bloodlineId;
+  const canShowNextSmall =
+    current === 1
+      ? isStep1Ready
+      : current === 2
+        ? isStep2Ready
+        : current === 3
+          ? isStep3Ready
+          : false;
 
   // Checking for unique username
   const { data: databaseUsername } = api.profile.getUsername.useQuery(
@@ -207,46 +279,6 @@ const Register: React.FC = () => {
     (data) => createCharacter(data),
     (error) => showFormErrorsToast(error),
   );
-
-  // Helper function to get random item from array
-  const getRandomItem = <T,>(array: readonly T[]): T => {
-    return array[Math.floor(Math.random() * array.length)]!;
-  };
-
-  // Randomize all character data function
-  const randomizeAll = () => {
-    // Get 3 random unique attributes (filter out any "none"-like values)
-    const validAttributes = attributes.filter(
-      (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
-    );
-    const shuffled = [...validAttributes].sort(() => 0.5 - Math.random());
-    const [attr1, attr2, attr3] = shuffled.slice(0, 3);
-
-    // Get random colors (filter out any "none"-like values)
-    const validColors = colors.filter(
-      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-    );
-    const validSkinColors = skin_colors.filter(
-      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-    );
-    const validGenders = genders.filter(
-      (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
-    );
-
-    const randomHairColor = getRandomItem(validColors);
-    const randomEyeColor = getRandomItem(validColors);
-    const randomSkinColor = getRandomItem(validSkinColors);
-    const randomGender = getRandomItem(validGenders);
-
-    // Set the form values (validation will trigger automatically due to onChange mode)
-    form.setValue("gender", randomGender);
-    form.setValue("attribute_1", attr1!);
-    form.setValue("attribute_2", attr2!);
-    form.setValue("attribute_3", attr3!);
-    form.setValue("hair_color", randomHairColor);
-    form.setValue("eye_color", randomEyeColor);
-    form.setValue("skin_color", randomSkinColor);
-  };
 
   // Options used for select fields
   const option_colors = colors.map((color, index) => (
@@ -338,19 +370,6 @@ const Register: React.FC = () => {
                                 <FormMessage />
                               </div>
                             </FormItem>
-                            <div>
-                              <div className="text-7xl basis-full flex-row">
-                                {watchGender === "Male" && (
-                                  <p className="text-blue-500 p-2">♂</p>
-                                )}
-                                {watchGender === "Female" && (
-                                  <p className="text-pink-500 p-2">♀</p>
-                                )}
-                                {watchGender === "Other" && (
-                                  <p className="text-slate-500 p-2">⚥</p>
-                                )}
-                              </div>
-                            </div>
                           </div>
                         )}
                       />
@@ -553,19 +572,6 @@ const Register: React.FC = () => {
                         )}
                       />
                     </div>
-
-                    <div className="grid grid-cols-3 w-full gap-4 items-center px-3">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={randomizeAll}
-                        className="w-full"
-                      >
-                        <Shuffle className="h-5 w-5 mr-2" />
-                        Randomize All
-                      </Button>
-                    </div>
                   </CarouselItem>
                   <CarouselItem className="flex flex-col gap-4">
                     <div className="w-full flex justify-center">
@@ -723,6 +729,18 @@ const Register: React.FC = () => {
                 <CarouselPrevious className="animate-[wiggle_1s_ease-in-out_infinite]" />
                 <CarouselNext className="animate-[wiggle_1s_ease-in-out_infinite]" />
               </Carousel>
+              {canShowNextSmall && current < count && (
+                <div className="absolute right-2 bottom-2 sm:right-4 sm:bottom-4">
+                  <Button
+                    type="button"
+                    onClick={() => cApi?.scrollNext()}
+                    className="shadow-md bg-green-700 hover:bg-green-800"
+                  >
+                    Next
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Button>
+                </div>
+              )}
             </form>
           </Form>
 
