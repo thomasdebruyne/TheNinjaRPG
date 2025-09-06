@@ -993,6 +993,9 @@ export const selectItemLoadout = async (
     .update(userItem)
     .set({ equipped: "NONE" })
     .where(eq(userItem.userId, user.userId));
+  useritems.forEach((ui) => {
+    ui.equipped = "NONE";
+  });
 
   // Then equip valid items from loadout
   const equipPromises = [];
@@ -1010,6 +1013,7 @@ export const selectItemLoadout = async (
           .set({ equipped: itemEntry.slot })
           .where(eq(userItem.id, userItemToEquip.id)),
       );
+      userItemToEquip.equipped = itemEntry.slot;
     }
   }
   // Execute all updates

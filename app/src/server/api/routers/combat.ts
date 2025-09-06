@@ -793,15 +793,15 @@ export const combatRouter = createTRPCRouter({
       });
 
       // Merge the user's state with the other user's state
-      const newUsersState = [...otherUserState, ...usersState];
-      const newUsersEffects = [...otherUserEffects, ...userEffects];
+      userBattle.usersState = [...otherUserState, ...usersState];
+      userBattle.usersEffects = [...otherUserEffects, ...userEffects];
 
       // Mutate
       const result = await ctx.drizzle
         .update(battle)
         .set({
-          usersState: newUsersState,
-          usersEffects: newUsersEffects,
+          usersState: userBattle.usersState,
+          usersEffects: userBattle.usersEffects,
           version: userBattle.version,
           createdAt: userBattle.createdAt,
           updatedAt: userBattle.updatedAt,
