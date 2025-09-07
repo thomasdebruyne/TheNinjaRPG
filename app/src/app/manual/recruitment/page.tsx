@@ -159,6 +159,7 @@ export default function ManualRecruitment() {
                 )}
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="pb-0 pt-2">
                 <CardTitle className="text-sm font-medium">Signup Rate</CardTitle>
@@ -184,6 +185,37 @@ export default function ManualRecruitment() {
                 {!isFetchingMain && mainMetrics && (
                   <div className="text-xs text-foreground-muted">
                     {mainMetrics.signups} / {mainMetrics.visitors}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">
+                  Character Creation Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading character creation rate" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.characterCreationRate ?? 0) * 100,
+                        goals.signupRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.characterCreationRate ?? 0) * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.signupRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    {mainMetrics.characterCreations} / {mainMetrics.visitors}
                   </div>
                 )}
               </CardContent>

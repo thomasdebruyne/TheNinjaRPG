@@ -63,14 +63,22 @@ export const miscRouter = createTRPCRouter({
           userAgent: String(ctx.userAgent).slice(0, 180),
         }),
         ctx.abWelcomeVariant
-          ? ctx.drizzle.insert(abEvent).values({
-              id: nanoid(),
-              userId: null,
-              experiment: "welcome_optimized_ab",
-              variant: ctx.abWelcomeVariant,
-              event: "loaded",
-              source: input.utmSource,
-            })
+          ? ctx.drizzle
+              .insert(abEvent)
+              .values({
+                id: nanoid(),
+                userId: null,
+                experiment: "welcome_optimized_ab",
+                variant: ctx.abWelcomeVariant,
+                event: "loaded",
+                source: input.utmSource,
+                ip: ctx.userIp && ctx.userIp !== "unknown" ? ctx.userIp : undefined,
+                userAgent:
+                  typeof ctx.userAgent === "string"
+                    ? ctx.userAgent.slice(0, 180)
+                    : undefined,
+              })
+              .onDuplicateKeyUpdate({ set: { id: sql`id` } })
           : Promise.resolve(null),
       ]);
       if (visitorResult.rowsAffected === 0) {

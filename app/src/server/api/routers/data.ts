@@ -183,6 +183,7 @@ export const dataRouter = createTRPCRouter({
       const [
         visitorsRow,
         signupsRow,
+        characterCreationsRow,
         leveledSignupsRow,
         nonStudentSignupsRow,
         pvpSignupsRow,
@@ -195,8 +196,29 @@ export const dataRouter = createTRPCRouter({
           })
           .from(visitorLog)
           .where(visitorWhere.length > 0 ? and(...visitorWhere) : undefined),
+        // Signups: users with an entry in ReferralSource (mapped via historical IP to the visit)
         ctx.drizzle
           .select({
+            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+              // If utmSource filter provided, also match referralSource.source to it
+              ...(input.utmSource && input.utmSource.length > 0
+                ? [eq(referralSource.source, input.utmSource)]
+                : []),
+            ),
+          ),
+        ctx.drizzle
+          .select({
+            // Character creations: users who have a UserData row (mapped via historical IP to the visit)
             count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
           })
           .from(visitorLog)
@@ -295,7 +317,9 @@ export const dataRouter = createTRPCRouter({
 
       const clicks = visitorsRow?.[0]?.count ?? 0;
       const signups = signupsRow?.[0]?.count ?? 0;
+      const characterCreations = characterCreationsRow?.[0]?.count ?? 0;
       const signupRate = clicks > 0 ? signups / clicks : 0;
+      const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
       const leveledSignups = leveledSignupsRow?.[0]?.count ?? 0;
       const nonStudentSignups = nonStudentSignupsRow?.[0]?.count ?? 0;
       const pvpSignups = pvpSignupsRow?.[0]?.count ?? 0;
@@ -308,6 +332,8 @@ export const dataRouter = createTRPCRouter({
         signupRate,
         visitors: clicks,
         signups,
+        characterCreations,
+        characterCreationRate,
         leveledBeyond1: leveledSignups,
         nonStudentSignups,
         pvpSignups,

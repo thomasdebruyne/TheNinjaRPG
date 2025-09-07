@@ -3784,6 +3784,8 @@ export const abEvent = mysqlTable(
     variant: varchar("variant", { length: 191 }).notNull(),
     event: varchar("event", { length: 191 }).notNull(),
     source: varchar("source", { length: 191 }),
+    ip: varchar("ip", { length: 191 }),
+    userAgent: varchar("userAgent", { length: 191 }),
     createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
@@ -3794,6 +3796,7 @@ export const abEvent = mysqlTable(
       experimentIdx: index("AbEvent_experiment_idx").on(table.experiment),
       eventIdx: index("AbEvent_event_idx").on(table.event),
       sourceIdx: index("AbEvent_source_idx").on(table.source),
+      eventIpUnique: uniqueIndex("AbEvent_event_ip_key").on(table.event, table.ip),
       createdAtIdx: index("AbEvent_createdAt_idx").on(table.createdAt),
     };
   },
