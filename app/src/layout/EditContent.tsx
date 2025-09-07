@@ -2,7 +2,7 @@ import { z } from "zod";
 import { calculateContentDiff } from "@/utils/diff";
 import { useForm, useWatch } from "react-hook-form";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import ContentImageSelector from "@/layout/ContentImageSelector";
 import RichInput from "@/layout/RichInput";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,7 @@ import { objectKeys } from "@/utils/typeutils";
 import { getTagSchema } from "@/libs/combat/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@/app/_trpc/client";
+import { showMutationToast } from "@/libs/toast";
 import { getObjectiveSchema } from "@/validators/objectives";
 import { Button } from "@/components/ui/button";
 import { MultiSelect, type OptionType } from "@/components/ui/multi-select";
@@ -45,6 +46,9 @@ import type { ZodAllTags } from "@/libs/combat/types";
 import type { FieldValues } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
 import type { ContentType, IMG_ORIENTATION } from "@/drizzle/constants";
+import Table from "@/layout/Table";
+import type { ColumnDefinitionType } from "@/layout/Table";
+import type { ZodItemType, ZodJutsuType, ZodBloodlineType } from "@/libs/combat/types";
 
 export type FormDbValue = { id: string; name: string };
 export type FormEntry<K> = {
@@ -1725,4 +1729,431 @@ export const FORM_LABEL_MAP: Record<string, string> = {
   attackers_scale_gains: "Scale random encounter combat gains",
   attackers_max_per_battle: "Max number of AI in random encounter",
   skillId: "Skill Unlocked by Consumption",
+};
+
+/**
+ * EFFECT FIELD RENDERER (generic): Renders a single effect field input based on its zod type
+ */
+export const EffectFieldInputGeneric = <E extends ZodAllTags>(opts: {
+  effect: E;
+  field: string;
+  onChange: (value: unknown) => void;
+  options?: {
+    ai?: OptionType[];
+    jutsu?: OptionType[];
+    jutsuInjectable?: OptionType[];
+    item?: OptionType[];
+    bloodline?: OptionType[];
+    animation?: OptionType[];
+    staticAsset?: OptionType[];
+  };
+}) => {
+  const { effect, field, onChange } = opts;
+  const schema = getTagSchema(effect.type);
+  const fieldSchema = (schema.shape as Record<string, z.ZodTypeAny>)[field] as
+    | z.ZodTypeAny
+    | undefined;
+  if (!fieldSchema) return <div className="text-muted-foreground">N/A</div>;
+  const inner = ((): z.ZodTypeAny => {
+    let t: z.ZodTypeAny = fieldSchema;
+    while (
+      t instanceof z.ZodDefault ||
+      t instanceof z.ZodOptional ||
+      t instanceof z.ZodNullable
+    ) {
+      t = (t as { _def: { innerType: z.ZodTypeAny } })._def.innerType;
+    }
+    return t;
+  })();
+  const eff = effect as unknown as Record<string, unknown>;
+
+  // Common db-backed fields
+  if (field === "aiId") {
+    const raw = eff[field];
+    const value = typeof raw === "string" ? raw : "";
+    return (
+      <SingleSelectSimple
+        value={value}
+        onChange={(v) => onChange(v)}
+        options={opts.options?.ai || []}
+      />
+    );
+  }
+  if (field === "jutsuIds") {
+    const raw = eff[field];
+    const selected = Array.isArray(raw) ? raw.filter((x) => typeof x === "string") : [];
+    return (
+      <MultiSelect
+        selected={selected}
+        onChange={(v) => onChange(v)}
+        options={opts.options?.jutsuInjectable || []}
+      />
+    );
+  }
+  if (field === "items") {
+    const raw = eff[field];
+    const selected = Array.isArray(raw) ? raw.filter((x) => typeof x === "string") : [];
+    return (
+      <MultiSelect
+        selected={selected}
+        onChange={(v) => onChange(v)}
+        options={opts.options?.item || []}
+      />
+    );
+  }
+  if (field === "reward_jutsus") {
+    const raw = eff[field];
+    const selected = Array.isArray(raw) ? raw.filter((x) => typeof x === "string") : [];
+    return (
+      <MultiSelect
+        selected={selected}
+        onChange={(v) => onChange(v)}
+        options={opts.options?.jutsu || []}
+      />
+    );
+  }
+  if (field === "reward_bloodlines") {
+    const raw = eff[field];
+    const selected = Array.isArray(raw) ? raw.filter((x) => typeof x === "string") : [];
+    return (
+      <MultiSelect
+        selected={selected}
+        onChange={(v) => onChange(v)}
+        options={opts.options?.bloodline || []}
+      />
+    );
+  }
+  if (["appearAnimation", "disappearAnimation", "staticAnimation"].includes(field)) {
+    const raw = eff[field];
+    const value = typeof raw === "string" ? raw : "";
+    return (
+      <SingleSelectSimple
+        value={value}
+        onChange={(v) => onChange(v)}
+        options={opts.options?.animation || []}
+        searchable
+      />
+    );
+  }
+  if (field === "staticAssetPath") {
+    const raw = eff[field];
+    const value = typeof raw === "string" ? raw : "";
+    return (
+      <SingleSelectSimple
+        value={value}
+        onChange={(v) => onChange(v)}
+        options={opts.options?.staticAsset || []}
+        searchable
+      />
+    );
+  }
+
+  // Primitives
+  if (inner instanceof z.ZodNumber) {
+    const value = eff[field];
+    const numVal = typeof value === "number" ? value : Number(value ?? 0);
+    return (
+      <Input
+        type="number"
+        value={String(numVal)}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    );
+  }
+  if (inner instanceof z.ZodBoolean) {
+    const value = eff[field];
+    const boolVal = typeof value === "boolean" ? value : Boolean(value);
+    return <Switch checked={boolVal} onCheckedChange={(v) => onChange(v)} />;
+  }
+  if (inner instanceof z.ZodEnum) {
+    const values = inner._def.values as string[];
+    const options = values.map((v) => ({ label: v, value: v }));
+    const raw = eff[field];
+    const cur = typeof raw === "string" ? raw : "";
+    const handle = (v: string) => onChange(v);
+    return <SingleSelectSimple value={cur} onChange={handle} options={options} />;
+  }
+  if (inner instanceof z.ZodNativeEnum) {
+    const values = Object.keys(inner._def.values as Record<string, string>);
+    const options = values.map((v) => ({ label: v, value: v }));
+    const raw = eff[field];
+    const cur = typeof raw === "string" ? raw : "";
+    const handle = (v: string) => onChange(v);
+    return <SingleSelectSimple value={cur} onChange={handle} options={options} />;
+  }
+  if (inner instanceof z.ZodArray) {
+    const innerArray: z.ZodTypeAny = (inner as z.ZodArray<z.ZodTypeAny>)._def.type;
+    let t: z.ZodTypeAny = innerArray;
+    while (
+      t instanceof z.ZodDefault ||
+      t instanceof z.ZodOptional ||
+      t instanceof z.ZodNullable
+    ) {
+      t = (t as { _def: { innerType: z.ZodTypeAny } })._def.innerType;
+    }
+    if (t instanceof z.ZodEnum) {
+      const values = (t._def.values as string[]) || [];
+      const options = values.map((v) => ({ label: v, value: v }));
+      const selected = Array.isArray(eff[field])
+        ? (eff[field] as unknown[]).filter((x): x is string => typeof x === "string")
+        : [];
+      const onChangeMs: React.Dispatch<React.SetStateAction<string[]>> = (v) =>
+        onChange(v);
+      return (
+        <MultiSelect selected={selected} onChange={onChangeMs} options={options} />
+      );
+    }
+    if (t instanceof z.ZodString) {
+      const selected = Array.isArray(eff[field])
+        ? (eff[field] as unknown[]).filter((x): x is string => typeof x === "string")
+        : [];
+      const onChangeMs: React.Dispatch<React.SetStateAction<string[]>> = (v) =>
+        onChange(v);
+      return (
+        <MultiSelect
+          selected={selected}
+          onChange={onChangeMs}
+          options={[]}
+          allowAddNew
+        />
+      );
+    }
+  }
+  const rawFinal = eff[field];
+  const textVal =
+    typeof rawFinal === "string" || typeof rawFinal === "number"
+      ? String(rawFinal)
+      : "";
+  return (
+    <Input type="text" value={textVal} onChange={(e) => onChange(e.target.value)} />
+  );
+};
+
+/** Simple single-select reused helper */
+const SingleSelectSimple: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  options: OptionType[];
+  searchable?: boolean;
+}> = ({ value, onChange, options, searchable }) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-between">
+          {options.find((o) => o.value === value)?.label || "Select"}
+          <ChevronsUpDown className="opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[240px] p-0">
+        <Command>
+          {searchable && <CommandInput placeholder="Search..." className="h-9" />}
+          <CommandList>
+            <CommandEmpty>No options</CommandEmpty>
+            <CommandGroup>
+              {options.map((opt) => (
+                <CommandItem
+                  key={opt.value}
+                  value={opt.value}
+                  keywords={[opt.label]}
+                  onSelect={() => onChange(opt.value)}
+                >
+                  {opt.label}
+                  <Check
+                    className={cn(
+                      "ml-auto",
+                      value === opt.value ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+/**
+ * MassEffectEditor (re-exported) - generic mass editor that reuses EffectFieldInputGeneric
+ */
+export const MassEffectEditor = <
+  T extends { id: string; name: string; effects: ZodAllTags[] },
+>(props: {
+  kind: "item" | "jutsu" | "bloodline";
+  entries: T[] | undefined;
+  selectedFields: string[];
+  onEntriesUpdated?: () => void;
+  filterEffectTypes?: string[];
+}) => {
+  const { kind, entries, selectedFields } = props;
+
+  const [modified, setModified] = useState<Record<string, ZodAllTags[]>>({});
+
+  // Options
+  const { data: aiData } = api.profile.getAllAiNames.useQuery(undefined);
+  const { data: jutsuData } = api.jutsu.getAllNames.useQuery(undefined);
+  const { data: itemData } = api.item.getAllNames.useQuery(undefined);
+  const { data: bloodlines } = api.bloodline.getAllNames.useQuery(undefined);
+  const { data: assetData } = api.misc.getAllGameAssetNames.useQuery(undefined);
+
+  const options = useMemo(
+    () =>
+      ({
+        ai: (aiData || [])
+          .filter((a) => a.isSummon)
+          .sort((a, b) => a.level - b.level)
+          .map((ai) => ({
+            label: `lvl ${ai.level}: ${ai.username}`,
+            value: ai.userId,
+          })),
+        jutsu: (jutsuData || []).map((j) => ({ label: j.name, value: j.id })),
+        jutsuInjectable: (jutsuData || [])
+          .filter((j) => j.injectableInBattle)
+          .map((j) => ({ label: j.name, value: j.id })),
+        item: (itemData || []).map((i) => ({ label: i.name, value: i.id })),
+        bloodline: (bloodlines || []).map((b) => ({ label: b.name, value: b.id })),
+        animation: (assetData || [])
+          .filter((a) => a.type === "ANIMATION")
+          .map((a) => ({ label: a.id, value: a.id })),
+        staticAsset: (assetData || [])
+          .filter((a) => a.type === "STATIC")
+          .map((a) => ({ label: a.id, value: a.id })),
+      }) as const,
+    [aiData, jutsuData, itemData, bloodlines, assetData],
+  );
+
+  type Row = {
+    id: string;
+    name: string;
+    effectType: string;
+    entryId: string;
+    effectIndex: number;
+  } & Record<string, React.ReactNode>;
+  const rows: Row[] = useMemo(() => {
+    const out: Row[] = [];
+    (entries || []).forEach((entry) => {
+      entry.effects.forEach((effect, idx) => {
+        // If effect type filter is set, only include matching effect rows
+        if (props.filterEffectTypes && props.filterEffectTypes.length > 0) {
+          if (!props.filterEffectTypes.includes(effect.type)) return;
+        }
+        const row: Row = {
+          id: `${entry.id}:${idx}`,
+          name: entry.name,
+          effectType: effect.type,
+          entryId: entry.id,
+          effectIndex: idx,
+        };
+        selectedFields.forEach((f) => {
+          row[f] = (
+            <EffectFieldInputGeneric
+              effect={modified[entry.id]?.[idx] ?? effect}
+              field={f}
+              onChange={(v) =>
+                setModified((prev) => {
+                  const next: Record<string, ZodAllTags[]> = { ...prev };
+                  const baseEffs = next[entry.id] ?? entry.effects;
+                  const effsArray = Array.isArray(baseEffs) ? baseEffs : entry.effects;
+                  const updated = [...effsArray];
+                  const current = updated[idx] ?? effect;
+                  updated[idx] = { ...current, [f]: v } as ZodAllTags;
+                  next[entry.id] = updated;
+                  return next;
+                })
+              }
+              options={options}
+            />
+          );
+        });
+        out.push(row);
+      });
+    });
+    return out;
+  }, [entries, selectedFields, modified, options]);
+
+  // Mutations
+  const itemUpdate = api.item.update.useMutation();
+  const jutsuUpdate = api.jutsu.update.useMutation();
+  const bloodlineUpdate = api.bloodline.update.useMutation();
+
+  const saveRow = async (row: Row) => {
+    const entry = (entries || []).find((e) => e.id === row.entryId);
+    if (!entry) return;
+    const effects = modified[row.entryId] ?? entry.effects;
+    if (kind === "item") {
+      const data = { ...(entry as unknown as ZodItemType), effects } as ZodItemType;
+      const res = await itemUpdate.mutateAsync({ id: entry.id, data });
+      showMutationToast(res);
+    } else if (kind === "jutsu") {
+      const data = { ...(entry as unknown as ZodJutsuType), effects } as ZodJutsuType;
+      const res = await jutsuUpdate.mutateAsync({ id: entry.id, data });
+      showMutationToast(res);
+    } else {
+      const data = {
+        ...(entry as unknown as ZodBloodlineType),
+        effects,
+      } as ZodBloodlineType;
+      const res = await bloodlineUpdate.mutateAsync({ id: entry.id, data });
+      showMutationToast(res);
+    }
+    setModified((prev) => {
+      const next = { ...prev };
+      delete next[row.entryId];
+      return next;
+    });
+    props.onEntriesUpdated?.();
+  };
+
+  const columns: ColumnDefinitionType<Row, keyof Row>[] = useMemo(() => {
+    const base: ColumnDefinitionType<Row, keyof Row>[] = [
+      { key: "name", header: "Name", type: "string" },
+      { key: "effectType", header: "Effect", type: "string" },
+    ];
+    selectedFields.forEach((f) => {
+      base.push({ key: f, header: f, type: "jsx" });
+    });
+    return base;
+  }, [selectedFields]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Table<Row, keyof Row>
+        data={rows}
+        columns={columns}
+        buttons={[{ label: "Save", onClick: (r: Row) => void saveRow(r) }]}
+      />
+    </div>
+  );
+};
+
+export const EffectFieldSelector: React.FC<{
+  selected: string[];
+  setSelected: React.Dispatch<React.SetStateAction<string[]>>;
+  className?: string;
+}> = ({ selected, setSelected, className }) => {
+  // Build field options from all tag schemas
+  const fieldOptions = useMemo<OptionType[]>(() => {
+    const fields = new Set<string>();
+    // Build from a sample of tag schemas by introspecting one common schema
+    // We reuse getTagSchema across tag types using tagTypes from types.ts
+    const all = getTagSchema("damage").shape as Record<string, unknown>;
+    Object.keys(all)
+      .filter((k) => !["type", "timeTracker"].includes(k))
+      .forEach((k) => fields.add(k));
+    return Array.from(fields)
+      .sort((a, b) => a.localeCompare(b))
+      .map((f) => ({ label: f, value: f }));
+  }, []);
+
+  return (
+    <div className={cn("min-w-[240px]", className)}>
+      <MultiSelect
+        selected={selected}
+        options={fieldOptions}
+        onChange={setSelected}
+        isDirty={false}
+      />
+    </div>
+  );
 };

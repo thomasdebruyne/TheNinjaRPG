@@ -7,7 +7,7 @@ import ItemWithEffects from "@/layout/ItemWithEffects";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import { Button } from "@/components/ui/button";
-import { FilePlus, ChartCandlestick, ChartPie } from "lucide-react";
+import { FilePlus, ChartCandlestick, ChartPie, ListChecks } from "lucide-react";
 import { useInfinitePagination } from "@/libs/pagination";
 import ItemFiltering, { useFiltering, getFilter } from "@/layout/ItemFiltering";
 import { api } from "@/app/_trpc/client";
@@ -115,6 +115,12 @@ export default function ManualItems() {
                   <FilePlus className="mr-2 h-6 w-6" />
                   New
                 </Button>
+                <Link href="/manual/item/mass_edit">
+                  <Button id="mass-edit-items" className="w-full">
+                    <ListChecks className="mr-2 h-6 w-6" />
+                    Edit
+                  </Button>
+                </Link>
               </div>
             )}
             <div className="ml-2">
