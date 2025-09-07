@@ -1348,7 +1348,8 @@ export const initiateBattle = async (
       user.rank = "ELITE JONIN";
       user.medicalExperience = 100000;
     } else if (!user.isAi) {
-      user.experience = Math.min(user.experience, getSoftCappedExperience(user));
+      // TODO: re-enable this once things are scaled properly
+      // user.experience = Math.min(user.experience, getSoftCappedExperience(user));
     }
 
     // Add achievements to users for tracking
