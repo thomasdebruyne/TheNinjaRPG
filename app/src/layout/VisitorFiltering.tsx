@@ -23,7 +23,7 @@ const visitorFilteringSchema = defineFilteringSchema({
       id: "utmSource",
       label: "UTM Source",
       type: "single-select",
-      defaultValue: "None",
+      defaultValue: "reddit",
       dataSource: "visitorUtmSources",
       includeNone: true,
       noneOption: { value: "None", label: "All" },
