@@ -1755,6 +1755,19 @@ const ManagementCommands: React.FC<ManagementCommandsProps> = ({ user }) => {
       },
     });
 
+  const { mutate: unequipAllJutsus, isPending: isUnequippingJutsus } =
+    api.staff.unequipAllJutsus.useMutation({
+      onSuccess: async (data) => {
+        showMutationToast(data);
+        if (data.success) {
+          await Promise.all([
+            utils.profile.getUser.invalidate(),
+            utils.jutsu.getUserJutsus.invalidate(),
+          ]);
+        }
+      },
+    });
+
   const { mutate: releaseSector, isPending: isReleasingSector } =
     api.staff.releaseSector.useMutation({
       onSuccess: async (data) => {
@@ -1818,6 +1831,34 @@ const ManagementCommands: React.FC<ManagementCommandsProps> = ({ user }) => {
       )}
       {canUnequipAllUsers(user) && (
         <Confirm2
+          title="Confirm Unequip All Jutsus"
+          button={
+            <Button
+              variant="destructive"
+              disabled={isUnequippingJutsus}
+              className="w-full"
+            >
+              {isUnequippingJutsus ? (
+                <Loader size={5} />
+              ) : (
+                <>
+                  <ShieldOff className="h-4 w-4 mr-2" />
+                  Unequip All Jutsus
+                </>
+              )}
+            </Button>
+          }
+          onAccept={(e) => {
+            e.preventDefault();
+            unequipAllJutsus();
+          }}
+        >
+          This will unequip all currently equipped jutsus <b>FOR ALL USERS</b>. Are you
+          sure you want to continue?
+        </Confirm2>
+      )}
+      {canUnequipAllUsers(user) && (
+        <Confirm2
           title="Confirm Reset All Skill Trees"
           button={
             <Button
@@ -1851,7 +1892,7 @@ const ManagementCommands: React.FC<ManagementCommandsProps> = ({ user }) => {
             <Button
               variant="default"
               disabled={isAwardingExperience}
-              className="w-full"
+              className="w-full bg-green-500"
             >
               {isAwardingExperience ? (
                 <Loader size={5} />
@@ -1992,9 +2033,11 @@ const ResetSkills: React.FC = () => {
             {isPending ? (
               <Loader size={5} />
             ) : isFree ? (
-              canChangeContent(userData.role)
-                ? "Reset Skills (Free for staff)"
-                : `Reset Skills (${resetInfo?.freeResetsRemaining} free GOLD resets remaining)`
+              canChangeContent(userData.role) ? (
+                "Reset Skills (Free for staff)"
+              ) : (
+                `Reset Skills (${resetInfo?.freeResetsRemaining} free GOLD resets remaining)`
+              )
             ) : canAffordPaid ? (
               `Reset Skills for ${COST_SKILL_RESET} Reps`
             ) : (

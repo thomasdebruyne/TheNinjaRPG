@@ -249,6 +249,28 @@ export const staffRouter = createTRPCRouter({
         message: "Test error",
       });
     }),
+  unequipAllJutsus: protectedProcedure
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Guard
+      if (!canUnequipAllUsers(user)) {
+        return errorResponse("You do not have permission to unequip all jutsus");
+      }
+      // Update all equipped jutsus to set equipped = 0 for all users and clear loadouts
+      await Promise.all([
+        ctx.drizzle
+          .update(userJutsu)
+          .set({ equipped: 0 })
+          .where(ne(userJutsu.equipped, 0)),
+        ctx.drizzle.update(jutsuLoadout).set({ jutsuIds: [] }),
+      ]);
+      return {
+        success: true,
+        message: `All jutsu has been unequipped for all users.`,
+      };
+    }),
   unequipAllGear: protectedProcedure
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {

@@ -64,6 +64,25 @@ const DistributionChart: React.FC<{
   yTitle?: string;
 }> = ({ title, labels, datasets, yTitle = "Density" }) => {
   const ref = useRef<HTMLCanvasElement>(null);
+  const [xZoomMin, xZoomMax] = useMemo(() => {
+    const threshold = 1;
+    const { firstIdx, lastIdx } = labels.reduce(
+      (acc, _xVal, i) => {
+        const hasHighDensity = datasets.some((ds) => (ds?.data[i] ?? 0) >= threshold);
+        if (hasHighDensity) {
+          if (acc.firstIdx === -1) acc.firstIdx = i;
+          acc.lastIdx = i;
+        }
+        return acc;
+      },
+      { firstIdx: -1, lastIdx: -1 },
+    );
+    const fallbackMin = labels[0] ?? 0;
+    const fallbackMax = labels[labels.length - 1] ?? fallbackMin;
+    const min = firstIdx === -1 ? fallbackMin : (labels[firstIdx] ?? fallbackMin);
+    const max = lastIdx === -1 ? fallbackMax : (labels[lastIdx] ?? fallbackMax);
+    return [min, max] as const;
+  }, [labels, datasets]);
   useEffect(() => {
     const ctx = ref.current?.getContext("2d");
     if (!ctx) return;
@@ -86,14 +105,19 @@ const DistributionChart: React.FC<{
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { type: "linear", title: { display: true, text: title } },
+          x: {
+            type: "linear",
+            title: { display: true, text: title },
+            min: xZoomMin,
+            max: xZoomMax,
+          },
           y: { type: "linear", title: { display: true, text: yTitle } },
         },
         plugins: { legend: { display: true } },
       },
     });
     return () => chart.destroy();
-  }, [labels, datasets, title, yTitle]);
+  }, [labels, datasets, title, yTitle, xZoomMax]);
   return (
     <div className="w-full" style={{ height: 260 }}>
       <canvas ref={ref} />
