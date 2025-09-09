@@ -127,7 +127,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
                       isHighlight
                         ? "rounded-xl border-4 border-amber-500 bg-amber-300 text-black"
                         : "",
-                      bgColor,
+                      bgColor ? `${bgColor} text-black` : "",
                       isGreyed ? "opacity-20" : "",
                     )}
                     isGreyed={isGreyed}
@@ -186,7 +186,6 @@ export const ActionOption: React.FC<ActionOptionProps> = (props) => {
     <div
       className={cn(
         "relative text-center flex cursor-pointer flex-col items-center justify-start rounded-md",
-        "text-black",
         props.isGreyed ? "hover:opacity-80" : "hover:opacity-90",
         props.className,
       )}
