@@ -49,6 +49,9 @@ import type { ContentType, IMG_ORIENTATION } from "@/drizzle/constants";
 import Table from "@/layout/Table";
 import type { ColumnDefinitionType } from "@/layout/Table";
 import type { ZodItemType, ZodJutsuType, ZodBloodlineType } from "@/libs/combat/types";
+import Modal2 from "@/layout/Modal2";
+import { ActionSelector } from "@/layout/CombatActions";
+import ContentImage from "@/layout/ContentImage";
 
 export type FormDbValue = { id: string; name: string };
 export type FormEntry<K> = {
@@ -63,8 +66,6 @@ export type FormEntry<K> = {
   | { type: "date" }
   | { type: "number" }
   | { type: "boolean" }
-  | { type: "animation_array"; values: readonly string[] }
-  | { type: "statics_array"; values: readonly string[] }
   | { type: "avatar"; href?: string | null; size?: IMG_ORIENTATION; maxDim?: number }
   | { type: "avatar3d"; modelUrl?: string | null; imgUrl?: string | null }
   | {
@@ -131,6 +132,72 @@ export const EditContent = <
     Record<string, OptionType[]>
   >({});
   const [newItemInputMap, setNewItemInputMap] = useState<Record<string, string>>({});
+
+  // Asset picker dialog state
+  const [assetPickerOpen, setAssetPickerOpen] = useState<boolean>(false);
+  const [assetPickerType, setAssetPickerType] = useState<"ANIMATION" | "STATIC">(
+    "ANIMATION",
+  );
+  const [assetPickerField, setAssetPickerField] = useState<string | null>(null);
+  const [assetTokens, setAssetTokens] = useState<string[]>([]);
+
+  // Asset picker data
+  const { data: animationTagResp, isFetching: loadingAnimTags } =
+    api.gameAsset.getNameTags.useQuery(
+      { type: "ANIMATION", selected: assetTokens },
+      { enabled: assetPickerOpen && assetPickerType === "ANIMATION" },
+    );
+  const { data: generalTagResp, isFetching: loadingGeneralTags } =
+    api.gameAsset.getNameTags.useQuery(
+      { type: assetPickerType, selected: assetTokens },
+      { enabled: assetPickerOpen && assetPickerType !== "ANIMATION" },
+    );
+  const { data: assetPages } = api.gameAsset.getAll.useInfiniteQuery(
+    { limit: 50, type: assetPickerType, nameTokens: assetTokens },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      placeholderData: (previousData) => previousData,
+      enabled: assetPickerOpen,
+    },
+  );
+  const allPickerAssets = useMemo(
+    () => (assetPages?.pages.map((p) => p.data).flat() || []).filter((a) => !a.hidden),
+    [assetPages],
+  );
+  const pickerTags =
+    assetPickerType === "ANIMATION" ? animationTagResp?.tags : generalTagResp?.tags;
+
+  const openAssetPicker = (fieldId: string, type: "ANIMATION" | "STATIC") => {
+    setAssetPickerField(fieldId);
+    setAssetPickerType(type);
+    setAssetTokens([]);
+    setAssetPickerOpen(true);
+  };
+
+  // Watch selected animation ids for preview
+  const watchAppearSel = useWatch({
+    control: form.control,
+    name: "appearAnimation" as Path<S>,
+  });
+  const watchDisappearSel = useWatch({
+    control: form.control,
+    name: "disappearAnimation" as Path<S>,
+  });
+  const watchStaticSel = useWatch({
+    control: form.control,
+    name: "staticAnimation" as Path<S>,
+  });
+  const animIds = useMemo(
+    () =>
+      [watchAppearSel, watchDisappearSel, watchStaticSel]
+        .map((x) => (typeof x === "string" ? x : ""))
+        .filter((x) => x.length > 0),
+    [watchAppearSel, watchDisappearSel, watchStaticSel],
+  );
+  const { data: animPreviewAssets } = api.gameAsset.getSceneAssets.useQuery(
+    { assetIds: animIds },
+    { enabled: animIds.length > 0 },
+  );
 
   // Event listener for submitting on enter click
   const onDocumentKeyDown = (event: KeyboardEvent) => {
@@ -223,6 +290,70 @@ export const EditContent = <
           formClassName ?? "grid grid-cols-1 md:grid-cols-2 items-center gap-1"
         }
       >
+        {/* Asset Picker Dialog */}
+        {assetPickerOpen && (
+          <Modal2
+            title={
+              assetPickerType === "ANIMATION" ? "Pick Animation" : "Pick Static Asset"
+            }
+            isOpen={assetPickerOpen}
+            setIsOpen={setAssetPickerOpen}
+            isValid={false}
+            className="w-[800px] max-w-[99%] max-h-[99%]"
+          >
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {(loadingAnimTags || loadingGeneralTags) && (
+                  <span className="text-sm opacity-70">Loading tags…</span>
+                )}
+                {pickerTags?.map((t) => (
+                  <button
+                    type="button"
+                    key={t}
+                    className={
+                      "px-2 py-1 rounded border text-xs " +
+                      (assetTokens.includes(String(t))
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-background border-muted-foreground/30")
+                    }
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setAssetTokens((prev) =>
+                        prev.includes(String(t))
+                          ? prev.filter((x) => x !== String(t))
+                          : [...prev, String(t)],
+                      );
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <ActionSelector
+                items={allPickerAssets?.map((a) => ({ ...a, type: "asset" as const }))}
+                labelSingles={true}
+                onClick={(pickedId) => {
+                  if (assetPickerField) {
+                    // Directly set the form value for the field we opened the picker for
+                    form.setValue(
+                      assetPickerField as unknown as Path<S>,
+                      pickedId as PathValue<S, K>,
+                      { shouldDirty: true },
+                    );
+                    setAssetPickerOpen(false);
+                  }
+                }}
+                showBgColor={false}
+                roundFull={true}
+                hideBorder={true}
+                showLabels={true}
+                gridClassNameOverwrite="grid grid-cols-3 md:grid-cols-4"
+                emptyText="No assets match the selected tags."
+              />
+            </div>
+          </Modal2>
+        )}
         {formData
           .filter((formEntry) => formEntry.type !== "avatar3d")
           .filter((formEntry) => {
@@ -262,11 +393,7 @@ export const EditContent = <
 
             // Options for select & multi-select
             let options: OptionType[] = [];
-            if (
-              formEntry.type === "animation_array" ||
-              formEntry.type === "statics_array" ||
-              formEntry.type === "str_array"
-            ) {
+            if (formEntry.type === "str_array") {
               options.push(...formEntry.values?.map((v) => ({ label: v, value: v })));
             } else if (formEntry.type === "db_values" && formEntry.values) {
               options.push(
@@ -343,7 +470,7 @@ export const EditContent = <
                       : "",
                     // Description things in yellow
                     formEntry.category === "scene"
-                      ? "bg-yellow-50 border-yellow-200 border rounded-lg"
+                      ? "bg-yellow-50 border-yellow-200 border rounded-lg text-black"
                       : "",
                   )}
                 >
@@ -419,9 +546,13 @@ export const EditContent = <
                     />
                   )}
                   {(type === "str_array" ||
-                    type === "db_values" ||
-                    type === "animation_array" ||
-                    type === "statics_array") && (
+                    (type === "db_values" &&
+                      ![
+                        "appearAnimation",
+                        "disappearAnimation",
+                        "staticAnimation",
+                        "staticAssetPath",
+                      ].includes(id))) && (
                     <div className="flex flex-row items-end">
                       <div className="grow">
                         <FormField
@@ -630,6 +761,107 @@ export const EditContent = <
                       )}
                     </div>
                   )}
+                  {type === "db_values" &&
+                    [
+                      "appearAnimation",
+                      "disappearAnimation",
+                      "staticAnimation",
+                      "staticAssetPath",
+                    ].includes(id) && (
+                      <div className="flex flex-row items-start gap-3">
+                        <FormField
+                          control={form.control}
+                          name={id}
+                          render={({ field }) => {
+                            const label = formEntry.label ? formEntry.label : id;
+                            const handleOpen = () => {
+                              const t =
+                                id === "staticAssetPath" ? "STATIC" : "ANIMATION";
+                              openAssetPicker(id, t);
+                            };
+                            const selectedOption = options.find(
+                              (o) => o.value === field.value,
+                            );
+                            return (
+                              <div className="flex flex-row items-start gap-3 w-full">
+                                <FormItem className="flex-1">
+                                  <FormLabel>{label}</FormLabel>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className={cn(
+                                        "justify-between w-full",
+                                        field.value ? "" : "text-muted-foreground",
+                                      )}
+                                      onClick={handleOpen}
+                                    >
+                                      {selectedOption?.label || "Pick from dialog"}
+                                    </Button>
+                                    <Button
+                                      className="w-8 p-0"
+                                      type="button"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        form.setValue(id, "" as PathValue<S, K>, {
+                                          shouldDirty: true,
+                                        });
+                                      }}
+                                    >
+                                      <X className="h-5 w-5 stroke-1" />
+                                    </Button>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                                {/* Preview to the right */}
+                                <div className="w-24 h-24">
+                                  {id === "staticAssetPath" ? (
+                                    formEntry &&
+                                    "current" in formEntry &&
+                                    formEntry.current ? (
+                                      <ContentImage
+                                        image={formEntry.current}
+                                        alt={id}
+                                        className=""
+                                        roundFull={false}
+                                        hideBorder={false}
+                                      />
+                                    ) : null
+                                  ) : (
+                                    (() => {
+                                      const asset = (animPreviewAssets || []).find(
+                                        (a) => a.id === String(field.value || ""),
+                                      );
+                                      return (
+                                        <ContentImage
+                                          image={asset?.image || undefined}
+                                          alt={String(field.value || id)}
+                                          className=""
+                                          frames={
+                                            typeof asset?.frames === "number"
+                                              ? asset?.frames
+                                              : undefined
+                                          }
+                                          speed={
+                                            typeof asset?.speed === "number"
+                                              ? asset?.speed
+                                              : undefined
+                                          }
+                                          roundFull={false}
+                                          hideBorder={false}
+                                        />
+                                      );
+                                    })()
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                      </div>
+                    )}
                   {type === "avatar" &&
                     props.allowImageUpload &&
                     "href" in formEntry &&

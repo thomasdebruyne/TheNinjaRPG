@@ -200,8 +200,9 @@ const AnimationsContent: React.FC = () => {
   const router = useRouter();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  const { data: tagResp, isFetching: loadingTags } =
-    api.gameAsset.getAnimationNameTags.useQuery({ selected: selectedTags });
+  const { data: tagResp, isFetching: loadingTags } = api.gameAsset.getNameTags.useQuery(
+    { type: "ANIMATION", selected: selectedTags },
+  );
 
   const { data: assets } = api.gameAsset.getAll.useInfiniteQuery(
     { limit: 50, type: "ANIMATION", nameTokens: selectedTags },

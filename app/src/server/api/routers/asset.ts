@@ -16,25 +16,25 @@ import { gameAssetSchema } from "@/validators/asset";
 import type { DrizzleClient } from "@/server/db";
 
 export const gameAssetRouter = createTRPCRouter({
-  getAnimationNameTags: publicProcedure
+  getNameTags: publicProcedure
     .input(
       z.object({
+        type: z.enum(GameAssetTypes).optional(),
         selected: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      // Fetch all animation names filtered by selected tokens (AND semantics)
+      const whereClauses = [
+        ...(input.type ? [eq(gameAsset.type, input.type)] : []),
+        ...(input.selected
+          ? input.selected.map((t) => like(gameAsset.name, `%${t}%`))
+          : []),
+      ];
       const names = await ctx.drizzle.query.gameAsset.findMany({
         columns: { name: true },
-        where: and(
-          eq(gameAsset.type, "ANIMATION"),
-          ...(input.selected
-            ? input.selected.map((t) => like(gameAsset.name, `%${t}%`))
-            : []),
-        ),
+        where: and(...whereClauses),
       });
 
-      // Build unique tokens from names by splitting on '-' and '_'
       const tokenSet = new Set<string>();
       for (const n of names) {
         if (!n.name) continue;

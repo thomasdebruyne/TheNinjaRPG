@@ -156,6 +156,7 @@ export const dataRouter = createTRPCRouter({
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         utmSource: z.string().optional(),
+        questFunnels: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -198,9 +199,7 @@ export const dataRouter = createTRPCRouter({
           .where(visitorWhere.length > 0 ? and(...visitorWhere) : undefined),
         // Signups: users with an entry in ReferralSource (mapped via historical IP to the visit)
         ctx.drizzle
-          .select({
-            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
-          })
+          .select({ questData: userData.questData })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
           .innerJoin(userData, eq(userData.userId, historicalIp.userId))
@@ -316,7 +315,7 @@ export const dataRouter = createTRPCRouter({
       ]);
 
       const clicks = visitorsRow?.[0]?.count ?? 0;
-      const signups = signupsRow?.[0]?.count ?? 0;
+      const signups = signupsRow?.length ?? 0;
       const characterCreations = characterCreationsRow?.[0]?.count ?? 0;
       const signupRate = clicks > 0 ? signups / clicks : 0;
       const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
@@ -326,6 +325,20 @@ export const dataRouter = createTRPCRouter({
       const tutorialFinishedSignups = tutorialFinishedSignupsRow?.[0]?.count ?? 0;
       const totalRevenueUsd = totalRevenueRow?.[0]?.totalUsd ?? 0;
       const clickValueUsd = clicks > 0 ? totalRevenueUsd / clicks : 0;
+
+      // Extract quest funnels for each requested quest
+      const questFunnels: Record<string, number[]> = {};
+      if (input.questFunnels) {
+        for (const questId of input.questFunnels) {
+          questFunnels[questId] = signupsRow.map((r) => {
+            const quest = r.questData?.find((q) => q.id === questId);
+            if (quest && Array.isArray(quest.goals)) {
+              return quest.goals.filter((g) => g.done).length;
+            }
+            return 0;
+          });
+        }
+      }
 
       return {
         ctr: RECRUITMENT_CTR,
@@ -339,6 +352,7 @@ export const dataRouter = createTRPCRouter({
         pvpSignups,
         tutorialFinishedSignups,
         clickValueUsd,
+        questFunnels,
       };
     }),
   // Recruitment analytics

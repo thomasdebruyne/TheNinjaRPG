@@ -3,6 +3,7 @@ import ExportGraph from "@/layout/ExportGraph";
 import { Chart as ChartJS } from "chart.js/auto";
 import { groupBy } from "@/utils/grouping";
 import type { BattleType } from "@/drizzle/constants";
+import { Button } from "@/components/ui/button";
 
 interface LevelStatsProps {
   levelDistribution: {
@@ -350,6 +351,84 @@ export const RevenueBySourceBar: React.FC<RevenueBySourceProps> = (props) => {
   return (
     <div className="relative w-[99%]" style={{ height: 360 }}>
       <canvas ref={chartRef} id="revenueBySource"></canvas>
+    </div>
+  );
+};
+
+interface QuestFunnelBarProps {
+  stepsCompleted: number[];
+  title: string;
+}
+
+export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
+  stepsCompleted,
+  title,
+}) => {
+  const chartRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const ctx = chartRef?.current?.getContext("2d");
+    if (!ctx || !stepsCompleted.length) return;
+
+    // Find the max number of steps completed by any user
+    const maxSteps = Math.max(...stepsCompleted);
+
+    // For each step (0 to maxSteps), calculate the % of users who completed at least that many steps
+    const totalUsers = stepsCompleted.length;
+    const values: number[] = [];
+    const labels: string[] = [];
+
+    for (let step = 0; step <= maxSteps; step++) {
+      const count = stepsCompleted.filter((n) => n >= step).length;
+      const percent = (count / totalUsers) * 100;
+      values.push(percent);
+      labels.push(step === 0 ? "0 steps (all)" : `${step}+ steps`);
+    }
+
+    const chart = new ChartJS(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "% of users remaining",
+            data: values,
+            borderColor: "hsl(210 70% 45%)",
+            backgroundColor: "hsl(210 70% 60% / 0.6)",
+          },
+        ],
+      },
+      options: {
+        maintainAspectRatio: false,
+        responsive: true,
+        scales: {
+          x: { type: "category", title: { display: true, text: "Quest Progress" } },
+          y: {
+            type: "linear",
+            beginAtZero: true,
+            max: 100,
+            title: { display: true, text: "% Users Remaining" },
+            ticks: {
+              callback: (value) => `${value}%`,
+            },
+          },
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (context) => `${context.parsed.y.toFixed(1)}%`,
+            },
+          },
+        },
+      },
+    });
+
+    return () => chart.destroy();
+  }, [stepsCompleted, title]);
+
+  return (
+    <div className="relative w-[99%]" style={{ height: 360 }}>
+      <canvas ref={chartRef} id="questFunnel"></canvas>
     </div>
   );
 };
