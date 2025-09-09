@@ -832,11 +832,11 @@ export const EditContent = <
                                   ) : (
                                     (() => {
                                       const asset = (animPreviewAssets || []).find(
-                                        (a) => a.id === String(field.value || ""),
+                                        (a) => a.id === field.value || "",
                                       );
-                                      return (
+                                      return asset?.image ? (
                                         <ContentImage
-                                          image={asset?.image || undefined}
+                                          image={asset.image}
                                           alt={String(field.value || id)}
                                           className=""
                                           frames={
@@ -852,7 +852,7 @@ export const EditContent = <
                                           roundFull={false}
                                           hideBorder={false}
                                         />
-                                      );
+                                      ) : null;
                                     })()
                                   )}
                                 </div>
