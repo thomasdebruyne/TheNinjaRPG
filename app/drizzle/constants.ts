@@ -29,6 +29,7 @@ export const GameAssetTypes = [
   "ANIMATION",
   "SCENE_BACKGROUND",
   "SCENE_CHARACTER",
+  "SFX",
   "MUSIC",
 ] as const;
 export type GameAssetType = (typeof GameAssetTypes)[number];

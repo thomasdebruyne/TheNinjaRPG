@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import ItemWithEffects from "@/layout/ItemWithEffects";
@@ -55,7 +55,12 @@ export default function ManualAssetsFolderPage() {
       defaultBackHref="/manual/asset"
     >
       <ActionSelector
-        items={allAssets?.map((a) => ({ ...a, type: "asset" as const }))}
+        items={allAssets?.map((a) => ({
+          ...a,
+          type: "asset" as const,
+          assetType: a.type,
+          url: a.url,
+        }))}
         labelSingles={true}
         onClick={(id) => {
           setAsset(allAssets?.find((asset) => asset.id === id));

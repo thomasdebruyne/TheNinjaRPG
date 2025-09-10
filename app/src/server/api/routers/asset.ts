@@ -150,7 +150,6 @@ export const gameAssetRouter = createTRPCRouter({
     .input(z.object({ id: z.string(), data: gameAssetValidator }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
-      setEmptyStringsToNulls(input.data);
       const user = await fetchUser(ctx.drizzle, ctx.userId);
       const entry = await fetchgameAsset(ctx.drizzle, input.id);
       if (entry && canChangeContent(user.role)) {

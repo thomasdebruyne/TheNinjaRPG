@@ -48,6 +48,10 @@ export const useAssetEditForm = (asset: GameAsset, refetch: () => void) => {
     control: form.control,
     name: "image",
   });
+  const soundUrl = useWatch({
+    control: form.control,
+    name: "url",
+  });
   const type = useWatch({
     control: form.control,
     name: "type",
@@ -73,7 +77,7 @@ export const useAssetEditForm = (asset: GameAsset, refetch: () => void) => {
       size: "portrait",
       maxDim: 512,
     });
-  } else {
+  } else if (type !== "SFX") {
     formData.push({ id: "image", type: "avatar", href: imageUrl, size: "square" });
   }
 
@@ -87,7 +91,11 @@ export const useAssetEditForm = (asset: GameAsset, refetch: () => void) => {
   );
 
   if (type === "MUSIC") {
-    formData.push({ id: "url", type: "text", label: "Music URL" });
+    formData.push({ id: "url", type: "audio", href: soundUrl, label: "Music URL" });
+  }
+
+  if (type === "SFX") {
+    formData.push({ id: "url", type: "audio", href: soundUrl, label: "Music URL" });
   }
 
   // For animations

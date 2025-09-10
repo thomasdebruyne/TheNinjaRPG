@@ -17,6 +17,7 @@ import { cn } from "src/libs/shadui";
 import { type ItemRarity } from "@/drizzle/schema";
 import type { Item, Jutsu, Bloodline } from "@/drizzle/schema";
 import type { ZodAllTags } from "@/libs/combat/types";
+import type { GameAssetType } from "@/drizzle/constants";
 
 interface ActionItemProps {
   id: string;
@@ -36,6 +37,8 @@ interface ActionItemProps {
   durability?: number;
   maxDurability?: number;
   isReskinned?: boolean;
+  assetType?: GameAssetType;
+  url?: string;
 }
 
 interface ActionSelectorSettingsProps {
@@ -191,19 +194,39 @@ export const ActionOption: React.FC<ActionOptionProps> = (props) => {
       )}
     >
       <div className="relative w-full">
-        <ContentImage
-          image={image}
-          alt={name}
-          rarity={rarity}
-          className={cn(settings.aspectRatioClass)}
-          roundFull={settings.roundFull}
-          hideBorder={settings.hideBorder}
-          frames={frames}
-          speed={speed}
-          onClick={() => {
-            settings.onClick(item.id);
-          }}
-        />
+        {item.assetType === "SFX" && item.url ? (
+          <div
+            className={cn(settings.aspectRatioClass)}
+            onClick={() => {
+              settings.onClick(item.id);
+            }}
+          >
+            <div className="relative w-full aspect-square rounded-xl border-2 bg-slate-100 flex items-center justify-center">
+              <audio
+                src={item.url}
+                controls
+                className="w-[85%]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <ContentImage
+            image={image}
+            alt={name}
+            rarity={rarity}
+            className={cn(settings.aspectRatioClass)}
+            roundFull={settings.roundFull}
+            hideBorder={settings.hideBorder}
+            frames={frames}
+            speed={speed}
+            onClick={() => {
+              settings.onClick(item.id);
+            }}
+          />
+        )}
         {/* Count overlay - bottom right corner */}
         {props.count !== undefined && (settings.labelSingles || props.count > 1) && (
           <div className="absolute bottom-0 right-0 flex h-7 w-7 flex-row items-center justify-center rounded-full border-2 border-amber-300 bg-slate-300 text-black text-base font-bold">

@@ -362,3 +362,55 @@ export const uploadFileFromReplicate = async (
   const uploadedFile = await utapi.uploadFiles(utFiles);
   return uploadedFile;
 };
+
+/**
+ * Generate an audio clip using Replicate stable-audio-open-1.0 and return a Blob
+ */
+export const generateSoundEffectReplicate = async (config: {
+  prompt: string;
+  negativePrompt?: string;
+  secondsTotal: number;
+}) => {
+  console.log(config);
+  const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+  const output = (await replicate.run(
+    "sepal/audiogen:154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8",
+    {
+      input: {
+        prompt: config.prompt,
+        negative_prompt: config.negativePrompt,
+        duration: config.secondsTotal,
+        format: "mp3",
+      },
+    },
+  )) as FileOutput;
+  const url = output.url();
+  if (!url) throw new Error("No output from audio model");
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const contentType = res.headers.get("content-type") || undefined;
+  return { blob, contentType, url } as const;
+};
+
+/**
+ * Generate and upload audio clip to UploadThing; returns URL
+ */
+export const generateAndUploadAudio = async (config: {
+  prompt: string;
+  negativePrompt?: string;
+  secondsTotal: number;
+}) => {
+  const { blob, contentType, url } = await generateSoundEffectReplicate(config);
+  let extension = "mp3";
+  const lower = contentType?.toLowerCase() || "";
+  if (lower.includes("mpeg")) extension = "mp3";
+  else if (lower.includes("wav")) extension = "wav";
+  else {
+    try {
+      const ext = new URL(url).pathname.split(".").pop();
+      if (ext && ["mp3", "wav", "ogg"].includes(ext)) extension = ext;
+    } catch {}
+  }
+  const uploaded = await uploadFileFromReplicate("audio", blob, extension);
+  return uploaded.data?.ufsUrl ?? null;
+};

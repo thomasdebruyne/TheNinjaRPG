@@ -26,7 +26,7 @@ export default function ManualAssets() {
   const { data: userData } = useUserData();
   const router = useRouter();
   const state = useFiltering();
-  const [activeTab, setActiveTab] = useState<"assets" | "animation">("assets");
+  const [activeTab, setActiveTab] = useState<"assets" | "animation" | "SFX">("assets");
 
   // Create mutation (for New button)
   const { mutate: create } = api.gameAsset.create.useMutation({
@@ -47,9 +47,9 @@ export default function ManualAssets() {
           <NavTabs
             id="manual-asset-tabs"
             current={activeTab}
-            options={["assets", "animation"]}
+            options={["assets", "animation", "SFX"]}
             fontSize="text-sm"
-            onChange={(v) => setActiveTab(v as "assets" | "animation")}
+            onChange={(v) => setActiveTab(v as "assets" | "animation" | "SFX")}
           />
           {userData && canChangeContent(userData.role) && (
             <Button id="create-bloodline" onClick={() => create()}>
@@ -61,7 +61,13 @@ export default function ManualAssets() {
         </div>
       }
     >
-      {activeTab === "assets" ? <AssetsContent state={state} /> : <AnimationsContent />}
+      {activeTab === "assets" ? (
+        <AssetsContent state={state} />
+      ) : activeTab === "animation" ? (
+        <AnimationsContent />
+      ) : (
+        <SfxContent />
+      )}
     </ContentBox>
   );
 }
@@ -144,7 +150,12 @@ const AssetsContent: React.FC<{ state: ReturnType<typeof useFiltering> }> = (pro
       />
       <div className="mt-4" />
       <ActionSelector
-        items={assetsWithoutFolder?.map((a) => ({ ...a, type: "asset" as const }))}
+        items={assetsWithoutFolder?.map((a) => ({
+          ...a,
+          type: "asset" as const,
+          assetType: a.type,
+          url: a.url,
+        }))}
         labelSingles={true}
         onClick={(id) => {
           setAsset(assetsWithoutFolder?.find((a) => a.id === id));
@@ -252,6 +263,72 @@ const AnimationsContent: React.FC = () => {
         showLabels={true}
         gridClassNameOverwrite="grid grid-cols-3 md:grid-cols-4"
         emptyText="No animations match the selected tags."
+      />
+    </div>
+  );
+};
+
+const SfxContent: React.FC = () => {
+  const router = useRouter();
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  const { data: tagResp, isFetching: loadingTags } = api.gameAsset.getNameTags.useQuery(
+    { type: "SFX", selected: selectedTags },
+  );
+
+  const { data: assets } = api.gameAsset.getAll.useInfiniteQuery(
+    { limit: 50, type: "SFX", nameTokens: selectedTags },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      placeholderData: (previousData) => previousData,
+    },
+  );
+
+  const allSfx = assets?.pages.map((p) => p.data).flat();
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {loadingTags && <span className="text-sm opacity-70">Loading tags…</span>}
+        {tagResp?.tags?.map((t) => (
+          <button
+            key={t}
+            className={
+              "px-2 py-1 rounded border text-xs " +
+              (selectedTags.includes(t)
+                ? "bg-foreground text-background border-foreground"
+                : "bg-background border-muted-foreground/30")
+            }
+            onClick={() => toggleTag(t)}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <ActionSelector
+        items={allSfx?.map((a) => ({
+          ...a,
+          type: "asset" as const,
+          assetType: a.type,
+          url: a.url,
+        }))}
+        labelSingles={true}
+        onClick={(id) => {
+          router.push(`/manual/asset/edit/${encodeURIComponent(id)}`);
+        }}
+        showBgColor={false}
+        roundFull={true}
+        hideBorder={true}
+        showLabels={true}
+        gridClassNameOverwrite="grid grid-cols-3 md:grid-cols-4"
+        emptyText="No SFX match the selected tags."
       />
     </div>
   );

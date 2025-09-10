@@ -52,6 +52,7 @@ import type { ZodItemType, ZodJutsuType, ZodBloodlineType } from "@/libs/combat/
 import Modal2 from "@/layout/Modal2";
 import { ActionSelector } from "@/layout/CombatActions";
 import ContentImage from "@/layout/ContentImage";
+import ContentAudioSelector from "@/layout/ContentAudioSelector";
 
 export type FormDbValue = { id: string; name: string };
 export type FormEntry<K> = {
@@ -66,6 +67,7 @@ export type FormEntry<K> = {
   | { type: "date" }
   | { type: "number" }
   | { type: "boolean" }
+  | { type: "audio"; href?: string | null }
   | { type: "avatar"; href?: string | null; size?: IMG_ORIENTATION; maxDim?: number }
   | { type: "avatar3d"; modelUrl?: string | null; imgUrl?: string | null }
   | {
@@ -862,14 +864,22 @@ export const EditContent = <
                         />
                       </div>
                     )}
-                  {type === "avatar" &&
+                  {formEntry.type === "avatar" &&
                     props.allowImageUpload &&
-                    "href" in formEntry &&
                     props.type && (
                       <FormField
                         control={form.control}
                         name={id}
                         render={({ field }) => {
+                          const sizeVal: IMG_ORIENTATION =
+                            formEntry.type === "avatar" && "size" in formEntry
+                              ? ((formEntry as { size?: IMG_ORIENTATION }).size ??
+                                "square")
+                              : "square";
+                          const maxDimVal: number =
+                            formEntry.type === "avatar" && "maxDim" in formEntry
+                              ? ((formEntry as { maxDim?: number }).maxDim ?? 256)
+                              : 256;
                           return props.type ? (
                             <FormItem>
                               <FormControl>
@@ -883,8 +893,8 @@ export const EditContent = <
                                   onUploadComplete={(url) => {
                                     field.onChange(url);
                                   }}
-                                  size={formEntry.size ?? "square"}
-                                  maxDim={formEntry.maxDim ?? 256}
+                                  size={sizeVal}
+                                  maxDim={maxDimVal}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -895,6 +905,61 @@ export const EditContent = <
                         }}
                       />
                     )}
+                  {formEntry.type === "audio" && (
+                    <FormField
+                      control={form.control}
+                      name={id}
+                      render={({ field }) => {
+                        const audioUrl =
+                          (typeof field.value === "string" && field.value) ||
+                          (formEntry.href as string | null) ||
+                          "";
+                        return (
+                          <FormItem>
+                            <FormLabel>
+                              {formEntry.label ? formEntry.label : id}
+                            </FormLabel>
+                            <div className="flex flex-col gap-2 items-left w-full">
+                              {audioUrl ? (
+                                <audio className="w-full" src={audioUrl} controls />
+                              ) : (
+                                <div className="text-sm text-muted-foreground ">
+                                  No audio set currently
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 justify-centerw-full">
+                                <ContentAudioSelector
+                                  relationId={props.relationId ?? nanoid()}
+                                  value={audioUrl}
+                                  onChange={(url) =>
+                                    form.setValue(id, url as PathValue<S, K>, {
+                                      shouldDirty: true,
+                                    })
+                                  }
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="w-8 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    form.setValue(id, "" as PathValue<S, K>, {
+                                      shouldDirty: true,
+                                    });
+                                  }}
+                                  aria-label="Clear audio"
+                                >
+                                  <X className="h-5 w-5 stroke-1" />
+                                </Button>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  )}
                   {formEntry.type === "dialog_options" ? (
                     <FormField
                       control={form.control}

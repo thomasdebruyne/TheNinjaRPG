@@ -4,6 +4,7 @@ import { avatarRouter } from "./routers/avatar";
 import { aiRouter } from "./routers/ai";
 import { badgeRouter } from "./routers/badge";
 import { bankRouter } from "./routers/bank";
+import { audioRouter } from "./routers/audio";
 import { blackMarketRouter } from "./routers/blackmarket";
 import { bloodlineRouter } from "./routers/bloodline";
 import { combatRouter } from "./routers/combat";
@@ -56,6 +57,7 @@ export const appRouter = createTRPCRouter({
   ai: aiRouter,
   anbu: anbuRouter,
   avatar: avatarRouter,
+  audio: audioRouter,
   badge: badgeRouter,
   bank: bankRouter,
   blackmarket: blackMarketRouter,

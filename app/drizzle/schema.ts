@@ -1074,6 +1074,39 @@ export const historicalAvatar = mysqlTable(
   },
 );
 
+export const historicalSoundEffect = mysqlTable(
+  "HistoricalSoundEffect",
+  {
+    id: int("id").autoincrement().primaryKey().notNull(),
+    url: varchar("url", { length: 191 }),
+    relationId: varchar("relationId", { length: 191 }),
+    userId: varchar("userId", { length: 191 }).notNull(),
+    replicateId: varchar("replicateId", { length: 191 }),
+    secondsTotal: int("secondsTotal").default(0).notNull(),
+    prompt: text("prompt"),
+    negativePrompt: text("negativePrompt"),
+    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+    updatedAt: datetime("updatedAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
+    status: varchar("status", { length: 191 }).default("started").notNull(),
+    done: tinyint("done").default(0).notNull(),
+  },
+  (table) => {
+    return {
+      replicateIdIdx: index("HistoricalSoundEffect_replicateId_idx").on(
+        table.replicateId,
+      ),
+      relationIdx: index("HistoricalSoundEffect_relationId_idx").on(table.relationId),
+      userIdIdx: index("HistoricalSoundEffect_userId_idx").on(table.userId),
+      doneIdx: index("HistoricalSoundEffect_done_idx").on(table.done),
+      statusIdx: index("HistoricalSoundEffect_status_idx").on(table.status),
+    };
+  },
+);
+
 export const item = mysqlTable(
   "Item",
   {
