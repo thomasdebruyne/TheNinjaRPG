@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import Loader from "@/layout/Loader";
@@ -75,9 +76,12 @@ const ContentAudioSelector: React.FC<ContentAudioSelectorProps> = (props) => {
     <div className="flex flex-col justify-start">
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="w-full justify-between">
-            {value ? "Change Sound" : "Pick / Generate Sound"}
-          </Button>
+          <div className="flex flex-col gap-1 items-center">
+            <Button variant="outline" className="w-full justify-between h-10">
+              Pick / Generate Sound
+            </Button>
+            <Label className="text-xs text-muted-foreground">Current Sound</Label>
+          </div>
         </DialogTrigger>
         <DialogContent className="max-w-4xl">
           <DialogHeader>

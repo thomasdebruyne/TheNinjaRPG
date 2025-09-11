@@ -23,6 +23,7 @@ import { MeshoptEncoder } from "meshoptimizer";
 import fs from "fs";
 import type { FileOutput } from "replicate";
 import type { IMG_ORIENTATION } from "@/drizzle/constants";
+import type { GenerateAudioInput } from "@/validators/audio";
 
 /**
  * Compress a gltf file
@@ -395,11 +396,7 @@ export const generateSoundEffectReplicate = async (config: {
 /**
  * Generate and upload audio clip to UploadThing; returns URL
  */
-export const generateAndUploadAudio = async (config: {
-  prompt: string;
-  negativePrompt?: string;
-  secondsTotal: number;
-}) => {
+export const generateAndUploadAudio = async (config: GenerateAudioInput) => {
   const { blob, contentType, url } = await generateSoundEffectReplicate(config);
   let extension = "mp3";
   const lower = contentType?.toLowerCase() || "";

@@ -10,6 +10,8 @@ import type { FileRouter } from "uploadthing/next";
 import type { FederalStatuses } from "@/drizzle/constants";
 import { canChangeContent } from "@/utils/permissions";
 import { nanoid } from "nanoid";
+import { insertHistoricalSoundEffect } from "@/server/api/routers/audio";
+import { z } from "zod";
 
 const f = createUploadthing({
   errorFormatter: (err) => {
@@ -105,6 +107,38 @@ export const ourFileRouter = {
     .middleware(adminMiddleware) // Use the adminMiddleware here
     .onUploadComplete(async ({ metadata, file }) => {
       console.log(`Background image uploaded by ${metadata.userId}: ${file.ufsUrl}`);
+    }),
+  // SFX audio (small files)
+  audioSfxUploader: f({ audio: { maxFileSize: "64KB" } })
+    .input(z.object({ relationId: z.string() }))
+    .middleware(async ({ input }) => {
+      const { userId } = await adminMiddleware();
+      return { userId, relationId: input.relationId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      await insertHistoricalSoundEffect(drizzleDB, metadata.userId, file.ufsUrl, {
+        relationId: metadata.relationId,
+        secondsTotal: 1,
+        prompt: "",
+        negativePrompt: "",
+      });
+      return { fileUrl: file.ufsUrl, userId: metadata.userId };
+    }),
+  // MUSIC audio (larger files)
+  audioMusicUploader: f({ audio: { maxFileSize: "4MB" } })
+    .input(z.object({ relationId: z.string() }))
+    .middleware(async ({ input }) => {
+      const { userId } = await adminMiddleware();
+      return { userId, relationId: input.relationId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      await insertHistoricalSoundEffect(drizzleDB, metadata.userId, file.ufsUrl, {
+        relationId: metadata.relationId,
+        secondsTotal: 1,
+        prompt: "",
+        negativePrompt: "",
+      });
+      return { fileUrl: file.ufsUrl, userId: metadata.userId };
     }),
 } satisfies FileRouter;
 

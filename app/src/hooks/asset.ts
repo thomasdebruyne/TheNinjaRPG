@@ -91,11 +91,23 @@ export const useAssetEditForm = (asset: GameAsset, refetch: () => void) => {
   );
 
   if (type === "MUSIC") {
-    formData.push({ id: "url", type: "audio", href: soundUrl, label: "Music URL" });
+    formData.push({
+      id: "url",
+      type: "audio",
+      href: soundUrl,
+      label: "Music URL",
+      doubleWidth: true,
+    });
   }
 
   if (type === "SFX") {
-    formData.push({ id: "url", type: "audio", href: soundUrl, label: "Music URL" });
+    formData.push({
+      id: "url",
+      type: "audio",
+      href: soundUrl,
+      label: "Music URL",
+      doubleWidth: true,
+    });
   }
 
   // For animations

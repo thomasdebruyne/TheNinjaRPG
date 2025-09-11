@@ -4,18 +4,14 @@ import { createTRPCRouter, protectedProcedure } from "@/api/trpc";
 import { baseServerResponse, errorResponse } from "@/api/trpc";
 import { canChangeContent } from "@/utils/permissions";
 import { generateAndUploadAudio } from "@/libs/replicate";
+import { generateAudioSchema } from "@/validators/audio";
 import { historicalSoundEffect, userData } from "@/drizzle/schema";
+import type { GenerateAudioInput } from "@/validators/audio";
+import type { DrizzleClient } from "@/server/db";
 
 export const audioRouter = createTRPCRouter({
   generate: protectedProcedure
-    .input(
-      z.object({
-        relationId: z.string().optional(),
-        prompt: z.string().min(3),
-        negativePrompt: z.string().optional(),
-        secondsTotal: z.number().min(1).max(30),
-      }),
-    )
+    .input(generateAudioSchema)
     .output(baseServerResponse.extend({ url: z.string().nullish() }))
     .mutation(async ({ ctx, input }) => {
       // Query
@@ -26,26 +22,12 @@ export const audioRouter = createTRPCRouter({
       if (!user) return errorResponse("User not found");
       if (user.isBanned) return errorResponse("You are banned");
       if (!canChangeContent(user.role)) return errorResponse("Not allowed");
-
       // Generate and upload audio
-      const url = await generateAndUploadAudio({
-        prompt: input.prompt,
-        negativePrompt: input.negativePrompt,
-        secondsTotal: input.secondsTotal,
-      });
+      const url = await generateAndUploadAudio(input);
       // Guard
       if (!url) return errorResponse("Failed to upload audio");
       // Final insert (store prompts)
-      await ctx.drizzle.insert(historicalSoundEffect).values({
-        userId: ctx.userId,
-        relationId: input.relationId ?? ctx.userId,
-        secondsTotal: input.secondsTotal,
-        status: "success",
-        done: 1,
-        url,
-        prompt: input.prompt,
-        negativePrompt: input.negativePrompt,
-      });
+      await insertHistoricalSoundEffect(ctx.drizzle, ctx.userId, url, input);
       return { success: true, message: "Audio generated", url };
     }),
 
@@ -84,3 +66,23 @@ export const audioRouter = createTRPCRouter({
       return { data: rows, nextCursor };
     }),
 });
+
+/**
+ *
+ * @param ctx - The database client
+ * @param input - The input data
+ */
+export const insertHistoricalSoundEffect = async (
+  client: DrizzleClient,
+  userId: string,
+  url: string,
+  config?: GenerateAudioInput,
+) => {
+  await client.insert(historicalSoundEffect).values({
+    ...(config ?? {}),
+    userId,
+    url,
+    status: "success",
+    done: 1,
+  });
+};

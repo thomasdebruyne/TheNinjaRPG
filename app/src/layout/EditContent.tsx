@@ -53,6 +53,7 @@ import Modal2 from "@/layout/Modal2";
 import { ActionSelector } from "@/layout/CombatActions";
 import ContentImage from "@/layout/ContentImage";
 import ContentAudioSelector from "@/layout/ContentAudioSelector";
+import { UploadButton } from "@/utils/uploadthing";
 
 export type FormDbValue = { id: string; name: string };
 export type FormEntry<K> = {
@@ -910,10 +911,10 @@ export const EditContent = <
                       control={form.control}
                       name={id}
                       render={({ field }) => {
-                        const audioUrl =
-                          (typeof field.value === "string" && field.value) ||
-                          (formEntry.href as string | null) ||
-                          "";
+                        const value = field.value as string;
+                        const audioUrl = value.includes(".webp")
+                          ? undefined
+                          : value || (formEntry.href as string | null) || "";
                         return (
                           <FormItem>
                             <FormLabel>
@@ -927,7 +928,7 @@ export const EditContent = <
                                   No audio set currently
                                 </div>
                               )}
-                              <div className="flex items-center gap-2 justify-centerw-full">
+                              <div className="flex items-center gap-2 justify-center w-full">
                                 <ContentAudioSelector
                                   relationId={props.relationId ?? nanoid()}
                                   value={audioUrl}
@@ -936,6 +937,36 @@ export const EditContent = <
                                       shouldDirty: true,
                                     })
                                   }
+                                />
+                                <UploadButton
+                                  input={{
+                                    relationId: props.relationId ?? nanoid(),
+                                  }}
+                                  endpoint={(() => {
+                                    const assetType =
+                                      (props.type === "asset"
+                                        ? (form.getValues(
+                                            "type" as Path<S>,
+                                          ) as unknown as string)
+                                        : undefined) || "SFX";
+                                    return assetType === "MUSIC"
+                                      ? "audioMusicUploader"
+                                      : "audioSfxUploader";
+                                  })()}
+                                  onClientUploadComplete={(res) => {
+                                    const url = res?.[0]?.ufsUrl;
+                                    if (url) {
+                                      form.setValue(id, url as PathValue<S, K>, {
+                                        shouldDirty: true,
+                                      });
+                                    }
+                                  }}
+                                  onUploadError={(error: Error) => {
+                                    showMutationToast({
+                                      success: false,
+                                      message: error.message,
+                                    });
+                                  }}
                                 />
                                 <Button
                                   type="button"
