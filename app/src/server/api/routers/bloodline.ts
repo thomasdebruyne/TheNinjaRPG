@@ -243,7 +243,7 @@ export const bloodlineRouter = createTRPCRouter({
           id: nanoid(),
           userId: ctx.userId,
           tableName: "bloodline",
-          changes: {},
+          changes: [],
           relatedId: reskin.bloodlineId,
           relatedMsg: `Reskin update rejected by AI: ${reason}`,
           relatedImage: reskin.image,

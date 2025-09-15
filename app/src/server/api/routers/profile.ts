@@ -851,7 +851,7 @@ export const profileRouter = createTRPCRouter({
           id: nanoid(),
           userId: ctx.userId,
           tableName: "user",
-          changes: {},
+          changes: [],
           relatedId: target.userId,
           relatedMsg: `Updated attempted. Reason rejected by AI: ${input.data.reason}`,
           relatedImage: target.avatarLight,
