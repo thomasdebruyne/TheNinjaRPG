@@ -33,6 +33,8 @@ Sentry.init({
     "UnrecognizedActionError", // New deployment
     "undefined is not an object (evaluating 'e[a].call')", // Somethign internal never seen by user.
     "Hydration Error", // Based on sentry inspection not seen by user
+    "Failed to execute 'send' on 'WebSocket': Still in CONNECTING state.", // WebSocket error
+    "Failed to read the 'localStorage' property from 'Window': Access is denied for this document.", // LocalStorage error
   ],
 
   // Only enable Sentry in production
