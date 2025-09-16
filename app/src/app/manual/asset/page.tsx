@@ -53,8 +53,7 @@ export default function ManualAssets() {
           />
           {userData && canChangeContent(userData.role) && (
             <Button id="create-bloodline" onClick={() => create()}>
-              <FilePlus className="sm:mr-2 h-5 w-5" />
-              New
+              <FilePlus className="h-5 w-5" />
             </Button>
           )}
           <GameAssetFiltering state={state} />
@@ -91,11 +90,18 @@ const AssetsContent: React.FC<{ state: ReturnType<typeof useFiltering> }> = (pro
       placeholderData: (previousData) => previousData,
     },
   );
-  const { data: folders } = api.gameAsset.getAllFolders.useQuery();
-  const folderCounts = new Map(
-    (folders || []).map((f: { folder: string; count: number }) => [f.folder, f.count]),
-  );
-  const allAssets = assets?.pages.map((page) => page.data).flat();
+  // Derive folders and folderCounts from assets
+  const allAssets = assets?.pages.map((page) => page.data).flat() ?? [];
+  const folderCounts = allAssets.reduce((acc, asset) => {
+    if (asset.folder && asset.folder !== "") {
+      acc.set(asset.folder, (acc.get(asset.folder) ?? 0) + 1);
+    }
+    return acc;
+  }, new Map<string, number>());
+  const folders = Array.from(folderCounts.keys()).map((folder) => ({
+    folder,
+    count: folderCounts.get(folder) ?? 0,
+  }));
   const assetsWithoutFolder = allAssets?.filter((a) => !a.folder || a.folder === "");
   useInfinitePagination({ fetchNextPage, hasNextPage, lastElement });
 
@@ -168,7 +174,7 @@ const AssetsContent: React.FC<{ state: ReturnType<typeof useFiltering> }> = (pro
         lastElement={lastElement}
         setLastElement={setLastElement}
         gridClassNameOverwrite="grid grid-cols-3 md:grid-cols-4"
-        emptyText="No assets exist yet."
+        emptyText=" "
         aspectRatioClass={
           props.state.type === "SCENE_BACKGROUND"
             ? "aspect-3/2"

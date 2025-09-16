@@ -9,3 +9,6 @@ find . -type f -name "compressed_*" -delete
 
 # Delete all .wav files
 find . -type f -name "*.wav" -delete
+
+# Compress music mp3 files
+find . -maxdepth 1 -type f \( -name "*.mp3" -o -name "*.m4a" \) -exec bash -c 'ffmpeg -i "$1" -c:a aac -b:a 96k "${1%.*}_compressed2.m4a"' _ {} \;
