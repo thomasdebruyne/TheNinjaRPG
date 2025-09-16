@@ -23,7 +23,7 @@ const visitorFilteringSchema = defineFilteringSchema({
       id: "utmSource",
       label: "UTM Source",
       type: "single-select",
-      defaultValue: "reddit",
+      defaultValue: "None",
       dataSource: "visitorUtmSources",
       includeNone: true,
       noneOption: { value: "None", label: "All" },
@@ -33,7 +33,7 @@ const visitorFilteringSchema = defineFilteringSchema({
       id: "startDate",
       label: "First Visit (From)",
       type: "date",
-      defaultValue: dateStringDaysAgo(7),
+      defaultValue: dateStringDaysAgo(30),
     },
     {
       id: "endDate",
