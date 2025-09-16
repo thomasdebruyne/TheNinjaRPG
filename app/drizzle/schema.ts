@@ -3542,6 +3542,8 @@ export const poll = mysqlTable(
   (table) => {
     return {
       createdByUserIdIdx: index("Poll_createdByUserId_idx").on(table.createdByUserId),
+      isActiveIdx: index("Poll_isActive_idx").on(table.isActive),
+      endDateIdx: index("Poll_endDate_idx").on(table.endDate),
     };
   },
 );
@@ -3621,6 +3623,7 @@ export const userPollVote = mysqlTable(
         table.userId,
         table.pollId,
       ),
+      userIdIdx: index("UserPollVote_userId_idx").on(table.userId),
       pollIdIdx: index("UserPollVote_pollId_idx").on(table.pollId),
       optionIdIdx: index("UserPollVote_optionId_idx").on(table.optionId),
     };

@@ -2080,6 +2080,13 @@
       "when": 1758032730648,
       "tag": "0296_gifted_korath",
       "breakpoints": false
+    },
+    {
+      "idx": 297,
+      "version": "5",
+      "when": 1758032979628,
+      "tag": "0297_spicy_kang",
+      "breakpoints": false
     }
   ]
 }
