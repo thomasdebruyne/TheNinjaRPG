@@ -46,14 +46,14 @@ export default clerkMiddleware(
     const { pathname } = request.nextUrl;
     const { userId } = await auth();
     if (pathname === "/" && !userId) {
-      const cookie = request.cookies.get("ab_welcome_optimized_variant");
+      const cookie = request.cookies.get("ab_music_welcome_to_seichi");
       const variant = cookie?.value ?? (Math.random() < 0.5 ? "treatment" : "control");
       const url = request.nextUrl.clone();
-      url.pathname = variant === "treatment" ? "/welcome-new" : "/welcome-old";
+      //url.pathname = variant === "treatment" ? "/welcome-new" : "/welcome-old";
       console.log("variant", variant);
       const res = NextResponse.rewrite(url);
       if (!cookie)
-        res.cookies.set("ab_welcome_optimized_variant", variant, { path: "/" });
+        res.cookies.set("ab_music_welcome_to_seichi", variant, { path: "/" });
       return res;
     }
   },

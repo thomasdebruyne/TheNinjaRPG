@@ -68,7 +68,7 @@ export const miscRouter = createTRPCRouter({
               .values({
                 id: nanoid(),
                 userId: null,
-                experiment: "welcome_optimized_ab",
+                experiment: "ab_music_welcome_to_seichi",
                 variant: ctx.abWelcomeVariant,
                 event: "loaded",
                 source: input.utmSource,

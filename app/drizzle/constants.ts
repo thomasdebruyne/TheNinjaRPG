@@ -457,12 +457,7 @@ export const QuestRewardMetrics = [
 ] as const;
 export type QuestRewardMetric = (typeof QuestRewardMetrics)[number];
 
-export const QuestTypesWithMaxAttempts = [
-  "event",
-  "story",
-  "battlepyramid",
-  "starter",
-];
+export const QuestTypesWithMaxAttempts = ["event", "story", "battlepyramid", "starter"];
 export type QuestTypeWithMaxAttempts = (typeof QuestTypesWithMaxAttempts)[number];
 
 export const SmileyEmotions = ["like", "love", "laugh"] as const;
@@ -1369,9 +1364,6 @@ export const IMG_BG_ICE =
 export const IMG_VILLAGE_FACTION =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJyODt1NukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp";
 
-export const IMG_MUSIC_DEFAULT =
-  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJRNA7r30udmODoNtpa0FMcwI4k2Eq7nJhyvjl";
-
 export const IMG_RARITY_RARE =
   "https://utfs.io/f/Hzww9EQvYURJvSyOMsEmSnXwslYEpV1yOeNL8gMtqhjPdf36";
 export const IMG_RARITY_LEGENDARY =
@@ -1686,8 +1678,18 @@ export const IMG_BATTLEFIELD_TOMBSTONE =
 export const IMG_BATTLEFIELD_STAR =
   "https://utfs.io/f/Hzww9EQvYURJuGvcEjCyJLoOFkrcn4gxSwCfEQ9eMNXZlG8b";
 
-export const MUSIC_DEFAULT =
+export const MUSIC_SHADOW_OF_THE_BLADE =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJQCH0mJjhzBPya1rwfCIqOTU0cV5xgsMeo3u2";
+export const MUSIC_WELCOME_TO_SEICHI =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJrwIzM2huJPmdY8zI2ptZXAoEj1c6BMKvrQOx";
+export const MUSIC_SHINE_THEME =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJnL3NqnmojJ0EqeDCvBrNmZaXVdY97gSpOWiA";
+export const MUSIC_TSUKIMORI_THEME =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJE9b6CNLfKL5D7TAFe29bymSaPCIQ846MdzGg";
+export const MUSIC_CURRENT_THEME =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJY9DJWIOMAlNnPZ41ev6fCGcFK3hmjX9I8W7d";
+export const MUSIC_SYNDICATE_THEME =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJxrcAPUWZsq9k0Von5rUfP6OgQ2TyptCKHS4u";
 
 export const HomeTypes = [
   "NONE",

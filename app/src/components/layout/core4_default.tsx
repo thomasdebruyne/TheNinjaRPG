@@ -69,9 +69,15 @@ import {
   IMG_LAYOUT_SCROLLBOTTOM_DECOR,
   IMG_LAYOUT_USERSBANNER_TOP,
   IMG_LAYOUT_USERSBANNER_BOTTOM,
-  MUSIC_DEFAULT,
+  MUSIC_SHADOW_OF_THE_BLADE,
+  MUSIC_WELCOME_TO_SEICHI,
+  MUSIC_SHINE_THEME,
+  MUSIC_TSUKIMORI_THEME,
+  MUSIC_CURRENT_THEME,
+  MUSIC_SYNDICATE_THEME,
   DISCORD_INVITE_URL,
 } from "@/drizzle/constants";
+import { useAbVariant } from "@/hooks/useAbVariant";
 import type { NavBarDropdownLink } from "@/libs/menus";
 import type { UserWithRelations } from "@/server/api/routers/profile";
 import { usePathname } from "next/navigation";
@@ -152,13 +158,30 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     return true;
   };
 
+  // AB-testing
+  const { variant: musicVariant } = useAbVariant("ab_music_welcome_to_seichi");
+  let musicSrc = MUSIC_SHADOW_OF_THE_BLADE;
+  if (musicVariant === "treatment") {
+    if (userData?.village?.name === "Tsukimori") {
+      musicSrc = MUSIC_TSUKIMORI_THEME;
+    } else if (userData?.village?.name === "Shine") {
+      musicSrc = MUSIC_SHINE_THEME;
+    } else if (userData?.village?.name === "Current") {
+      musicSrc = MUSIC_CURRENT_THEME;
+    } else if (userData?.village?.name === "Syndicate") {
+      musicSrc = MUSIC_SYNDICATE_THEME;
+    } else {
+      musicSrc = MUSIC_WELCOME_TO_SEICHI;
+    }
+  }
+
   // Initialize audio hook with all logic handled internally
   const {
     requiresInteraction,
     enabled: audioEnabled,
     setEnabled: setAudioEnabled,
   } = useAudio({
-    src: MUSIC_DEFAULT,
+    src: musicSrc,
     loop: true,
     volume: 0.5,
     preload: "metadata",
