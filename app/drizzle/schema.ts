@@ -1699,6 +1699,7 @@ export const actionLog = mysqlTable(
       userId: index("ActionLog_userId_idx").on(table.userId),
       relatedIdIdx: index("ActionLog_relatedId_idx").on(table.relatedId),
       tableNameIdx: index("ActionLog_tableName_idx").on(table.tableName),
+      createdAtIdx: index("ActionLog_createdAt_idx").on(table.createdAt),
     };
   },
 );
@@ -2872,6 +2873,10 @@ export const dataBattleAction = mysqlTable(
         table.battleWon,
         table.relatedBloodlineId,
       ),
+      typeIdx: index("DataBattleActions_type_idx").on(table.type),
+      battleWonIdx: index("DataBattleActions_battleWon_idx").on(table.battleWon),
+      battleTypeIdx: index("DataBattleActions_battleType_idx").on(table.battleType),
+      contentIdIdx: index("DataBattleActions_contentId_idx").on(table.contentId),
       countIdx: index("DataBattleActions_count_idx").on(table.count),
       createdAt: index("DataBattleActions_createdAt").on(table.createdAt),
     };

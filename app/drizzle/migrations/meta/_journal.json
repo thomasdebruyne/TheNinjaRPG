@@ -2066,6 +2066,13 @@
       "when": 1757955009177,
       "tag": "0294_amazing_gladiator",
       "breakpoints": false
+    },
+    {
+      "idx": 295,
+      "version": "5",
+      "when": 1758026859256,
+      "tag": "0295_curious_kingpin",
+      "breakpoints": false
     }
   ]
 }
