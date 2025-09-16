@@ -11,6 +11,7 @@ import {
   jutsuReskin,
   skillTree,
   item,
+  quest,
 } from "@/drizzle/schema";
 import { fetchUser, fetchUpdatedUser } from "./profile";
 import { canTrainJutsu } from "@/libs/train";
@@ -1174,6 +1175,7 @@ export const getJutsuRelations = async (client: DrizzleClient, jutsuId: string) 
     skillInjectors,
     itemInjectors,
     aiUsingJutsu,
+    questsUsingJutsu,
   ] = await Promise.all([
     client.query.jutsu.findMany({
       columns: { id: true, name: true },
@@ -1203,6 +1205,13 @@ export const getJutsuRelations = async (client: DrizzleClient, jutsuId: string) 
       .from(userJutsu)
       .innerJoin(userData, eq(userJutsu.userId, userData.userId))
       .where(and(eq(userJutsu.jutsuId, jutsuId), eq(userData.isAi, true))),
+    client.query.quest.findMany({
+      columns: { id: true, name: true },
+      where: sql`(
+        JSON_SEARCH(${quest.content}, 'one', ${jutsuId}, NULL, '$.reward.reward_jutsus[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${jutsuId}, NULL, '$.objectives[*].reward_jutsus[*]') IS NOT NULL
+      )`,
+    }),
   ]);
 
   return {
@@ -1211,6 +1220,7 @@ export const getJutsuRelations = async (client: DrizzleClient, jutsuId: string) 
     skillInjectors,
     itemInjectors,
     aiUsingJutsu,
+    questsUsingJutsu,
   };
 };
 export type JutsuRelations = Awaited<ReturnType<typeof getJutsuRelations>>;

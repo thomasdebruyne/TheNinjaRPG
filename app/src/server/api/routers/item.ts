@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { eq, sql, gte, lte, and, like, desc, or } from "drizzle-orm";
+import { eq, sql, gte, lte, and, like, desc, or, ne } from "drizzle-orm";
 import {
   item,
   userItem,
@@ -11,6 +11,7 @@ import {
   craftingRequirement,
   itemLoadout,
   userSkill,
+  quest,
 } from "@/drizzle/schema";
 import { ItemTypes, ItemSlots } from "@/drizzle/constants";
 import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
@@ -314,6 +315,12 @@ export const itemRouter = createTRPCRouter({
   getUserItems: protectedProcedure.query(async ({ ctx }) => {
     return await fetchUserItems(ctx.drizzle, ctx.userId);
   }),
+  getItemRelations: publicProcedure
+    .input(z.object({ itemId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const results = await getItemRelations(ctx.drizzle, input.itemId);
+      return results;
+    }),
   // Merge item stacks
   mergeStacks: protectedProcedure
     .input(z.object({ itemId: z.string() }))
@@ -974,9 +981,7 @@ export const selectItemLoadout = async (
       continue;
     }
     if (useritem.item.bloodlineId && useritem.item.bloodlineId !== user.bloodlineId) {
-      invalidItems.push(
-        `${useritem.item.name} requires a specific bloodline to equip`,
-      );
+      invalidItems.push(`${useritem.item.name} requires a specific bloodline to equip`);
       continue;
     }
     if (useritem.craftingFinishedAt && useritem.craftingFinishedAt > new Date()) {
@@ -1050,6 +1055,41 @@ export const selectItemLoadout = async (
   };
 };
 
+/**
+ * Return AI and quest relations for an item
+ */
+export const getItemRelations = async (client: DrizzleClient, itemId: string) => {
+  const [aiEquippedItem, questsUsingItem] = await Promise.all([
+    client
+      .select({ id: userData.userId, name: userData.username })
+      .from(userItem)
+      .innerJoin(userData, eq(userItem.userId, userData.userId))
+      .where(
+        and(
+          eq(userItem.itemId, itemId),
+          ne(userItem.equipped, "NONE"),
+          eq(userData.isAi, true),
+        ),
+      ),
+    client.query.quest.findMany({
+      columns: { id: true, name: true },
+      where: sql`(
+        JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.reward.reward_items[*].ids[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.reward.reward_hunter_items_ids[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.reward.reward_gathering_items_ids[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.objectives[*].collectItemIds[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.objectives[*].deliverItemIds[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.objectives[*].reward_items[*].ids[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.objectives[*].reward_hunter_items_ids[*]') IS NOT NULL
+        OR JSON_SEARCH(${quest.content}, 'one', ${itemId}, NULL, '$.objectives[*].reward_gathering_items_ids[*]') IS NOT NULL
+      )`,
+    }),
+  ]);
+
+  return { aiEquippedItem, questsUsingItem };
+};
+export type ItemRelations = Awaited<ReturnType<typeof getItemRelations>>;
+
 export const fetchItem = async (client: DrizzleClient, id: string) => {
   return await client.query.item.findFirst({
     where: eq(item.id, id),
@@ -1115,7 +1155,7 @@ export const toggleEquipItem = async (
   if (!useritem) return errorResponse("User item not found");
   if (useritem.storedAtHome) return errorResponse("Fetch at home first");
   const doEquip = slot ? useritem.equipped !== slot : useritem.equipped === "NONE";
-  
+
   // Only check requirements when equipping (not when unequipping)
   if (doEquip) {
     if (useritem.item.requiredLevel > user.level) {
@@ -1124,9 +1164,7 @@ export const toggleEquipItem = async (
       );
     }
     if (useritem.item.bloodlineId && useritem.item.bloodlineId !== user.bloodlineId) {
-      return errorResponse(
-        `This item requires a specific bloodline to equip`,
-      );
+      return errorResponse(`This item requires a specific bloodline to equip`);
     }
     if (useritem.craftingFinishedAt && useritem.craftingFinishedAt > new Date()) {
       return errorResponse("Cannot equip crafting item");
