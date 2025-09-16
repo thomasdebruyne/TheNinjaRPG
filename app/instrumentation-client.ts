@@ -32,6 +32,7 @@ Sentry.init({
     "Cannot read properties of undefined (reading 'bind')", // Cookiebot error on resize
     "UnrecognizedActionError", // New deployment
     "undefined is not an object (evaluating 'e[a].call')", // Somethign internal never seen by user.
+    "Hydration Error", // Based on sentry inspection not seen by user
   ],
 
   // Only enable Sentry in production
