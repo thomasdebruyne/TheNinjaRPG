@@ -276,12 +276,6 @@ export const profileRouter = createTRPCRouter({
     // Only give skillpoints if they haven't received all their leveling skillpoints yet
     const skillPointsGain = isChunin && expectedSkillPointsFromLeveling < 20 ? 1 : 0;
 
-    // Calculate new skillpoints with proper capping
-    const newSkillPoints =
-      skillPointsGain > 0
-        ? Math.min(user.skillPoints + skillPointsGain, MAX_SKILL_POINTS)
-        : user.skillPoints;
-
     const result = await ctx.drizzle
       .update(userData)
       .set({
@@ -637,7 +631,7 @@ export const profileRouter = createTRPCRouter({
         avatar: IMG_AVATAR_DEFAULT,
         avatarLight: IMG_AVATAR_DEFAULT,
         villageId: null,
-        approvedTos: 1,
+        approvedTos: true,
         sector: 0,
         level: 100,
         isAi: true,
@@ -1225,7 +1219,7 @@ export const profileRouter = createTRPCRouter({
         },
         where: and(
           like(userData.username, `%${input.username}%`),
-          eq(userData.approvedTos, 1),
+          eq(userData.approvedTos, true),
           ...(input.showAi ? [] : [eq(userData.isAi, false)]),
           ...(input.showYourself ? [] : [sql`${userData.userId} != ${ctx.userId}`]),
         ),
@@ -1751,7 +1745,7 @@ export const updateUserContent = async (props: {
                 userId: userId,
                 jutsuId: jutsuId,
                 level: 1,
-                equipped: 1,
+                equipped: true,
               })),
             ),
           ]

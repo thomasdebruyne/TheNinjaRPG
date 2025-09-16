@@ -102,7 +102,7 @@ export const conceptartRouter = createTRPCRouter({
           seed: input.seed,
           status: "success",
           image: imageUrl,
-          done: 1,
+          done: true,
         }),
       ]);
       return { success: true, message: "Image created", imageId };

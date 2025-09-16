@@ -135,7 +135,7 @@ export const forumRouter = createTRPCRouter({
       // Mutate
       await ctx.drizzle
         .update(forumThread)
-        .set({ isPinned: input.status ? 1 : 0 })
+        .set({ isPinned: input.status })
         .where(eq(forumThread.id, thread.id));
       return {
         success: true,
@@ -161,7 +161,7 @@ export const forumRouter = createTRPCRouter({
       // Mutate
       await ctx.drizzle
         .update(forumThread)
-        .set({ isLocked: input.status ? 1 : 0 })
+        .set({ isLocked: input.status })
         .where(eq(forumThread.id, thread.id));
       return {
         success: true,

@@ -73,7 +73,6 @@ export const preloadTextures = async (paths: string[]) => {
   const failed = results.filter((r) => r.status === "rejected");
   if (failed.length) {
     // Non-blocking: surface in logs for diagnostics
-    // eslint-disable-next-line no-console
     console.warn(`preloadTextures: ${failed.length} texture(s) failed`);
   }
 };

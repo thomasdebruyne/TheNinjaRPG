@@ -964,8 +964,8 @@ export const createConvo = async (info: {
       id: insertId,
       title: title,
       createdById: senderUserId,
-      isPublic: isPublic ? 1 : 0,
-      isLocked: 0,
+      isPublic: isPublic,
+      isLocked: false,
       isStaffAvailable: isStaffAvailable,
     }),
     ...uniqueUserIds.map((user) =>

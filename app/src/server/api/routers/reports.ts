@@ -518,7 +518,7 @@ export const reportsRouter = createTRPCRouter({
           .update(userReport)
           .set({
             status: "BAN_ACTIVATED",
-            adminResolved: user.role.includes("ADMIN") ? 1 : 0,
+            adminResolved: user.role.includes("ADMIN"),
             updatedAt: new Date(),
             banEnd: getBanEndDate(input),
           })
@@ -564,7 +564,7 @@ export const reportsRouter = createTRPCRouter({
           .update(userReport)
           .set({
             status: "SILENCE_ACTIVATED",
-            adminResolved: user.role.includes("ADMIN") ? 1 : 0,
+            adminResolved: user.role.includes("ADMIN"),
             updatedAt: new Date(),
             banEnd: getBanEndDate(input),
           })
@@ -600,7 +600,7 @@ export const reportsRouter = createTRPCRouter({
           .update(userReport)
           .set({
             status: "OFFICIAL_WARNING",
-            adminResolved: user.role.includes("ADMIN") ? 1 : 0,
+            adminResolved: user.role.includes("ADMIN"),
             updatedAt: new Date(),
             banEnd: null,
           })
@@ -705,7 +705,7 @@ export const reportsRouter = createTRPCRouter({
         ctx.drizzle
           .update(userReport)
           .set({
-            adminResolved: user.role.includes("ADMIN") ? 1 : 0,
+            adminResolved: user.role.includes("ADMIN"),
             status: "REPORT_CLEARED",
             updatedAt: new Date(),
           })
@@ -755,7 +755,7 @@ export const reportsRouter = createTRPCRouter({
           avatar: avatarUrl,
           avatarLight: thumbnailUrl ?? null,
           status: "success",
-          done: 1,
+          done: true,
         }),
       ]);
       return { success: true, message: "Avatar update request sent" };

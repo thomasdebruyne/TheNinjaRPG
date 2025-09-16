@@ -114,7 +114,6 @@ export const useItemEditForm = (
     { id: "seichiSilverCost", type: "number" },
     { id: "cooldown", type: "number" },
     { id: "stackSize", type: "number" },
-    { id: "destroyOnUse", type: "number" },
     { id: "range", type: "number" },
     { id: "chakraCost", type: "number" },
     { id: "staminaCost", type: "number" },
@@ -125,13 +124,14 @@ export const useItemEditForm = (
     { id: "healthCost", type: "number" },
     { id: "maxEquips", type: "number" },
     { id: "requiredLevel", type: "number", label: "Required Level" },
-    { 
-      id: "bloodlineId", 
-      type: "db_values", 
+    {
+      id: "bloodlineId",
+      type: "db_values",
       values: bloodlinesData,
       label: "Required Bloodline",
-      resetButton: true
+      resetButton: true,
     },
+    { id: "destroyOnUse", type: "boolean" },
     { id: "canStack", type: "boolean" },
     { id: "maxImbueNumber", type: "number" },
     { id: "hidden", type: "boolean" },

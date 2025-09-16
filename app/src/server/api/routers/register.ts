@@ -147,7 +147,7 @@ export const registerRouter = createTRPCRouter({
           gender: input.gender,
           villageId: villageData.id,
           bloodlineId: selectedBloodline.id,
-          approvedTos: 1,
+          approvedTos: true,
           sector: villageData.sector,
           immunityUntil: secondsFromNow(24 * 3600),
           ...(reminder ? { earnedExperience: 10000 } : {}),

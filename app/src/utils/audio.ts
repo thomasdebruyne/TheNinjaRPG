@@ -228,7 +228,6 @@ export const preloadAudioBuffers = async (urls: string[]) => {
   );
   const failed = results.filter((r) => r.status === "rejected");
   if (failed.length) {
-    // eslint-disable-next-line no-console
     console.warn(`preloadAudioBuffers: ${failed.length} audio file(s) failed`);
   }
 };

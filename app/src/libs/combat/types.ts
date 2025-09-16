@@ -1256,7 +1256,7 @@ const SuperRefineItem = (data: ItemValidatorType, ctx: z.RefinementCtx) => {
     addIssue(ctx, "Must have either a ryo, reputation points, or seichi silver cost");
   }
 
-  if (data.itemType === "CONSUMABLE" && data.destroyOnUse === 0) {
+  if (data.itemType === "CONSUMABLE" && !data.destroyOnUse) {
     addIssue(ctx, "Consumable items must be destroyed on use");
   }
   if (hasNonCombatConsumeReward) {
@@ -1417,7 +1417,7 @@ export const ItemValidatorRawSchema = z.object({
   description: z.string(),
   battleDescription: z.string(),
   stackSize: z.coerce.number().int().min(1).max(100),
-  destroyOnUse: z.coerce.number().min(0).max(1),
+  destroyOnUse: z.coerce.boolean().default(false),
   chakraCost: z.coerce.number().int().min(0).max(10000),
   healthCost: z.coerce.number().int().min(0).max(10000),
   staminaCost: z.coerce.number().int().min(0).max(10000),

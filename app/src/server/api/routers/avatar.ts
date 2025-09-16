@@ -47,7 +47,7 @@ export const avatarRouter = createTRPCRouter({
           avatar: avatarUrl,
           avatarLight: thumbnailUrl || null,
           status: "success",
-          done: 1,
+          done: true,
         }),
       ]);
       if (result.rowsAffected === 1) {
@@ -71,7 +71,7 @@ export const avatarRouter = createTRPCRouter({
       const avatars = await ctx.drizzle.query.historicalAvatar.findMany({
         where: and(
           eq(historicalAvatar.userId, relationId),
-          eq(historicalAvatar.done, 1),
+          eq(historicalAvatar.done, true),
           isNotNull(historicalAvatar.avatar),
         ),
         offset: cursor ? cursor : 0,

@@ -28,7 +28,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "src/libs/shadui";
-import { calcMedninRank } from "@/libs/hospital/hospital";
 import React from "react";
 import type { UserWithRelations } from "@/server/api/routers/profile";
 
@@ -78,14 +77,6 @@ export default function MissionHall({ userData }: MissionHallProps) {
   const availableUserRanks = availableQuestLetterRanks(userData.rank);
   const errandsLeft = ERRANDS_PER_DAY - userData.dailyErrands;
   const classifier = userData.isOutlaw ? "crime" : "mission";
-  const aRanks = hallData?.filter(
-    (m) => m.questType === classifier && m.questRank === "A",
-  );
-  const medicalRanks = hallData?.filter((m) => m.questType === "medical");
-  const userMedicalRank = calcMedninRank({
-    medicalExperience: userData.medicalExperience,
-    rank: userData.rank,
-  });
 
   return (
     <>
@@ -140,19 +131,22 @@ export default function MissionHall({ userData }: MissionHallProps) {
             // Checks
             const rankCheck = availableUserRanks.includes(setting.rank) || isErrand;
             const medicalCheck = isMedical
-              ? filtered.length > 0  // Show colored if ANY medical missions are available
+              ? filtered.length > 0 // Show colored if ANY medical missions are available
               : true;
             const grayScale = count === 0 || capped || !rankCheck || !medicalCheck;
 
-
             if (isMedical) {
-              const medicalMissions = filtered?.filter((q) => q.questRank === setting.rank).map(q => ({
-                id: q.id,
-                name: q.name,
-                image: q.image || undefined
-              })) || [];
-              const isDailyLimitReached = userData.dailyMedicalMissions >= MEDICAL_MISSIONS_PER_DAY;
-              
+              const medicalMissions =
+                filtered
+                  ?.filter((q) => q.questRank === setting.rank)
+                  .map((q) => ({
+                    id: q.id,
+                    name: q.name,
+                    image: q.image || undefined,
+                  })) || [];
+              const isDailyLimitReached =
+                userData.dailyMedicalMissions >= MEDICAL_MISSIONS_PER_DAY;
+
               return (
                 <MissionPicker
                   key={`medical-${i}`}
@@ -167,20 +161,22 @@ export default function MissionHall({ userData }: MissionHallProps) {
                     })
                   }
                   dialogTitle="Accept Medical Mission"
-                  dialogDescription={(mission) => 
+                  dialogDescription={(mission) =>
                     isDailyLimitReached ? (
                       `You have reached your daily medical mission limit of ${MEDICAL_MISSIONS_PER_DAY} medical missions. Please try again tomorrow.`
                     ) : (
                       <>
-                        Are you sure you want to accept the medical mission
-                        &quot;{mission.name}&quot;? You can only have one
-                        active {classifier} at a time.
+                        Are you sure you want to accept the medical mission &quot;
+                        {mission.name}&quot;? You can only have one active {classifier}{" "}
+                        at a time.
                       </>
                     )
                   }
                   actionDisabled={isDailyLimitReached}
-                  actionText={isDailyLimitReached ? "Daily Limit Reached" : "Accept Mission"}
-                  additionalContent={(mission) => 
+                  actionText={
+                    isDailyLimitReached ? "Daily Limit Reached" : "Accept Mission"
+                  }
+                  additionalContent={() =>
                     isDailyLimitReached && (
                       <p className="text-sm text-red-500">Daily Limit Reached</p>
                     )
@@ -190,14 +186,21 @@ export default function MissionHall({ userData }: MissionHallProps) {
             }
 
             if (setting.rank === "A") {
-              const aRankMissions = (filtered?.filter(q => q.questRank === setting.rank) ?? []).map(q => ({
-                id: q.id,
-                name: q.name,
-                image: q.image || undefined
-              })) || [];
+              const aRankMissions =
+                (filtered?.filter((q) => q.questRank === setting.rank) ?? []).map(
+                  (q) => ({
+                    id: q.id,
+                    name: q.name,
+                    image: q.image || undefined,
+                  }),
+                ) || [];
               const isDailyLimitReached = userData.dailyMissions >= MISSIONS_PER_DAY;
-              const isReducedRewards = !isErrand && !isMedical && userData.dailyMissions >= 9 && userData.dailyMissions < MISSIONS_PER_DAY;
-              
+              const isReducedRewards =
+                !isErrand &&
+                !isMedical &&
+                userData.dailyMissions >= 9 &&
+                userData.dailyMissions < MISSIONS_PER_DAY;
+
               return (
                 <MissionPicker
                   key={`mission-${i}`}
@@ -212,22 +215,21 @@ export default function MissionHall({ userData }: MissionHallProps) {
                     })
                   }
                   dialogTitle="Accept Mission"
-                  dialogDescription={(mission) => 
+                  dialogDescription={(mission) =>
                     isDailyLimitReached ? (
                       `You have reached your daily mission limit of ${MISSIONS_PER_DAY} missions. Please try again tomorrow.`
                     ) : (
                       <>
                         Are you sure you want to accept the mission &quot;
-                        {mission.name}&quot;? You can only have one active
-                        mission at a time.
+                        {mission.name}&quot;? You can only have one active mission at a
+                        time.
                         {isReducedRewards && (
                           <>
                             <br />
                             <br />
                             <span className="text-yellow-500">
-                              Note: You have completed more than 9 missions
-                              today. This mission will only give 40% of its
-                              normal rewards.
+                              Note: You have completed more than 9 missions today. This
+                              mission will only give 40% of its normal rewards.
                             </span>
                           </>
                         )}
@@ -235,8 +237,10 @@ export default function MissionHall({ userData }: MissionHallProps) {
                     )
                   }
                   actionDisabled={isDailyLimitReached}
-                  actionText={isDailyLimitReached ? "Daily Limit Reached" : "Accept Mission"}
-                  additionalContent={(mission) => (
+                  actionText={
+                    isDailyLimitReached ? "Daily Limit Reached" : "Accept Mission"
+                  }
+                  additionalContent={() => (
                     <>
                       {isReducedRewards && (
                         <p className="text-sm text-yellow-500">40% Rewards</p>

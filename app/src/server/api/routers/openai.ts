@@ -49,7 +49,7 @@ export const openaiRouter = createTRPCRouter({
         ctx.drizzle.query.historicalAvatar.findMany({
           where: and(
             eq(historicalAvatar.status, "content-success"),
-            eq(historicalAvatar.done, 1),
+            eq(historicalAvatar.done, true),
             gte(historicalAvatar.createdAt, sql`NOW() - INTERVAL 1 DAY`),
           ),
         }),
@@ -82,7 +82,7 @@ export const openaiRouter = createTRPCRouter({
             avatar: url,
             userId: input.relationId,
             status: "content-success",
-            done: 1,
+            done: true,
           })),
         );
       }

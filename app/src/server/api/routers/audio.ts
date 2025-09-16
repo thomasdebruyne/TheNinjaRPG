@@ -50,7 +50,7 @@ export const audioRouter = createTRPCRouter({
         .where(
           and(
             eq(historicalSoundEffect.relationId, relationId),
-            eq(historicalSoundEffect.done, 1),
+            eq(historicalSoundEffect.done, true),
             isNotNull(historicalSoundEffect.url),
           ),
         )
@@ -83,6 +83,6 @@ export const insertHistoricalSoundEffect = async (
     userId,
     url,
     status: "success",
-    done: 1,
+    done: true,
   });
 };

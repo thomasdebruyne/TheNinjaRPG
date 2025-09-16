@@ -59,7 +59,7 @@ const ConceptImage: React.FC<InputProps> = (props) => {
   });
 
   // Return skeleton
-  if (!image?.image || image.done === 0) {
+  if (!image?.image || !image.done) {
     const secs = secondsPassed(image?.createdAt || new Date());
     if (image && secs > 20 && image.status === "starting") {
       image.status = "Starting cluster, this may take up to 1-5 minutes";

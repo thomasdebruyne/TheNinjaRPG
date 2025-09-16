@@ -730,7 +730,7 @@ export const updateBloodline = async (
             .set({
               level: sql`CASE WHEN finishTraining > NOW() THEN level - 1 ELSE level END`,
               finishTraining: null,
-              equipped: 0,
+              equipped: false,
             })
             .where(
               and(

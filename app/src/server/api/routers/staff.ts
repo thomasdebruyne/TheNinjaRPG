@@ -262,8 +262,8 @@ export const staffRouter = createTRPCRouter({
       await Promise.all([
         ctx.drizzle
           .update(userJutsu)
-          .set({ equipped: 0 })
-          .where(ne(userJutsu.equipped, 0)),
+          .set({ equipped: false })
+          .where(ne(userJutsu.equipped, false)),
         ctx.drizzle.update(jutsuLoadout).set({ jutsuIds: [] }),
       ]);
       return {

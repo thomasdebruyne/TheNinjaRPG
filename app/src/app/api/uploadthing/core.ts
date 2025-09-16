@@ -199,7 +199,7 @@ const uploadHistoricalAvatar = async (
       avatarLight: thumbnailUrl,
       status: "succeeded",
       userId: userId,
-      done: 1,
+      done: true,
     }),
     ...(updateUser
       ? [

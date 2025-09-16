@@ -839,8 +839,8 @@ export const conversation = mysqlTable(
     updatedAt: datetime("updatedAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
-    isLocked: tinyint("isLocked").default(0).notNull(),
-    isPublic: tinyint("isPublic").default(1).notNull(),
+    isLocked: boolean("isLocked").default(false).notNull(),
+    isPublic: boolean("isPublic").default(true).notNull(),
     isStaffAvailable: boolean("isStaffAvailable").default(false).notNull(),
   },
   (table) => {
@@ -905,7 +905,7 @@ export const conversationComment = mysqlTable(
       .$type<Record<string, string[]>>()
       .notNull()
       .default({}),
-    isPinned: tinyint("isPinned").default(0).notNull(),
+    isPinned: boolean("isPinned").default(false).notNull(),
     isReported: boolean("isReported").default(false).notNull(),
     isStaffOnly: boolean("isStaffOnly").default(false).notNull(),
   },
@@ -1025,8 +1025,8 @@ export const forumThread = mysqlTable(
     boardId: varchar("boardId", { length: 191 }).notNull(),
     userId: varchar("userId", { length: 191 }).notNull(),
     nPosts: int("nPosts").default(0).notNull(),
-    isPinned: tinyint("isPinned").default(0).notNull(),
-    isLocked: tinyint("isLocked").default(0).notNull(),
+    isPinned: boolean("isPinned").default(false).notNull(),
+    isLocked: boolean("isLocked").default(false).notNull(),
   },
   (table) => {
     return {
@@ -1059,7 +1059,7 @@ export const historicalAvatar = mysqlTable(
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
     status: varchar("status", { length: 191 }).default("started").notNull(),
-    done: tinyint("done").default(0).notNull(),
+    done: boolean("done").default(false).notNull(),
   },
   (table) => {
     return {
@@ -1092,7 +1092,7 @@ export const historicalSoundEffect = mysqlTable(
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
     status: varchar("status", { length: 191 }).default("started").notNull(),
-    done: tinyint("done").default(0).notNull(),
+    done: boolean("done").default(false).notNull(),
   },
   (table) => {
     return {
@@ -1133,7 +1133,7 @@ export const item = mysqlTable(
     seichiSilverCost: int("seichiSilverCost").default(0).notNull(),
     stackSize: int("stackSize").default(1).notNull(),
     image: varchar("image", { length: 191 }).notNull(),
-    destroyOnUse: tinyint("destroyOnUse").default(0).notNull(),
+    destroyOnUse: boolean("destroyOnUse").default(false).notNull(),
     range: int("range").default(0).notNull(),
     chakraCost: double("chakraCost").default(0).notNull(),
     staminaCost: double("staminaCost").default(0).notNull(),
@@ -1629,7 +1629,7 @@ export const paypalWebhookMessage = mysqlTable("PaypalWebhookMessage", {
     .notNull(),
   eventType: varchar("eventType", { length: 191 }).notNull(),
   rawData: json("rawData").notNull(),
-  handled: tinyint("handled").default(0).notNull(),
+  handled: boolean("handled").default(false).notNull(),
 });
 
 export const ryoTrade = mysqlTable(
@@ -1909,7 +1909,7 @@ export const userData = mysqlTable(
     federalStatus: mysqlEnum("federalStatus", consts.FederalStatuses)
       .default("NONE")
       .notNull(),
-    approvedTos: tinyint("approvedTos").default(0).notNull(),
+    approvedTos: boolean("approvedTos").default(false).notNull(),
     avatar: varchar("avatar", { length: 191 }),
     avatarLight: varchar("avatarLight", { length: 191 }),
     avatar3d: varchar("avatar3d", { length: 191 }),
@@ -1999,7 +1999,9 @@ export const userData = mysqlTable(
     dailyTrainings: smallint("dailyTrainings", { unsigned: true }).default(0).notNull(),
     movedTooFastCount: int("movedTooFastCount").default(0).notNull(),
     extraItemSlots: smallint("extraItemSlots", { unsigned: true }).default(0).notNull(),
-    extraJutsuSlots: tinyint("extraJutsuSlots").default(0).notNull(),
+    extraJutsuSlots: tinyint("extraJutsuSlots", { unsigned: true })
+      .default(0)
+      .notNull(),
     extraReskinSlots: tinyint("extraReskinSlots").default(2).notNull(),
     customTitle: varchar("customTitle", { length: 191 }).default("").notNull(),
     marriageSlots: int("marriageSlots", { unsigned: true }).default(1).notNull(),
@@ -2449,7 +2451,7 @@ export const userJutsu = mysqlTable(
       .notNull(),
     level: int("level").default(1).notNull(),
     experience: int("experience").default(0).notNull(),
-    equipped: tinyint("equipped").default(0).notNull(),
+    equipped: boolean("equipped").default(false).notNull(),
     finishTraining: datetime("finishTraining", { mode: "date", fsp: 3 }),
     reskinId: varchar("reskinId", { length: 191 }),
   },
@@ -2502,7 +2504,7 @@ export const userReport = mysqlTable(
     infraction: json("infraction").notNull(),
     reason: text("reason").notNull(),
     banEnd: datetime("banEnd", { mode: "date", fsp: 3 }),
-    adminResolved: tinyint("adminResolved").default(0).notNull(),
+    adminResolved: boolean("adminResolved").default(false).notNull(),
     status: mysqlEnum("status", consts.BanStates).default("UNVIEWED").notNull(),
     aiInterpretation: text("aiInterpretation").notNull(),
     predictedStatus: mysqlEnum("predictedStatus", consts.BanStates),
@@ -3045,7 +3047,7 @@ export const conceptImage = mysqlTable(
     n_laugh: int("n_laugh").default(0).notNull(),
     n_comments: int("n_comments").default(0).notNull(),
     description: varchar("description", { length: 255 }),
-    done: tinyint("done").default(0).notNull(),
+    done: boolean("done").default(false).notNull(),
   },
   (table) => {
     return {

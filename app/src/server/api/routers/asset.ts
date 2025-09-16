@@ -11,7 +11,6 @@ import { canChangeContent } from "@/utils/permissions";
 import { callDiscordContent } from "@/libs/discord";
 import { calculateContentDiff } from "@/utils/diff";
 import { GameAssetTypes, IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { setEmptyStringsToNulls } from "@/utils/typeutils";
 import { gameAssetSchema } from "@/validators/asset";
 import type { DrizzleClient } from "@/server/db";
 

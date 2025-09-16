@@ -362,7 +362,7 @@ const Conversation: React.FC<ConversationProps> = (props) => {
               conversationId: conversation.id,
               content: processedContent,
               reactions: {},
-              isPinned: 0,
+              isPinned: false,
               isReported: false,
               isStaffOnly: false,
               villageName: userData.village?.name ?? null,

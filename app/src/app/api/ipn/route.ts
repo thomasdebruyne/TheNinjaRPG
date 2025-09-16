@@ -60,7 +60,7 @@ export async function GET(req: Request) {
       id: nanoid(),
       rawData: body,
       eventType: body.event_type,
-      handled: 0,
+      handled: false,
     });
     return Response.json(`OK`);
   } catch (cause) {

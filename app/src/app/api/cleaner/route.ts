@@ -71,7 +71,7 @@ export async function GET() {
       .where(
         and(
           lte(conversation.updatedAt, new Date(Date.now() - oneDay * 14)),
-          eq(conversation.isPublic, 0),
+          eq(conversation.isPublic, false),
           eq(conversation.isStaffAvailable, false),
         ),
       );

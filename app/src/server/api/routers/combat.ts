@@ -1173,7 +1173,7 @@ export const initiateBattle = async (
             jutsu: true,
             activeReskin: true,
           },
-          where: (jutsus) => eq(jutsus.equipped, 1),
+          where: (jutsus) => eq(jutsus.equipped, true),
           orderBy: (table, { desc }) => [desc(table.level)],
         },
         userSkills: {
@@ -1269,7 +1269,7 @@ export const initiateBattle = async (
             jutsuId: jutsu.id,
             level: 25,
             experience: 0,
-            equipped: 1,
+            equipped: true,
             finishTraining: null,
             jutsu: jutsu,
             reskinId: null,
@@ -2189,7 +2189,7 @@ export const processUsersForBattle = async (
         },
         jutsus: {
           with: { jutsu: true },
-          where: (jutsus) => eq(jutsus.equipped, 1),
+          where: (jutsus) => eq(jutsus.equipped, true),
         },
         userSkills: {
           with: { skill: true },

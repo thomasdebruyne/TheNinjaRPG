@@ -73,7 +73,7 @@ export default function ManualBloodlineReskins() {
     if (!selectedBloodlineId && bloodlines && bloodlines.length > 0) {
       setSelectedBloodlineId(bloodlines[0]!.id);
     }
-  }, [bloodlines]);
+  }, [bloodlines, selectedBloodlineId]);
 
   // Mutation: create reskin and jump to edit page
   const { mutate: createReskin, isPending: isCreating } =

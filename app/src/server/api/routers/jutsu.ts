@@ -447,7 +447,7 @@ export const jutsuRouter = createTRPCRouter({
           ? [
               ctx.drizzle
                 .update(userJutsu)
-                .set({ equipped: 0 })
+                .set({ equipped: false })
                 .where(eq(userJutsu.jutsuId, entry.id)),
             ]
           : []),
@@ -652,8 +652,8 @@ export const jutsuRouter = createTRPCRouter({
           finishTraining: new Date(Date.now() + trainTime),
           equipped:
             curEquip < maxEquip && residualJutsus.length <= JUTSU_MAX_RESIDUAL_EQUIPPED
-              ? 1
-              : 0,
+              ? true
+              : false,
         });
       }
 
@@ -709,7 +709,7 @@ export const jutsuRouter = createTRPCRouter({
       await Promise.all([
         ctx.drizzle
           .update(userJutsu)
-          .set({ equipped: 0 })
+          .set({ equipped: false })
           .where(eq(userJutsu.userId, ctx.userId)),
         loadout
           ? ctx.drizzle
@@ -726,7 +726,7 @@ export const jutsuRouter = createTRPCRouter({
     .input(z.object({ userJutsuId: z.string() }))
     .output(
       baseServerResponse.extend({
-        data: z.object({ equipped: z.number(), jutsuId: z.string() }).optional(),
+        data: z.object({ equipped: z.boolean(), jutsuId: z.string() }).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -757,7 +757,7 @@ export const jutsuRouter = createTRPCRouter({
         (j) => j.jutsu.jutsuType === "EVENT",
       ).length;
       const curJutsuIsEvent = userjutsuObj?.jutsu.jutsuType === "EVENT";
-      const newEquippedState = isEquipped ? 0 : 1;
+      const newEquippedState = isEquipped ? false : true;
       const loadout = loadouts.find((l) => l.id === user.jutsuLoadout);
       const isLoaded = userjutsuObj && loadout?.jutsuIds.includes(userjutsuObj.jutsuId);
       const residualJutsus = userjutsus.filter(
@@ -767,10 +767,7 @@ export const jutsuRouter = createTRPCRouter({
       );
 
       // Guards
-      if (
-        residualJutsus.length >= JUTSU_MAX_RESIDUAL_EQUIPPED &&
-        newEquippedState === 1
-      ) {
+      if (residualJutsus.length >= JUTSU_MAX_RESIDUAL_EQUIPPED && newEquippedState) {
         return errorResponse(
           `You cannot equip more than ${JUTSU_MAX_RESIDUAL_EQUIPPED} residual jutsu. Please unequip first.`,
         );
@@ -801,9 +798,9 @@ export const jutsuRouter = createTRPCRouter({
       }
 
       // Calculate loadout
-      if (loadout && isLoaded && newEquippedState === 0) {
+      if (loadout && isLoaded && !newEquippedState) {
         loadout.jutsuIds = loadout.jutsuIds.filter((id) => id !== userjutsuObj.jutsuId);
-      } else if (loadout && !isLoaded && newEquippedState === 1) {
+      } else if (loadout && !isLoaded && newEquippedState) {
         loadout.jutsuIds.push(userjutsuObj.jutsuId);
       }
 
@@ -1623,7 +1620,7 @@ export const selectJutsuLoadout = async (
         equipped:
           loadout.jutsuIds.length > 0
             ? sql`CASE WHEN ${inArray(userJutsu.jutsuId, loadout.jutsuIds)} THEN 1 ELSE 0 END`
-            : 0,
+            : false,
       })
       .where(eq(userJutsu.userId, user.userId)),
   ]);

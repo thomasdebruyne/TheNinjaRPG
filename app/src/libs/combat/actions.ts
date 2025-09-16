@@ -598,7 +598,7 @@ export const handleInjectedJutsus = (
         finishTraining: null,
         level: toBeAddedJutsuPower[jutsu.id] ?? 1,
         experience: 0,
-        equipped: 1,
+        equipped: true,
         origin: "injected" as const,
         lastUsedRound: -jutsu.cooldown,
         originalCooldown: jutsu.cooldown,
