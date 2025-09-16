@@ -1604,6 +1604,11 @@ export const paypalTransaction = mysqlTable(
       affectedUserIdIdx: index("PaypalTransaction_affectedUserId_idx").on(
         table.affectedUserId,
       ),
+      reputationPointsIdx: index("PaypalTransaction_reputationPoints_idx").on(
+        table.reputationPoints,
+      ),
+      typeIdx: index("PaypalTransaction_type_idx").on(table.type),
+      amountIdx: index("PaypalTransaction_amount_idx").on(table.amount),
     };
   },
 );

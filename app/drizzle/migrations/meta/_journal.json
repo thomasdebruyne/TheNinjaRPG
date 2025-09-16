@@ -2073,6 +2073,13 @@
       "when": 1758026859256,
       "tag": "0295_curious_kingpin",
       "breakpoints": false
+    },
+    {
+      "idx": 296,
+      "version": "5",
+      "when": 1758032730648,
+      "tag": "0296_gifted_korath",
+      "breakpoints": false
     }
   ]
 }
