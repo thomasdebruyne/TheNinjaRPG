@@ -620,7 +620,10 @@ export const questsRouter = createTRPCRouter({
           );
         }
       } else if (["mission", "crime", "medical"].includes(questData.questType)) {
-        if (["mission", "crime"].includes(questData.questType) && questData.questRank !== "A") {
+        if (
+          ["mission", "crime"].includes(questData.questType) &&
+          questData.questRank !== "A"
+        ) {
           return errorResponse(`Only A rank missions/crimes are allowed`);
         }
         if (
@@ -1517,22 +1520,27 @@ export const upsertQuestEntries = async (
 ) => {
   // Users to insert for
   const users = await client
-    .select({ userId: userData.userId })
+    .select({ userId: userData.userId, username: userData.username })
     .from(userData)
-    .innerJoin(
+    .leftJoin(
       questHistory,
       and(eq(questHistory.userId, userData.userId), eq(questHistory.questId, quest.id)),
     )
     .where(and(updateSelector, isNull(questHistory.id)));
   if (users.length > 0) {
-    await client.insert(questHistory).values(
-      users.map((user) => ({
-        id: nanoid(),
-        userId: user.userId,
-        questId: quest.id,
-        questType: quest.questType,
-      })),
-    );
+    await client
+      .insert(questHistory)
+      .values(
+        users.map((user) => ({
+          id: nanoid(),
+          userId: user.userId,
+          questId: quest.id,
+          questType: quest.questType,
+        })),
+      )
+      .onDuplicateKeyUpdate({
+        set: { completed: 0, endAt: null, startedAt: new Date() },
+      });
   }
   // Users to update for (including those we just inserted for)
   const allUsers = await client

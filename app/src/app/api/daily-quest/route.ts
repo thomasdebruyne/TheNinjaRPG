@@ -1,13 +1,14 @@
-import { eq, inArray, isNull, isNotNull, and, or, sql } from "drizzle-orm";
+import { eq, or, inArray, isNotNull, and, sql } from "drizzle-orm";
 import { drizzleDB } from "@/server/db";
 import { quest, questHistory, userData } from "@/drizzle/schema";
-import { UserRanks, VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
+import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
 import { availableQuestLetterRanks } from "@/libs/train";
 import { sleep } from "@/utils/time";
 import { updateGameSetting } from "@/libs/gamesettings";
 import { lockWithDailyTimer, handleEndpointError } from "@/libs/gamesettings";
 import { upsertQuestEntries } from "@/routers/quests";
 import { cookies } from "next/headers";
+import type { UserRank } from "@/drizzle/constants";
 
 const ENDPOINT_NAME = "daily-quest";
 
@@ -19,48 +20,83 @@ export async function GET() {
   const timerCheck = await lockWithDailyTimer(drizzleDB, ENDPOINT_NAME);
   if (!timerCheck.isNewDay && timerCheck.response) return timerCheck.response;
 
-  // Query
-  const villages = await drizzleDB.query.village.findMany({
-    with: { structures: true },
-  });
-
   try {
     // Reset all current dailies
-    await drizzleDB
-      .update(questHistory)
-      .set({ completed: 0, endAt: new Date() })
-      .where(and(eq(questHistory.questType, "daily"), eq(questHistory.completed, 0)));
+    const [dailies, villages, userRankPerVillage] = await Promise.all([
+      drizzleDB.query.quest.findMany({
+        where: and(
+          eq(quest.questType, "daily"),
+          isNotNull(quest.content),
+          eq(quest.hidden, false),
+        ),
+      }),
+      drizzleDB.query.village.findMany({
+        with: { structures: true },
+      }),
+      drizzleDB
+        .select({
+          rank: userData.rank,
+          villageId: userData.villageId,
+          count: sql`count(${userData.userId})`.mapWith(Number),
+        })
+        .from(userData)
+        .groupBy(userData.rank, userData.villageId),
+      drizzleDB
+        .update(questHistory)
+        .set({ completed: 0, endAt: new Date() })
+        .where(and(eq(questHistory.questType, "daily"), eq(questHistory.completed, 0))),
+    ]);
+
+    // Book-keeping to do upsert afterwards more efficiently
+    const memory: {
+      questId: string;
+      combos: { rank: UserRank; villageId: string }[];
+    }[] = [];
 
     // For each user rank, get a random daily quest
-    for (const rank of UserRanks) {
-      const ranks = availableQuestLetterRanks(rank);
-      if (ranks.length > 0) {
-        for (const village of villages) {
-          const requiredVillage =
-            village.type === "OUTLAW" ? VILLAGE_SYNDICATE_ID : (village.id ?? "");
-          const newDaily = await drizzleDB.query.quest.findFirst({
-            where: and(
-              eq(quest.questType, "daily"),
-              isNotNull(quest.content),
-              inArray(quest.questRank, ranks),
-              or(
-                isNull(quest.requiredVillage),
-                eq(quest.requiredVillage, requiredVillage),
-              ),
-            ),
-            orderBy: sql`RAND()`,
-          });
-          if (newDaily) {
-            await upsertQuestEntries(
-              drizzleDB,
-              newDaily,
-              and(eq(userData.rank, rank), eq(userData.villageId, village.id)),
-            );
+    for (const config of userRankPerVillage) {
+      const { rank, villageId } = config;
+      const village = villages?.find((v) => v.id === villageId);
+      const questRanks = availableQuestLetterRanks(rank);
+      if (village && questRanks.length > 0) {
+        const requiredVillage =
+          village.type === "OUTLAW" ? VILLAGE_SYNDICATE_ID : (village.id ?? "");
+        const newDaily = [...dailies]
+          .sort(() => Math.random() - 0.5)
+          .find(
+            (q) =>
+              questRanks.includes(q.questRank) &&
+              (!q.requiredVillage || q.requiredVillage === requiredVillage),
+          );
+        if (newDaily) {
+          if (!memory.find((m) => m.questId === newDaily.id)) {
+            memory.push({
+              questId: newDaily.id,
+              combos: [{ rank, villageId: village.id }],
+            });
+          } else {
+            memory
+              .find((m) => m.questId === newDaily.id)
+              ?.combos.push({ rank, villageId: village.id });
           }
         }
       }
-      // Await a bit to avoid too many open connections
-      await sleep(500);
+    }
+
+    // Do upsertions for each quest
+    for (const m of memory) {
+      const newDaily = dailies.find((q) => q.id === m.questId);
+      if (newDaily) {
+        await upsertQuestEntries(
+          drizzleDB,
+          newDaily,
+          or(
+            ...m.combos.map((c) =>
+              and(eq(userData.rank, c.rank), eq(userData.villageId, c.villageId)),
+            ),
+          ),
+        );
+      }
     }
     return Response.json(`OK`);
   } catch (cause) {

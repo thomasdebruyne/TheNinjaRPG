@@ -2972,6 +2972,10 @@ export const questHistory = mysqlTable(
   },
   (table) => {
     return {
+      uniqueUserIdQuestIdKey: unique("uniqueUserIdQuestId").on(
+        table.userId,
+        table.questId,
+      ),
       userIdIdx: index("QuestHistory_userId_idx").on(table.userId),
       questTypeIdx: index("QuestHistory_questType_idx").on(table.questType),
       endAtIdx: index("QuestHistory_endedAt_idx").on(table.endAt),
