@@ -192,12 +192,7 @@ export const fastTxt2imgReplicate = async (config: {
   return uploadedFile;
 };
 
-/**
- * Create an image from text using OpenAI
- * @param config The configuration for the image generation
- * @returns The URL of the image
- */
-export const txt2imgGPT = async (config: {
+type Txt2ImgConfig = {
   preprompt: string;
   prompt: string;
   previousImg?: string | null;
@@ -206,7 +201,14 @@ export const txt2imgGPT = async (config: {
   width: number;
   height: number;
   size: IMG_ORIENTATION;
-}) => {
+};
+
+/**
+ * Create an image from text using OpenAI
+ * @param config The configuration for the image generation
+ * @returns The URL of the image
+ */
+export const txt2imgGPT = async (config: Txt2ImgConfig) => {
   const client = new OpenAI();
 
   // Prepare the input image
@@ -260,6 +262,67 @@ export const txt2imgGPT = async (config: {
 
   // Return the URLs of the images
   return uploadedFiles.map((file) => file.data?.ufsUrl).filter(Boolean) as string[];
+};
+
+/**
+ * Create an image from text using Google's Nano Banana via Replicate
+ * Mirrors txt2imgGPT flow and returns uploaded URL(s)
+ */
+export const txt2imgNanoBanana = async (config: Txt2ImgConfig) => {
+  const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+
+  const composedPrompt = `
+      <system prompt>
+        ${config.preprompt}
+      </system prompt>
+      <user prompt>
+        ${config.prompt} ${config.removeBg ? "remove background" : "include appropriate background. Full image."}
+      </user prompt>
+    `;
+
+  const promptToSend = config.previousImg ? config.prompt : composedPrompt;
+  const inputs: Record<string, unknown> = { prompt: promptToSend };
+  if (config.previousImg) inputs.image_input = [config.previousImg];
+
+  // Get the file from the replicate run
+  let file = (await replicate.run("google/nano-banana", {
+    input: inputs,
+  })) as FileOutput;
+  if (!file) throw new Error("No output from AI model");
+
+  // If transparent background requested, post-process with remove-bg
+  if (config.removeBg) {
+    file = await removeBackgroundReplicate(String(file.url()));
+  }
+
+  // Fetch and resize to requested bounds (match OpenAI flow)
+  const blob = await file.blob();
+  const arrayBuffer = await blob.arrayBuffer();
+  const resultBuffer = await sharp(Buffer.from(arrayBuffer))
+    .resize({ width: config.width, height: config.height, fit: "inside" })
+    .webp({ quality: 70 })
+    .toBuffer();
+
+  const resizedBlob = new Blob([resultBuffer as BlobPart]);
+  const uploaded = await uploadFileFromReplicate("content", resizedBlob, "webp");
+  const url = uploaded.data?.ufsUrl ?? null;
+  return url ? [url] : [];
+};
+
+/**
+ * Remove background from an image using lucataco/remove-bg on Replicate
+ */
+export const removeBackgroundReplicate = async (imageUrl: string) => {
+  const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+  const output = (await replicate.run(
+    "lucataco/remove-bg:95fcc2a26d3899cd6c2691c900465aaeff466285a65c14638cc5f36f34befaf1",
+    {
+      input: { image: imageUrl },
+    },
+  )) as FileOutput | FileOutput[];
+  const file = Array.isArray(output) ? output[0] : output;
+  if (!file) throw new Error("No output from remove-bg model");
+  return file;
 };
 /**
  * Create a 3D model from an image

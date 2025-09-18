@@ -21,7 +21,7 @@ import { jutsuRouter } from "./routers/jutsu";
 import { kageRouter } from "./routers/kage";
 import { logsRouter } from "./routers/logs";
 import { miscRouter } from "./routers/misc";
-import { openaiRouter } from "./routers/openai";
+import { generativeAiRouter } from "./routers/openai";
 import { paypalRouter } from "./routers/paypal";
 import { pollRouter } from "./routers/poll";
 import { profileRouter } from "./routers/profile";
@@ -76,7 +76,7 @@ export const appRouter = createTRPCRouter({
   kage: kageRouter,
   logs: logsRouter,
   misc: miscRouter,
-  openai: openaiRouter,
+  generativeAi: generativeAiRouter,
   paypal: paypalRouter,
   poll: pollRouter,
   profile: profileRouter,

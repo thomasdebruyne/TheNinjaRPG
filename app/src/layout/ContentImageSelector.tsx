@@ -57,22 +57,24 @@ const ContentImageSelector: React.FC<ContentImageSelectorProps> = (props) => {
   const promptForm = useForm<PromptFormData>({
     resolver: zodResolver(promptFormSchema),
     defaultValues: {
-      systemPrompt: getPrePromps(),
+      systemPrompt: getPrePrompts(),
       userPrompt: prompt,
       editPrompt: "",
     },
   });
 
   // Create image with AI mutation
-  const { mutate: createImg, isPending: load } = api.openai.createImgGPT.useMutation({
-    onSuccess: async (data) => {
-      if (data.success && data.url) {
-        onUploadComplete(data.url);
-        await utils.avatar.getHistoricalAvatars.invalidate();
-      }
-      showMutationToast({ success: true, message: "Image generated" });
+  const { mutate: createImg, isPending: load } = api.generativeAi.createImg.useMutation(
+    {
+      onSuccess: async (data) => {
+        if (data.success && data.url) {
+          onUploadComplete(data.url);
+          await utils.avatar.getHistoricalAvatars.invalidate();
+        }
+        showMutationToast({ success: true, message: "Image generated" });
+      },
     },
-  });
+  );
 
   const handleGenerateImage = (data: PromptFormData) => {
     if (!data.userPrompt) {
@@ -278,7 +280,7 @@ const ContentImageSelector: React.FC<ContentImageSelectorProps> = (props) => {
 
 export default ContentImageSelector;
 
-export const getPrePromps = () => {
+export const getPrePrompts = () => {
   return `
 # 🔧 Role Description
 You are a pixel art generation assistant named **TNR Pixel Art**, built for producing high-resolution (256×256 to 512×512) pixel artwork with retro 32-bit aesthetics. You specialize in cinematic pixel sprites and scenes themed around Naruto-style ninja fantasy, complete with chakra-based jutsu, dynamic action, and elemental effects.
@@ -319,6 +321,7 @@ You are a pixel art generation assistant named **TNR Pixel Art**, built for prod
 - no pastel colors  
 - no blur  
 - no gradient transitions
+- no text in image
 
 ### Pose and Angle
 - **Isometric only**  
@@ -385,6 +388,7 @@ Use this configuration to recreate or extend **TNR Pixel Art**, ensuring all out
 - High-contrast pixel art  
 - Chakra effects and silhouette clarity  
 - Retro fidelity without blur or painterly elements  
+- No text in image
 
 `;
 };

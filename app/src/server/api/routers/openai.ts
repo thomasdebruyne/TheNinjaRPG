@@ -7,13 +7,13 @@ import {
 } from "../trpc";
 import { canChangeContent } from "@/utils/permissions";
 import { fetchUser } from "@/routers/profile";
-import { txt2imgGPT, img2model } from "@/libs/replicate";
+import { txt2imgNanoBanana, img2model } from "@/libs/replicate";
 import { historicalAvatar } from "@/drizzle/schema";
 import { and, gte, sql } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { IMG_ORIENTATIONS } from "@/drizzle/constants";
 
-export const openaiRouter = createTRPCRouter({
+export const generativeAiRouter = createTRPCRouter({
   create3dModel: protectedProcedure
     .input(
       z.object({
@@ -29,7 +29,7 @@ export const openaiRouter = createTRPCRouter({
       const result = await img2model(input.imgUrl);
       return { replicateId: result.id };
     }),
-  createImgGPT: protectedProcedure
+  createImg: protectedProcedure
     .input(
       z.object({
         preprompt: z.string(),
@@ -65,7 +65,7 @@ export const openaiRouter = createTRPCRouter({
         );
       }
       // Create image
-      const resultUrls = await txt2imgGPT({
+      const resultUrls = await txt2imgNanoBanana({
         preprompt: input.preprompt,
         prompt: input.prompt,
         previousImg: input.previousImg,
