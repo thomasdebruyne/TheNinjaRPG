@@ -44,9 +44,11 @@ const ActionLogs: React.FC<ActionLogsProps> = (props) => {
         changes: (
           <div>
             <h3>{entry.relatedMsg}</h3>
-            {entry.changes.map((change, i) => {
-              return <li key={i}>{change}</li>;
-            })}
+            {entry.changes.length > 0 &&
+              entry.changes.map((change, i) => {
+                return <li key={i}>{change}</li>;
+              })}
+            {entry.changes.length === 0 && <li>No changes</li>}
             <p className="italic font-bold mt-2">
               Changed at: {entry.createdAt.toLocaleString()} by{" "}
               {entry.user?.username ?? "Unknown"}
@@ -78,8 +80,7 @@ const ActionLogs: React.FC<ActionLogsProps> = (props) => {
       initialBreak={props.initialBreak}
       topRightContent={props.topRightContent}
     >
-      {isFetching && <Loader explanation="Loading data" />}
-      {!isFetching && (
+      {allEntries && (
         <Table
           data={allEntries}
           columns={columns}
@@ -88,6 +89,7 @@ const ActionLogs: React.FC<ActionLogsProps> = (props) => {
           setLastElement={setLastElement}
         />
       )}
+      {isFetching && <Loader explanation="Loading data" />}
     </ContentBox>
   );
 };

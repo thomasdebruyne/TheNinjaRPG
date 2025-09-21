@@ -31,10 +31,7 @@ export const logsRouter = createTRPCRouter({
         ctx.userId ? fetchUser(ctx.drizzle, ctx.userId) : null,
         ctx.userId
           ? await ctx.drizzle.query.userData.findFirst({
-              where: and(
-                like(userData.username, `%${input.username}%`),
-                ne(userData.role, "USER"),
-              ),
+              where: like(userData.username, `%${input.username}%`),
             })
           : null,
       ]);
