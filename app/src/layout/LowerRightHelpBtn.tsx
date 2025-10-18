@@ -40,16 +40,6 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
     return getValidTicketType(showActive);
   }, [showActive, getValidTicketType]);
 
-  // Tutorial reset mutation
-  const { mutate: resetTutorial } = api.profile.updateTutorialStep.useMutation({
-    onSuccess: async (data) => {
-      if (data.success && data.data) {
-        await updateUser({ tutorialStep: data.data.tutorialStep });
-        showMutationToast({ success: true, message: "Tutorial has been reset!" });
-      }
-    },
-  });
-
   // Handle tool calls from AI
   const handleToolCall = useCallback((toolCall: any) => {
     try {
@@ -64,15 +54,6 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
       console.error("Error in handleToolCall:", error);
     }
   }, []);
-
-  // Handle tutorial reset
-  const handleTutorialReset = useCallback(() => {
-    try {
-      resetTutorial({ step: 0 });
-    } catch (error) {
-      console.error("Error in handleTutorialReset:", error);
-    }
-  }, [resetTutorial]);
 
   // Safe setter for showActive that validates the value
   const setShowActiveSafe = useCallback(
@@ -182,20 +163,9 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
             </div>
           </TabsContent>
 
-          <TabsContent value="tutorial" className="flex flex-col gap-4">
-            <p className="font-bold text-lg">Reset Tutorial</p>
-            <p className="text-sm">
-              Click the button below to restart the game tutorial from the beginning.
-            </p>
-            <Button onClick={handleTutorialReset} className="w-full">
-              Reset Tutorial
-            </Button>
-          </TabsContent>
-
           <TabsList className="text-center mt-2">
             <TabsTrigger value="ai_support">AI Support</TabsTrigger>
             <TabsTrigger value="human_support">Human Support</TabsTrigger>
-            <TabsTrigger value="tutorial">Tutorial</TabsTrigger>
           </TabsList>
         </Tabs>
       </PopoverContent>
