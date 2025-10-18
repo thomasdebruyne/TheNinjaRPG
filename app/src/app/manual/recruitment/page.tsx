@@ -285,7 +285,7 @@ export default function ManualRecruitment() {
               questFunnels.map((questFunnel) => {
                 const data = mainMetrics?.questFunnels?.[questFunnel.id];
                 return data ? (
-                  <div className="col-span-2" key={questFunnel.toString()}>
+                  <div className="col-span-2" key={questFunnel.id}>
                     <QuestFunnelBar
                       stepsCompleted={data}
                       title={`Quest: ${questFunnel.title}`}
