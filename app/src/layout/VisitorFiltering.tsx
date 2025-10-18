@@ -33,7 +33,7 @@ const visitorFilteringSchema = defineFilteringSchema({
       id: "startDate",
       label: "First Visit (From)",
       type: "date",
-      defaultValue: dateStringDaysAgo(30),
+      defaultValue: dateStringDaysAgo(7),
     },
     {
       id: "endDate",

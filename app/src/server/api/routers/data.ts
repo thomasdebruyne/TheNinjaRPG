@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { and, eq, gte, lte, sql, asc, inArray, or, ne, gt } from "drizzle-orm";
+import { and, eq, gte, lte, lt, sql, asc, inArray, or, ne, gt } from "drizzle-orm";
 import {
   userJutsu,
   userItem,
@@ -199,20 +199,20 @@ export const dataRouter = createTRPCRouter({
           .where(visitorWhere.length > 0 ? and(...visitorWhere) : undefined),
         // Signups: users with an entry in ReferralSource (mapped via historical IP to the visit)
         ctx.drizzle
-          .select({ questData: userData.questData, questHistory: questHistory })
+          .select({
+            questData: userData.questData,
+            tutorialStep: userData.tutorialStep,
+          })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
           .innerJoin(userData, eq(userData.userId, historicalIp.userId))
           .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
-          .leftJoin(questHistory, eq(questHistory.userId, userData.userId))
           .where(
             and(
               ...(visitorWhere.length > 0 ? visitorWhere : []),
               eq(userData.isAi, false),
+              lt(userData.tutorialStep, 100),
               gte(userData.createdAt, visitorLog.createdAt),
-              ...(input.questFunnels && input.questFunnels.length > 0
-                ? [inArray(questHistory.questId, input.questFunnels)]
-                : []),
               // If utmSource filter provided, also match referralSource.source to it
               ...(input.utmSource && input.utmSource.length > 0
                 ? [eq(referralSource.source, input.utmSource)]
@@ -231,6 +231,7 @@ export const dataRouter = createTRPCRouter({
             and(
               ...(visitorWhere.length > 0 ? visitorWhere : []),
               eq(userData.isAi, false),
+              lt(userData.tutorialStep, 100),
               gte(userData.createdAt, visitorLog.createdAt),
             ),
           ),
@@ -293,6 +294,7 @@ export const dataRouter = createTRPCRouter({
               gte(userData.createdAt, visitorLog.createdAt),
               // Consider tutorial finished when tutorialStep is set to the last index (skipped) or beyond the last step
               gte(userData.tutorialStep, TUTORIAL_STEPS_COUNT),
+              lt(userData.tutorialStep, 100),
             ),
           ),
         ctx.drizzle
@@ -344,6 +346,9 @@ export const dataRouter = createTRPCRouter({
         }
       }
 
+      // Extract tutorial steps for each signup
+      const tutorialSteps = signupsRow.map((r) => r.tutorialStep ?? 0);
+
       return {
         ctr: RECRUITMENT_CTR,
         signupRate,
@@ -357,6 +362,7 @@ export const dataRouter = createTRPCRouter({
         tutorialFinishedSignups,
         clickValueUsd,
         questFunnels,
+        tutorialSteps,
       };
     }),
   // Recruitment analytics

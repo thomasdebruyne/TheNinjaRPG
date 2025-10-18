@@ -36,7 +36,10 @@ import VisitorFiltering, {
   useFiltering as useVisitorFiltering,
   getFilter as getVisitorFilter,
 } from "@/layout/VisitorFiltering";
-import { TUTORIAL_GENIN_EXAM_QUEST_ID } from "@/drizzle/constants";
+import {
+  TUTORIAL_STARTER_QUEST_ID,
+  TUTORIAL_GENIN_EXAM_QUEST_ID,
+} from "@/drizzle/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AbTestResults from "@/layout/AbTestResults";
 import { QuestFunnelBar } from "@/layout/UsageStatistics";
@@ -54,11 +57,16 @@ export default function ManualRecruitment() {
 
   const visitorFilterState = useVisitorFiltering();
 
+  const questFunnels = [
+    { id: TUTORIAL_STARTER_QUEST_ID, title: "Starter Quest" },
+    { id: TUTORIAL_GENIN_EXAM_QUEST_ID, title: "Genin Exam Quest" },
+  ] as const;
+
   const { data: mainMetrics, isFetching: isFetchingMain } =
     api.data.getRecruitmentMainMetrics.useQuery(
       {
         ...getVisitorFilter(visitorFilterState),
-        questFunnels: [TUTORIAL_GENIN_EXAM_QUEST_ID],
+        questFunnels: questFunnels.map((q) => q.id),
       },
       {
         staleTime: 1000 * 60,
@@ -119,8 +127,6 @@ export default function ManualRecruitment() {
     if (valueUsd >= goal * 0.9) return "text-orange-500";
     return "text-red-600";
   };
-  const questFunnel = mainMetrics?.questFunnels?.[TUTORIAL_GENIN_EXAM_QUEST_ID];
-  console.log(questFunnel);
 
   return (
     <>
@@ -266,14 +272,27 @@ export default function ManualRecruitment() {
                 )}
               </CardContent>
             </Card>
-            {questFunnel && (
+            {mainMetrics?.tutorialSteps && mainMetrics.tutorialSteps.length > 0 && (
               <div className="col-span-2">
                 <QuestFunnelBar
-                  stepsCompleted={questFunnel}
-                  title="Start Quest Funnel"
+                  stepsCompleted={mainMetrics.tutorialSteps}
+                  title="Tutorial Steps Completion"
                 />
               </div>
             )}
+            {questFunnels &&
+              questFunnels.length > 0 &&
+              questFunnels.map((questFunnel) => {
+                const data = mainMetrics?.questFunnels?.[questFunnel.id];
+                return data ? (
+                  <div className="col-span-2" key={questFunnel.toString()}>
+                    <QuestFunnelBar
+                      stepsCompleted={data}
+                      title={`Quest: ${questFunnel.title}`}
+                    />
+                  </div>
+                ) : null;
+              })}
 
             <Card>
               <CardHeader className="pb-0 pt-2">

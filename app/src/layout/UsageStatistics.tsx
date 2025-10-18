@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import ExportGraph from "@/layout/ExportGraph";
 import { Chart as ChartJS } from "chart.js/auto";
 import { groupBy } from "@/utils/grouping";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { BattleType } from "@/drizzle/constants";
 
 interface LevelStatsProps {
@@ -401,7 +402,7 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
         maintainAspectRatio: false,
         responsive: true,
         scales: {
-          x: { type: "category", title: { display: true, text: "Quest Progress" } },
+          x: { type: "category" },
           y: {
             type: "linear",
             beginAtZero: true,
@@ -426,9 +427,16 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
   }, [stepsCompleted, title]);
 
   return (
-    <div className="relative w-[99%]" style={{ height: 360 }}>
-      <canvas ref={chartRef} id="questFunnel"></canvas>
-    </div>
+    <Card>
+      <CardHeader className="pb-0 pt-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="py-1">
+        <div style={{ height: 360 }}>
+          <canvas ref={chartRef} id="questFunnel"></canvas>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
