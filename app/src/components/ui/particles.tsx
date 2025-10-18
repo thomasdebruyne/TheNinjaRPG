@@ -17,9 +17,13 @@ const ParticleProvider = () => {
       //await loadFull(engine);
       await loadSlim(engine);
       //await loadBasic(engine);
-    }).then(() => {
-      setInit(true);
-    });
+    })
+      .then(() => {
+        setInit(true);
+      })
+      .catch((error) => {
+        console.error("Failed to initialize particles engine:", error);
+      });
   }, []);
 
   return (
