@@ -23,8 +23,9 @@ import {
 } from "lucide-react";
 import { Bell, Info, ShieldAlert, ShieldCheck, Eclipse } from "lucide-react";
 import { Earth, House, MessageCircleWarning, Inbox } from "lucide-react";
-import { Volume2, VolumeX, Link2 } from "lucide-react";
+import { Link2, Music } from "lucide-react";
 import { useGameMenu, getMainNavbarLinks } from "@/libs/menus";
+import { AudioSettingsPopover, GlobalAudioProvider } from "@/layout/AudioSettings";
 import { useUserData } from "@/utils/UserContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -40,9 +41,7 @@ import { api } from "@/app/_trpc/client";
 import { useUser } from "@clerk/nextjs";
 import { groupBy } from "@/utils/grouping";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
 import { getCurrentSeason } from "@/utils/time";
-import { showMutationToast } from "@/libs/toast";
 import TutorialAssistant from "@/layout/TutorialAssistant";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import {
@@ -69,23 +68,14 @@ import {
   IMG_LAYOUT_SCROLLBOTTOM_DECOR,
   IMG_LAYOUT_USERSBANNER_TOP,
   IMG_LAYOUT_USERSBANNER_BOTTOM,
-  MUSIC_SHADOW_OF_THE_BLADE,
-  MUSIC_WELCOME_TO_SEICHI,
-  MUSIC_SHINE_THEME,
-  MUSIC_TSUKIMORI_THEME,
-  MUSIC_CURRENT_THEME,
-  MUSIC_SYNDICATE_THEME,
   DISCORD_INVITE_URL,
 } from "@/drizzle/constants";
-import { useAbVariant } from "@/hooks/useAbVariant";
 import type { NavBarDropdownLink } from "@/libs/menus";
 import type { UserWithRelations } from "@/routers/profile";
 import { usePathname } from "next/navigation";
 import { cn } from "src/libs/shadui";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useAudio } from "@/hooks/useAudio";
-import { useIframeMute } from "@/hooks/useIframeMute";
-import { UncontrolledSliderField } from "@/layout/SliderField";
+
 export interface LayoutProps {
   children: React.ReactNode;
 }
@@ -120,12 +110,6 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     return "light";
   });
 
-  // Mount flag to keep SSR/CSR output in sync
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   // Light layout mode: hide desktop logo & navbar, use mobile side sheets (persisted)
   const [lightLayout, setLightLayout] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -145,96 +129,6 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     });
   };
 
-  // Get initial audio preference from user data, AB cookie or localStorage
-  const getInitialMusicState = (): boolean => {
-    // Respect explicit user preference when logged in
-    if (userData) return userData.musicOn;
-
-    // Fallback to locally saved preference
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("musicOn");
-      if (saved !== null) return JSON.parse(saved) as boolean;
-    }
-
-    // Default
-    return true;
-  };
-
-  // AB-testing
-  const { variant: musicVariant } = useAbVariant("ab_music_welcome_to_seichi");
-  let musicSrc = MUSIC_SHADOW_OF_THE_BLADE;
-  if (musicVariant === "treatment") {
-    if (userData?.village?.name === "Tsukimori") {
-      musicSrc = MUSIC_TSUKIMORI_THEME;
-    } else if (userData?.village?.name === "Shine") {
-      musicSrc = MUSIC_SHINE_THEME;
-    } else if (userData?.village?.name === "Current") {
-      musicSrc = MUSIC_CURRENT_THEME;
-    } else if (userData?.village?.name === "Syndicate") {
-      musicSrc = MUSIC_SYNDICATE_THEME;
-    } else {
-      musicSrc = MUSIC_WELCOME_TO_SEICHI;
-    }
-  }
-
-  // Initialize audio hook with all logic handled internally
-  const {
-    requiresInteraction,
-    enabled: audioEnabled,
-    setEnabled: setAudioEnabled,
-  } = useAudio({
-    src: musicSrc,
-    loop: true,
-    volume: 0.5,
-    preload: "metadata",
-    // Important: keep SSR/CSR consistent. Start disabled during SSR/first paint,
-    // then enable on client after mount based on real preference.
-    enabled: isClient ? getInitialMusicState() : false,
-    autoPlay: isClient,
-  });
-
-  // SFX preference state
-  const getInitialSfxState = (): boolean => {
-    if (userData && typeof userData.sfxOn === "boolean") return userData.sfxOn;
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sfxOn");
-      if (saved !== null) return JSON.parse(saved) as boolean;
-    }
-    return true;
-  };
-  const [sfxOn, setSfxOn] = useState<boolean>(() =>
-    isClient ? getInitialSfxState() : true,
-  );
-
-  // SFX volume state
-  const getInitialSfxVolumeState = (): number => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sfxVolume");
-      if (saved !== null) return JSON.parse(saved) as number;
-    }
-    return 0.8; // Default volume
-  };
-  const [sfxVolume, setSfxVolume] = useState<number>(() =>
-    isClient ? getInitialSfxVolumeState() : 0.8,
-  );
-
-  // Embedded iframe mute state
-  const { isIframesMuted, setIframesMuted } = useIframeMute();
-
-  // Sync with user data changes
-  useEffect(() => {
-    if (!isClient) return;
-    if (userData) {
-      void setAudioEnabled(!!userData.musicOn);
-      setSfxOn(!!userData.sfxOn);
-    } else {
-      // No user logged in: sync from local preference when mounting on client
-      void setAudioEnabled(getInitialMusicState());
-      setSfxOn(getInitialSfxState());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, userData]);
-
   const pathname = usePathname();
 
   // Derived data for layout
@@ -246,13 +140,6 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   // Split menu into two parts
   const navbarMenuItemsLeft = navbarMenuItems.slice(0, 3);
   const navbarMenuItemsRight = navbarMenuItems.slice(3);
-
-  // Update preferences (music/sfx)
-  const { mutate: updatePreferences } = api.profile.updatePreferences.useMutation({
-    onSuccess: async (result) => {
-      showMutationToast(result);
-    },
-  });
 
   // Set theme
   useEffect(() => {
@@ -419,119 +306,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
       >
         <Bell className="h-6 w-6 xl:h-7 xl:w-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 ml-2 p-1" />
       </Link>
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            aria-label="Audio settings"
-            className="rounded-full mx-1 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80"
-          >
-            {audioEnabled ? (
-              <Volume2 className="h-6 w-6 xl:h-7 xl:w-7 p-1" suppressHydrationWarning />
-            ) : (
-              <VolumeX className="h-6 w-6 xl:h-7 xl:w-7 p-1" suppressHydrationWarning />
-            )}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-72" sideOffset={8}>
-          <div className="space-y-3">
-            <p className="font-medium">Music</p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Background soundtrack</p>
-              </div>
-              <Switch
-                checked={!!audioEnabled}
-                onCheckedChange={async (checked) => {
-                  await setAudioEnabled(checked);
-                  if (userData) {
-                    updatePreferences({
-                      preferredStat: userData.preferredStat ?? null,
-                      preferredGeneral1: userData.preferredGeneral1 ?? null,
-                      preferredGeneral2: userData.preferredGeneral2 ?? null,
-                      musicOn: checked,
-                    });
-                    await updateUser({ musicOn: checked });
-                  } else if (typeof window !== "undefined") {
-                    localStorage.setItem("musicOn", JSON.stringify(checked));
-                  }
-                }}
-                aria-label="Toggle music"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Nindo Audio</p>
-              </div>
-              <Switch
-                checked={!isIframesMuted}
-                onCheckedChange={(checked) => {
-                  setIframesMuted(!checked);
-                }}
-                aria-label="Toggle embedded iframe audio"
-              />
-            </div>
-            <p className="font-medium">Sound effects</p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Combat SFX</p>
-              </div>
-              <Switch
-                checked={!!sfxOn}
-                onCheckedChange={(checked) => {
-                  setSfxOn(checked);
-                  if (userData) {
-                    updatePreferences({
-                      preferredStat: userData.preferredStat ?? null,
-                      preferredGeneral1: userData.preferredGeneral1 ?? null,
-                      preferredGeneral2: userData.preferredGeneral2 ?? null,
-                      sfxOn: checked,
-                    });
-                    void updateUser({ sfxOn: checked });
-                  } else if (typeof window !== "undefined") {
-                    localStorage.setItem("sfxOn", JSON.stringify(checked));
-                  }
-                }}
-                aria-label="Toggle sound effects"
-              />
-            </div>
-            {sfxOn && (
-              <div className="space-y-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">
-                    SFX Volume ({Math.round(sfxVolume * 100)}%)
-                  </p>
-                </div>
-                <UncontrolledSliderField
-                  id="sfxVolume"
-                  label={``}
-                  value={Math.round(sfxVolume * 100)}
-                  min={0}
-                  max={100}
-                  setValue={(nextValue: React.SetStateAction<number>) => {
-                    let percent: number;
-                    if (typeof nextValue === "function") {
-                      percent = nextValue(Math.round(sfxVolume * 100));
-                    } else {
-                      percent = nextValue;
-                    }
-                    const safePercent = Math.min(100, Math.max(0, percent));
-                    const newVolume = safePercent / 100;
-                    setSfxVolume(newVolume);
-                    if (typeof window !== "undefined") {
-                      localStorage.setItem("sfxVolume", JSON.stringify(newVolume));
-                    }
-                  }}
-                />
-              </div>
-            )}
-            {requiresInteraction && audioEnabled && (
-              <p className="text-[10px] text-muted-foreground">
-                Audio requires interaction on this browser; click anywhere to start
-              </p>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+      <AudioSettingsPopover userData={userData} updateUser={updateUser} />
       <Eclipse
         className={`hover:cursor-pointer h-6 w-6 xl:h-7 xl:w-7 min-w-6 min-h-6 xl:min-w-7 xl:min-h-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 p-1 ${theme === "light" ? "bg-yellow-100" : "bg-blue-100"}`}
         onClick={() => {
@@ -575,7 +350,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   );
 
   return (
-    <>
+    <GlobalAudioProvider userData={userData}>
       {userData && (
         <TutorialAssistant
           rightSideBarOpen={rightSideBarOpen}
@@ -586,7 +361,11 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
       <div className="w-full absolute top-0 bottom-0 md:relative">
         <div className="fixed right-1 bottom-1 md:right-5 md:bottom-5 z-50 bg-slate-500 rounded-full">
           <LowerRightHelpBtn>
-            <MessageCircleWarning className="h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-red-800 md:shadow-black border-2 hidden md:block" />
+            {userData ? (
+              <MessageCircleWarning className="h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-red-800 md:shadow-black border-2 hidden md:block" />
+            ) : (
+              <Music className="h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-red-800 md:shadow-black border-2 hidden md:block" />
+            )}
           </LowerRightHelpBtn>
         </div>
         {/* WALLPAPER BACKGROUND */}
@@ -860,6 +639,11 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                 ) : (
                   <div className="absolute top-4 left-0 right-0 block md:hidden">
                     <Footer />
+                    <div className="flex justify-center -top-2 absolute right-2">
+                      <LowerRightHelpBtn>
+                        <Music className="h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-black border-2" />
+                      </LowerRightHelpBtn>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1000,7 +784,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
         </div> */}
         </div>
       </div>
-    </>
+    </GlobalAudioProvider>
   );
 };
 export default LayoutCore4;

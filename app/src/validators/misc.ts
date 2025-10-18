@@ -7,7 +7,7 @@ export const changeSettingSchema = z.object({
     "regenGainMultiplier",
     "battleExpMultiplier",
     "missionExpMultiplier",
-    "jutsuExpMultiplier"
+    "jutsuExpMultiplier",
   ]),
   multiplier: z.enum(GAME_SETTING_GAINS_MULTIPLIER),
   days: z.number().min(0).max(31),
@@ -29,6 +29,7 @@ export const TicketTypes = [
   "human_support",
   "ai_support",
   "tutorial",
+  "audio_settings",
 ] as const;
 export type TicketType = (typeof TicketTypes)[number];
 

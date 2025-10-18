@@ -4,20 +4,18 @@ import React, { useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/app/_trpc/client";
 import { useLocalStorage } from "@/hooks/localstorage";
-import { showMutationToast } from "@/libs/toast";
 import { type TicketType, TicketTypes } from "@/validators/misc";
 import ChatBox from "@/layout/ChatBox";
-import { Button } from "@/components/ui/button";
 import { useUserData } from "@/utils/UserContext";
+import { AudioSettingsPanel } from "@/layout/AudioSettings";
 
 interface LowerRightHelpProps {
   children?: React.ReactNode;
 }
 
 const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
-  const { updateUser } = useUserData();
+  const { data: userData, updateUser } = useUserData();
   const [showActive, setShowActive] = useLocalStorage<TicketType>(
     "ticketType2",
     "ai_support",
@@ -95,79 +93,96 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
         {props.children}
       </PopoverTrigger>
       <PopoverContent className="m-2 min-w-96 max-w-96">
-        <Tabs
-          defaultValue={safeDefaultValue}
-          className="flex flex-col items-center justify-center"
-          onValueChange={setShowActiveSafe}
-        >
-          <TabsContent value="human_support" className="flex flex-col gap-2">
-            <p className="font-bold text-lg">Get Human Help</p>
-            <p className="italic">
-              1. Questions related to game mechanics, please ask your fellow ninja in
-              the{" "}
-              <Link
-                href="/tavern"
-                className="font-bold hover:text-orange-700 text-orange-500"
-              >
-                tavern
-              </Link>
-              .
-            </p>
-            <p className="italic">
-              2. Questions related to moderation decisions, please comment on the{" "}
-              <Link
-                href="/reports"
-                className="font-bold hover:text-orange-700 text-orange-500"
-              >
-                report
-              </Link>{" "}
-              in question.
-            </p>
-            <p className="italic">
-              3. Maybe you can find the answer you are looking for on our{" "}
-              <Link
-                href="https://the-ninja-rpg.fandom.com/wiki/Getting_Started"
-                className="font-bold hover:text-orange-700 text-orange-500"
-              >
-                community manual
-              </Link>
-              .
-            </p>
-            <p>
-              4. Alternatively, you may create a ticket in the{" "}
-              <Link
-                href={"/support"}
-                className="font-bold hover:text-orange-700 text-orange-500"
-              >
-                support
-              </Link>{" "}
-              page.
-            </p>
-          </TabsContent>
-          <TabsContent value="ai_support" className="w-full">
-            <p className="font-bold text-lg mb-2">Get AI Help</p>
-            <div className="h-[400px]">
-              <ChatBox
-                aiProps={{
-                  apiEndpoint: "/api/chat/support",
-                  systemMessage:
-                    "You are Seichi AI, a helpful assistant for TheNinja-RPG players.",
-                }}
-                onToolCall={handleToolCall}
-                position="relative"
-                showCloseButton={false}
-                showHeader={false}
-                showFeedback={true}
-                className="h-full"
-              />
+        {!userData ? (
+          <div>
+            <p className="font-bold text-lg mb-2">Audio Settings</p>
+            <div className="max-h-[400px] overflow-y-auto">
+              <AudioSettingsPanel userData={userData} updateUser={updateUser} />
             </div>
-          </TabsContent>
+          </div>
+        ) : (
+          <Tabs
+            defaultValue={safeDefaultValue}
+            className="flex flex-col items-center justify-center"
+            onValueChange={setShowActiveSafe}
+          >
+            <TabsContent value="human_support" className="flex flex-col gap-2">
+              <p className="font-bold text-lg">Get Human Help</p>
+              <p className="italic">
+                1. Questions related to game mechanics, please ask your fellow ninja in
+                the{" "}
+                <Link
+                  href="/tavern"
+                  className="font-bold hover:text-orange-700 text-orange-500"
+                >
+                  tavern
+                </Link>
+                .
+              </p>
+              <p className="italic">
+                2. Questions related to moderation decisions, please comment on the{" "}
+                <Link
+                  href="/reports"
+                  className="font-bold hover:text-orange-700 text-orange-500"
+                >
+                  report
+                </Link>{" "}
+                in question.
+              </p>
+              <p className="italic">
+                3. Maybe you can find the answer you are looking for on our{" "}
+                <Link
+                  href="https://the-ninja-rpg.fandom.com/wiki/Getting_Started"
+                  className="font-bold hover:text-orange-700 text-orange-500"
+                >
+                  community manual
+                </Link>
+                .
+              </p>
+              <p>
+                4. Alternatively, you may create a ticket in the{" "}
+                <Link
+                  href={"/support"}
+                  className="font-bold hover:text-orange-700 text-orange-500"
+                >
+                  support
+                </Link>{" "}
+                page.
+              </p>
+            </TabsContent>
+            <TabsContent value="ai_support" className="w-full">
+              <p className="font-bold text-lg mb-2">Get AI Help</p>
+              <div className="h-[400px]">
+                <ChatBox
+                  aiProps={{
+                    apiEndpoint: "/api/chat/support",
+                    systemMessage:
+                      "You are Seichi AI, a helpful assistant for TheNinja-RPG players.",
+                  }}
+                  onToolCall={handleToolCall}
+                  position="relative"
+                  showCloseButton={false}
+                  showHeader={false}
+                  showFeedback={true}
+                  className="h-full"
+                />
+              </div>
+            </TabsContent>
 
-          <TabsList className="text-center mt-2">
-            <TabsTrigger value="ai_support">AI Support</TabsTrigger>
-            <TabsTrigger value="human_support">Human Support</TabsTrigger>
-          </TabsList>
-        </Tabs>
+            <TabsContent value="audio_settings" className="w-full">
+              <p className="font-bold text-lg mb-2">Audio Settings</p>
+              <div className="max-h-[400px] overflow-y-auto">
+                <AudioSettingsPanel userData={userData} updateUser={updateUser} />
+              </div>
+            </TabsContent>
+
+            <TabsList className="text-center mt-2 grid grid-cols-3">
+              <TabsTrigger value="ai_support">AI Support</TabsTrigger>
+              <TabsTrigger value="human_support">Human Support</TabsTrigger>
+              <TabsTrigger value="audio_settings">Audio</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
       </PopoverContent>
     </Popover>
   );
