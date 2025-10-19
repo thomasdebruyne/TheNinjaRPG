@@ -90,7 +90,7 @@ export default function MissionHall({ userData }: MissionHallProps) {
             className="w-full"
             priority={true}
           />
-          <p className="text-center text-base font-bold p-3">
+          <p className="text-center font-bold p-3">
             Missions are special assignments that advance the game&apos;s narrative.
             They can only be started here at the Mission Hall.
           </p>

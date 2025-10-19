@@ -139,10 +139,7 @@ const ShowConversations: React.FC<ShowConversationsProps> = (props) => {
         <div className="relative">
           <ul className="space-y-2">
             <li>
-              <a
-                href="#"
-                className="flex items-center rounded-lg p-2 text-base font-normal"
-              >
+              <a href="#" className="flex items-center rounded-lg p-2">
                 {selectedConvo ? (
                   <X
                     className="h-6 w-6 hover:text-orange-500"

@@ -143,7 +143,7 @@ const AssetsContent: React.FC<{ state: ReturnType<typeof useFiltering> }> = (pro
             <div className="relative w-full aspect-square rounded-xl border bg-slate-100 flex items-center justify-center">
               <FolderIcon className="h-1/3 w-1/3 text-slate-700" />
               {folderCounts.get(item.id) !== undefined && (
-                <div className="absolute -bottom-2 -right-2 flex h-7 w-7 flex-row items-center justify-center rounded-full border-2 border-amber-300 bg-slate-300 text-black text-base font-bold">
+                <div className="absolute -bottom-2 -right-2 flex h-7 w-7 flex-row items-center justify-center rounded-full border-2 border-amber-300 bg-slate-300 text-black font-bold">
                   {folderCounts.get(item.id)}
                 </div>
               )}

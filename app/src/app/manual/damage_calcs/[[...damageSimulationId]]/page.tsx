@@ -517,7 +517,7 @@ export default function Simulator(props: {
               <p className="text-2xl text-center mt-3 font-bold">
                 Damage: {selectedDmg}
               </p>
-              <p className="text-base text-center mb-3 italic">
+              <p className="text-center mb-3 italic">
                 [{((100 * selectedDmg) / defHp)?.toFixed(1)}% of Defender HP]
               </p>
             </div>

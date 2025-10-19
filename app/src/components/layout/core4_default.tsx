@@ -14,8 +14,11 @@ import LowerRightHelpBtn from "@/layout/LowerRightHelpBtn";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import {
   CircleUserRound,
+  MessagesSquare,
   CircleHelp,
   Compass,
+  LogIn,
+  Menu,
   Cog,
   Milk,
   Eye,
@@ -49,7 +52,6 @@ import {
   IMG_WALLPAPER_SPRING,
   IMG_WALLPAPER_SUMMER,
   IMG_WALLPAPER_FALL,
-  IMG_WALLPAPER_HALLOWEEN,
   IMG_LOGO_FULL,
   IMG_LOGO_SHORT,
   IMG_ICON_DISCORD,
@@ -349,6 +351,12 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
     </>
   );
 
+  // Styling for yellow buttons
+  const yellowButtonStyle =
+    "h-14 w-14 sm:h-15 sm:w-15 md:h-16 md:w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-3 shadow-md shadow-black border-2 stroke-3";
+  const mobileNavbarButtonStyle =
+    "h-16 w-16  hover:text-red-300 transition-colors text-orange-100 bg-opacity-50 p-2";
+
   return (
     <GlobalAudioProvider userData={userData}>
       {userData && (
@@ -362,9 +370,11 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
         <div className="fixed right-1 bottom-1 md:right-5 md:bottom-5 z-50 bg-slate-500 rounded-full">
           <LowerRightHelpBtn>
             {userData ? (
-              <MessageCircleWarning className="h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-red-800 md:shadow-black border-2 hidden md:block" />
+              <MessageCircleWarning
+                className={cn(yellowButtonStyle, "hidden md:block")}
+              />
             ) : (
-              <Music className="h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-red-800 md:shadow-black border-2 hidden md:block" />
+              <Music className={cn(yellowButtonStyle, "hidden md:block")} />
             )}
           </LowerRightHelpBtn>
         </div>
@@ -398,7 +408,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
             {/* Mobile logo (always visible) */}
             <Link href="/">
               <Image
-                className="block md:hidden absolute top-0 left-[50%] translate-x-[-50%] w-1/2 max-w-250"
+                className="block md:hidden absolute top-0 left-[45%] translate-x-[-50%] w-1/2 max-w-[200px]"
                 id="tutorial-logo-mobile"
                 src={IMG_LOGO_SHORT}
                 width={250}
@@ -574,14 +584,14 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                       className="flex justify-center -top-2 relative"
                       prefetch={true}
                     >
-                      <CircleUserRound className="h-16 w-16  hover:bg-slate-500 transition-colors text-orange-100 bg-opacity-50 rounded-full p-2  " />
+                      <CircleUserRound className={mobileNavbarButtonStyle} />
                     </Link>
                     <Link
                       href="/inbox"
                       className="flex justify-center -top-2 relative"
                       prefetch={true}
                     >
-                      <Inbox className="h-16 w-16  hover:bg-slate-500 transition-colors text-orange-100 bg-opacity-50 rounded-full p-2  " />
+                      <Inbox className={mobileNavbarButtonStyle} />
                     </Link>
                     {location ? (
                       <>
@@ -591,7 +601,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                           prefetch={true}
                         >
                           <div className="p-4 bg-linear-to-b from-black/5 to-black/50 rounded-full">
-                            <House className="h-16 w-16 bg-yellow-500 hover:bg-yellow-700 transition-colors text-white rounded-full p-2 border-2 " />
+                            <House className={cn(yellowButtonStyle)} />
                           </div>
                         </Link>
                         <Link
@@ -599,7 +609,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                           className="flex justify-center -top-2 relative"
                           prefetch={true}
                         >
-                          <Compass className="h-16 w-16  hover:bg-slate-500 transition-colors text-orange-100 bg-opacity-50 rounded-full p-2  " />
+                          <Compass className={mobileNavbarButtonStyle} />
                         </Link>
                       </>
                     ) : (
@@ -610,7 +620,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                           prefetch={true}
                         >
                           <div className="p-4 bg-linear-to-b from-black/5 to-black/50 rounded-full">
-                            <Compass className="h-16 w-16 bg-yellow-500 hover:bg-yellow-700 transition-colors text-white rounded-full p-2 border-2 " />
+                            <Compass className={mobileNavbarButtonStyle} />
                           </div>
                         </Link>
                         <Link
@@ -618,32 +628,29 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
                           className="flex justify-center -top-2 relative"
                           prefetch={true}
                         >
-                          <Milk className="h-16 w-16  hover:bg-slate-500 transition-colors text-orange-100 bg-opacity-50 rounded-full p-2  " />
+                          <Milk className={mobileNavbarButtonStyle} />
                         </Link>
                       </>
                     )}
 
                     <Link
+                      href="/tavern"
+                      className="flex justify-center -top-2 relative"
+                      prefetch={true}
+                    >
+                      <MessagesSquare className={mobileNavbarButtonStyle} />
+                    </Link>
+                    <Link
                       href="/profile/edit"
                       className="flex justify-center -top-2 relative"
                       prefetch={true}
                     >
-                      <Cog className="h-16 w-16  hover:bg-slate-500 transition-colors text-orange-100 bg-opacity-50 rounded-full p-2  " />
+                      <Cog className={mobileNavbarButtonStyle} />
                     </Link>
-                    <div className="flex justify-center -top-2 relative">
-                      <LowerRightHelpBtn>
-                        <CircleHelp className="h-16 w-16  hover:bg-slate-500 transition-colors text-orange-100 bg-opacity-50 rounded-full p-2  " />
-                      </LowerRightHelpBtn>
-                    </div>
                   </div>
                 ) : (
                   <div className="absolute top-4 left-0 right-0 block md:hidden">
                     <Footer />
-                    <div className="flex justify-center -top-2 absolute right-2">
-                      <LowerRightHelpBtn>
-                        <Music className="h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-black border-2" />
-                      </LowerRightHelpBtn>
-                    </div>
                   </div>
                 )}
               </div>
@@ -675,14 +682,11 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           {/* LEFT SIDEBAR MOBILE */}
           <Sheet open={leftSideBarOpen} onOpenChange={setLeftSideBarOpen}>
             <SheetTrigger className="absolute top-4 left-4" aria-label="homeBtn">
-              <House
-                className={cn(
-                  "block md:hidden h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-black border-2",
-                  pathname === "/combat"
-                    ? "animate-[wiggle_1s_ease-in-out_infinite]"
-                    : "",
-                )}
-              />
+              {userData ? (
+                <House className={cn(yellowButtonStyle)} />
+              ) : (
+                <Menu className={cn(yellowButtonStyle)} />
+              )}
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader className="text-left">
@@ -707,71 +711,75 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           </Sheet>
 
           {/* RIGHT SIDEBAR MOBILE */}
-          <Sheet open={rightSideBarOpen} onOpenChange={setRightSideBarOpen}>
-            <SheetTrigger
-              className={"absolute top-4 right-4"}
-              aria-label="gameBtn"
-              id="tutorial-gameBtn"
-            >
-              <Earth
-                className={cn(
-                  "block md:hidden h-16 w-16 bg-yellow-500 hover:bg-yellow-300 transition-colors text-orange-100 rounded-full p-2 shadow-md shadow-black border-2",
-                  pathname === "/combat"
-                    ? "animate-[wiggle_1s_ease-in-out_infinite]"
-                    : "",
+          <div className="grid grid-cols-2 gap-2 absolute top-4 right-4 block md:hidden">
+            <div className="flex justify-center">
+              <LowerRightHelpBtn>
+                {userData ? (
+                  <CircleHelp className={cn(yellowButtonStyle)} />
+                ) : (
+                  <Music className={cn(yellowButtonStyle)} />
                 )}
-              />
-            </SheetTrigger>
-            <SheetContent>
-              <VisuallyHidden.Root>
-                <SheetTitle>Test</SheetTitle>
-              </VisuallyHidden.Root>
-              <Suspense fallback={<Loader explanation="Loading..." />}>
-                <SheetHeader>
-                  <div
-                    ref={rightSideBarRef}
-                    onClick={(e) => {
-                      // Don't close the sheet if clicking on interactive elements
-                      const target = e.target as HTMLElement;
+              </LowerRightHelpBtn>
+            </div>
+            <Sheet open={rightSideBarOpen} onOpenChange={setRightSideBarOpen}>
+              <SheetTrigger aria-label="gameBtn" id="tutorial-gameBtn">
+                {userData ? (
+                  <Earth className={cn(yellowButtonStyle)} />
+                ) : (
+                  <LogIn className={cn(yellowButtonStyle)} />
+                )}
+              </SheetTrigger>
+              <SheetContent>
+                <VisuallyHidden.Root>
+                  <SheetTitle>Test</SheetTitle>
+                </VisuallyHidden.Root>
+                <Suspense fallback={<Loader explanation="Loading..." />}>
+                  <SheetHeader>
+                    <div
+                      ref={rightSideBarRef}
+                      onClick={(e) => {
+                        // Don't close the sheet if clicking on interactive elements
+                        const target = e.target as HTMLElement;
 
-                      // Check if the target or any of its parents is a tab-related element
-                      const isTabElement =
-                        target.closest('[role="tab"]') ||
-                        target.closest("[data-state]") ||
-                        target.closest("[data-radix-tabs-trigger]") ||
-                        target.closest("[data-radix-tabs-list]") ||
-                        target.closest("[data-radix-tabs-content]");
+                        // Check if the target or any of its parents is a tab-related element
+                        const isTabElement =
+                          target.closest('[role="tab"]') ||
+                          target.closest("[data-state]") ||
+                          target.closest("[data-radix-tabs-trigger]") ||
+                          target.closest("[data-radix-tabs-list]") ||
+                          target.closest("[data-radix-tabs-content]");
 
-                      // Check if it's any other interactive element
-                      const isOtherInteractive =
-                        target.closest("input") ||
-                        target.closest("select") ||
-                        target.closest("textarea");
+                        // Check if it's any other interactive element
+                        const isOtherInteractive =
+                          target.closest("input") ||
+                          target.closest("select") ||
+                          target.closest("textarea");
 
-                      // Check if the target has a cursor pointer style (indicating it's clickable)
-                      const hasPointerCursor =
-                        target.style.cursor === "pointer" ||
-                        target.closest('[style*="cursor: pointer"]') ||
-                        target.closest('[class*="cursor-pointer"]');
+                        // Check if the target has a cursor pointer style (indicating it's clickable)
+                        const hasPointerCursor =
+                          target.style.cursor === "pointer" ||
+                          target.closest('[style*="cursor: pointer"]') ||
+                          target.closest('[class*="cursor-pointer"]');
 
-                      const isInteractive =
-                        isTabElement || isOtherInteractive || hasPointerCursor;
+                        const isInteractive =
+                          isTabElement || isOtherInteractive || hasPointerCursor;
 
-                      const isButtonOrLink =
-                        target.tagName.toLowerCase() === "button" ||
-                        target.tagName.toLowerCase() === "a";
+                        const isButtonOrLink =
+                          target.tagName.toLowerCase() === "button" ||
+                          target.tagName.toLowerCase() === "a";
 
-                      if (!isInteractive || isButtonOrLink) {
-                        setRightSideBarOpen(false);
-                      }
-                    }}
-                  >
-                    {rightSideBar}
-                  </div>
-                </SheetHeader>
-              </Suspense>
-            </SheetContent>
-          </Sheet>
+                        if (!isInteractive || isButtonOrLink) {
+                          setRightSideBarOpen(false);
+                        }
+                      }}
+                    >
+                      {rightSideBar}
+                    </div>
+                  </SheetHeader>
+                </Suspense>
+              </SheetContent>
+            </Sheet>
+          </div>
 
           {/* MOBILE NOTIFICATIONS */}
           <div className="absolute top-[75px] right-0 left-0 flex flex-row justify-end md:hidden p-1 gap-2">
@@ -1148,7 +1156,7 @@ const getImageSet = (userData: UserWithRelations) => {
       base.wallpaper = IMG_WALLPAPER_FALL;
       break;
     case "halloween":
-      base.wallpaper = IMG_WALLPAPER_HALLOWEEN;
+      base.wallpaper = IMG_WALLPAPER_FALL;
       base.navbar = IMG_LAYOUT_NAVBAR_HALLOWEEN;
       base.handsign = IMG_LAYOUT_HANDSIGN_HALLOWEEN;
       break;
