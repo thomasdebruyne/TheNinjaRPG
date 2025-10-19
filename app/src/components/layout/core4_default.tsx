@@ -681,7 +681,10 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           </div>
           {/* LEFT SIDEBAR MOBILE */}
           <Sheet open={leftSideBarOpen} onOpenChange={setLeftSideBarOpen}>
-            <SheetTrigger className="absolute top-4 left-4" aria-label="homeBtn">
+            <SheetTrigger
+              className="absolute top-4 left-4 block md:hidden"
+              aria-label="homeBtn"
+            >
               {userData ? (
                 <House className={cn(yellowButtonStyle)} />
               ) : (
