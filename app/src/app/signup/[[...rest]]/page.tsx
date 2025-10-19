@@ -19,6 +19,7 @@ export default function SignupUser() {
             elements: {
               rootBox: "!w-full",
               cardBox: "!w-full",
+              socialButtons: "!grid-cols-5",
             },
           }}
         />
