@@ -408,7 +408,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
             {/* Mobile logo (always visible) */}
             <Link href="/">
               <Image
-                className="block md:hidden absolute top-0 left-[45%] translate-x-[-50%] w-1/2 max-w-[200px]"
+                className="block md:hidden absolute top-0 left-[42%] translate-x-[-50%] w-1/2 max-w-[220px]"
                 id="tutorial-logo-mobile"
                 src={IMG_LOGO_SHORT}
                 width={250}
