@@ -191,13 +191,14 @@ export const dataRouter = createTRPCRouter({
         tutorialFinishedSignupsRow,
         totalRevenueRow,
       ] = await Promise.all([
+        // visitorsRow
         ctx.drizzle
           .select({
             count: sql<number>`COUNT(${visitorLog.id})`.mapWith(Number),
           })
           .from(visitorLog)
           .where(visitorWhere.length > 0 ? and(...visitorWhere) : undefined),
-        // Signups: users with an entry in ReferralSource (mapped via historical IP to the visit)
+        // signupsRow: users with an entry in ReferralSource (mapped via historical IP to the visit)
         ctx.drizzle
           .select({
             questData: userData.questData,
@@ -219,6 +220,7 @@ export const dataRouter = createTRPCRouter({
                 : []),
             ),
           ),
+        // characterCreationsRow
         ctx.drizzle
           .select({
             // Character creations: users who have a UserData row (mapped via historical IP to the visit)
@@ -235,6 +237,7 @@ export const dataRouter = createTRPCRouter({
               gte(userData.createdAt, visitorLog.createdAt),
             ),
           ),
+        // leveledSignupsRow
         ctx.drizzle
           .select({
             count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
@@ -250,6 +253,7 @@ export const dataRouter = createTRPCRouter({
               gt(userData.level, 1),
             ),
           ),
+        // nonStudentSignupsRow
         ctx.drizzle
           .select({
             count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
@@ -265,6 +269,7 @@ export const dataRouter = createTRPCRouter({
               ne(userData.rank, "STUDENT"),
             ),
           ),
+        // pvpSignupsRow
         ctx.drizzle
           .select({
             count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
@@ -280,6 +285,7 @@ export const dataRouter = createTRPCRouter({
               gt(userData.pvpFights, 0),
             ),
           ),
+        // tutorialFinishedSignupsRow
         ctx.drizzle
           .select({
             count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
@@ -292,11 +298,11 @@ export const dataRouter = createTRPCRouter({
               ...(visitorWhere.length > 0 ? visitorWhere : []),
               eq(userData.isAi, false),
               gte(userData.createdAt, visitorLog.createdAt),
-              // Consider tutorial finished when tutorialStep is set to the last index (skipped) or beyond the last step
               gte(userData.tutorialStep, TUTORIAL_STEPS_COUNT),
               lt(userData.tutorialStep, 100),
             ),
           ),
+        // totalRevenueRow
         ctx.drizzle
           .select({
             totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),

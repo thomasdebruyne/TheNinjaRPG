@@ -33,10 +33,14 @@ export const homeRouter = createTRPCRouter({
       });
       // Guard
       if (!user) return errorResponse("User not found");
+      // Derived
       const inVillage = calcIsInVillage({ x: user.longitude, y: user.latitude });
+      const newStatus: UserStatus = user.status === "ASLEEP" ? "AWAKE" : "ASLEEP";
+      // Guards
       if (user.isOutlaw && inVillage) {
         const sectorVillage = await fetchSectorVillage(ctx.drizzle, user?.sector ?? -1);
         if (
+          newStatus === "ASLEEP" &&
           sectorVillage &&
           !["OUTLAW", "HIDEOUT", "TOWN"].includes(sectorVillage.type)
         ) {
@@ -52,9 +56,7 @@ export const homeRouter = createTRPCRouter({
       if (user.sector !== user.village?.sector && !user.isOutlaw) {
         return errorResponse("Wrong sector");
       }
-      
       // Mutate
-      const newStatus: UserStatus = user.status === "ASLEEP" ? "AWAKE" : "ASLEEP";
       if (user.status === "ASLEEP") {
         await ctx.drizzle
           .update(userData)

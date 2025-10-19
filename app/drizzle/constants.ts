@@ -671,7 +671,7 @@ export const RECRUITMENT_GOALS = {
 } as const;
 
 // Number of tutorial steps used by the onboarding flow (see Tutorial.tsx)
-export const TUTORIAL_STEPS_COUNT = 29;
+export const TUTORIAL_STEPS_COUNT = 40;
 
 // Recruitment rewards config
 export const RECRUITMENT_REWARDS = [
