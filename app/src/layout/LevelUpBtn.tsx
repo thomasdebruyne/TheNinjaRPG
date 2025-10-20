@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Modal2 from "@/layout/Modal2";
 import Loader from "@/layout/Loader";
@@ -60,16 +60,25 @@ const LevelUpBtn: React.FC<LevelUpBtnProps> = ({ id }) => {
     },
   });
 
+  // Derived
+  const expRequired = userData ? Math.max(calcLevelRequirements(userData.level)) : 0;
+  const canLevel =
+    userData && userData.experience > expRequired && userData.level < 100;
+
+  // If current tutorial step is "Level Up!", but user can't level up yet, progress the tutorial
+  useEffect(() => {
+    if (userData && currentStep?.title === "Level Up!" && !canLevel) {
+      void handleNextStepAsync();
+    }
+  }, [currentStep?.title, userData, canLevel, handleNextStepAsync]);
+
   // Don't show anyth
   if (!userData) return null;
-
-  // Derived
-  const expRequired = Math.max(calcLevelRequirements(userData.level));
 
   // If no href, show loader, otherwise show avatar
   return (
     <>
-      {userData.experience >= expRequired && userData.level < 100 && (
+      {canLevel && (
         <div className="mt-2">
           <Button
             id={id ?? undefined}
