@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const ParticleProvider = () => {
   const [init, setInit] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   // this should be run only once per application lifetime
   useEffect(() => {
@@ -28,7 +30,7 @@ const ParticleProvider = () => {
 
   return (
     <>
-      {init && (
+      {init && isDesktop && (
         <Particles
           id="tsparticles"
           options={{
