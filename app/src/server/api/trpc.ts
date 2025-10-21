@@ -52,13 +52,13 @@ export const createAppTRPCContext = async (opts: {
   // Get agent
   const userAgent = readHeaders.get("user-agent") ?? undefined;
   // AB testing cookies
-  const abWelcomeVariant = opts.readCookies.get("ab_music_welcome_to_seichi")?.value;
+  const abActivePlayersVariant = opts.readCookies.get("ab_active_players_count")?.value;
   return {
     drizzle: drizzleDB,
     userIp,
     userId,
     userAgent,
-    abWelcomeVariant,
+    abActivePlayersVariant,
   };
 };
 

@@ -15,8 +15,17 @@ import { IMG_FRONTPAGE_SCREENSHOT_SECTOR } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_VILLAGE } from "@/drizzle/constants";
 import { api } from "@/app/_trpc/client";
 import { useUser } from "@clerk/nextjs";
+import { useAbVariant } from "@/hooks/useAbVariant";
 
 const Welcome: React.FC = () => {
+  // AB test for active players count
+  const { isTreatment } = useAbVariant("ab_active_players_count");
+
+  // Query for active players count
+  const { data: activePlayers24h } = api.misc.getActivePlayers24h.useQuery(undefined, {
+    enabled: isTreatment,
+  }) as { data: number | undefined };
+
   // Render
   return (
     <>
@@ -29,13 +38,23 @@ const Welcome: React.FC = () => {
           height={181}
           priority
         />
-        <div className="text-sm sm:text-md sm:text-md md:text-md lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-4">
-          <p>
-            More than <b>{(1000000).toLocaleString()}</b> people have played
-            TheNinja-RPG!
-          </p>
-          <p>Join the new version and experience our unique ninja world!</p>
-        </div>
+
+        {isTreatment && typeof activePlayers24h === "number" ? (
+          <div className="text-lg lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-3">
+            <p>
+              Join <b>{activePlayers24h.toLocaleString()}</b> others who played in the
+              last 24 hours!
+            </p>
+          </div>
+        ) : (
+          <div className="text-sm sm:text-md sm:text-md md:text-md lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-4">
+            <p>
+              More than <b>{(1000000).toLocaleString()}</b> people have played
+              TheNinja-RPG!
+            </p>
+            <p>Join the new version and experience our unique ninja world!</p>
+          </div>
+        )}
         <div className="w-full flex flex-col justify-center items-center py-3 gap-4 ">
           <Link href="/signup" aria-label="Signup" className="w-full px-3">
             <Button

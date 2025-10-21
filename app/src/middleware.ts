@@ -42,18 +42,16 @@ export default clerkMiddleware(
     }
     // Ensure valid user agent
     // return uaMiddleware(request);
-    // A/B test: landing page split between welcome-old and welcome-new (only for signed-out users)
+    // A/B test: show active players count vs total players on welcome page (only for signed-out users)
     const { pathname } = request.nextUrl;
     const { userId } = await auth();
     if (pathname === "/" && !userId) {
-      const cookie = request.cookies.get("ab_music_welcome_to_seichi");
+      const cookie = request.cookies.get("ab_active_players_count");
       const variant = cookie?.value ?? (Math.random() < 0.5 ? "treatment" : "control");
       const url = request.nextUrl.clone();
-      //url.pathname = variant === "treatment" ? "/welcome-new" : "/welcome-old";
       console.log("variant", variant);
       const res = NextResponse.rewrite(url);
-      if (!cookie)
-        res.cookies.set("ab_music_welcome_to_seichi", variant, { path: "/" });
+      if (!cookie) res.cookies.set("ab_active_players_count", variant, { path: "/" });
       return res;
     }
   },

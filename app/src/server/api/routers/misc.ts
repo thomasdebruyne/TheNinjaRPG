@@ -26,6 +26,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { ratelimitMiddleware, hasUserMiddleware } from "../trpc";
 import { updateGameSetting } from "@/libs/gamesettings";
 import { changeSettingSchema } from "@/validators/misc";
+import { getGameSetting } from "@/libs/gamesettings";
 
 import { Sentiment } from "@/drizzle/constants";
 import type { DrizzleClient } from "@/server/db";
@@ -53,7 +54,7 @@ export const miscRouter = createTRPCRouter({
         return { success: true, message: "IP already tracked" };
       }
 
-      // Insert new visitor and log AB welcome loaded event (if applicable) in parallel
+      // Insert new visitor and log AB active players count loaded event (if applicable) in parallel
       const [visitorResult] = await Promise.all([
         ctx.drizzle.insert(visitorLog).values({
           id: nanoid(),
@@ -62,14 +63,14 @@ export const miscRouter = createTRPCRouter({
           utmSource: input.utmSource,
           userAgent: String(ctx.userAgent).slice(0, 180),
         }),
-        ctx.abWelcomeVariant
+        ctx.abActivePlayersVariant
           ? ctx.drizzle
               .insert(abEvent)
               .values({
                 id: nanoid(),
                 userId: null,
-                experiment: "ab_music_welcome_to_seichi",
-                variant: ctx.abWelcomeVariant,
+                experiment: "ab_active_players_count",
+                variant: ctx.abActivePlayersVariant,
                 event: "loaded",
                 source: input.utmSource,
                 ip: ctx.userIp && ctx.userIp !== "unknown" ? ctx.userIp : undefined,
@@ -156,6 +157,10 @@ export const miscRouter = createTRPCRouter({
       });
       return setting ?? null;
     }),
+  getActivePlayers24h: publicProcedure.output(z.number()).query(async ({ ctx }) => {
+    const setting = await getGameSetting(ctx.drizzle, "hourly-active-players");
+    return setting.value;
+  }),
   setEventGameSetting: protectedProcedure
     .input(changeSettingSchema)
     .output(baseServerResponse)

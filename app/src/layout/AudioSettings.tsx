@@ -10,14 +10,12 @@ import { useIframeMute } from "@/hooks/useIframeMute";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";
 import {
-  MUSIC_SHADOW_OF_THE_BLADE,
   MUSIC_WELCOME_TO_SEICHI,
   MUSIC_SHINE_THEME,
   MUSIC_TSUKIMORI_THEME,
   MUSIC_CURRENT_THEME,
   MUSIC_SYNDICATE_THEME,
 } from "@/drizzle/constants";
-import { useAbVariant } from "@/hooks/useAbVariant";
 import type { UserWithRelations } from "@/routers/profile";
 
 interface AudioSettingsProps {
@@ -62,21 +60,16 @@ export const GlobalAudioProvider: React.FC<{
     return true;
   };
 
-  // AB-testing for music source
-  const { variant: musicVariant } = useAbVariant("ab_music_welcome_to_seichi");
-  let musicSrc = MUSIC_SHADOW_OF_THE_BLADE;
-  if (musicVariant === "treatment") {
-    if (userData?.village?.name === "Tsukimori") {
-      musicSrc = MUSIC_TSUKIMORI_THEME;
-    } else if (userData?.village?.name === "Shine") {
-      musicSrc = MUSIC_SHINE_THEME;
-    } else if (userData?.village?.name === "Current") {
-      musicSrc = MUSIC_CURRENT_THEME;
-    } else if (userData?.village?.name === "Syndicate") {
-      musicSrc = MUSIC_SYNDICATE_THEME;
-    } else {
-      musicSrc = MUSIC_WELCOME_TO_SEICHI;
-    }
+  // Use village-specific music if user has a village, otherwise use default
+  let musicSrc = MUSIC_WELCOME_TO_SEICHI;
+  if (userData?.village?.name === "Tsukimori") {
+    musicSrc = MUSIC_TSUKIMORI_THEME;
+  } else if (userData?.village?.name === "Shine") {
+    musicSrc = MUSIC_SHINE_THEME;
+  } else if (userData?.village?.name === "Current") {
+    musicSrc = MUSIC_CURRENT_THEME;
+  } else if (userData?.village?.name === "Syndicate") {
+    musicSrc = MUSIC_SYNDICATE_THEME;
   }
 
   // Initialize the single audio instance

@@ -105,7 +105,7 @@ export const registerRouter = createTRPCRouter({
           ctx.drizzle.query.abEvent.findFirst({
             where: and(
               eq(abEvent.ip, ctx.userIp ?? ""),
-              eq(abEvent.experiment, "ab_music_welcome_to_seichi"),
+              eq(abEvent.experiment, "ab_active_players_count"),
               eq(abEvent.event, "loaded"),
             ),
           }),
@@ -184,15 +184,15 @@ export const registerRouter = createTRPCRouter({
           used: 1,
         }),
         // Log AB variant used for welcome page when registering, if present
-        ...(ctx.abWelcomeVariant && abLoadedEvent
+        ...(ctx.abActivePlayersVariant && abLoadedEvent
           ? [
               ctx.drizzle
                 .insert(abEvent)
                 .values({
                   id: nanoid(),
                   userId: ctx.userId,
-                  experiment: "ab_music_welcome_to_seichi",
-                  variant: ctx.abWelcomeVariant,
+                  experiment: "ab_active_players_count",
+                  variant: ctx.abActivePlayersVariant,
                   event: "register",
                   source: input.utm_source ?? undefined,
                   ip: ctx.userIp && ctx.userIp !== "unknown" ? ctx.userIp : undefined,

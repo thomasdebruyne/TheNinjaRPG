@@ -77,6 +77,10 @@
       "schedule": "0 * * * *"
     },
     {
+      "path": "/api/hourly-active-players",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/auction-expire",
       "schedule": "*/5 * * * *"
     }
