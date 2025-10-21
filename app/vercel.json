@@ -73,11 +73,7 @@
       "schedule": "0/5 0 * * *"
     },
     {
-      "path": "/api/hourly-bounty-expire",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/hourly-active-players",
+      "path": "/api/hourly-maintainance",
       "schedule": "0 * * * *"
     },
     {
