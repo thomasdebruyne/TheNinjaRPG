@@ -373,15 +373,13 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
     // Find the max number of steps completed by any user
     const maxSteps = Math.max(...stepsCompleted);
 
-    // For each step (0 to maxSteps), calculate the % of users who completed at least that many steps
-    const totalUsers = stepsCompleted.length;
+    // For each step (0 to maxSteps), calculate the number of users who completed at least that many steps
     const values: number[] = [];
     const labels: string[] = [];
 
     for (let step = 0; step <= maxSteps; step++) {
       const count = stepsCompleted.filter((n) => n >= step).length;
-      const percent = (count / totalUsers) * 100;
-      values.push(percent);
+      values.push(count);
       labels.push(step === 0 ? "0 steps (all)" : `${step}+ steps`);
     }
 
@@ -391,7 +389,7 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
         labels,
         datasets: [
           {
-            label: "% of users remaining",
+            label: "Number of users remaining",
             data: values,
             borderColor: "hsl(210 70% 45%)",
             backgroundColor: "hsl(210 70% 60% / 0.6)",
@@ -406,17 +404,16 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
           y: {
             type: "linear",
             beginAtZero: true,
-            max: 100,
-            title: { display: true, text: "% Users Remaining" },
+            title: { display: true, text: "Number of Users" },
             ticks: {
-              callback: (value) => `${value}%`,
+              precision: 0,
             },
           },
         },
         plugins: {
           tooltip: {
             callbacks: {
-              label: (context) => `${context.parsed.y.toFixed(1)}%`,
+              label: (context) => `${context.parsed.y} users`,
             },
           },
         },
