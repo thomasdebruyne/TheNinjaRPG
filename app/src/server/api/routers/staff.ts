@@ -301,7 +301,8 @@ export const staffRouter = createTRPCRouter({
       ]);
       // Guard
       if (!user) return errorResponse("User not found");
-      if (user.isBanned) return errorResponse("You are banned and cannot perform this action");
+      if (user.isBanned)
+        return errorResponse("You are banned and cannot perform this action");
       if (!canUnstuckVillage(user.role)) return errorResponse("Not allowed for you");
       // Mutate
       await Promise.all([
@@ -469,8 +470,10 @@ export const staffRouter = createTRPCRouter({
             money: target.money,
             bank: target.bank,
             experience: target.experience,
+            earnedExperience: target.earnedExperience,
             rank: target.rank,
             level: target.level,
+            status: target.status,
             villageId: target.villageId,
             bloodlineId: target.bloodlineId,
             strength: target.strength,
@@ -491,6 +494,8 @@ export const staffRouter = createTRPCRouter({
             sector: target.sector,
             latitude: target.latitude,
             longitude: target.longitude,
+            location: target.location,
+            tutorialStep: target.tutorialStep,
             clanId: target.clanId,
             anbuId: target.anbuId,
           })
