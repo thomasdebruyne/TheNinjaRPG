@@ -43,6 +43,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AbTestResults from "@/layout/AbTestResults";
 import { QuestFunnelBar } from "@/layout/UsageStatistics";
+import { TUTORIAL_STEPS } from "@/hooks/tutorial";
 
 export default function ManualRecruitment() {
   const { data: currentUser } = useUserData();
@@ -277,6 +278,7 @@ export default function ManualRecruitment() {
                 <QuestFunnelBar
                   stepsCompleted={mainMetrics.tutorialSteps}
                   title="Tutorial Steps Completion"
+                  stepDescriptions={TUTORIAL_STEPS.map((step) => step.description)}
                 />
               </div>
             )}
@@ -284,11 +286,14 @@ export default function ManualRecruitment() {
               questFunnels.length > 0 &&
               questFunnels.map((questFunnel) => {
                 const data = mainMetrics?.questFunnels?.[questFunnel.id];
+                const descriptions =
+                  mainMetrics?.questObjectiveDescriptions?.[questFunnel.id];
                 return data ? (
                   <div className="col-span-2" key={questFunnel.id}>
                     <QuestFunnelBar
                       stepsCompleted={data}
                       title={`Quest: ${questFunnel.title}`}
+                      stepDescriptions={descriptions}
                     />
                   </div>
                 ) : null;

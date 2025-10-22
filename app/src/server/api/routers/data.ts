@@ -190,6 +190,8 @@ export const dataRouter = createTRPCRouter({
         pvpSignupsRow,
         tutorialFinishedSignupsRow,
         totalRevenueRow,
+        quests,
+        completedQuests,
       ] = await Promise.all([
         // visitorsRow
         ctx.drizzle
@@ -201,6 +203,7 @@ export const dataRouter = createTRPCRouter({
         // signupsRow: users with an entry in ReferralSource (mapped via historical IP to the visit)
         ctx.drizzle
           .select({
+            userId: userData.userId,
             questData: userData.questData,
             tutorialStep: userData.tutorialStep,
           })
@@ -324,6 +327,42 @@ export const dataRouter = createTRPCRouter({
               gte(userData.createdAt, visitorLog.createdAt),
             ),
           ),
+        // quests: Fetch quest data to get objective descriptions
+        input.questFunnels && input.questFunnels.length > 0
+          ? ctx.drizzle
+              .select({
+                id: quest.id,
+                content: quest.content,
+              })
+              .from(quest)
+              .where(inArray(quest.id, input.questFunnels))
+          : Promise.resolve([]),
+        // completedQuests: Fetch completed quest history for all signup users
+        input.questFunnels && input.questFunnels.length > 0
+          ? ctx.drizzle
+              .select({
+                userId: questHistory.userId,
+                questId: questHistory.questId,
+              })
+              .from(questHistory)
+              .innerJoin(userData, eq(userData.userId, questHistory.userId))
+              .innerJoin(historicalIp, eq(historicalIp.userId, userData.userId))
+              .innerJoin(visitorLog, eq(visitorLog.ip, historicalIp.ip))
+              .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
+              .where(
+                and(
+                  ...(visitorWhere.length > 0 ? visitorWhere : []),
+                  eq(userData.isAi, false),
+                  lt(userData.tutorialStep, 100),
+                  gte(userData.createdAt, visitorLog.createdAt),
+                  ...(input.utmSource && input.utmSource.length > 0
+                    ? [eq(referralSource.source, input.utmSource)]
+                    : []),
+                  inArray(questHistory.questId, input.questFunnels),
+                  eq(questHistory.completed, 1),
+                ),
+              )
+          : Promise.resolve([]),
       ]);
 
       const clicks = visitorsRow?.[0]?.count ?? 0;
@@ -340,12 +379,42 @@ export const dataRouter = createTRPCRouter({
 
       // Extract quest funnels for each requested quest
       const questFunnels: Record<string, number[]> = {};
-      if (input.questFunnels) {
+      const questObjectiveDescriptions: Record<string, string[]> = {};
+      if (input.questFunnels && input.questFunnels.length > 0) {
+        // Create a map of userId -> Set of completed quest IDs for quick lookup
+        const completedQuestsMap = new Map<string, Set<string>>();
+        completedQuests.forEach((cq) => {
+          if (!completedQuestsMap.has(cq.userId)) {
+            completedQuestsMap.set(cq.userId, new Set());
+          }
+          completedQuestsMap.get(cq.userId)!.add(cq.questId);
+        });
+
         for (const questId of input.questFunnels) {
+          // Extract objective descriptions from quest content
+          const questData = quests.find((q) => q.id === questId);
+          let totalObjectives = 0;
+          if (questData?.content && typeof questData.content === "object") {
+            const content = questData.content as {
+              objectives?: { description?: string }[];
+            };
+            if (Array.isArray(content.objectives)) {
+              totalObjectives = content.objectives.length;
+              questObjectiveDescriptions[questId] = content.objectives.map(
+                (obj) => obj.description ?? "",
+              );
+            }
+          }
+
           questFunnels[questId] = signupsRow.map((r) => {
-            const quest = r.questData?.find((q) => q.id === questId);
-            if (quest && Array.isArray(quest.goals)) {
-              return quest.goals.filter((g) => g.done).length;
+            // Check if user completed this quest
+            if (completedQuestsMap.get(r.userId)?.has(questId)) {
+              return totalObjectives;
+            }
+            // Otherwise check questData for partial completion
+            const questTracker = r.questData?.find((q) => q.id === questId);
+            if (questTracker && Array.isArray(questTracker.goals)) {
+              return questTracker.goals.filter((g) => g.done).length;
             }
             return 0;
           });
@@ -368,6 +437,7 @@ export const dataRouter = createTRPCRouter({
         tutorialFinishedSignups,
         clickValueUsd,
         questFunnels,
+        questObjectiveDescriptions,
         tutorialSteps,
       };
     }),

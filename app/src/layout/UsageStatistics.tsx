@@ -358,11 +358,13 @@ export const RevenueBySourceBar: React.FC<RevenueBySourceProps> = (props) => {
 interface QuestFunnelBarProps {
   stepsCompleted: number[];
   title: string;
+  stepDescriptions?: string[];
 }
 
 export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
   stepsCompleted,
   title,
+  stepDescriptions,
 }) => {
   const chartRef = useRef<HTMLCanvasElement>(null);
 
@@ -414,6 +416,7 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
           tooltip: {
             callbacks: {
               label: (context) => `${context.parsed.y} users`,
+              afterLabel: (context) => stepDescriptions?.[context.dataIndex] ?? "",
             },
           },
         },
@@ -421,7 +424,7 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
     });
 
     return () => chart.destroy();
-  }, [stepsCompleted, title]);
+  }, [stepsCompleted, title, stepDescriptions]);
 
   return (
     <Card>
