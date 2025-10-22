@@ -230,6 +230,24 @@ export const itemRouter = createTRPCRouter({
       }
       if (entry.id === TUTORIAL_ITEM_ID && input?.data?.hidden)
         return errorResponse("Cannot hide tutorial item");
+      // Validate that weapons and battle consumables have at least one effect with both appearAnimation and appearSfx
+      const requiresAnimation =
+        input.data.itemType === "WEAPON" ||
+        (input.data.itemType === "CONSUMABLE" && !input.data.preventBattleUsage);
+      if (requiresAnimation) {
+        const hasValidAnimation = input.data.effects.some(
+          (effect) =>
+            "appearAnimation" in effect &&
+            effect.appearAnimation &&
+            "appearSfx" in effect &&
+            effect.appearSfx,
+        );
+        if (!input.data.hidden && !hasValidAnimation) {
+          return errorResponse(
+            "Weapons and battle-usable consumables must have at least one effect with both appearAnimation and appearSfx defined",
+          );
+        }
+      }
       // Calculate diff
       const diff = calculateContentDiff(entry, {
         id: entry.id,

@@ -437,6 +437,19 @@ export const jutsuRouter = createTRPCRouter({
           );
         }
       }
+      // Validate that at least one effect has both appearAnimation and appearSfx
+      const hasValidAnimation = input.data.effects.some(
+        (effect) =>
+          "appearAnimation" in effect &&
+          effect.appearAnimation &&
+          "appearSfx" in effect &&
+          effect.appearSfx,
+      );
+      if (!input.data.hidden && !hasValidAnimation) {
+        return errorResponse(
+          "At least one effect must have both appearAnimation and appearSfx defined",
+        );
+      }
       // Diff
       const diff = calculateContentDiff(entry, {
         id: entry.id,
