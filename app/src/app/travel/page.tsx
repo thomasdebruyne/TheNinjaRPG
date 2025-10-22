@@ -247,6 +247,22 @@ export default function Travel() {
     },
   });
 
+  // Convenience for starting global move
+  const initiateGlobalMoveStart = (sector: number) => {
+    // Guards against global movement
+    if (currentStep?.title === "Travel" && currentStep?.relatedValue !== undefined) {
+      if (sector !== currentStep?.relatedValue) {
+        showMutationToast({
+          success: false,
+          message: `For now, you need to travel to sector ${currentStep?.relatedValue} first.`,
+        });
+        return;
+      }
+    }
+    // Start global move
+    startGlobalMove({ sector });
+  };
+
   // Convenience variables
   const onEdge = isAtEdge(currentPosition);
   const isGlobal = activeTab === globalLink;
@@ -266,7 +282,7 @@ export default function Travel() {
       targetSector !== currentSector &&
       !isStartingTravel
     ) {
-      startGlobalMove({ sector: targetSector });
+      initiateGlobalMoveStart(targetSector);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPosition]);
@@ -487,7 +503,7 @@ export default function Travel() {
                 setTargetPosition(findNearestEdge(currentPosition));
                 setActiveTab(sectorLink);
               } else {
-                startGlobalMove({ sector: targetSector });
+                initiateGlobalMoveStart(targetSector);
               }
             }}
           >

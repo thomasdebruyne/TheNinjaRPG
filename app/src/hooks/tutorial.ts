@@ -18,6 +18,7 @@ export interface TutorialStepConfig {
   elementIds?: string[];
   page: string;
   hideDialog?: boolean;
+  relatedValue?: number;
   showNextButton?: boolean;
   proceedOnHighlightClick?: boolean;
   requiresGameMenu?: boolean;
@@ -334,6 +335,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     description:
       "For our mission, we need to travel to another sector, so let's go to the global map. Here you can see the entire world of Seichi. We are currently in the starting village of Horizon. To proceed, double tap on sector marked by the quest marker 📜 on the global map.",
     page: "/travel",
+    relatedValue: 293,
   },
   {
     id: "eRw6ObsRONhzY7AUMO3vm",
@@ -356,6 +358,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     description:
       "Good job on capturing the puppy. Let's go back to the Horizon village and the academy. With what I've seen, I think you'll become a great ninja, and you're ready to try for the Genin rank!",
     page: "/travel",
+    relatedValue: 296,
   },
   {
     id: "blL789mkRIKtjsWk",
