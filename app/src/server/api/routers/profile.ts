@@ -2102,9 +2102,12 @@ export const fetchUpdatedUser = async (props: {
   }
   if (user) {
     // Get the latest quest trackers
-    const { trackers, notifications, consequences } = getNewTrackers(user, [
-      { task: "any" },
-    ]);
+    const trackerResults = getNewTrackers(user, [{ task: "any" }]);
+
+    // Destructure for local usage
+    const { trackers, notifications, consequences } = trackerResults;
+
+    // Update user quest data
     user.questData = trackers;
 
     // Handle any update on quest consequences
@@ -2118,8 +2121,10 @@ export const fetchUpdatedUser = async (props: {
         controlShownQuestLocationInformation(q.quest, user);
       });
     }
+    return { user, settings, toastMessages, hasUnvotedPolls, trackerResults };
+  } else {
+    return { user, settings, toastMessages, hasUnvotedPolls, trackerResults: null };
   }
-  return { user, settings, toastMessages, hasUnvotedPolls };
 };
 
 export const fetchPublicUsers = async (info: {

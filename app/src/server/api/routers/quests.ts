@@ -25,6 +25,7 @@ import {
   bloodlineRolls,
   recruitmentRewards,
 } from "@/drizzle/schema";
+import { combineTrackerResults } from "@/libs/quest";
 import { getHuntingItemDrops } from "@/libs/hunting";
 import { getGatheringItemDrops } from "@/libs/gathering";
 import { userJutsu, userItem, userData, userBadge } from "@/drizzle/schema";
@@ -1085,7 +1086,7 @@ export const questsRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx }) => {
       // Fetch
-      const [{ user }, useritems] = await Promise.all([
+      const [{ user, trackerResults }, useritems] = await Promise.all([
         fetchUpdatedUser({
           client: ctx.drizzle,
           userId: ctx.userId,
@@ -1099,15 +1100,17 @@ export const questsRouter = createTRPCRouter({
       }
 
       // Get updated quest information
-      const { trackers, notifications, consequences, questIdsUpdated } = getNewTrackers(
-        { ...user, useritems },
-        [
-          { task: "move_to_location" },
-          { task: "collect_item" },
-          { task: "deliver_item" },
-          { task: "defeat_opponents" },
-        ],
-      );
+      const updatedTrackerResults = getNewTrackers({ ...user, useritems }, [
+        { task: "move_to_location" },
+        { task: "collect_item" },
+        { task: "deliver_item" },
+        { task: "defeat_opponents" },
+      ]);
+
+      // Combine and destructure for local usage
+      const { trackers, notifications, consequences, questIdsUpdated } =
+        combineTrackerResults(updatedTrackerResults, trackerResults);
+
       user.questData = trackers;
 
       // Handle consequences

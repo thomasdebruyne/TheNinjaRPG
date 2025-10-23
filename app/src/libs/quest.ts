@@ -842,6 +842,22 @@ export const getNewTrackers = (
   };
 };
 
+// Type returned by getNewTrackers
+export type GetNewTrackersResult = Awaited<ReturnType<typeof getNewTrackers>>;
+
+// Combine two tracker results into one
+export const combineTrackerResults = (
+  a: GetNewTrackersResult,
+  b?: GetNewTrackersResult | null,
+) => {
+  return {
+    trackers: [...a.trackers, ...(b?.trackers ?? [])],
+    notifications: [...a.notifications, ...(b?.notifications ?? [])],
+    consequences: [...a.consequences, ...(b?.consequences ?? [])],
+    questIdsUpdated: [...a.questIdsUpdated, ...(b?.questIdsUpdated ?? [])],
+  };
+};
+
 export const getMissionHallSettings = (isOutlaw: boolean) => {
   const type = isOutlaw ? "crime" : "mission";
   return [
