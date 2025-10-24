@@ -41,7 +41,6 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
   // Handle tool calls from AI
   const handleToolCall = useCallback((toolCall: any) => {
     try {
-      console.log("Tool call received:", toolCall);
       // Implement specific tool call handling if needed
       // Ensure we don't accidentally render the toolCall object
       if (toolCall && typeof toolCall === "object") {

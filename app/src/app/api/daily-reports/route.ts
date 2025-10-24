@@ -20,7 +20,11 @@ export async function GET() {
     // Get all active bans, silences, and trade bans that have expired
     const expiredReports = await drizzleDB.query.userReport.findMany({
       where: and(
-        inArray(userReport.status, ["BAN_ACTIVATED", "SILENCE_ACTIVATED", "TRADE_BAN_ACTIVATED"]),
+        inArray(userReport.status, [
+          "BAN_ACTIVATED",
+          "SILENCE_ACTIVATED",
+          "TRADE_BAN_ACTIVATED",
+        ]),
         lt(userReport.banEnd, new Date()),
       ),
       with: {
@@ -41,9 +45,6 @@ export async function GET() {
         message: "No expired reports to process",
       });
     }
-
-    // Log for debugging
-    console.log(`Found ${expiredReports.length} expired reports`);
 
     // Group reports by user ID and type
     const userBanReports = new Map<string, boolean>();
@@ -91,12 +92,14 @@ export async function GET() {
           ...silencedUsers.keys(),
           ...tradeBannedUsers.keys(),
         ]),
-        inArray(userReport.status, ["BAN_ACTIVATED", "SILENCE_ACTIVATED", "TRADE_BAN_ACTIVATED"]),
+        inArray(userReport.status, [
+          "BAN_ACTIVATED",
+          "SILENCE_ACTIVATED",
+          "TRADE_BAN_ACTIVATED",
+        ]),
         gt(userReport.banEnd, new Date()),
       ),
     });
-
-    console.log(`Found ${activeReports.length} active reports for affected users`);
 
     // Group active reports by user and type
     const userHasActiveBan = new Map<string, boolean>();

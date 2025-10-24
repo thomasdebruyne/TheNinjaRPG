@@ -76,7 +76,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     id: "YPfhJfdsl37V",
     title: "Assigning Stats",
     description:
-      "You have 1000 points to assign freely to your stats. Feel free to assign to any stat of your liking - if in doubt, I'd recommend putting it all into strength. Sometimes completing missions or quests will give you experience points, which you can freely assign on this page.",
+      "You have 2000 points to assign freely to your stats. Assign to any stat of your liking - if in doubt, I'd recommend putting it all into strength, which will generally be useful.",
     elementIds: ["tutorial-unassigned-stats-contentbox"],
     page: "/profile/experience",
   },

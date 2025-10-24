@@ -321,7 +321,6 @@ export const reportsRouter = createTRPCRouter({
     const warningReport = user.isWarned
       ? allReports?.find((r) => r.status === "OFFICIAL_WARNING")
       : null;
-    console.log(warningReport);
 
     // If user can not see secret data, hide reporter
     if (!canSeeSecretData(user.role)) {
@@ -346,7 +345,6 @@ export const reportsRouter = createTRPCRouter({
 
     // Unban user if ban no longer active
     if (!banReport && user.isBanned) {
-      console.log("Unbanning user", banReport);
       await ctx.drizzle
         .update(userData)
         .set({ isBanned: false })
@@ -703,7 +701,6 @@ export const reportsRouter = createTRPCRouter({
           ),
         });
         if (silences.length === 0) {
-          console.log("Unsilencing user 2");
           await ctx.drizzle
             .update(userData)
             .set({ isSilenced: false })

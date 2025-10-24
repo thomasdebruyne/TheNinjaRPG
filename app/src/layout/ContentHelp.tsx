@@ -1177,8 +1177,6 @@ const renderJutseRelations = (
     0,
   );
 
-  console.log(totalRelations);
-
   /**
    * Renders a section for a specific relation type
    */

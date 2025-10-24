@@ -21,6 +21,7 @@ import {
   useTutorialStep,
 } from "@/hooks/tutorial";
 import { cn } from "src/libs/shadui";
+import * as Sentry from "@sentry/nextjs";
 import type { TutorialStepConfig } from "@/hooks/tutorial";
 
 /**
@@ -198,6 +199,17 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData, pathname, router, updateTutorialStep, rightSideBarOpen, isMobile]);
+
+  // Start Sentry replay on the first tutorial step
+  useEffect(() => {
+    // Do not handle replays on done tutorial
+    if (currentStepNumber >= TUTORIAL_STEPS.length) return;
+    // Start replay if we're on step 0 (first step)
+    const replay = Sentry.getReplay();
+    if (replay && currentStepNumber === 0) {
+      replay.start();
+    }
+  }, [currentStepNumber]);
 
   // No tooltip positioning logic needed anymore
 

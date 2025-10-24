@@ -363,7 +363,6 @@ export const drawCombatEffect = (info: {
           // Play disappear SFX when hiding
           if (effect.disappearSfx && info.sfxEnabled && animationId !== 0) {
             try {
-              console.log(effect);
               const sfx = gameAssets.find((a) => a.id === effect.disappearSfx);
               const url = sfx?.url;
               if (url) {
@@ -1146,7 +1145,7 @@ export const highlightTileTooltips = (info: {
 
     // Find ground effects on this tile
     const groundEffectsOnTile = battle.groundEffects.filter(
-      (effect) => effect.longitude === tile.col && effect.latitude === tile.row
+      (effect) => effect.longitude === tile.col && effect.latitude === tile.row,
     );
 
     if (groundEffectsOnTile.length > 0) {
@@ -1158,7 +1157,8 @@ export const highlightTileTooltips = (info: {
       if (!tooltipElement) {
         tooltipElement = document.createElement("div");
         tooltipElement.id = `tile-tooltip-${tileName}`;
-        tooltipElement.className = "fixed z-50 bg-black bg-opacity-80 text-white text-xs p-2 rounded pointer-events-none";
+        tooltipElement.className =
+          "fixed z-50 bg-black bg-opacity-80 text-white text-xs p-2 rounded pointer-events-none";
         document.body.appendChild(tooltipElement);
       }
 

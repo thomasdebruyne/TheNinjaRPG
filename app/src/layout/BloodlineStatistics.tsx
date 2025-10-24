@@ -170,7 +170,6 @@ export const BloodlineStatistics: React.FC<BloodlineStatisticsProps> = ({
           data: chartConfig,
           options: options,
         });
-        console.log("Chart created successfully");
       } catch (error) {
         console.error("Error creating chart:", error);
       }

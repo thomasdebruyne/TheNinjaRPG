@@ -991,7 +991,7 @@ export const calculateSupportMetrics = async (
     tickets.length > 0 ? (ticketsWithResponse / tickets.length) * 100 : 0;
   const resolutionRate =
     tickets.length > 0 ? (resolvedTickets / tickets.length) * 100 : 0;
-  console.log(totalResponseTime);
+
   return {
     averageResponseTime: Math.round(averageResponseTime / (1000 * 60)), // Convert to minutes
     averageResolutionTime: Math.round(averageResolutionTime / (1000 * 60)), // Convert to minutes
