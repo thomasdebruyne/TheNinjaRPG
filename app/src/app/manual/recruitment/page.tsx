@@ -278,7 +278,11 @@ export default function ManualRecruitment() {
                 <QuestFunnelBar
                   stepsCompleted={mainMetrics.tutorialSteps}
                   title="Tutorial Steps Completion"
-                  stepDescriptions={TUTORIAL_STEPS.map((step) => step.description)}
+                  stepDescriptions={TUTORIAL_STEPS.map((step) =>
+                    typeof step.description === "string"
+                      ? step.description
+                      : step.title,
+                  )}
                 />
               </div>
             )}
