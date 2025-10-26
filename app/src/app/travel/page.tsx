@@ -67,7 +67,10 @@ const Sector = dynamic(() => import("@/layout/Sector"), { ssr: false });
 
 export default function Travel() {
   // What is shown on this page
-  const [showActive, setShowActive] = useLocalStorage<boolean>("showActiveOnMap", true);
+  const [showActive, setShowActive] = useLocalStorage<boolean>(
+    "showActiveOnMap3",
+    false,
+  );
   const [showOwnership, setShowOwnership] = useLocalStorage<boolean>(
     "showOwnership",
     false,

@@ -1,6 +1,5 @@
 "use client";
 
-import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import DistributeStatsForm from "@/layout/StatsDistributionForm";
 import { useRequiredUserData } from "@/utils/UserContext";
@@ -36,17 +35,14 @@ export default function AssignExperience() {
 
   // Show component
   return (
-    <ContentBox
+    <DistributeStatsForm
       id="tutorial-unassigned-stats-contentbox"
+      userData={userData}
+      onAccept={updateStats}
+      availableStats={userData.earnedExperience}
       title="Assign Experience Points"
       subtitle={`You have ${userData.earnedExperience} unused experience points`}
       defaultBackHref="/profile"
-    >
-      <DistributeStatsForm
-        userData={userData}
-        onAccept={updateStats}
-        availableStats={userData.earnedExperience}
-      />
-    </ContentBox>
+    />
   );
 }

@@ -4,6 +4,7 @@ import {
   buildFilter,
   defineFilteringSchema,
 } from "@/layout/ContentFiltering";
+import type { DeviceType } from "@/utils/hardware";
 
 // Helper: get date string (YYYY-MM-DD) for N days ago
 const dateStringDaysAgo = (days: number) => {
@@ -15,6 +16,8 @@ const dateStringDaysAgo = (days: number) => {
   const day = `${d.getDate()}`.padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
+
+const deviceTypes: DeviceType[] = ["mobile", "desktop", "unknown"];
 
 // Inline schema for visitor analytics filters
 const visitorFilteringSchema = defineFilteringSchema({
@@ -28,6 +31,17 @@ const visitorFilteringSchema = defineFilteringSchema({
       includeNone: true,
       noneOption: { value: "None", label: "All" },
       emptyValues: ["None"],
+    },
+    {
+      id: "deviceType",
+      label: "Device Type",
+      type: "multi-select",
+      defaultValue: [],
+      options: [
+        { value: "mobile", label: "Mobile" },
+        { value: "desktop", label: "Desktop" },
+        { value: "unknown", label: "Unknown" },
+      ],
     },
     {
       id: "startDate",
@@ -69,6 +83,7 @@ export const useFiltering = () => {
     ...cf.values,
     cf,
     setUtmSource: cf.setters.utmSource,
+    setDeviceType: cf.setters.deviceType,
     setStartDate: cf.setters.startDate,
     setEndDate: cf.setters.endDate,
   };

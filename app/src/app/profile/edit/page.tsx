@@ -3,6 +3,7 @@
 import { z } from "zod";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Confirm2 from "@/layout/Confirm2";
@@ -12,7 +13,6 @@ import Accordion from "@/layout/Accordion";
 import AvatarImage from "@/layout/Avatar";
 import Modal2 from "@/layout/Modal2";
 import UserBlacklistControl from "@/layout/UserBlacklistControl";
-import DistributeStatsForm from "@/layout/StatsDistributionForm";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import NindoChange from "@/layout/NindoChange";
 import AiProfileEdit from "@/layout/AiProfileEdit";
@@ -63,11 +63,9 @@ import { COST_SWAP_VILLAGE } from "@/drizzle/constants";
 import { COST_REROLL_ELEMENT } from "@/drizzle/constants";
 import { COST_CHANGE_GENDER } from "@/drizzle/constants";
 import { COST_SKILL_RESET } from "@/drizzle/constants";
-import { round } from "@/utils/math";
 import { genders } from "@/validators/register";
 import { updateUserPreferencesSchema } from "@/validators/user";
 import { UploadButton } from "@/utils/uploadthing";
-import { capUserStats } from "@/libs/profile";
 import { getUserElements } from "@/validators/user";
 import { canSwapBloodline } from "@/utils/permissions";
 import { canSwapVillage, canUnequipAllUsers } from "@/utils/permissions";
@@ -1057,7 +1055,8 @@ const SwapBloodline: React.FC = () => {
           <Link className="font-bold" href="/travel">
             travel
           </Link>{" "}
-          to the wake island location, and get bloodlines in the science building to build your history.
+          to the wake island location, and get bloodlines in the science building to
+          build your history.
         </div>
       )}
       {isOpen && userData && bloodline && (
@@ -1100,31 +1099,84 @@ const SwapBloodline: React.FC = () => {
 const ResetStats: React.FC = () => {
   // State
   const { data: userData } = useRequiredUserData();
+  const router = useRouter();
   const utils = api.useUtils();
-  if (userData) capUserStats(userData);
 
   // Mutations
-  const { mutate: updateStats } = api.blackmarket.updateStats.useMutation({
-    onSuccess: async (data) => {
-      showMutationToast(data);
-      if (data.success) {
-        await utils.profile.getUser.invalidate();
-      }
-    },
-  });
+  const { mutate: resetStats, isPending } =
+    api.blackmarket.resetStatsToExperience.useMutation({
+      onSuccess: async (data) => {
+        showMutationToast(data);
+        if (data.success) {
+          await utils.profile.getUser.invalidate();
+          // Redirect to experience page to reassign stats
+          router.push("/profile/experience");
+        }
+      },
+    });
 
   // Only show if we have userData
   if (!userData) return <Loader explanation="Loading user" />;
 
+  // Calculate total stats that will be converted
+  const totalStats =
+    userData.ninjutsuOffence +
+    userData.taijutsuOffence +
+    userData.genjutsuOffence +
+    userData.bukijutsuOffence +
+    userData.ninjutsuDefence +
+    userData.taijutsuDefence +
+    userData.genjutsuDefence +
+    userData.bukijutsuDefence +
+    userData.strength +
+    userData.speed +
+    userData.intelligence +
+    userData.willpower;
+
+  const earnedFromStats = totalStats - 120;
+  const cost = canChangeContent(userData.role) ? 0 : COST_RESET_STATS;
+  const canAfford = userData.reputationPoints >= cost;
+
   // Show component
   return (
-    <DistributeStatsForm
-      forceUseAll
-      isRedistribution
-      userData={userData}
-      onAccept={updateStats}
-      availableStats={round(userData.experience + 120)}
-    />
+    <div className="flex flex-col gap-3">
+      <p>
+        This will convert all your current stats back to {earnedFromStats} earned
+        experience points, resetting all stats to 10 each (base 120 total).
+      </p>
+      <p>After resetting, you will be redirected to reassign your experience points.</p>
+      <Confirm2
+        title="Confirm Stats Reset"
+        button={
+          <Button
+            id="reset-stats"
+            className="w-full"
+            disabled={!canAfford || isPending || earnedFromStats <= 0}
+          >
+            {isPending
+              ? "Resetting..."
+              : canAfford
+                ? `Reset Stats for ${cost} Rep`
+                : `Need ${cost - userData.reputationPoints} More Rep`}
+          </Button>
+        }
+        onAccept={() => resetStats()}
+      >
+        <div>
+          <p className="mb-2">
+            Are you sure you want to reset all your stats? This will:
+          </p>
+          <ul className="list-disc list-inside mb-2">
+            <li>Reset all stats to 10 each (120 total)</li>
+            <li>Convert {earnedFromStats} stat points to earned experience</li>
+            <li>Cost {cost} reputation points</li>
+          </ul>
+          <p className="text-orange-500 font-bold">
+            You will then be able to reassign these points on the experience page.
+          </p>
+        </div>
+      </Confirm2>
+    </div>
   );
 };
 

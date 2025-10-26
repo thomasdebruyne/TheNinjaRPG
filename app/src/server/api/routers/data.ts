@@ -69,6 +69,7 @@ import { getRankedRank } from "@/libs/ranked_pvp";
 import { fetchSanninRankedPlayers } from "@/server/api/routers/pvprank";
 import { quest } from "@/drizzle/schema";
 import { QuestTypes, QuestRewardMetrics } from "@/drizzle/constants";
+import { getDeviceType, type DeviceType } from "@/utils/hardware";
 
 export const dataRouter = createTRPCRouter({
   // AB tests summaries (protected)
@@ -156,6 +157,7 @@ export const dataRouter = createTRPCRouter({
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         utmSource: z.string().optional(),
+        deviceType: z.array(z.enum(["mobile", "desktop", "unknown"])).optional(),
         questFunnels: z.array(z.string()).optional(),
       }),
     )
@@ -206,6 +208,7 @@ export const dataRouter = createTRPCRouter({
             userId: userData.userId,
             questData: userData.questData,
             tutorialStep: userData.tutorialStep,
+            userAgent: visitorLog.userAgent,
           })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
@@ -365,8 +368,17 @@ export const dataRouter = createTRPCRouter({
           : Promise.resolve([]),
       ]);
 
+      // Filter signupsRow by deviceType if specified
+      let filteredSignupsRow = signupsRow;
+      if (input.deviceType && input.deviceType.length > 0) {
+        filteredSignupsRow = signupsRow.filter((signup) => {
+          const deviceType = getDeviceType(signup.userAgent ?? undefined);
+          return input.deviceType!.includes(deviceType);
+        });
+      }
+
       const clicks = visitorsRow?.[0]?.count ?? 0;
-      const signups = signupsRow?.length ?? 0;
+      const signups = filteredSignupsRow?.length ?? 0;
       const characterCreations = characterCreationsRow?.[0]?.count ?? 0;
       const signupRate = clicks > 0 ? signups / clicks : 0;
       const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
@@ -378,7 +390,10 @@ export const dataRouter = createTRPCRouter({
       const clickValueUsd = clicks > 0 ? totalRevenueUsd / clicks : 0;
 
       // Extract quest funnels for each requested quest
-      const questFunnels: Record<string, number[]> = {};
+      const questFunnels: Record<
+        string,
+        Array<{ objectives: number; deviceType: DeviceType }>
+      > = {};
       const questObjectiveDescriptions: Record<string, string[]> = {};
       if (input.questFunnels && input.questFunnels.length > 0) {
         // Create a map of userId -> Set of completed quest IDs for quick lookup
@@ -406,23 +421,32 @@ export const dataRouter = createTRPCRouter({
             }
           }
 
-          questFunnels[questId] = signupsRow.map((r) => {
+          questFunnels[questId] = filteredSignupsRow.map((r) => {
+            // Determine device type from userAgent
+            const deviceType = getDeviceType(r.userAgent ?? undefined);
+
             // Check if user completed this quest
+            let objectives = 0;
             if (completedQuestsMap.get(r.userId)?.has(questId)) {
-              return totalObjectives;
+              objectives = totalObjectives;
+            } else {
+              // Otherwise check questData for partial completion
+              const questTracker = r.questData?.find((q) => q.id === questId);
+              if (questTracker && Array.isArray(questTracker.goals)) {
+                objectives = questTracker.goals.filter((g) => g.done).length;
+              }
             }
-            // Otherwise check questData for partial completion
-            const questTracker = r.questData?.find((q) => q.id === questId);
-            if (questTracker && Array.isArray(questTracker.goals)) {
-              return questTracker.goals.filter((g) => g.done).length;
-            }
-            return 0;
+
+            return { objectives, deviceType };
           });
         }
       }
 
-      // Extract tutorial steps for each signup
-      const tutorialSteps = signupsRow.map((r) => r.tutorialStep ?? 0);
+      // Extract tutorial steps for each signup with device type
+      const tutorialSteps = filteredSignupsRow.map((r) => ({
+        steps: r.tutorialStep ?? 0,
+        deviceType: getDeviceType(r.userAgent ?? undefined),
+      }));
 
       return {
         ctr: RECRUITMENT_CTR,

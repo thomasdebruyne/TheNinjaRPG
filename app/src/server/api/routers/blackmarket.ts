@@ -514,6 +514,76 @@ export const blackMarketRouter = createTRPCRouter({
         message: `Element rerolled successfully. ${result.changes.join(", ")}`,
       };
     }),
+  // Reset stats to earned experience
+  resetStatsToExperience: protectedProcedure
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      // Query
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      // Derived
+      const cost = canChangeContent(user.role) ? 0 : COST_RESET_STATS;
+      const totalStats =
+        user.ninjutsuOffence +
+        user.taijutsuOffence +
+        user.genjutsuOffence +
+        user.bukijutsuOffence +
+        user.ninjutsuDefence +
+        user.taijutsuDefence +
+        user.genjutsuDefence +
+        user.bukijutsuDefence +
+        user.strength +
+        user.speed +
+        user.intelligence +
+        user.willpower;
+      const earnedFromStats = totalStats - 120; // Subtract base 120
+
+      // Guards
+      if (user.reputationPoints < cost) {
+        return { success: false, message: "Not enough reputation points" };
+      }
+      if (earnedFromStats <= 0) {
+        return { success: false, message: "No stats to convert" };
+      }
+
+      // Mutate
+      const result = await ctx.drizzle
+        .update(userData)
+        .set({
+          ninjutsuOffence: 10,
+          taijutsuOffence: 10,
+          genjutsuOffence: 10,
+          bukijutsuOffence: 10,
+          ninjutsuDefence: 10,
+          taijutsuDefence: 10,
+          genjutsuDefence: 10,
+          bukijutsuDefence: 10,
+          strength: 10,
+          speed: 10,
+          intelligence: 10,
+          willpower: 10,
+          earnedExperience: user.earnedExperience + earnedFromStats,
+          reputationPoints: sql`reputationPoints - ${cost}`,
+        })
+        .where(eq(userData.userId, ctx.userId));
+
+      if (result.rowsAffected === 0) {
+        return { success: false, message: "Could not reset stats" };
+      } else {
+        await ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "user",
+          changes: [`User stats reset to experience`],
+          relatedId: ctx.userId,
+          relatedMsg: `Reset: ${user.username} converted ${earnedFromStats} stats to experience`,
+          relatedImage: user.avatarLight,
+        });
+        return {
+          success: true,
+          message: `Stats reset! ${earnedFromStats} points converted to experience for ${cost} reputation points`,
+        };
+      }
+    }),
   // Update stats
   updateStats: protectedProcedure
     .input(statSchema)

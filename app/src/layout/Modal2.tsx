@@ -71,20 +71,23 @@ const Modal2: React.FC<Modal2Props> = (props) => {
 
         <DialogFooter>
           {props.proceed_label && (
-            <Button
-              id={props.id ? `${props.id}-proceed` : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (props.onAccept) props.onAccept(e);
-                if (props.isValid === undefined || props.isValid) {
-                  props.setIsOpen(false);
-                }
-              }}
-              className={`rounded-lg z-30 ${confirmBtnClassName}`}
-            >
-              {props.proceed_label}
-            </Button>
+            <>
+              <Button
+                id={props.id ? `${props.id}-proceed` : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (props.onAccept) props.onAccept(e);
+                  if (props.isValid === undefined || props.isValid) {
+                    props.setIsOpen(false);
+                  }
+                }}
+                className={`rounded-lg z-30 ${confirmBtnClassName}`}
+              >
+                {props.proceed_label}
+              </Button>
+              <div className="grow"></div>
+            </>
           )}
           <Button
             id={props.id ? `${props.id}-close` : undefined}

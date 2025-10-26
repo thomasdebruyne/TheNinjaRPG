@@ -221,7 +221,7 @@ const Shop: React.FC<ShopProps> = (props) => {
                       : "bg-red-600 text-white hover:bg-red-700"
                   }
                 >
-                  <div className="pb-3 space-y-2">
+                  <div className="pb-3 grid grid-cols-2 gap-2">
                     <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3">
                       <h4 className="font-semibold text-sm mb-2">Your Currency</h4>
                       <div className="grid grid-cols-1 gap-1 text-sm">

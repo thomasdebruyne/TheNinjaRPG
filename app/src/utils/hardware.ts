@@ -24,3 +24,43 @@ export function getMobileOperatingSystem(userAgent?: string) {
 
   return "web";
 }
+
+export type DeviceType = "mobile" | "desktop" | "unknown";
+
+/**
+ * Determine the device type from user agent string.
+ * Returns 'mobile', 'desktop', or 'unknown'
+ *
+ * @param userAgent - The user agent string to parse
+ * @returns {String} - One of 'mobile', 'desktop', or 'unknown'
+ */
+export function getDeviceType(userAgent?: string): DeviceType {
+  if (!userAgent) return "unknown";
+
+  // Check for mobile devices first
+  // Windows Phone must come first because its UA also contains "Android"
+  if (/windows phone/i.test(userAgent)) {
+    return "mobile";
+  }
+
+  if (/android/i.test(userAgent)) {
+    return "mobile";
+  }
+
+  // iOS detection
+  if (/iPad|iPhone|iPod/.test(userAgent)) {
+    return "mobile";
+  }
+
+  // Check for known desktop/bot patterns
+  // If it contains common desktop OS indicators, it's likely desktop
+  if (
+    /windows|macintosh|mac os x|linux|x11/i.test(userAgent) &&
+    !/mobile|android|iphone|ipad|ipod/i.test(userAgent)
+  ) {
+    return "desktop";
+  }
+
+  // Default to unknown if we can't determine
+  return "unknown";
+}

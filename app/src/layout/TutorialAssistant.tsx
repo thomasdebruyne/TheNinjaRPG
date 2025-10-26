@@ -103,6 +103,12 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     width: number;
     height: number;
   } | null>(null);
+  const [gameMenuHighlight, setGameMenuHighlight] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
   // Removed missing-element dialog functionality
 
   // Check if we're on mobile
@@ -123,6 +129,9 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
   // State to track if we should show the special game menu tutorial
   const [showGameMenuTutorial, setShowGameMenuTutorial] = useState<boolean>(false);
+
+  // Track if we've already scrolled for the current step to avoid repeated scrolling
+  const hasScrolledForStepRef = React.useRef<number>(-1);
 
   // Tutorial management hook
   const {
@@ -163,6 +172,11 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
         currentStepConfig?.requiresGameMenu === true;
 
       setShowGameMenuTutorial(shouldShowGameMenuTutorial);
+
+      // Scroll to top when requiresGameMenu is true and menu is not open
+      if (shouldShowGameMenuTutorial) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
 
       // Handle regular tutorial steps
       if (!shouldShowGameMenuTutorial) {
@@ -314,6 +328,107 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStepNumber, isAssistantVisible, pathname, userData?.status]);
 
+  // Update game menu highlight position when showing game menu tutorial
+  useEffect(() => {
+    if (!showGameMenuTutorial) {
+      setGameMenuHighlight(null);
+      return;
+    }
+
+    const updateGameMenuHighlight = () => {
+      const highlightInfo = findElementToHighlight(
+        {
+          id: "MOrKKgxeHiwZvkA9JYW0i",
+          elementIds: ["tutorial-gameBtn"],
+          title: "Game Menu",
+          description:
+            "Click this button to open the game menu and continue the tutorial.",
+          page: pathname,
+        },
+        rightSideBarRef,
+        rightSideBarOpen,
+      );
+
+      if (highlightInfo) {
+        setGameMenuHighlight({
+          top: highlightInfo.top,
+          left: highlightInfo.left,
+          width: highlightInfo.width,
+          height: highlightInfo.height,
+        });
+      } else {
+        setGameMenuHighlight(null);
+      }
+    };
+
+    // Initial position calculation
+    updateGameMenuHighlight();
+
+    // Set up interval for smoother updates
+    const intervalId = setInterval(() => {
+      updateGameMenuHighlight();
+    }, 250);
+
+    // Add scroll event listener
+    const handleScroll = () => {
+      requestAnimationFrame(() => {
+        updateGameMenuHighlight();
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    // Add resize event listener
+    const handleResize = () => {
+      requestAnimationFrame(() => {
+        updateGameMenuHighlight();
+      });
+    };
+    window.addEventListener("resize", handleResize, { passive: true });
+
+    // Add mutation observer
+    const observer = new MutationObserver(() => {
+      requestAnimationFrame(() => {
+        updateGameMenuHighlight();
+      });
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: false,
+    });
+
+    // Clean up
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      observer.disconnect();
+    };
+  }, [showGameMenuTutorial, pathname, rightSideBarRef, rightSideBarOpen]);
+
+  // Auto-center the highlighted element when it becomes available
+  useEffect(() => {
+    if (!highlight || !isAssistantVisible) return;
+
+    // Only scroll once per step
+    if (hasScrolledForStepRef.current === currentStepNumber) return;
+
+    const elementCenter = highlight.top + highlight.height / 2;
+    const viewportCenter = window.innerHeight / 2;
+    const currentScroll = window.scrollY;
+    const targetScroll = currentScroll + elementCenter - viewportCenter;
+
+    // Only scroll if the element is not already roughly centered
+    const scrollThreshold = 100; // pixels
+    if (Math.abs(elementCenter - viewportCenter) > scrollThreshold) {
+      window.scrollTo({ top: Math.max(0, targetScroll), behavior: "smooth" });
+    }
+
+    // Mark that we've scrolled for this step
+    hasScrolledForStepRef.current = currentStepNumber;
+  }, [highlight, isAssistantVisible, currentStepNumber]);
+
   // Add keyboard event listener for Enter and ArrowLeft keys to forward tutorial
   useEffect(() => {
     // Only add keyboard listener when tutorial is visible (either regular or game menu)
@@ -353,20 +468,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
   // Render Game Menu tutorial (with bottom-right assistant)
   const renderGameMenuTutorial = () => {
-    const gameBtnHighlight = findElementToHighlight(
-      {
-        id: "MOrKKgxeHiwZvkA9JYW0i",
-        elementIds: ["tutorial-gameBtn"],
-        title: "Game Menu",
-        description:
-          "Click this button to open the game menu and continue the tutorial.",
-        page: pathname,
-      },
-      rightSideBarRef,
-      rightSideBarOpen,
-    );
-
-    if (gameBtnHighlight) {
+    if (gameMenuHighlight) {
       return (
         <div className="fixed inset-0 z-[60]">
           {/* Dim background */}
@@ -376,10 +478,10 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           <div
             className="absolute bg-transparent shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"
             style={{
-              top: gameBtnHighlight.top - 10,
-              left: gameBtnHighlight.left - 10,
-              width: gameBtnHighlight.width + 20,
-              height: gameBtnHighlight.height + 20,
+              top: gameMenuHighlight.top - 10,
+              left: gameMenuHighlight.left - 10,
+              width: gameMenuHighlight.width + 20,
+              height: gameMenuHighlight.height + 20,
             }}
           >
             <div className="absolute inset-0 border-[3px] border-amber-400 rounded-md animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.7)] z-[1]">
@@ -399,10 +501,10 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
             width={80}
             height={80}
             style={{
-              top: Math.max(0, gameBtnHighlight.top + gameBtnHighlight.height + 12),
+              top: Math.max(0, gameMenuHighlight.top + gameMenuHighlight.height + 12),
               left: Math.min(
                 window.innerWidth - 40,
-                gameBtnHighlight.left + gameBtnHighlight.width / 2 - 20,
+                gameMenuHighlight.left + gameMenuHighlight.width / 2 - 20,
               ),
             }}
           />
@@ -452,15 +554,12 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
   // Determine which step to show - hospitalized overrides everything
   const isHospitalized = userData?.status === "HOSPITALIZED";
-  const inBattle = userData?.status === "BATTLE";
   const currentTutorialStep = isHospitalized
     ? TUTORIAL_HOSPITALIZED_STEP
     : TUTORIAL_STEPS[currentStepNumber];
 
   // Guard against undefined currentTutorialStep
   if (!currentTutorialStep) return null;
-
-  const isOnCorrectPage = pathname === currentTutorialStep.page;
 
   // Derived
   const pointerEvents =
@@ -531,9 +630,15 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       {/* Assistant panel bottom-right - large, game-like dialog */}
       {!currentTutorialStep.hideDialog && (
         <AssistantDialog title={currentTutorialStep.title}>
-          <p className="text-sm md:text-base leading-relaxed">
-            {currentTutorialStep.description}
-          </p>
+          {typeof currentTutorialStep.description === "string" ? (
+            <p className="text-sm md:text-base leading-relaxed">
+              {currentTutorialStep.description}
+            </p>
+          ) : (
+            <div className="text-sm md:text-base leading-relaxed">
+              {currentTutorialStep.description}
+            </div>
+          )}
           {currentTutorialStep.externalLink && (
             <div className="mt-3">
               <Button
@@ -626,6 +731,13 @@ const findElementToHighlight = (
 
   // Get element position - getBoundingClientRect() gives viewport coordinates
   const rect = element.getBoundingClientRect();
+
+  // Validate that the element has been laid out and has dimensions
+  // getBoundingClientRect returns all zeros if element exists but hasn't been rendered yet
+  // This commonly happens with accordion children that are being expanded
+  if (rect.width === 0 || rect.height === 0) {
+    return null;
+  }
 
   // Return the element reference along with its dimensions
   return {

@@ -554,13 +554,16 @@ export const useCheckRewards = () => {
   // Mutations
   const { mutate: checkRewards, isPending: isCheckingRewards } =
     api.quests.checkRewards.useMutation({
-      onSuccess: async (data) => {
+      onSuccess: async (data, variables) => {
         // If a failutre, show a toast
         if (!data.success && "message" in data) {
           showMutationToast({ success: data.success, message: data.message });
         }
         // If the quest is finished, handle the next step
-        if (currentStep?.title === "Academy Dialog Option") {
+        if (
+          currentStep?.title === "Academy Dialog Option" &&
+          variables?.nextObjectiveId
+        ) {
           await handleNextStepAsync();
         }
         // If there is a userQuest, show the rewards

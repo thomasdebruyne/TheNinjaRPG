@@ -18,7 +18,7 @@ import { api } from "@/app/_trpc/client";
 
 interface TutorialStepConfig {
   title: string;
-  description: string;
+  description: string | React.ReactNode;
   elementId?: string;
   page: string;
   requiresGameMenu?: boolean;
@@ -787,7 +787,11 @@ const Tutorial: React.FC<TutorialProps> = ({
               <Info className="h-5 w-5 text-primary" />
               <h3 className="font-bold text-lg">{currentTutorialStep.title}</h3>
             </div>
-            <p className="text-sm mb-4">{currentTutorialStep.description}</p>
+            {typeof currentTutorialStep.description === "string" ? (
+              <p className="text-sm mb-4">{currentTutorialStep.description}</p>
+            ) : (
+              <div className="text-sm mb-4">{currentTutorialStep.description}</div>
+            )}
             {currentTutorialStep.externalLink && (
               <Button
                 className="pointer-events-auto w-full mb-2"

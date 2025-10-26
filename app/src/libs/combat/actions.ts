@@ -73,6 +73,7 @@ export const availableUserActions = (
   const user = usersState?.find((u) => u.userId === userId);
   const { availableActionPoints } = actionPointsAfterAction(user, battle);
   const isStealth = isUserStealthed(userId, battle?.usersEffects);
+  const isStudent = user?.rank === "STUDENT";
   const isSummonPrevented = isUserSummonPrevented(userId, battle?.usersEffects);
   const isImmobilized = isUserImmobilized(userId, battle?.usersEffects);
   const elementalSeal = getUserElementalSeal(userId, battle?.usersEffects);
@@ -88,7 +89,7 @@ export const availableUserActions = (
     ...(basicMoves && !isStealth ? [basicActions.basicAttack] : []),
     ...(basicMoves ? [basicActions.basicHeal] : []),
     ...(!isImmobilized ? [basicActions.basicMove] : []),
-    ...(basicMoves && !isStealth
+    ...(basicMoves && !isStealth && !isStudent
       ? [basicActions.basicClear, basicActions.basicCleanse, basicActions.basicFlee]
       : []),
     ...(availableActionPoints && availableActionPoints > 0
@@ -1056,7 +1057,7 @@ export const performBattleAction = (props: {
 
   // Apply relevant effects, and get back new state + active effects
   const { newBattle, actionEffects } = applyEffects(battle, actorId, action);
-  
+
   return { newBattle, actionEffects };
 };
 

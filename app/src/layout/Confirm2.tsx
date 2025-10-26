@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import Modal2 from "./Modal2";
 
 interface Confirm2Props {
+  id?: string;
   title: string;
   button: React.ReactNode;
   className?: string;
@@ -41,6 +42,7 @@ const Confirm2: React.FC<Confirm2Props> = (props) => {
 
       {showModal && (
         <Modal2
+          id={props.id}
           title={props.title}
           isOpen={showModal}
           setIsOpen={setShowModal}

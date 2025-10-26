@@ -9,12 +9,13 @@ import {
   TUTORIAL_JUTSU_ID,
   TUTORIAL_ITEM_ID,
   TUTORIAL_STARTER_QUEST_ID,
+  TUTORIAL_GENIN_EXAM_QUEST_ID,
 } from "@/drizzle/constants";
 
 export interface TutorialStepConfig {
   id: string;
   title: string;
-  description: string;
+  description: string | React.ReactNode;
   elementIds?: string[];
   page: string;
   hideDialog?: boolean;
@@ -77,7 +78,10 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     title: "Assigning Stats",
     description:
       "You have 2000 points to assign freely to your stats. Assign to any stat of your liking - if in doubt, I'd recommend putting it all into strength, which will generally be useful.",
-    elementIds: ["tutorial-unassigned-stats-contentbox"],
+    elementIds: [
+      "tutorial-specialization-confirm-content",
+      "tutorial-unassigned-stats-contentbox",
+    ],
     page: "/profile/experience",
   },
   {
@@ -264,7 +268,10 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
   {
     id: "gaqwwlQAjB0b11DLsXMNE",
     title: "Academy Dialog Option",
-    elementIds: [`logbook-entry-${TUTORIAL_STARTER_QUEST_ID}`, "tutorial-take-quest"],
+    elementIds: [
+      `logbook-entry-${TUTORIAL_STARTER_QUEST_ID}`,
+      `tutorial-take-quest-${TUTORIAL_STARTER_QUEST_ID}`,
+    ],
     description: "",
     page: "/academy",
     hideDialog: true,
@@ -284,7 +291,10 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     title: "Assigning Stats",
     description:
       "Assign the obtained experience to the stat of your liking. A good ninja is well-rounded, so don't stress too much about which stat you assign it to yet.",
-    elementIds: ["tutorial-unassigned-stats-contentbox"],
+    elementIds: [
+      "tutorial-specialization-confirm-content",
+      "tutorial-unassigned-stats",
+    ],
     page: "/profile/experience",
   },
   {
@@ -355,8 +365,16 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
       "tutorial-global-map",
       "tutorial-Global",
     ],
-    description:
-      "Good job on capturing the puppy. Let's go back to the Horizon village and the academy. With what I've seen, I think you'll become a great ninja, and you're ready to try for the Genin rank!",
+    description: (
+      <div>
+        Good job on capturing the puppy. Let&apos;s go back to the{" "}
+        <span className="font-bold bg-[#81007f] text-white rounded-md p-1 shadow-sm">
+          Horizon
+        </span>{" "}
+        village and the academy. With what I&apos;ve seen, I think you&apos;ll become a
+        great ninja, and you&apos;re ready to try for the Genin rank!
+      </div>
+    ),
     page: "/travel",
     relatedValue: 296,
   },
@@ -411,17 +429,15 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
       "I'll let you off the hook soon, and then you can roam the village on your own a bit. Before that, let's go to the academy for the last time.",
     elementIds: ["tutorial-academy"],
     proceedOnHighlightClick: true,
-    requiresGameMenu: true,
     page: "/village",
   },
   {
     id: "qgfxpmmQ2mYayeN2iMuX6",
     title: "Genin Exam",
-    elementIds: ["tutorial-take-quest"],
+    elementIds: [`tutorial-take-quest-${TUTORIAL_GENIN_EXAM_QUEST_ID}`],
     description:
-      "Once you're ready, you can start the Genin exam here. Passing this exam will award you the rank of Genin, which will unlock more difficult missions and jutsus, as well as pick pick one of the major ninja villages to join. Feel free to explore a bit, if you want, and otherwise come back here once you're ready for the exam. ",
+      "You're ready to start the Genin exam. Passing this exam will award you the rank of Genin, which will unlock more difficult missions and jutsus, as well as pick pick one of the major ninja villages to join. Feel free to explore a bit, if you want, and otherwise come back here once you're ready for the exam. ",
     page: "/academy",
-    showNextButton: true,
   },
   // {
   //   title: "That's it for now!",
