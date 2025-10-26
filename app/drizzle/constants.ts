@@ -1294,6 +1294,10 @@ export const DRACO_ENCODER_URL =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJGexpLZRfoVrha0LP4mAS5KM7wtiZbUNXJxdC";
 
 // Images
+export const IMG_PLAY_STORE_BANNER =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJyI5pULukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp";
+export const IMG_APP_STORE_BANNER =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJZOcwIVUaYQrBIUTu69nkMxWmS4ah0O7LVCp8";
 export const IMG_DEFAULT_PROFILE_PICTURE =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJ19UqON6bo95WClq4K0wxZUmJcvThgdVenO3P";
 export const IMG_OCCUPATION_GATHERING =

@@ -218,12 +218,13 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   useEffect(() => {
     // Do not handle replays on done tutorial
     if (currentStepNumber >= TUTORIAL_STEPS.length) return;
+    if (!userData) return;
     // Start replay if we're on step 0 (first step)
     const replay = Sentry.getReplay();
     if (replay && currentStepNumber === 0) {
       replay.start();
     }
-  }, [currentStepNumber]);
+  }, [currentStepNumber, userData]);
 
   // No tooltip positioning logic needed anymore
 

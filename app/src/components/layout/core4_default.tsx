@@ -1136,7 +1136,7 @@ const RightSideBar: React.FC<{
 };
 
 // Get wallpaper based on the season
-const getImageSet = (userData: UserWithRelations) => {
+export const getImageSet = (userData: UserWithRelations) => {
   // Base settings
   const base = {
     navbar: IMG_LAYOUT_NAVBAR,

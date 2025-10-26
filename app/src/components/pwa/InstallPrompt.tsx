@@ -1,73 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Download, Smartphone } from "lucide-react";
 import { useTutorialStep } from "@/hooks/tutorial";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { useUserData } from "@/utils/UserContext";
 
 export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
-    null,
-  );
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const {
+    isVisible,
+    hidePrompt,
+    deferredPrompt,
+    isInstalled,
+    isIOS,
+    isMobile,
+    isStandalone,
+  } = useInstallPrompt();
+
+  const { data: userData } = useUserData();
 
   // Tutorial mode
   const { currentStep } = useTutorialStep();
-
-  useEffect(() => {
-    // Detect iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOS(iOS);
-
-    // Detect mobile devices (iOS or Android)
-    const mobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent,
-      );
-    setIsMobile(mobile);
-
-    // Check if app is already installed (standalone mode)
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as { standalone?: boolean }).standalone === true;
-    setIsStandalone(standalone);
-
-    // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-
-      // Show install prompt after a delay if not already installed and on mobile
-      if (!standalone && mobile) {
-        setTimeout(() => setShowInstallPrompt(true), 3000);
-      }
-    };
-
-    // Listen for app installed event
-    const handleAppInstalled = () => {
-      console.log("PWA was installed");
-      setIsInstalled(true);
-      setShowInstallPrompt(false);
-      setDeferredPrompt(null);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
-  }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -82,23 +35,18 @@ export default function InstallPrompt() {
         console.log("User dismissed the install prompt");
       }
 
-      setDeferredPrompt(null);
-      setShowInstallPrompt(false);
+      hidePrompt();
     } catch (error) {
       console.error("Install prompt failed:", error);
     }
   };
 
-  const handleDismiss = () => {
-    setShowInstallPrompt(false);
-    // Remember user dismissed (you might want to store this in localStorage)
-    localStorage.setItem("pwa-install-dismissed", Date.now().toString());
-  };
-
   // Don't show if already installed, if user recently dismissed, or if not on mobile
-  if (isStandalone || isInstalled || !isMobile) return null;
+  if (isStandalone || isInstalled || !isMobile) {
+    return null;
+  }
 
-  if (typeof window !== "undefined" && localStorage) {
+  if (typeof window !== "undefined" && localStorage && !isVisible) {
     const dismissedTime = localStorage.getItem("pwa-install-dismissed");
     if (
       dismissedTime &&
@@ -108,9 +56,9 @@ export default function InstallPrompt() {
     }
   }
 
-  if (!showInstallPrompt) return null;
+  if (!isVisible) return null;
 
-  if (currentStep) return null;
+  if (currentStep && userData) return null;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm">
@@ -146,7 +94,7 @@ export default function InstallPrompt() {
                 <Button
                   onClick={handleInstallClick}
                   size="sm"
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  className="bg-orange-600 hover:bg-orange-700 text-white col-span-2"
                 >
                   <Download className="w-4 h-4 mr-1" />
                   Install App
@@ -154,7 +102,7 @@ export default function InstallPrompt() {
               )}
 
               <Button
-                onClick={handleDismiss}
+                onClick={hidePrompt}
                 variant="outline"
                 size="sm"
                 className="w-full col-span-2"
@@ -164,12 +112,7 @@ export default function InstallPrompt() {
             </div>
           </div>
 
-          <Button
-            onClick={handleDismiss}
-            variant="ghost"
-            size="sm"
-            className="p-1 h-auto"
-          >
+          <Button onClick={hidePrompt} variant="ghost" size="sm" className="p-1 h-auto">
             <X className="w-4 h-4" />
           </Button>
         </div>

@@ -105,7 +105,7 @@ export const registerRouter = createTRPCRouter({
           ctx.drizzle.query.abEvent.findFirst({
             where: and(
               eq(abEvent.ip, ctx.userIp ?? ""),
-              eq(abEvent.experiment, "ab_active_players_count"),
+              eq(abEvent.experiment, "ab_layout_new"),
               eq(abEvent.event, "loaded"),
             ),
           }),
@@ -183,16 +183,16 @@ export const registerRouter = createTRPCRouter({
           goal: selectedBloodline.rank,
           used: 1,
         }),
-        // Log AB variant used for welcome page when registering, if present
-        ...(ctx.abActivePlayersVariant && abLoadedEvent
+        // Log AB variant used for layout test when registering, if present
+        ...(ctx.abLayoutNewVariant && abLoadedEvent
           ? [
               ctx.drizzle
                 .insert(abEvent)
                 .values({
                   id: nanoid(),
                   userId: ctx.userId,
-                  experiment: "ab_active_players_count",
-                  variant: ctx.abActivePlayersVariant,
+                  experiment: "ab_layout_new",
+                  variant: ctx.abLayoutNewVariant,
                   event: "register",
                   source: input.utm_source ?? undefined,
                   ip: ctx.userIp && ctx.userIp !== "unknown" ? ctx.userIp : undefined,

@@ -9,12 +9,13 @@ import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import TrpcClientProvider from "@/app/_trpc/Provider";
 import AcceptWarning from "@/layout/AcceptWarning";
-import LayoutCore4 from "@/components/layout/core4_default";
 import { IMG_LOGO_FULL } from "@/drizzle/constants";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import PWAManager from "@/components/pwa/PWAManager";
 import ParticleProvider from "@/components/ui/particles";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import LayoutSwitcher from "@/layout/LayoutSwitcher";
+import { InstallPromptProvider } from "@/hooks/useInstallPrompt";
 import type { Viewport, Metadata } from "next";
 
 import "../styles/globals.css";
@@ -40,16 +41,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <MultisessionAppSupport>
             <TrpcClientProvider>
               <UserContextProvider>
-                {env.NEXT_PUBLIC_MEASUREMENT_ID && (
-                  <GoogleTagManager gtmId={env.NEXT_PUBLIC_MEASUREMENT_ID} />
-                )}
-                <LayoutCore4>{children}</LayoutCore4>
-                <Toaster />
-                <AcceptWarning />
-                <PWAManager />
-                <InstallPrompt />
-                <ParticleProvider />
-                <SpeedInsights sampleRate={0.03} />
+                <InstallPromptProvider>
+                  {env.NEXT_PUBLIC_MEASUREMENT_ID && (
+                    <GoogleTagManager gtmId={env.NEXT_PUBLIC_MEASUREMENT_ID} />
+                  )}
+                  <LayoutSwitcher>{children}</LayoutSwitcher>
+                  <Toaster />
+                  <AcceptWarning />
+                  <PWAManager />
+                  <InstallPrompt />
+                  <ParticleProvider />
+                  <SpeedInsights sampleRate={0.03} />
+                </InstallPromptProvider>
               </UserContextProvider>
             </TrpcClientProvider>
           </MultisessionAppSupport>

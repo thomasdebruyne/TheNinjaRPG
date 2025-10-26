@@ -13,128 +13,167 @@ import { IMG_FRONTPAGE_SCREENSHOT_JUTSUS } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_GLOBAL } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_SECTOR } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_VILLAGE } from "@/drizzle/constants";
+import { IMG_LOGO_FULL } from "@/drizzle/constants";
+import { IMG_PLAY_STORE_BANNER } from "@/drizzle/constants";
+import { IMG_APP_STORE_BANNER } from "@/drizzle/constants";
 import { api } from "@/app/_trpc/client";
 import { useUser } from "@clerk/nextjs";
+import { cn } from "src/libs/shadui";
 import { useAbVariant } from "@/hooks/useAbVariant";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 const Welcome: React.FC = () => {
   // AB test for active players count
-  const { isTreatment } = useAbVariant("ab_active_players_count");
+  const { isTreatment } = useAbVariant("ab_layout_new");
 
-  // Query for active players count
-  const { data: activePlayers24h } = api.misc.getActivePlayers24h.useQuery(undefined, {
-    enabled: isTreatment,
-  }) as { data: number | undefined };
+  // Install prompt control
+  const { showPrompt } = useInstallPrompt();
+
+  // Snap container for full-height sections
+  const backgroundClass = cn(
+    isTreatment
+      ? "flex flex-col gap-4 snap-start snap-always flex items-center justify-center"
+      : "",
+  );
+
+  // Content wrapper with background styling
+  const contentClass = cn(
+    "flex flex-col items-center",
+    isTreatment ? "bg-popover/75 rounded-xl max-w-[768px] w-[99%] ml-auto mr-auto" : "",
+  );
 
   // Render
   return (
-    <>
-      <div className="flex flex-col ">
-        <Image
-          className=""
-          src={IMG_LAYOUT_WELCOME_IMG}
-          alt="TNR Logo"
-          width={1000}
-          height={181}
-          priority
-        />
-
-        {isTreatment && typeof activePlayers24h === "number" ? (
-          <div className="text-lg lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-3">
-            <p>
-              Join <b>{activePlayers24h.toLocaleString()}</b> others who played in the
-              last 24 hours!
-            </p>
+    <div
+      className={cn(
+        "flex flex-col",
+        isTreatment
+          ? "snap-y snap-mandatory h-screen overflow-y-scroll gap-4"
+          : "gap-4",
+      )}
+    >
+      <div className={cn(backgroundClass, "justify-start")}>
+        {isTreatment && (
+          <div className="relative z-2 px-3 top-3 w-full flex justify-center select-none">
+            <Image
+              id="tutorial-logo"
+              src={IMG_LOGO_FULL}
+              width={384}
+              height={138}
+              alt="logo"
+              className="mb-6"
+              loading="lazy"
+            />
           </div>
-        ) : (
-          <div className="text-sm sm:text-md sm:text-md md:text-md lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-4">
+        )}
+        <div className={cn(contentClass, isTreatment ? "mb-10" : "")}>
+          {!isTreatment && (
+            <Image
+              className=""
+              src={IMG_LAYOUT_WELCOME_IMG}
+              alt="TNR Logo"
+              width={1000}
+              height={181}
+              priority
+            />
+          )}
+
+          <div
+            className={
+              isTreatment
+                ? "text-base sm:text-xl md:text-2xl lg:text-2xl flex flex-col text-center items-center gap-0 px-4 italic py-4"
+                : "w-full text-sm sm:text-md sm:text-md md:text-md lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-4"
+            }
+          >
             <p>
               More than <b>{(1000000).toLocaleString()}</b> people have played
               TheNinja-RPG!
             </p>
             <p>Join the new version and experience our unique ninja world!</p>
-          </div>
-        )}
-        <div className="w-full flex flex-col justify-center items-center py-3 gap-4 ">
-          <Link href="/signup" aria-label="Signup" className="w-full px-3">
-            <Button
-              id="signup_btn"
-              className="font-bold w-full text-xl"
-              size="xl2"
-              animation="glow"
-            >
-              <UserPlus className="h-6 w-6 mr-2" />
-              Create an Account
-            </Button>
-          </Link>
-          <div className="inline items-center gap-2">
-            Already have an account?{" "}
-            <Link href="/login" aria-label="Login" className="text-primary font-bold">
-              Log In
+            <Link href="/signup" aria-label="Signup" className="w-full p-3 m-3">
+              <Button
+                id="signup_btn"
+                className="font-bold w-full text-xl"
+                size="xl2"
+                animation="glow"
+              >
+                <UserPlus className="h-6 w-6 mr-2" />
+                Create an Account
+              </Button>
             </Link>
           </div>
+          <div className={"w-full flex flex-col justify-center items-center gap-4"}>
+            <div
+              className={cn(
+                isTreatment
+                  ? "inline items-center gap-2 text-lg"
+                  : "inline items-center gap-2",
+              )}
+            >
+              Already have an account?{" "}
+              <Link href="/login" aria-label="Login" className="text-primary font-bold">
+                Log In
+              </Link>
+            </div>
+          </div>
+          {isTreatment && (
+            <div className=" flex justify-center items-center flex-row">
+              <button
+                onClick={showPrompt}
+                className="w-1/2 cursor-pointer transition-transform hover:scale-105"
+                aria-label="Install from Play Store"
+              >
+                <Image
+                  src={IMG_PLAY_STORE_BANNER}
+                  width={258}
+                  height={100}
+                  className="w-full"
+                  alt="Screenshot from Play Store"
+                />
+              </button>
+              <button
+                onClick={showPrompt}
+                className="w-1/2 cursor-pointer transition-transform hover:scale-105"
+                aria-label="Install from App Store"
+              >
+                <Image
+                  src={IMG_APP_STORE_BANNER}
+                  width={258}
+                  height={100}
+                  className="w-full"
+                  alt="Screenshot from App Store"
+                />
+              </button>
+            </div>
+          )}
         </div>
-        <div className="py-6 w-full px-3">
-          <hr className="h-px border-primary border-2" />
+      </div>
+      {isTreatment && (
+        <div
+          className={cn(
+            backgroundClass,
+            "text-5xl font-bold text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]",
+          )}
+        >
+          Game Features
         </div>
-        <h1 className="text-left text-xl md:text-4xl font-bold px-2">
-          Free Online Ninja Browser Game
-        </h1>
-        <p className="p-2">
-          <span className="font-bold">What is TheNinja-RPG?</span> our game is a
-          browser-based online RPG set in the world of Seichi. Embark on an epic journey
-          in this free ninja game where your path as a shinobi is yours to choose. Start
-          as an Academy Student mastering powerful jutsu, and rise through the ranks in
-          an immersive ninja game experience. Customize your character with more than
-          800+ jutsus and 50+ bloodlines. Will you become a legendary Kage, protecting
-          your village with ultimate ninja abilities, or choose the path of an Outlaw,
-          mastering forbidden jutsu and dark arts? Your ninja adventure begins here in
-          this unique multiplayer RPG world.
-        </p>
+      )}
+      {!isTreatment && (
+        <div className={backgroundClass}>
+          <div className={contentClass}>
+            <div className="py-6 w-full px-3">
+              <hr className="h-px border-primary border-2" />
+            </div>
+            {textSEO}
+          </div>
+        </div>
+      )}
 
-        <div className="pl-2">
-          <h2 className="text-2xl font-bold pt-4">Key Features</h2>
-          <p className="pb-4">
-            The game features a variety of features that make it unique and engaging:
-          </p>
-          <ul className="list-disc list-outside pl-6 flex flex-col gap-3">
-            <li>
-              <h3 className="font-bold">Master Your Jutsu</h3>
-              Unlock powerful jutsu, train your ninja, and create signature moves that
-              set you apart in the ninja world.
-            </li>
-            <li>
-              <h3 className="font-bold">Explore Immersive Villages</h3>
-              Align with a village, enhance your reputation, and immerse yourself in a
-              vibrant ninja community.
-            </li>
-            <li>
-              <h3 className="font-bold">Engage in Strategic Ninja Battles</h3>
-              Compete in intense PvP and team-based combat on a dynamic 2D hex-based
-              battlefield.
-            </li>
-            <li>
-              <h3 className="font-bold">Uncover Evolving Storylines</h3>
-              Take on challenging missions, defeat rogue ninjas, and discover the hidden
-              truths of the shinobi universe.
-            </li>
-            <li>
-              <h3 className="font-bold">Join a Thriving Ninja Community</h3>
-              Create clans, forge alliances, and participate in epic player-driven
-              events that shape the game.
-            </li>
-          </ul>
-
+      <div className={backgroundClass}>
+        <div className={contentClass}>
           <div className="w-full p-3">
             <div className="flex flex-col gap-2">
-              <h2 className="text-2xl font-bold pt-4">Jutsus</h2>
-              <Image
-                src={IMG_FRONTPAGE_SCREENSHOT_JUTSUS}
-                width={1024}
-                height={716}
-                className="w-full rounded-xl"
-                alt="Screenshot from Jutsus"
-              />
+              <h2 className="text-2xl font-bold">Jutsus</h2>
               <p>
                 Jutsu are the cornerstone of strategic combat, blending skill,
                 creativity, and tactical planning to overcome your opponents. Players
@@ -149,14 +188,22 @@ const Welcome: React.FC = () => {
                 refine your strategy to suit your playstyle—whether you prefer brute
                 strength, deception, or finesse.
               </p>
-              <h2 className="text-2xl font-bold pt-4">Combat</h2>
               <Image
-                src={IMG_FRONTPAGE_SCREENSHOT_COMBAT}
+                src={IMG_FRONTPAGE_SCREENSHOT_JUTSUS}
                 width={1024}
-                height={702}
+                height={716}
                 className="w-full rounded-xl"
-                alt="Screenshot from Combat"
+                alt="Screenshot from Jutsus"
               />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className={backgroundClass}>
+        <div className={contentClass}>
+          <div className="w-full p-3">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-2xl font-bold pt-4">Combat</h2>
               <p>
                 Experience the thrill of ninja combat in dynamic, round-based 2D
                 strategic battle system. Every encounter is a test of wit and skill,
@@ -171,14 +218,22 @@ const Welcome: React.FC = () => {
                 positioning, and strategy are key as you engage in battles that demand
                 both tactical decision-making and foresight.
               </p>
-              <h2 className="text-2xl font-bold pt-4">Village</h2>
               <Image
-                src={IMG_FRONTPAGE_SCREENSHOT_VILLAGE}
+                src={IMG_FRONTPAGE_SCREENSHOT_COMBAT}
                 width={1024}
-                height={679}
+                height={702}
                 className="w-full rounded-xl"
-                alt="Screenshot from Village"
+                alt="Screenshot from Combat"
               />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className={backgroundClass}>
+        <div className={contentClass}>
+          <div className="w-full p-3">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-2xl font-bold pt-4">Village</h2>
               <p>
                 The ninja village is your home, your sanctuary, and the center of your
                 growth as a shinobi. This bustling hub is where strategy meets daily
@@ -196,14 +251,22 @@ const Welcome: React.FC = () => {
                 village-wide initiatives. Even your home offers a place of rest and
                 recovery, preparing you for the challenges ahead.
               </p>
-              <h2 className="text-2xl font-bold pt-4">Sectors</h2>
               <Image
-                src={IMG_FRONTPAGE_SCREENSHOT_SECTOR}
+                src={IMG_FRONTPAGE_SCREENSHOT_VILLAGE}
                 width={1024}
-                height={732}
+                height={679}
                 className="w-full rounded-xl"
-                alt="Screenshot from Sector"
+                alt="Screenshot from Village"
               />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className={backgroundClass}>
+        <div className={contentClass}>
+          <div className="w-full p-3">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-2xl font-bold pt-4">Sectors</h2>
               <p>
                 The 2D travel system brings the ninja world to life, allowing you to
                 explore local sectors, navigate terrain, and engage with players and
@@ -218,14 +281,22 @@ const Welcome: React.FC = () => {
                 fly. Players can launch surprise attacks, defend key locations, or
                 simply traverse the map to reach mission objectives and hidden rewards.
               </p>
-              <h2 className="text-2xl font-bold pt-4">Travel</h2>
               <Image
-                src={IMG_FRONTPAGE_SCREENSHOT_GLOBAL}
+                src={IMG_FRONTPAGE_SCREENSHOT_SECTOR}
                 width={1024}
-                height={743}
+                height={732}
                 className="w-full rounded-xl"
-                alt="Screenshot from Jutsus"
+                alt="Screenshot from Sector"
               />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className={backgroundClass}>
+        <div className={contentClass}>
+          <div className="w-full p-3">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-2xl font-bold pt-4">Travel</h2>
               <p>
                 The 3D global travel system expands your journey beyond your village,
                 opening the gates to a vast world filled with diverse regions and hidden
@@ -240,14 +311,26 @@ const Welcome: React.FC = () => {
                 deserts to snow-capped mountains, each presenting its own set of
                 opportunities and dangers.
               </p>
+              <Image
+                src={IMG_FRONTPAGE_SCREENSHOT_GLOBAL}
+                width={1024}
+                height={743}
+                className="w-full rounded-xl"
+                alt="Screenshot from Jutsus"
+              />
             </div>
           </div>
         </div>
       </div>
+      {isTreatment && (
+        <div className={backgroundClass}>
+          <div className={cn(contentClass, "p-3")}>{textSEO}</div>
+        </div>
+      )}
       <Suspense>
         <SetReferal />
       </Suspense>
-    </>
+    </div>
   );
 };
 
@@ -277,3 +360,59 @@ function SetReferal() {
   }, [searchParams, isLoaded, isSignedIn, trackVisitor]);
   return null;
 }
+
+/**
+ * Texts
+ */
+const textSEO = (
+  <div>
+    <h1 className="text-left text-xl md:text-4xl font-bold px-2">
+      Free Online Ninja Browser Game
+    </h1>
+    <p className="p-2">
+      <span className="font-bold">What is TheNinja-RPG?</span> our game is a
+      browser-based online RPG set in the world of Seichi. Embark on an epic journey in
+      this free ninja game where your path as a shinobi is yours to choose. Start as an
+      Academy Student mastering powerful jutsu, and rise through the ranks in an
+      immersive ninja game experience. Customize your character with more than 800+
+      jutsus and 50+ bloodlines. Will you become a legendary Kage, protecting your
+      village with ultimate ninja abilities, or choose the path of an Outlaw, mastering
+      forbidden jutsu and dark arts? Your ninja adventure begins here in this unique
+      multiplayer RPG world.
+    </p>
+
+    <div className="pl-2">
+      <h2 className="text-2xl font-bold pt-4">Key Features</h2>
+      <p className="pb-4">
+        The game features a variety of features that make it unique and engaging:
+      </p>
+      <ul className="list-disc list-outside pl-6 flex flex-col gap-3">
+        <li>
+          <h3 className="font-bold">Master Your Jutsu</h3>
+          Unlock powerful jutsu, train your ninja, and create signature moves that set
+          you apart in the ninja world.
+        </li>
+        <li>
+          <h3 className="font-bold">Explore Immersive Villages</h3>
+          Align with a village, enhance your reputation, and immerse yourself in a
+          vibrant ninja community.
+        </li>
+        <li>
+          <h3 className="font-bold">Engage in Strategic Ninja Battles</h3>
+          Compete in intense PvP and team-based combat on a dynamic 2D hex-based
+          battlefield.
+        </li>
+        <li>
+          <h3 className="font-bold">Uncover Evolving Storylines</h3>
+          Take on challenging missions, defeat rogue ninjas, and discover the hidden
+          truths of the shinobi universe.
+        </li>
+        <li>
+          <h3 className="font-bold">Join a Thriving Ninja Community</h3>
+          Create clans, forge alliances, and participate in epic player-driven events
+          that shape the game.
+        </li>
+      </ul>
+    </div>
+  </div>
+);

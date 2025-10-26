@@ -46,12 +46,12 @@ export default clerkMiddleware(
     const { pathname } = request.nextUrl;
     const { userId } = await auth();
     if (pathname === "/" && !userId) {
-      const cookie = request.cookies.get("ab_active_players_count");
+      const cookie = request.cookies.get("ab_layout_new");
       const variant = cookie?.value ?? (Math.random() < 0.5 ? "treatment" : "control");
       const url = request.nextUrl.clone();
       console.log("variant", variant);
       const res = NextResponse.rewrite(url);
-      if (!cookie) res.cookies.set("ab_active_players_count", variant, { path: "/" });
+      if (!cookie) res.cookies.set("ab_layout_new", variant, { path: "/" });
       return res;
     }
   },
