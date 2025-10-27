@@ -60,8 +60,10 @@ const DistributeStatsForm: React.FC<StatDistributionProps> = (props) => {
     defaultBackHref,
   } = props;
 
-  // Tab state
-  const [tab, setTab] = useState<"Simple" | "Advanced">("Simple");
+  // Tab state - force Advanced mode for redistribution
+  const [tab, setTab] = useState<"Simple" | "Advanced">(
+    isRedistribution ? "Advanced" : "Simple",
+  );
 
   // Tutorial hook
   const { currentStep, handleNextStep } = useTutorialStep();
@@ -87,21 +89,23 @@ const DistributeStatsForm: React.FC<StatDistributionProps> = (props) => {
     }
   };
 
-  // NavTabs component
-  const navTabs = (
+  // NavTabs component - hide for redistribution
+  const navTabs = !isRedistribution ? (
     <NavTabs
       id="stats-distribution-tab"
       current={tab}
       options={["Simple", "Advanced"] as const}
       onChange={(value) => setTab(value as "Simple" | "Advanced")}
     />
-  );
+  ) : null;
 
   // Content to render
   const content = (
     <>
-      {!showWrapper && <div className="flex justify-end mb-2">{navTabs}</div>}
-      {tab === "Simple" ? (
+      {!showWrapper && navTabs && (
+        <div className="flex justify-end mb-2">{navTabs}</div>
+      )}
+      {tab === "Simple" && !isRedistribution ? (
         <SimpleDistribution
           userData={userData}
           availableStats={availableStats}
@@ -397,6 +401,7 @@ const AdvancedDistribution: React.FC<AdvancedDistributionProps> = (props) => {
                       default={defaultValues[stat] ?? 0}
                       min={minValue}
                       max={dynamicMax}
+                      step={0.01}
                       watchedValue={currentValue}
                       watchedTotal={availableStats}
                       setValue={form.setValue}

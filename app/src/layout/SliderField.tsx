@@ -9,6 +9,7 @@ interface SliderFieldProps {
   default: number;
   min: number;
   max: number;
+  step?: number;
   unit?: string;
   error?: string;
   watchedValue: number;
@@ -39,7 +40,7 @@ const SliderField: React.FC<SliderFieldProps> = (props) => {
       <label htmlFor={props.id} className="mb-2 block font-medium">
         {props.label ? `${props.label}.` : ""}
         {props.watchedValue
-          ? ` Selected: ${props.watchedValue} ${props.watchedTotal ? `/ ${props.watchedTotal}` : ""} ${props.unit ?? ""}`
+          ? ` Selected: ${props.watchedValue.toFixed(2)} ${props.watchedTotal ? `/ ${props.watchedTotal.toFixed(2)}` : ""} ${props.unit ?? ""}`
           : ""}
       </label>
       <div className="flex flex-row items-center">
@@ -47,7 +48,7 @@ const SliderField: React.FC<SliderFieldProps> = (props) => {
           className="inline-block h-10 w-10 mr-2 fill-orange-100 text-orange-800 hover:fill-orange-600  hover:cursor-pointer"
           onClick={() =>
             props.watchedValue > props.min
-              ? props.setValue(props.id, props.watchedValue - 1)
+              ? props.setValue(props.id, props.watchedValue - (props.step ?? 1))
               : null
           }
         />
@@ -56,6 +57,7 @@ const SliderField: React.FC<SliderFieldProps> = (props) => {
           type="range"
           min={props.min}
           max={props.max}
+          step={props.step ?? 1}
           {...props?.register?.(props.id, { valueAsNumber: true })}
           className="h-5 w-full cursor-pointer appearance-none  rounded-lg bg-orange-200 accent-orange-800"
           onChange={(e) => handleChange(props.id, Number(e.target.value))}
@@ -64,7 +66,7 @@ const SliderField: React.FC<SliderFieldProps> = (props) => {
           className="inline-block h-10 w-10 ml-2 fill-orange-100 text-orange-800 hover:fill-orange-600 hover:cursor-pointer"
           onClick={() =>
             props.watchedValue < props.max
-              ? props.setValue(props.id, props.watchedValue + 1)
+              ? props.setValue(props.id, props.watchedValue + (props.step ?? 1))
               : null
           }
         />

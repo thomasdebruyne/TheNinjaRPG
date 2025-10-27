@@ -3,7 +3,6 @@
 import { z } from "zod";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Confirm2 from "@/layout/Confirm2";
@@ -16,6 +15,8 @@ import UserBlacklistControl from "@/layout/UserBlacklistControl";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import NindoChange from "@/layout/NindoChange";
 import AiProfileEdit from "@/layout/AiProfileEdit";
+import DistributeStatsForm from "@/layout/StatsDistributionForm";
+import { round } from "@/utils/math";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Form,
@@ -1099,26 +1100,22 @@ const SwapBloodline: React.FC = () => {
 const ResetStats: React.FC = () => {
   // State
   const { data: userData } = useRequiredUserData();
-  const router = useRouter();
   const utils = api.useUtils();
 
   // Mutations
-  const { mutate: resetStats, isPending } =
-    api.blackmarket.resetStatsToExperience.useMutation({
-      onSuccess: async (data) => {
-        showMutationToast(data);
-        if (data.success) {
-          await utils.profile.getUser.invalidate();
-          // Redirect to experience page to reassign stats
-          router.push("/profile/experience");
-        }
-      },
-    });
+  const { mutate: updateStats, isPending } = api.blackmarket.updateStats.useMutation({
+    onSuccess: async (data) => {
+      showMutationToast(data);
+      if (data.success) {
+        await utils.profile.getUser.invalidate();
+      }
+    },
+  });
 
   // Only show if we have userData
   if (!userData) return <Loader explanation="Loading user" />;
 
-  // Calculate total stats that will be converted
+  // Calculate total stats available for redistribution
   const totalStats =
     userData.ninjutsuOffence +
     userData.taijutsuOffence +
@@ -1133,7 +1130,6 @@ const ResetStats: React.FC = () => {
     userData.intelligence +
     userData.willpower;
 
-  const earnedFromStats = totalStats - 120;
   const cost = canChangeContent(userData.role) ? 0 : COST_RESET_STATS;
   const canAfford = userData.reputationPoints >= cost;
 
@@ -1141,41 +1137,29 @@ const ResetStats: React.FC = () => {
   return (
     <div className="flex flex-col gap-3">
       <p>
-        This will convert all your current stats back to {earnedFromStats} earned
-        experience points, resetting all stats to 10 each (base 120 total).
+        Redistribute all your stats ({totalStats} total points). This will cost {cost}{" "}
+        reputation points.
       </p>
-      <p>After resetting, you will be redirected to reassign your experience points.</p>
-      <Confirm2
-        title="Confirm Stats Reset"
-        button={
-          <Button
-            id="reset-stats"
-            className="w-full"
-            disabled={!canAfford || isPending || earnedFromStats <= 0}
-          >
-            {isPending
-              ? "Resetting..."
-              : canAfford
-                ? `Reset Stats for ${cost} Rep`
-                : `Need ${cost - userData.reputationPoints} More Rep`}
-          </Button>
-        }
-        onAccept={() => resetStats()}
-      >
-        <div>
-          <p className="mb-2">
-            Are you sure you want to reset all your stats? This will:
-          </p>
-          <ul className="list-disc list-inside mb-2">
-            <li>Reset all stats to 10 each (120 total)</li>
-            <li>Convert {earnedFromStats} stat points to earned experience</li>
-            <li>Cost {cost} reputation points</li>
-          </ul>
-          <p className="text-orange-500 font-bold">
-            You will then be able to reassign these points on the experience page.
-          </p>
-        </div>
-      </Confirm2>
+      {!canAfford && (
+        <p className="text-red-500 font-bold">
+          You need {cost - userData.reputationPoints} more reputation points to reset
+          your stats.
+        </p>
+      )}
+      {canAfford && (
+        <DistributeStatsForm
+          userData={userData}
+          availableStats={round(userData.experience + 120)}
+          onAccept={(data) => {
+            if (!isPending) {
+              updateStats(data);
+            }
+          }}
+          forceUseAll={true}
+          isRedistribution={true}
+          showWrapper={false}
+        />
+      )}
     </div>
   );
 };
