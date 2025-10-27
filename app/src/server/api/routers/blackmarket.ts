@@ -561,6 +561,7 @@ export const blackMarketRouter = createTRPCRouter({
           speed: 10,
           intelligence: 10,
           willpower: 10,
+          experience: user.experience - earnedFromStats,
           earnedExperience: user.earnedExperience + earnedFromStats,
           reputationPoints: sql`reputationPoints - ${cost}`,
         })
