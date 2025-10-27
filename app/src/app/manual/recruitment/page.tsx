@@ -228,9 +228,41 @@ export default function ManualRecruitment() {
                   </>
                 )}
                 {!isFetchingMain && mainMetrics && (
-                  <div className="text-xs text-foreground-muted">
-                    {mainMetrics.characterCreations} / {mainMetrics.visitors}
-                  </div>
+                  <>
+                    <div className="text-xs text-foreground-muted">
+                      {mainMetrics.characterCreations} / {mainMetrics.visitors}
+                    </div>
+                    {mainMetrics.characterCreationsByDevice &&
+                      mainMetrics.visitorsByDevice && (
+                        <div className="text-xs text-foreground-muted mt-1">
+                          📱{" "}
+                          {mainMetrics.visitorsByDevice.mobile > 0
+                            ? (
+                                (mainMetrics.characterCreationsByDevice.mobile /
+                                  mainMetrics.visitorsByDevice.mobile) *
+                                100
+                              ).toFixed(1)
+                            : "0.0"}
+                          % ({mainMetrics.characterCreationsByDevice.mobile}) | 💻{" "}
+                          {mainMetrics.visitorsByDevice.desktop > 0
+                            ? (
+                                (mainMetrics.characterCreationsByDevice.desktop /
+                                  mainMetrics.visitorsByDevice.desktop) *
+                                100
+                              ).toFixed(1)
+                            : "0.0"}
+                          % ({mainMetrics.characterCreationsByDevice.desktop}) | ❓{" "}
+                          {mainMetrics.visitorsByDevice.unknown > 0
+                            ? (
+                                (mainMetrics.characterCreationsByDevice.unknown /
+                                  mainMetrics.visitorsByDevice.unknown) *
+                                100
+                              ).toFixed(1)
+                            : "0.0"}
+                          % ({mainMetrics.characterCreationsByDevice.unknown})
+                        </div>
+                      )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -267,9 +299,41 @@ export default function ManualRecruitment() {
                   </>
                 )}
                 {!isFetchingMain && mainMetrics && (
-                  <div className="text-xs text-foreground-muted">
-                    {mainMetrics.tutorialFinishedSignups} / {mainMetrics.signups}
-                  </div>
+                  <>
+                    <div className="text-xs text-foreground-muted">
+                      {mainMetrics.tutorialFinishedSignups} / {mainMetrics.signups}
+                    </div>
+                    {mainMetrics.tutorialFinishedByDevice &&
+                      mainMetrics.signupsByDevice && (
+                        <div className="text-xs text-foreground-muted mt-1">
+                          📱{" "}
+                          {mainMetrics.signupsByDevice.mobile > 0
+                            ? (
+                                (mainMetrics.tutorialFinishedByDevice.mobile /
+                                  mainMetrics.signupsByDevice.mobile) *
+                                100
+                              ).toFixed(1)
+                            : "0.0"}
+                          % ({mainMetrics.tutorialFinishedByDevice.mobile}) | 💻{" "}
+                          {mainMetrics.signupsByDevice.desktop > 0
+                            ? (
+                                (mainMetrics.tutorialFinishedByDevice.desktop /
+                                  mainMetrics.signupsByDevice.desktop) *
+                                100
+                              ).toFixed(1)
+                            : "0.0"}
+                          % ({mainMetrics.tutorialFinishedByDevice.desktop}) | ❓{" "}
+                          {mainMetrics.signupsByDevice.unknown > 0
+                            ? (
+                                (mainMetrics.tutorialFinishedByDevice.unknown /
+                                  mainMetrics.signupsByDevice.unknown) *
+                                100
+                              ).toFixed(1)
+                            : "0.0"}
+                          % ({mainMetrics.tutorialFinishedByDevice.unknown})
+                        </div>
+                      )}
+                  </>
                 )}
               </CardContent>
             </Card>

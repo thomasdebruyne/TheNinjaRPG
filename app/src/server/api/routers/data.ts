@@ -79,6 +79,7 @@ export const dataRouter = createTRPCRouter({
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         utmSource: z.string().optional(),
+        deviceType: z.array(z.enum(["mobile", "desktop", "unknown"])).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -96,32 +97,42 @@ export const dataRouter = createTRPCRouter({
         whereConds.push(lte(abEvent.createdAt, new Date(input.endDate)));
       if (input?.utmSource && input.utmSource.length > 0)
         whereConds.push(eq(abEvent.source, input.utmSource));
+
+      // Fetch individual rows with userAgent for device filtering
       const rows = await ctx.drizzle
         .select({
+          id: abEvent.id,
           experiment: abEvent.experiment,
           variant: abEvent.variant,
           event: abEvent.event,
-          count: sql<number>`COUNT(${abEvent.id})`.mapWith(Number),
+          userAgent: abEvent.userAgent,
         })
         .from(abEvent)
-        .where(whereConds.length > 0 ? and(...whereConds) : undefined)
-        .groupBy(abEvent.experiment, abEvent.variant, abEvent.event)
-        .orderBy(asc(abEvent.experiment), asc(abEvent.variant));
+        .where(whereConds.length > 0 ? and(...whereConds) : undefined);
 
+      // Filter by device type if specified
+      let filteredRows = rows;
+      if (input.deviceType && input.deviceType.length > 0) {
+        filteredRows = rows.filter((row) => {
+          const deviceType = getDeviceType(row.userAgent ?? undefined);
+          return input.deviceType!.includes(deviceType);
+        });
+      }
+
+      // Aggregate the filtered rows
       const experiments = new Map<
         string,
         Record<string, { loaded: number; register: number }>
       >();
-      rows.forEach((r) => {
+      filteredRows.forEach((r) => {
         const exp = r.experiment ?? "";
         const variant = r.variant ?? "";
         const event = r.event ?? "";
-        const count = Number(r.count ?? 0);
         if (!experiments.has(exp)) experiments.set(exp, {});
         const map = experiments.get(exp)!;
         if (!map[variant]) map[variant] = { loaded: 0, register: 0 };
-        if (event === "loaded") map[variant].loaded += count;
-        if (event === "register") map[variant].register += count;
+        if (event === "loaded") map[variant].loaded += 1;
+        if (event === "register") map[variant].register += 1;
       });
 
       return Array.from(experiments.entries()).map(([experiment, variants]) => ({
@@ -184,7 +195,7 @@ export const dataRouter = createTRPCRouter({
       }
 
       const [
-        visitorsRow,
+        allVisitorsRow,
         signupsRow,
         characterCreationsRow,
         leveledSignupsRow,
@@ -195,10 +206,10 @@ export const dataRouter = createTRPCRouter({
         quests,
         completedQuests,
       ] = await Promise.all([
-        // visitorsRow
+        // allVisitorsRow (with userAgent for device splitting)
         ctx.drizzle
           .select({
-            count: sql<number>`COUNT(${visitorLog.id})`.mapWith(Number),
+            userAgent: visitorLog.userAgent,
           })
           .from(visitorLog)
           .where(visitorWhere.length > 0 ? and(...visitorWhere) : undefined),
@@ -212,7 +223,7 @@ export const dataRouter = createTRPCRouter({
           })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
-          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .leftJoin(userData, eq(userData.userId, historicalIp.userId))
           .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
           .where(
             and(
@@ -226,11 +237,11 @@ export const dataRouter = createTRPCRouter({
                 : []),
             ),
           ),
-        // characterCreationsRow
+        // characterCreationsRow: fetch individual users with userAgent for device splitting
         ctx.drizzle
           .select({
-            // Character creations: users who have a UserData row (mapped via historical IP to the visit)
-            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+            userId: userData.userId,
+            userAgent: visitorLog.userAgent,
           })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
@@ -291,10 +302,11 @@ export const dataRouter = createTRPCRouter({
               gt(userData.pvpFights, 0),
             ),
           ),
-        // tutorialFinishedSignupsRow
+        // tutorialFinishedSignupsRow: fetch individual users with userAgent for device splitting
         ctx.drizzle
           .select({
-            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+            userId: userData.userId,
+            userAgent: visitorLog.userAgent,
           })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
@@ -368,6 +380,17 @@ export const dataRouter = createTRPCRouter({
           : Promise.resolve([]),
       ]);
 
+      // Calculate visitors by device
+      const visitorsByDevice = {
+        mobile: 0,
+        desktop: 0,
+        unknown: 0,
+      };
+      allVisitorsRow.forEach((row) => {
+        const deviceType = getDeviceType(row.userAgent ?? undefined);
+        visitorsByDevice[deviceType]++;
+      });
+
       // Filter signupsRow by deviceType if specified
       let filteredSignupsRow = signupsRow;
       if (input.deviceType && input.deviceType.length > 0) {
@@ -377,15 +400,47 @@ export const dataRouter = createTRPCRouter({
         });
       }
 
-      const clicks = visitorsRow?.[0]?.count ?? 0;
+      // Calculate signups by device
+      const signupsByDevice = {
+        mobile: 0,
+        desktop: 0,
+        unknown: 0,
+      };
+      filteredSignupsRow.forEach((row) => {
+        const deviceType = getDeviceType(row.userAgent ?? undefined);
+        signupsByDevice[deviceType]++;
+      });
+
+      // Calculate device-split metrics
+      const characterCreationsByDevice = {
+        mobile: 0,
+        desktop: 0,
+        unknown: 0,
+      };
+      characterCreationsRow.forEach((row) => {
+        const deviceType = getDeviceType(row.userAgent ?? undefined);
+        characterCreationsByDevice[deviceType]++;
+      });
+
+      const tutorialFinishedByDevice = {
+        mobile: 0,
+        desktop: 0,
+        unknown: 0,
+      };
+      tutorialFinishedSignupsRow.forEach((row) => {
+        const deviceType = getDeviceType(row.userAgent ?? undefined);
+        tutorialFinishedByDevice[deviceType]++;
+      });
+
+      const clicks = allVisitorsRow.length;
       const signups = filteredSignupsRow?.length ?? 0;
-      const characterCreations = characterCreationsRow?.[0]?.count ?? 0;
+      const characterCreations = characterCreationsRow.length;
       const signupRate = clicks > 0 ? signups / clicks : 0;
       const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
       const leveledSignups = leveledSignupsRow?.[0]?.count ?? 0;
       const nonStudentSignups = nonStudentSignupsRow?.[0]?.count ?? 0;
       const pvpSignups = pvpSignupsRow?.[0]?.count ?? 0;
-      const tutorialFinishedSignups = tutorialFinishedSignupsRow?.[0]?.count ?? 0;
+      const tutorialFinishedSignups = tutorialFinishedSignupsRow.length;
       const totalRevenueUsd = totalRevenueRow?.[0]?.totalUsd ?? 0;
       const clickValueUsd = clicks > 0 ? totalRevenueUsd / clicks : 0;
 
@@ -427,7 +482,8 @@ export const dataRouter = createTRPCRouter({
 
             // Check if user completed this quest
             let objectives = 0;
-            if (completedQuestsMap.get(r.userId)?.has(questId)) {
+            const userId = r.userId ?? "";
+            if (completedQuestsMap.get(userId)?.has(questId)) {
               objectives = totalObjectives;
             } else {
               // Otherwise check questData for partial completion
@@ -452,13 +508,17 @@ export const dataRouter = createTRPCRouter({
         ctr: RECRUITMENT_CTR,
         signupRate,
         visitors: clicks,
+        visitorsByDevice,
         signups,
+        signupsByDevice,
         characterCreations,
         characterCreationRate,
+        characterCreationsByDevice,
         leveledBeyond1: leveledSignups,
         nonStudentSignups,
         pvpSignups,
         tutorialFinishedSignups,
+        tutorialFinishedByDevice,
         clickValueUsd,
         questFunnels,
         questObjectiveDescriptions,
