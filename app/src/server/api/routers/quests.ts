@@ -776,6 +776,21 @@ export const questsRouter = createTRPCRouter({
             return { success: false, message: `Objective flow invalid: ${message}` };
           }
         }
+        // Validate that either main quest has sceneCharacters or each objective has sceneCharacters
+        const hasMainSceneCharacters = input.data.content.sceneCharacters.length > 0;
+        const allObjectivesHaveSceneCharacters = input.data.content.objectives.every(
+          (objective) =>
+            objective.sceneCharacters && objective.sceneCharacters.length > 0,
+        );
+        if (
+          !input.data.hidden &&
+          !hasMainSceneCharacters &&
+          !allObjectivesHaveSceneCharacters
+        ) {
+          return errorResponse(
+            "Quest must have either main sceneCharacters set or all objectives must have sceneCharacters defined",
+          );
+        }
         // Prepare data for insertion into database
         const data = input.data;
         // Check we only give ranks with exams
