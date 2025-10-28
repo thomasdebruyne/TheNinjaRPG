@@ -293,7 +293,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
       "Assign the obtained experience to the stat of your liking. A good ninja is well-rounded, so don't stress too much about which stat you assign it to yet.",
     elementIds: [
       "tutorial-specialization-confirm-content",
-      "tutorial-unassigned-stats",
+      "tutorial-unassigned-stats-contentbox",
     ],
     page: "/profile/experience",
   },
