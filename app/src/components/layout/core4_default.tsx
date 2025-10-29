@@ -389,7 +389,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           priority
           unoptimized
         />
-        <div className="max-w-[1280px] ml-auto mr-auto w-full absolute top-0 bottom-0 md:relative">
+        <div className="max-w-[1280px] ml-auto mr-auto w-full relative top-0 bottom-0 md:relative">
           {/* LOGO WITH TOGGLE */}
           <div className="relative z-2 top-3 w-full flex justify-center select-none z-50">
             {!lightLayout && (

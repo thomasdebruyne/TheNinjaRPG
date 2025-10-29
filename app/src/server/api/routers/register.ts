@@ -105,7 +105,7 @@ export const registerRouter = createTRPCRouter({
           ctx.drizzle.query.abEvent.findFirst({
             where: and(
               eq(abEvent.ip, ctx.userIp ?? ""),
-              eq(abEvent.experiment, "ab_layout_new"),
+              eq(abEvent.experiment, "ab_layout_new_2"),
               eq(abEvent.event, "loaded"),
             ),
           }),
@@ -191,7 +191,7 @@ export const registerRouter = createTRPCRouter({
                 .values({
                   id: nanoid(),
                   userId: ctx.userId,
-                  experiment: "ab_layout_new",
+                  experiment: "ab_layout_new_2",
                   variant: ctx.abLayoutNewVariant,
                   event: "register",
                   source: input.utm_source ?? undefined,

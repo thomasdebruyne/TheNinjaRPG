@@ -13,7 +13,6 @@ import { IMG_FRONTPAGE_SCREENSHOT_JUTSUS } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_GLOBAL } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_SECTOR } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_VILLAGE } from "@/drizzle/constants";
-import { IMG_LOGO_FULL } from "@/drizzle/constants";
 import { IMG_PLAY_STORE_BANNER } from "@/drizzle/constants";
 import { IMG_APP_STORE_BANNER } from "@/drizzle/constants";
 import { api } from "@/app/_trpc/client";
@@ -24,7 +23,7 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 const Welcome: React.FC = () => {
   // AB test for active players count
-  const { isTreatment } = useAbVariant("ab_layout_new");
+  const { isTreatment } = useAbVariant("ab_layout_new_2");
 
   // Install prompt control
   const { showPrompt } = useInstallPrompt();
@@ -53,43 +52,25 @@ const Welcome: React.FC = () => {
       )}
     >
       <div className={cn(backgroundClass, "justify-start")}>
-        {isTreatment && (
-          <div className="relative z-2 px-3 top-3 w-full flex justify-center select-none">
-            <Image
-              id="tutorial-logo"
-              src={IMG_LOGO_FULL}
-              width={384}
-              height={138}
-              alt="logo"
-              className="mb-6"
-              loading="lazy"
-            />
-          </div>
-        )}
         <div className={cn(contentClass, isTreatment ? "mb-10" : "")}>
-          {!isTreatment && (
-            <Image
-              className=""
-              src={IMG_LAYOUT_WELCOME_IMG}
-              alt="TNR Logo"
-              width={1000}
-              height={181}
-              priority
-            />
-          )}
+          <Image
+            className=""
+            src={IMG_LAYOUT_WELCOME_IMG}
+            alt="TNR Logo"
+            width={1000}
+            height={181}
+            priority
+          />
 
           <div
             className={
-              isTreatment
-                ? "text-base sm:text-xl md:text-2xl lg:text-2xl flex flex-col text-center items-center gap-0 px-4 italic py-4"
-                : "w-full text-sm sm:text-md sm:text-md md:text-md lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-4"
+              "w-full text-sm sm:text-md sm:text-xl md:text-md lg:text-xl flex flex-col text-center items-center gap-0 px-4 italic py-4"
             }
           >
             <p>
-              More than <b>{(1000000).toLocaleString()}</b> people have played
-              TheNinja-RPG!
+              More than <b>{(1000000).toLocaleString()}</b> have played TheNinja-RPG!
             </p>
-            <p>Join the new version and experience our unique ninja world!</p>
+            <p>Join the new version and experience our ninja world!</p>
             <Link href="/signup" aria-label="Signup" className="w-full p-3 m-3">
               <Button
                 id="signup_btn"
@@ -106,12 +87,12 @@ const Welcome: React.FC = () => {
             <div
               className={cn(
                 isTreatment
-                  ? "inline items-center gap-2 text-lg"
+                  ? "inline items-center gap-2 text-xl"
                   : "inline items-center gap-2",
               )}
             >
               Already have an account?{" "}
-              <Link href="/login" aria-label="Login" className="text-primary font-bold">
+              <Link href="/login" aria-label="Login" className="underline font-bold">
                 Log In
               </Link>
             </div>

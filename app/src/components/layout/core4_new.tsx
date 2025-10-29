@@ -1,3 +1,8 @@
+/**
+ * DEPRECATED - DO NOT USE THIS LAYOUT
+ * This can be used together with the layoutSwitcher for testing different landing page layouts
+ */
+
 "use client";
 
 import ReactDOM from "react-dom";
