@@ -19,7 +19,7 @@ export interface TutorialStepConfig {
   elementIds?: string[];
   page: string;
   hideDialog?: boolean;
-  relatedValue?: number;
+  relatedValue?: number | string;
   showNextButton?: boolean;
   proceedOnHighlightClick?: boolean;
   requiresGameMenu?: boolean;
@@ -287,7 +287,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     requiresGameMenu: true,
   },
   {
-    id: "YPfhJfdsl37V",
+    id: "YPfhJfdsl37dsaV",
     title: "Assigning Stats",
     description:
       "Assign the obtained experience to the stat of your liking. A good ninja is well-rounded, so don't stress too much about which stat you assign it to yet.",
@@ -381,9 +381,10 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
   {
     id: "blL789mkRIKtjsWk",
     title: "Academy Dialog Option",
-    elementIds: ["logbook-entry-eYDVpL63vPhK3lywMexdv"],
+    elementIds: [`logbook-entry-${TUTORIAL_STARTER_QUEST_ID}`],
     description: "",
     page: "/academy",
+    relatedValue: TUTORIAL_STARTER_QUEST_ID,
     hideDialog: true,
   },
   {
@@ -401,7 +402,10 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     title: "Assigning Stats",
     description:
       "Assign the obtained experience to the stat of your liking. A good ninja is well-rounded, so don't stress too much about which stat you assign it to yet.",
-    elementIds: ["tutorial-unassigned-stats-contentbox"],
+    elementIds: [
+      "tutorial-specialization-confirm-content",
+      "tutorial-unassigned-stats-contentbox",
+    ],
     page: "/profile/experience",
   },
   {
@@ -438,6 +442,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     description:
       "You're ready to start the Genin exam. Passing this exam will award you the rank of Genin, which will unlock more difficult missions and jutsus, as well as pick pick one of the major ninja villages to join. Feel free to explore a bit, if you want, and otherwise come back here once you're ready for the exam. ",
     page: "/academy",
+    relatedValue: TUTORIAL_GENIN_EXAM_QUEST_ID,
   },
   // {
   //   title: "That's it for now!",

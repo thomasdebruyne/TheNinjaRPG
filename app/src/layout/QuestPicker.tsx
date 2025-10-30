@@ -61,6 +61,33 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
     },
   });
 
+  // Handle certain tutorial syncronization steps
+  useEffect(() => {
+    // If we're on the dialog option of a quest which we don't have access to, then proceed the tutorial
+    if (
+      currentStep?.title === "Academy Dialog Option" &&
+      currentStep?.relatedValue &&
+      currentStep?.hideDialog &&
+      quests !== undefined
+    ) {
+      const quest = quests.find((q) => q.id === currentStep?.relatedValue);
+      if (!quest) {
+        console.log("Quest not found, proceeding to next step in tutorial");
+        void handleNextStepAsync();
+      }
+    }
+
+    // If we're instructed to take a quest, but we already have it, proceed the tutorial
+    if (
+      currentStep?.elementIds?.find((id) => id.startsWith("tutorial-take-quest-")) &&
+      currentStep?.relatedValue &&
+      userData?.userQuests?.find((uq) => uq.questId === currentStep?.relatedValue)
+    ) {
+      console.log("Quest already taken, proceeding to next step in tutorial");
+      void handleNextStepAsync();
+    }
+  }, [currentStep, userData, quests, handleNextStepAsync]);
+
   // Default active tab
   useEffect(() => {
     // Ensure that we are using the correct active element
