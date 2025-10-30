@@ -9,6 +9,7 @@ from moviepy import (
     TextClip,
     ImageClip,
     CompositeVideoClip,
+    CompositeAudioClip,
     concatenate_videoclips,
     concatenate_audioclips,
     ColorClip,
@@ -17,8 +18,6 @@ from moviepy import (
 )
 import os
 import argparse
-import numpy as np
-from PIL import Image, ImageDraw
 
 # Configuration
 CLIPS_DIR = "clips"  # Directory containing the recorded video clips
@@ -30,10 +29,13 @@ FPS = 30
 BACKGROUND_MUSIC = os.path.join(CLIPS_DIR, "xevan_welcome_to_seichi_compressed.m4a")
 
 WALLPAPER = os.path.join(CLIPS_DIR, "wallpaper-bright.webp")
+WALLPAPER_ANIMATED = os.path.join(CLIPS_DIR, "wallpaper-bright-animated.mp4")
 
 LOGO_FILE = os.path.join(CLIPS_DIR, "logo_final.webp")
 
 FONT_FILE = os.path.join(CLIPS_DIR, "aAsianNinja.ttf")
+
+OUTRO_NARRATION = os.path.join(CLIPS_DIR, "play-for-free.mp3")
 
 # Recorded clips metadata
 RECORDED_CLIPS = [
@@ -53,116 +55,113 @@ RECORDED_CLIPS = [
 # Timeline segments with text overlays
 # Each segment has a duration in seconds - much simpler!
 # Total content: 59 seconds + 0.5s intro + 4s outro = ~63.5 seconds
+# Each segment can optionally specify a "wallpaper" path for custom animated background
+# If not specified, uses WALLPAPER_ANIMATED as default
+# Each segment can optionally specify a "narration" path for voice-over audio
+# Example: {"duration": 5, "text": "...", "clips": [...], "wallpaper": "clips/custom.mp4", "narration": "clips/voiceover.mp3"}
 TIMELINE = [
     {
         "duration": 7,
-        "text": "ARE YOU READY TO\nAWAKEN YOUR NINJA LEGACY?",
+        "text": "BROWSER GAMES ARE DEAD?\nWATCH THIS",
         "clips": ["profile.mov"],
+        "narration": os.path.join(CLIPS_DIR, "browser-based-games-are-dead.mp3"),
     },
     {
         "duration": 5,
-        "text": "FIGHT STRATEGIC BATTLES\nUSING NINJUTSU, TAIJUTSU, GENJUTSU or WEAPONS",
+        "text": "FIGHT STRATEGIC BATTLES\nUSING JUTSUS AND WEAPONS",
         "clips": ["combat.mp4"],
+        "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-glacier-animated.mp4"),
+        "narration": os.path.join(CLIPS_DIR, "fight-strategic-battles.mp3"),
     },
     {
         "duration": 5,
-        "text": "EXPLORE THE WORLD OF SEICHI\nIN A MASSIVE MULTIPLAYER ONLINE GAME",
+        "text": "EXPLORE THE WORLD OF SEICHI\nIN A FREE MMORPG",
         "clips": ["global.mp4", "sector.mp4"],
+        "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-tsukimori-animated.mp4"),
+        "narration": os.path.join(CLIPS_DIR, "explore-the-world.mp3"),
     },
     {
         "duration": 5,
         "text": "TRAIN YOUR STATS\nAND MASTER YOUR JUTSUS",
         "clips": ["training.mp4"],
+        "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-shroud-animated.mp4"),
+        "narration": os.path.join(CLIPS_DIR, "train-your-stats.mp3"),
     },
 
     {
-        "duration": 9,
+        "duration": 6,
         "text": "CLAIM YOUR BLOODLINE\nAND UNLOCK UNIQUE ABILITIES",
         "clips": ["bloodline.mov"],
+        "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-current-animated.mp4"),
+        "narration": os.path.join(CLIPS_DIR, "claim-your-bloodline.mp3"),
     },
     {
         "duration": 5,
         "text": "800+ UNIQUE JUTSU AND \n50+ BLOODLINES",
         "clips": ["jutsus.mov"],
+        "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-shine-animated.mp4"),
+        "narration": os.path.join(CLIPS_DIR, "more-than-content.mp3"),
     },
     {
         "duration":7,
-        "text": "CUSTOMIZE YOUR NINJA",
+        "text": "CUSTOMIZE YOUR NINJA WITH\nWEAPONS, ARMOR, AND SPECIAL ITEMS",
         "clips": ["itemshop.mp4", "equipment.mov"],
+        "narration": os.path.join(CLIPS_DIR, "customize-your-ninja.mp3"),
     },
     
     {
         "duration":7,
         "text": "AND GO ON EPIC QUESTS \nTO SUPPORT YOUR VILLAGE",
         "clips": ["quest.mp4"],
+        "narration": os.path.join(CLIPS_DIR, "and-go-on-quests.mp3"),
     },
 ]
 
 
-def create_wind_particles(duration, size=VIDEO_SIZE, num_particles=50):
-    """Create a wind particle effect overlay"""
-    def make_frame(t):
-        # Create transparent RGBA image
-        img = Image.new('RGBA', size, (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        
-        # Set random seed based on time for consistent but animated particles
-        np.random.seed(42)
-        
-        # Generate particles with different speeds and positions
-        for i in range(num_particles):
-            # Each particle has its own speed and starting position
-            speed = 100 + (i * 7) % 200  # Pixels per second
-            start_x = (i * 113) % size[0]  # Stagger starting positions
-            y_pos = (i * 37) % size[1]  # Vertical position
-            
-            # Calculate current x position (wrap around)
-            x_pos = (start_x + speed * t) % (size[0] + 100) - 100
-            
-            # Particle properties
-            particle_length = 20 + (i % 30)
-            particle_width = 1 + (i % 2)
-            opacity = 40 + (i % 60)  # Vary opacity between particles
-            
-            # Draw particle as a line (wind streak)
-            draw.line(
-                [(x_pos, y_pos), (x_pos + particle_length, y_pos)],
-                fill=(255, 255, 255, opacity),
-                width=particle_width
-            )
-        
-        return np.array(img)
-    
-    from moviepy import VideoClip
-    particle_clip = VideoClip(make_frame, duration=duration)
-    return particle_clip
+def load_animated_wallpaper(wallpaper_path, duration, size):
+    """Load and prepare animated wallpaper background"""
+    if os.path.exists(wallpaper_path):
+        try:
+            bg = VideoFileClip(wallpaper_path)
+            # Loop the video if it's shorter than the duration
+            if bg.duration < duration:
+                loops_needed = int(duration / bg.duration) + 1
+                bg = concatenate_videoclips([bg] * loops_needed)
+            # Trim to exact duration
+            bg = bg.subclipped(0, duration)
+            # Resize to fit the target size
+            bg = bg.resized(size)
+            # Always mute wallpaper audio
+            bg = bg.without_audio()
+            return bg
+        except Exception as e:
+            print(f"⚠ Could not load animated wallpaper {wallpaper_path}: {e}, using black background")
+            return ColorClip(size=size, color=(0, 0, 0)).with_duration(duration)
+    else:
+        print(f"⚠ Animated wallpaper not found: {wallpaper_path}, using black background")
+        return ColorClip(size=size, color=(0, 0, 0)).with_duration(duration)
 
 
-def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="white"):
-    """Create a full-screen text clip with centered text on wallpaper background"""
+def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="white", wallpaper=None):
+    """Create a full-screen text clip with centered text on animated wallpaper background"""
     # Auto-scale font size based on resolution if not specified
     if fontsize is None:
         fontsize = int(size[1] / 9)  # Large, bold text
+    
+    # Auto-scale stroke width based on resolution
+    stroke_width = max(1, int(size[1] / 180))  # Scales with height, min 1px
     
     # Timing for fade effects
     wallpaper_fade_duration = 0.4
     text_delay = 0.5  # Delay before text starts fading in
     text_fade_duration = 0.3
     
-    # Create wallpaper background with fade-in
-    if os.path.exists(WALLPAPER):
-        try:
-            bg = ImageClip(WALLPAPER).with_duration(duration)
-            # Resize to fit the target size
-            bg = bg.resized(size)
-            # Add fade-in to wallpaper
-            bg = bg.with_effects([vfx.FadeIn(wallpaper_fade_duration)])
-        except Exception as e:
-            print(f"⚠ Could not load wallpaper: {e}, using black background")
-            bg = ColorClip(size=size, color=(0, 0, 0)).with_duration(duration)
-    else:
-        print(f"⚠ Wallpaper not found: {WALLPAPER}, using black background")
-        bg = ColorClip(size=size, color=(0, 0, 0)).with_duration(duration)
+    # Use provided wallpaper or default
+    wallpaper_path = wallpaper if wallpaper is not None else WALLPAPER_ANIMATED
+    
+    # Create animated wallpaper background with fade-in
+    bg = load_animated_wallpaper(wallpaper_path, duration, size)
+    bg = bg.with_effects([vfx.FadeIn(wallpaper_fade_duration)])
     
     # Determine which font to use
     if os.path.exists(FONT_FILE):
@@ -170,9 +169,6 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
     else:
         print(f"⚠ Custom font not found: {FONT_FILE}, using Impact fallback")
         font = "Impact"
-    
-    # Create wind particle effect
-    particles = create_wind_particles(duration, size=size)
     
     # Create text clip with delayed fade-in and black stroke
     txt = (
@@ -185,7 +181,7 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
             method="caption",
             text_align="center",
             stroke_color="black",
-            stroke_width=3,
+            stroke_width=stroke_width,
         )
         .with_duration(duration - text_delay)
         .with_position("center")
@@ -193,14 +189,14 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
         .with_effects([vfx.FadeIn(text_fade_duration)])
     )
     
-    # Composite: background -> particles -> text
-    composite = CompositeVideoClip([bg, particles, txt], size=size)
+    # Composite: background -> text
+    composite = CompositeVideoClip([bg, txt], size=size)
     
     return composite
 
 
-def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE, speed_factor=1.0):
-    """Load a video clip, resize, and adjust duration"""
+def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE):
+    """Load a video clip, resize, and adjust duration by scaling speed to show full clip"""
     # Handle clip names that already include file extension
     clip_path = os.path.join(CLIPS_DIR, clip_name)
     
@@ -210,29 +206,55 @@ def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE, speed_fac
     
     clip = VideoFileClip(clip_path)
     
-    # Adjust speed if needed to fit duration
-    if speed_factor != 1.0:
-        clip = clip.with_effects([vfx.MultiplySpeed(speed_factor)])
+    # Mute the video clip audio (only use narration and background music)
+    clip = clip.without_audio()
     
-    # Take only the needed duration
-    actual_duration = min(clip.duration, target_duration / speed_factor)
-    clip = clip.subclipped(0, actual_duration)
+    # Calculate speed factor to fit the entire clip within target_duration
+    # If clip is longer than target, speed it up. If shorter, slow it down.
+    calculated_speed_factor = clip.duration / target_duration
     
-    # Resize to target size maintaining aspect ratio
-    clip = clip.resized(height=size[1])
+    # Apply the calculated speed factor
+    if calculated_speed_factor != 1.0:
+        clip = clip.with_effects([vfx.MultiplySpeed(calculated_speed_factor)])
+        print(f"  → Scaling {clip_name} speed by {calculated_speed_factor:.2f}x to fit {target_duration:.1f}s (original: {clip.duration:.1f}s)")
     
-    # Center crop if wider than target
-    if clip.w > size[0]:
-        x_center = clip.w / 2
-        x1 = int(x_center - size[0] / 2)
-        clip = clip.cropped(x1=x1, width=size[0])
+    # Set clip to exact target duration (should already match after speed adjustment)
+    clip = clip.with_duration(target_duration)
     
-    # Add padding if narrower than target
-    if clip.w < size[0]:
-        bg = ColorClip(size=size, color=(0, 0, 0), duration=clip.duration)
-        clip = CompositeVideoClip([bg, clip.with_position("center")], size=size)
+    # Calculate aspect ratios
+    target_aspect = size[0] / size[1]  # e.g., 16:9 = 1.778
+    clip_aspect = clip.w / clip.h
     
-    return clip.with_duration(target_duration)
+    # If clip is square-ish (aspect ratio < target), scale to width instead of height
+    if clip_aspect < target_aspect:
+        # Scale to full width
+        clip = clip.resized(width=size[0])
+        
+        # Crop from bottom if taller than target
+        if clip.h > size[1]:
+            # Crop from top (y1=0) to target height, removing excess from bottom
+            clip = clip.cropped(y1=0, height=size[1])
+        
+        # Add padding at bottom if shorter than target
+        elif clip.h < size[1]:
+            bg = ColorClip(size=size, color=(0, 0, 0), duration=target_duration)
+            clip = CompositeVideoClip([bg, clip.with_position(("center", 0))], size=size)
+    else:
+        # Original logic: scale to height for widescreen videos
+        clip = clip.resized(height=size[1])
+        
+        # Center crop if wider than target
+        if clip.w > size[0]:
+            x_center = clip.w / 2
+            x1 = int(x_center - size[0] / 2)
+            clip = clip.cropped(x1=x1, width=size[0])
+        
+        # Add padding if narrower than target
+        if clip.w < size[0]:
+            bg = ColorClip(size=size, color=(0, 0, 0), duration=target_duration)
+            clip = CompositeVideoClip([bg, clip.with_position("center")], size=size)
+    
+    return clip
 
 
 def create_segment(timeline_item, video_size=VIDEO_SIZE):
@@ -240,12 +262,14 @@ def create_segment(timeline_item, video_size=VIDEO_SIZE):
     total_duration = timeline_item["duration"]
     clip_names = timeline_item["clips"]
     
-    # Allocate time: 35% for text screen + 0.5s extra linger, remaining for clips
-    text_duration = total_duration * 0.35 + 0.5
-    clips_duration = total_duration * 0.65 - 0.5
+    # Allocate time: 3 seconds for text screen, remaining for clips
+    text_duration = 3
+    clips_duration = total_duration - text_duration
     
     # Create text screen (fade-in is handled internally)
-    text_screen = create_text_screen(timeline_item["text"], text_duration, size=video_size)
+    # Use wallpaper from timeline item if provided
+    wallpaper = timeline_item.get("wallpaper")
+    text_screen = create_text_screen(timeline_item["text"], text_duration, size=video_size, wallpaper=wallpaper)
     text_screen = text_screen.with_effects([vfx.FadeOut(0.3)])
     
     # Calculate duration per clip
@@ -254,9 +278,8 @@ def create_segment(timeline_item, video_size=VIDEO_SIZE):
     # Load and prepare video clips
     video_clips = []
     for clip_name in clip_names:
-        # Speed up clips slightly if needed to fit multiple clips
-        speed_factor = 1.2 if len(clip_names) > 1 else 1.0
-        clip = load_and_prepare_clip(clip_name, duration_per_clip, size=video_size, speed_factor=speed_factor)
+        # Speed is now automatically adjusted to show the full clip within duration_per_clip
+        clip = load_and_prepare_clip(clip_name, duration_per_clip, size=video_size)
         clip = clip.with_effects([vfx.FadeIn(0.3), vfx.FadeOut(0.3)])
         video_clips.append(clip)
     
@@ -268,6 +291,34 @@ def create_segment(timeline_item, video_size=VIDEO_SIZE):
     
     # Concatenate text screen and video clips
     final_segment = concatenate_videoclips([text_screen, video_section], method="compose")
+    
+    # Add narration audio if provided
+    narration_path = timeline_item.get("narration")
+    if narration_path and os.path.exists(narration_path):
+        try:
+            narration_audio = AudioFileClip(narration_path)
+            
+            # Trim or loop narration to match segment duration if needed
+            if narration_audio.duration > total_duration:
+                narration_audio = narration_audio.subclipped(0, total_duration)
+            elif narration_audio.duration < total_duration:
+                # If narration is shorter, it will just play and then be silent
+                pass
+            
+            # Add fade in/out to narration for smooth audio
+            narration_audio = narration_audio.with_effects([
+                afx.AudioFadeIn(0.3),
+                afx.AudioFadeOut(0.3),
+                afx.MultiplyVolume(1.2)  # Boost narration volume slightly
+            ])
+            
+            # Attach narration to the segment
+            final_segment = final_segment.with_audio(narration_audio)
+            print(f"  → Added narration: {os.path.basename(narration_path)}")
+        except Exception as e:
+            print(f"  ⚠ Could not load narration {narration_path}: {e}")
+    elif narration_path:
+        print(f"  ⚠ Narration not found: {narration_path}")
     
     return final_segment
 
@@ -304,11 +355,86 @@ def load_background_music(duration):
         return None
 
 
-def create_outro(duration=4, video_size=VIDEO_SIZE):
+def create_variable_volume_background_music(base_audio, timeline_segments):
+    """
+    Create background music with variable volume based on segment content.
+    Lower volume during text/narration, higher during video clips.
+    
+    Args:
+        base_audio: The base background music AudioClip
+        timeline_segments: List of dicts with timing info:
+            [{"start": 0, "text_duration": 2, "clips_duration": 3, "has_narration": True}, ...]
+    
+    Returns:
+        AudioClip with variable volume
+    """
+    if not base_audio:
+        return None
+    
+    import numpy as np
+    
+    # Create volume variation function
+    def volume_function(t):
+        """Return volume multiplier for time t (handles both scalar and array inputs)"""
+        # Handle array inputs (batch processing)
+        is_array = isinstance(t, np.ndarray)
+        t_array = np.atleast_1d(t)
+        volumes = np.full_like(t_array, 0.65, dtype=float)  # Default volume (intro/outro)
+        
+        for seg in timeline_segments:
+            seg_start = seg["start"]
+            text_end = seg_start + seg["text_duration"]
+            seg_end = seg_start + seg["text_duration"] + seg["clips_duration"]
+            
+            # Find times within this segment
+            in_segment = (t_array >= seg_start) & (t_array < seg_end)
+            
+            if seg["has_narration"]:
+                # During text with narration: moderate volume (louder than before)
+                in_text = in_segment & (t_array < text_end)
+                volumes[in_text] = 0.45
+                
+                # During video clips: high volume (louder than before)
+                in_clips = in_segment & (t_array >= text_end)
+                volumes[in_clips] = 0.9
+            else:
+                # No narration in this segment: use high volume throughout
+                volumes[in_segment] = 0.9
+        
+        # Return scalar if input was scalar, array otherwise
+        return volumes if is_array else volumes[0]
+    
+    # Create a new audio clip with variable volume by modifying the frame function
+    original_frame_function = base_audio.get_frame
+    
+    def variable_volume_frame_function(t):
+        """Get audio frame with variable volume applied"""
+        frame = original_frame_function(t)
+        volume = volume_function(t)
+        
+        # Handle stereo audio (volume needs to be broadcast correctly)
+        if len(frame.shape) > 1:
+            # Stereo: shape is (n_samples, 2)
+            volume = np.atleast_1d(volume)
+            if len(volume.shape) == 1:
+                volume = volume[:, np.newaxis]  # Add channel dimension
+        
+        return frame * volume
+    
+    # Create new audio clip with the modified frame function
+    variable_audio = base_audio.with_updated_frame_function(variable_volume_frame_function)
+    
+    return variable_audio
+
+
+def create_outro(duration=4, video_size=VIDEO_SIZE, wallpaper=None, narration=None):
     """Create the final outro segment with logo and call-to-action"""
     # Auto-scale font sizes based on resolution
-    cta_font_size = int(video_size[1] / 14)   # CTA text
-    url_font_size = int(video_size[1] / 18)   # URL text
+    cta_font_size = int(video_size[1] / 10)   # CTA text
+    url_font_size = int(video_size[1] / 14)   # URL text
+    
+    # Auto-scale stroke width based on resolution
+    stroke_width = max(1, int(video_size[1] / 180))  # Scales with height, min 1px
     
     # Determine which font to use
     if os.path.exists(FONT_FILE):
@@ -316,17 +442,11 @@ def create_outro(duration=4, video_size=VIDEO_SIZE):
     else:
         font = "Impact"
     
-    # Wallpaper background
-    if os.path.exists(WALLPAPER):
-        try:
-            bg = ImageClip(WALLPAPER).with_duration(duration)
-            bg = bg.resized(video_size)
-        except Exception as e:
-            print(f"⚠ Could not load wallpaper for outro: {e}, using black background")
-            bg = ColorClip(size=video_size, color=(0, 0, 0), duration=duration)
-    else:
-        print(f"⚠ Wallpaper not found for outro: {WALLPAPER}, using black background")
-        bg = ColorClip(size=video_size, color=(0, 0, 0), duration=duration)
+    # Use provided wallpaper or default
+    wallpaper_path = wallpaper if wallpaper is not None else WALLPAPER_ANIMATED
+    
+    # Animated wallpaper background
+    bg = load_animated_wallpaper(wallpaper_path, duration, video_size)
     
     elements = [bg]
     
@@ -368,13 +488,13 @@ def create_outro(duration=4, video_size=VIDEO_SIZE):
     # Call to action - bold and clean with black stroke
     cta = (
         TextClip(
-            text="SIGN UP FREE",
+            text="SIGN UP FOR FREE",
             font=font,
             font_size=cta_font_size,
             color="white",
             text_align="center",
             stroke_color="black",
-            stroke_width=3,
+            stroke_width=stroke_width,
         )
         .with_duration(duration)
         .with_position(("center", cta_y_pos))
@@ -390,20 +510,40 @@ def create_outro(duration=4, video_size=VIDEO_SIZE):
             color="white",
             text_align="center",
             stroke_color="black",
-            stroke_width=3,
+            stroke_width=stroke_width,
         )
         .with_duration(duration)
         .with_position(("center", url_y_pos))
     )
     elements.append(url)
     
-    # Add wind particle effect (inserted after background, before logo/text)
-    particles = create_wind_particles(duration, size=video_size)
-    elements.insert(1, particles)  # Insert after background (index 0)
-    
     # Composite all elements
     outro = CompositeVideoClip(elements, size=video_size)
     outro = outro.with_effects([vfx.FadeIn(0.5)])
+    
+    # Add narration audio if provided
+    if narration and os.path.exists(narration):
+        try:
+            narration_audio = AudioFileClip(narration)
+            
+            # Trim or loop narration to match outro duration if needed
+            if narration_audio.duration > duration:
+                narration_audio = narration_audio.subclipped(0, duration)
+            
+            # Add fade in/out to narration for smooth audio
+            narration_audio = narration_audio.with_effects([
+                afx.AudioFadeIn(0.3),
+                afx.AudioFadeOut(0.3),
+                afx.MultiplyVolume(1.2)  # Boost narration volume slightly
+            ])
+            
+            # Attach narration to the outro
+            outro = outro.with_audio(narration_audio)
+            print(f"  → Added outro narration: {os.path.basename(narration)}")
+        except Exception as e:
+            print(f"  ⚠ Could not load outro narration {narration}: {e}")
+    elif narration:
+        print(f"  ⚠ Outro narration not found: {narration}")
     
     return outro
 
@@ -439,23 +579,41 @@ def create_trailer(preview_mode=False):
     print(f"Preset: {preset}")
     print()
     
-    # Create all segments
+    # Create all segments and track timing for variable background music
     segments = []
+    segment_timings = []
+    current_time = 0
     
     # Fade in from black
-    fade_in = ColorClip(size=video_size, color=(0, 0, 0), duration=0.5)
+    fade_in_duration = 0.5
+    fade_in = ColorClip(size=video_size, color=(0, 0, 0), duration=fade_in_duration)
     fade_in = fade_in.with_effects([vfx.FadeOut(0.5)])
     segments.append(fade_in)
+    current_time += fade_in_duration
     
-    # Create timeline segments
+    # Create timeline segments and track their timing
     for i, timeline_item in enumerate(TIMELINE):
         print(f"Creating segment {i+1}/{len(TIMELINE)} ({timeline_item['duration']}s): {timeline_item['text'][:40]}...")
         segment = create_segment(timeline_item, video_size=video_size)
         segments.append(segment)
+        
+        # Calculate text and clips durations for this segment
+        total_duration = timeline_item["duration"]
+        text_duration = 3
+        clips_duration = total_duration - text_duration
+        has_narration = "narration" in timeline_item
+        
+        segment_timings.append({
+            "start": current_time,
+            "text_duration": text_duration,
+            "clips_duration": clips_duration,
+            "has_narration": has_narration,
+        })
+        current_time += total_duration
     
     # Create outro
     print("Creating outro segment...")
-    outro = create_outro(duration=4, video_size=video_size)
+    outro = create_outro(duration=8, video_size=video_size, narration=OUTRO_NARRATION)
     segments.append(outro)
     
     # Concatenate all segments
@@ -464,14 +622,36 @@ def create_trailer(preview_mode=False):
     
     print(f"Final trailer duration: {final_trailer.duration:.2f} seconds")
     
-    # Load and attach background music
-    print("\nLoading background music...")
-    background_audio = load_background_music(final_trailer.duration)
-    if background_audio:
-        final_trailer = final_trailer.with_audio(background_audio)
-        print("✓ Background music attached to trailer")
+    # Load and mix audio: background music + narration from segments
+    print("\nPreparing audio mix...")
+    base_background_audio = load_background_music(final_trailer.duration)
+    
+    if base_background_audio:
+        # Create variable volume background music based on segment timing
+        print("Creating variable volume background music...")
+        variable_bg_audio = create_variable_volume_background_music(
+            base_background_audio, 
+            segment_timings
+        )
+        
+        # Check if the final trailer has audio from narrations
+        if final_trailer.audio is not None:
+            print("✓ Narration audio detected in segments")
+            # Mix narration with variable-volume background music
+            mixed_audio = CompositeAudioClip([variable_bg_audio, final_trailer.audio])
+            final_trailer = final_trailer.with_audio(mixed_audio)
+            print("✓ Mixed narration with variable-volume background music")
+            print("  - Lower volume during text/narration")
+            print("  - Higher volume during video clips")
+        else:
+            # No narration, just use variable-volume background music
+            final_trailer = final_trailer.with_audio(variable_bg_audio)
+            print("✓ Variable-volume background music attached to trailer")
     else:
-        print("⚠ Trailer will be created without background music")
+        if final_trailer.audio is not None:
+            print("✓ Using narration audio only (no background music)")
+        else:
+            print("⚠ Trailer will be created without audio")
     
     # Export the final video
     print(f"\nExporting to {output_file}...")
