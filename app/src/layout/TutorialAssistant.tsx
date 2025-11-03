@@ -135,8 +135,10 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
   // Tutorial management hook
   const {
+    currentStep,
     updateTutorialStep,
     handleNextStep,
+    handleNextStepAsync,
     currentStepNumber,
     isAssistantVisible,
     setIsAssistantVisible,
@@ -254,6 +256,20 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       // no-op
     }
   };
+
+  // Handle certain syncronization situations
+  useEffect(() => {
+    // Assign stats but no stats available
+    if (
+      userData &&
+      currentStep?.title === "Assigning Stats" &&
+      userData?.earnedExperience === 0
+    ) {
+      console.log("Assigning stats but no stats available, proceeding to next step");
+      void handleNextStepAsync();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, userData]);
 
   // Update highlight position based on current step and element
   useEffect(() => {
