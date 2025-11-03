@@ -119,7 +119,7 @@ TIMELINE = [
         "text": "CUSTOMIZE YOUR NINJA WITH\nWEAPONS, ARMOR, AND SPECIAL ITEMS",
         "mobile_text": "CUSTOMIZE YOUR NINJA WITH WEAPONS, ARMOR, AND SPECIAL ITEMS",
         "clips": ["itemshop.mp4", "equipment.mov"],
-        "mobile_clips": ["itemshop-mobile.mp4", "equipment-mobile.mov"],
+        "mobile_clips": ["itemshop-mobile.mov", "equipment-mobile.mov"],
         "narration": os.path.join(CLIPS_DIR, "customize-your-ninja.mp3"),
         "scale_duration": True,
         "include_audio": False,
@@ -130,7 +130,7 @@ TIMELINE = [
         "text": "AND GO ON EPIC QUESTS \nTO SUPPORT YOUR VILLAGE",
         "mobile_text": "AND GO ON EPIC QUESTS TO SUPPORT YOUR\n VILLAGE",
         "clips": ["quest.mp4"],
-        "mobile_clips": ["quest-mobile.mp4"],
+        "mobile_clips": ["quest-mobile.mov"],
         "narration": os.path.join(CLIPS_DIR, "and-go-on-quests.mp3"),
         "scale_duration": True,
         "include_audio": False,
@@ -242,8 +242,36 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
         .with_effects([vfx.FadeIn(text_fade_duration)])
     )
     
-    # Composite: background -> text
-    composite = CompositeVideoClip([bg, txt], size=size)
+    # Start with background and text
+    elements = [bg, txt]
+    
+    # Add logo at the top for mobile mode
+    if mobile_mode and os.path.exists(LOGO_FILE):
+        try:
+            logo = ImageClip(LOGO_FILE)
+            # Scale logo to fit nicely at the top (smaller than outro)
+            max_width = int(size[0] * 0.7)
+            max_height = int(size[1] * 0.15)
+            
+            # Calculate scaling
+            scale = min(max_width / logo.w, max_height / logo.h)
+            logo = logo.resized(scale)
+            
+            # Position logo at the top center
+            logo = (
+                logo
+                .with_duration(duration - text_delay)
+                .with_position(("center", int(size[1] * 0.12)))
+                .with_start(text_delay)
+                .with_effects([vfx.FadeIn(text_fade_duration)])
+            )
+            elements.append(logo)
+            
+        except Exception as e:
+            print(f"⚠ Could not load logo for text screen: {e}")
+    
+    # Composite: background -> text -> logo (if mobile)
+    composite = CompositeVideoClip(elements, size=size)
     
     return composite
 
