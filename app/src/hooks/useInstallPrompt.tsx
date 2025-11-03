@@ -10,6 +10,7 @@ interface BeforeInstallPromptEvent extends Event {
 interface InstallPromptContextType {
   showPrompt: () => void;
   hidePrompt: () => void;
+  dismissPromptLongTerm: () => void;
   isVisible: boolean;
   deferredPrompt: BeforeInstallPromptEvent | null;
   isInstalled: boolean;
@@ -89,11 +90,17 @@ export function InstallPromptProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("pwa-install-dismissed", Date.now().toString());
   };
 
+  const dismissPromptLongTerm = () => {
+    setIsVisible(false);
+    localStorage.setItem("pwa-install-dismissed-long", Date.now().toString());
+  };
+
   return (
     <InstallPromptContext.Provider
       value={{
         showPrompt,
         hidePrompt,
+        dismissPromptLongTerm,
         isVisible,
         deferredPrompt,
         isInstalled,
