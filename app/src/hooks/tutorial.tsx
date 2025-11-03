@@ -273,6 +273,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
       `logbook-entry-${TUTORIAL_STARTER_QUEST_ID}`,
       `tutorial-take-quest-${TUTORIAL_STARTER_QUEST_ID}`,
     ],
+    relatedValue: TUTORIAL_STARTER_QUEST_ID,
     description: "",
     page: "/academy",
     hideDialog: true,
