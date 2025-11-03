@@ -380,7 +380,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
         </div>
         {/* WALLPAPER BACKGROUND */}
         <Image
-          className="fixed top-0 left-0 w-full h-full object-cover z-[-1] select-none"
+          className="fixed md:top-0 md:left-0 md:w-full md:h-full md:object-cover object-contain z-[-1] select-none"
           src={imageset.wallpaper}
           width={1600}
           height={800}

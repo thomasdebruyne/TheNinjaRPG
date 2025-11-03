@@ -10,6 +10,7 @@ export default function InstallPrompt() {
   const {
     isVisible,
     hidePrompt,
+    dismissPromptLongTerm,
     deferredPrompt,
     isInstalled,
     isIOS,
@@ -47,6 +48,16 @@ export default function InstallPrompt() {
   }
 
   if (typeof window !== "undefined" && localStorage && !isVisible) {
+    // Check for long-term dismissal (60 days)
+    const dismissedLongTime = localStorage.getItem("pwa-install-dismissed-long");
+    if (
+      dismissedLongTime &&
+      Date.now() - parseInt(dismissedLongTime) < 60 * 24 * 60 * 60 * 1000
+    ) {
+      return null; // Don't show for 60 days after long-term dismissal
+    }
+
+    // Check for short-term dismissal (7 days)
     const dismissedTime = localStorage.getItem("pwa-install-dismissed");
     if (
       dismissedTime &&
@@ -89,26 +100,26 @@ export default function InstallPrompt() {
               </p>
             )}
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {!isIOS && deferredPrompt && (
                 <Button
                   onClick={handleInstallClick}
                   size="sm"
-                  className="bg-orange-600 hover:bg-orange-700 text-white col-span-2"
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
                 >
                   <Download className="w-4 h-4 mr-1" />
                   Install App
                 </Button>
               )}
 
-              <Button
-                onClick={hidePrompt}
-                variant="outline"
-                size="sm"
-                className="w-full col-span-2"
-              >
-                Maybe Later
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={hidePrompt} variant="outline" size="sm">
+                  Maybe Later
+                </Button>
+                <Button onClick={dismissPromptLongTerm} variant="ghost" size="sm">
+                  No Thanks
+                </Button>
+              </div>
             </div>
           </div>
 

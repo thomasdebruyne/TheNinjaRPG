@@ -39,6 +39,7 @@ OUTRO_NARRATION = os.path.join(CLIPS_DIR, "play-for-free.mp3")
 
 # Recorded clips metadata
 RECORDED_CLIPS = [
+    {"file": "intro_hook_1.mp4", "seconds": 6, "description": "intro hook 1"},
     {"file": "combat.mp4", "seconds": 5, "description": "combat between two players"},
     {"file": "village.mp4", "seconds": 1, "description": "village hub overview showing all the buildings"},
     {"file": "training.mp4", "seconds": 4, "description": "training ground overview showing all the training options"},
@@ -58,68 +59,102 @@ RECORDED_CLIPS = [
 # Each segment can optionally specify a "wallpaper" path for custom animated background
 # If not specified, uses WALLPAPER_ANIMATED as default
 # Each segment can optionally specify a "narration" path for voice-over audio
-# Example: {"duration": 5, "text": "...", "clips": [...], "wallpaper": "clips/custom.mp4", "narration": "clips/voiceover.mp3"}
+# Each segment can optionally specify "scale_duration" (default True) to scale clips to fit duration or cut them off
+# Each segment can optionally specify "include_audio" (default False) to include audio from clips
+# Each segment should have "mobile_text" for mobile version line breaks (defaults to "text" if not provided)
+# Example: {"duration": 5, "text": "...", "mobile_text": "...", "clips": [...], "wallpaper": "clips/custom.mp4", "narration": "clips/voiceover.mp3", "scale_duration": True, "include_audio": False}
 TIMELINE = [
     {
-        "duration": 7,
+        "duration": 5,
         "text": "BROWSER GAMES ARE DEAD?\nWATCH THIS",
-        "clips": ["profile.mov"],
+        "mobile_text": "BROWSER GAMES ARE DEAD? WATCH THIS",
+        "clips": ["intro_hook_1.mp4"],
         "narration": os.path.join(CLIPS_DIR, "browser-based-games-are-dead.mp3"),
+        "scale_duration": False,
+        "include_audio": False,
     },
     {
         "duration": 5,
         "text": "FIGHT STRATEGIC BATTLES\nUSING JUTSUS AND WEAPONS",
+        "mobile_text": "FIGHT STRATEGIC BATTLES USING JUTSUS\n AND WEAPONS",
         "clips": ["combat.mp4"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-glacier-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "fight-strategic-battles.mp3"),
+        "scale_duration": True,
+        "include_audio": False,
     },
     {
         "duration": 5,
         "text": "EXPLORE THE WORLD OF SEICHI\nIN A FREE MMORPG",
+        "mobile_text": "EXPLORE THE WORLD OF SEICHI IN A FREE \nMMORPG",
         "clips": ["global.mp4", "sector.mp4"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-tsukimori-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "explore-the-world.mp3"),
+        "scale_duration": True,
+        "include_audio": False,
     },
     {
         "duration": 5,
         "text": "TRAIN YOUR STATS\nAND MASTER YOUR JUTSUS",
-        "clips": ["training.mp4"],
+        "mobile_text": "TRAIN YOUR STATS AND MASTER YOUR JUTSUS",
+        "clips": ["training.mp4", "profile.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-shroud-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "train-your-stats.mp3"),
+        "scale_duration": True,
+        "include_audio": False,
     },
 
     {
-        "duration": 6,
+        "duration": 4,
         "text": "CLAIM YOUR BLOODLINE\nAND UNLOCK UNIQUE ABILITIES",
+        "mobile_text": "CLAIM YOUR BLOODLINE AND UNLOCK UNIQUE \nABILITIES",
         "clips": ["bloodline.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-current-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "claim-your-bloodline.mp3"),
+        "scale_duration": True,
+        "include_audio": False,
     },
     {
         "duration": 5,
         "text": "800+ UNIQUE JUTSU AND \n50+ BLOODLINES",
+        "mobile_text": "800+ UNIQUE JUTSU AND 50+ BLOODLINES",
         "clips": ["jutsus.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-shine-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "more-than-content.mp3"),
+        "scale_duration": True,
+        "include_audio": False,
     },
     {
         "duration":7,
         "text": "CUSTOMIZE YOUR NINJA WITH\nWEAPONS, ARMOR, AND SPECIAL ITEMS",
+        "mobile_text": "CUSTOMIZE YOUR NINJA WITH WEAPONS, ARMOR, AND SPECIAL ITEMS",
         "clips": ["itemshop.mp4", "equipment.mov"],
         "narration": os.path.join(CLIPS_DIR, "customize-your-ninja.mp3"),
+        "scale_duration": True,
+        "include_audio": False,
     },
     
     {
         "duration":7,
         "text": "AND GO ON EPIC QUESTS \nTO SUPPORT YOUR VILLAGE",
+        "mobile_text": "AND GO ON EPIC QUESTS TO SUPPORT YOUR\n VILLAGE",
         "clips": ["quest.mp4"],
         "narration": os.path.join(CLIPS_DIR, "and-go-on-quests.mp3"),
+        "scale_duration": True,
+        "include_audio": False,
     },
 ]
 
 
-def load_animated_wallpaper(wallpaper_path, duration, size):
-    """Load and prepare animated wallpaper background"""
+def load_animated_wallpaper(wallpaper_path, duration, size, mobile_mode=False):
+    """Load and prepare animated wallpaper background
+    
+    Args:
+        wallpaper_path: Path to the wallpaper video file
+        duration: Target duration in seconds
+        size: Target size (width, height)
+        mobile_mode: If True, maintain aspect ratio and crop to fill; if False, resize to fit
+    """
     if os.path.exists(wallpaper_path):
         try:
             bg = VideoFileClip(wallpaper_path)
@@ -129,8 +164,30 @@ def load_animated_wallpaper(wallpaper_path, duration, size):
                 bg = concatenate_videoclips([bg] * loops_needed)
             # Trim to exact duration
             bg = bg.subclipped(0, duration)
-            # Resize to fit the target size
-            bg = bg.resized(size)
+            
+            if mobile_mode:
+                # Mobile mode: maintain aspect ratio and fill screen (cover behavior)
+                target_aspect = size[0] / size[1]
+                bg_aspect = bg.w / bg.h
+                
+                if bg_aspect > target_aspect:
+                    # Wallpaper is wider - scale to height and crop width
+                    bg = bg.resized(height=size[1])
+                    # Center crop the width
+                    x_center = bg.w / 2
+                    x1 = int(x_center - size[0] / 2)
+                    bg = bg.cropped(x1=x1, width=size[0])
+                else:
+                    # Wallpaper is taller - scale to width and crop height
+                    bg = bg.resized(width=size[0])
+                    # Center crop the height
+                    y_center = bg.h / 2
+                    y1 = int(y_center - size[1] / 2)
+                    bg = bg.cropped(y1=y1, height=size[1])
+            else:
+                # Desktop mode: resize to fit (may distort aspect ratio)
+                bg = bg.resized(size)
+            
             # Always mute wallpaper audio
             bg = bg.without_audio()
             return bg
@@ -142,11 +199,13 @@ def load_animated_wallpaper(wallpaper_path, duration, size):
         return ColorClip(size=size, color=(0, 0, 0)).with_duration(duration)
 
 
-def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="white", wallpaper=None):
+def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="white", wallpaper=None, mobile_mode=False):
     """Create a full-screen text clip with centered text on animated wallpaper background"""
     # Auto-scale font size based on resolution if not specified
     if fontsize is None:
-        fontsize = int(size[1] / 9)  # Large, bold text
+        base_fontsize = int(size[1] / 9)  # Large, bold text
+        # Half the font size for mobile mode
+        fontsize = int(base_fontsize / 2) if mobile_mode else base_fontsize
     
     # Auto-scale stroke width based on resolution
     stroke_width = max(1, int(size[1] / 180))  # Scales with height, min 1px
@@ -160,7 +219,7 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
     wallpaper_path = wallpaper if wallpaper is not None else WALLPAPER_ANIMATED
     
     # Create animated wallpaper background with fade-in
-    bg = load_animated_wallpaper(wallpaper_path, duration, size)
+    bg = load_animated_wallpaper(wallpaper_path, duration, size, mobile_mode=mobile_mode)
     bg = bg.with_effects([vfx.FadeIn(wallpaper_fade_duration)])
     
     # Determine which font to use
@@ -171,13 +230,15 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
         font = "Impact"
     
     # Create text clip with delayed fade-in and black stroke
+    # Use standard text width since we have manual line breaks for mobile
+    text_width_percent = 0.9
     txt = (
         TextClip(
             text=text,
             font=font,
             font_size=fontsize,
             color=color,
-            size=(int(size[0] * 0.9), None),
+            size=(int(size[0] * text_width_percent), None),
             method="caption",
             text_align="center",
             stroke_color="black",
@@ -195,8 +256,22 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
     return composite
 
 
-def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE):
-    """Load a video clip, resize, and adjust duration by scaling speed to show full clip"""
+def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE, scale_duration=True, include_audio=False, mobile_mode=False):
+    """Load a video clip, resize, and adjust duration based on parameters
+    
+    Args:
+        clip_name: Name of the video clip file
+        target_duration: Target duration in seconds
+        size: Target video size (width, height)
+        scale_duration: If True, scale clip to fit duration; if False, cut off after duration
+        include_audio: If True, keep clip audio; if False, mute it
+        mobile_mode: If True, append "-mobile" to clip filename before extension
+    """
+    # Handle mobile mode - append "-mobile" before file extension
+    if mobile_mode:
+        name_parts = os.path.splitext(clip_name)
+        clip_name = f"{name_parts[0]}-mobile{name_parts[1]}"
+    
     # Handle clip names that already include file extension
     clip_path = os.path.join(CLIPS_DIR, clip_name)
     
@@ -206,20 +281,32 @@ def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE):
     
     clip = VideoFileClip(clip_path)
     
-    # Mute the video clip audio (only use narration and background music)
-    clip = clip.without_audio()
+    # Handle audio based on include_audio parameter
+    if not include_audio:
+        clip = clip.without_audio()
     
-    # Calculate speed factor to fit the entire clip within target_duration
-    # If clip is longer than target, speed it up. If shorter, slow it down.
-    calculated_speed_factor = clip.duration / target_duration
-    
-    # Apply the calculated speed factor
-    if calculated_speed_factor != 1.0:
-        clip = clip.with_effects([vfx.MultiplySpeed(calculated_speed_factor)])
-        print(f"  → Scaling {clip_name} speed by {calculated_speed_factor:.2f}x to fit {target_duration:.1f}s (original: {clip.duration:.1f}s)")
-    
-    # Set clip to exact target duration (should already match after speed adjustment)
-    clip = clip.with_duration(target_duration)
+    # Handle duration based on scale_duration parameter
+    if scale_duration:
+        # Calculate speed factor to fit the entire clip within target_duration
+        # If clip is longer than target, speed it up. If shorter, slow it down.
+        calculated_speed_factor = clip.duration / target_duration
+        
+        # Apply the calculated speed factor
+        if calculated_speed_factor != 1.0:
+            clip = clip.with_effects([vfx.MultiplySpeed(calculated_speed_factor)])
+            print(f"  → Scaling {clip_name} speed by {calculated_speed_factor:.2f}x to fit {target_duration:.1f}s (original: {clip.duration:.1f}s)")
+        
+        # Set clip to exact target duration (should already match after speed adjustment)
+        clip = clip.with_duration(target_duration)
+    else:
+        # Cut off the clip after target_duration
+        if clip.duration > target_duration:
+            clip = clip.subclipped(0, target_duration)
+            print(f"  → Cutting {clip_name} at {target_duration:.1f}s (original: {clip.duration:.1f}s)")
+        else:
+            # If clip is shorter than target, set to target duration (will pad with black)
+            clip = clip.with_duration(target_duration)
+            print(f"  → Extending {clip_name} to {target_duration:.1f}s (original: {clip.duration:.1f}s)")
     
     # Calculate aspect ratios
     target_aspect = size[0] / size[1]  # e.g., 16:9 = 1.778
@@ -257,7 +344,7 @@ def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE):
     return clip
 
 
-def create_segment(timeline_item, video_size=VIDEO_SIZE):
+def create_segment(timeline_item, video_size=VIDEO_SIZE, mobile_mode=False):
     """Create a segment with text screen followed by video clips"""
     total_duration = timeline_item["duration"]
     clip_names = timeline_item["clips"]
@@ -269,17 +356,30 @@ def create_segment(timeline_item, video_size=VIDEO_SIZE):
     # Create text screen (fade-in is handled internally)
     # Use wallpaper from timeline item if provided
     wallpaper = timeline_item.get("wallpaper")
-    text_screen = create_text_screen(timeline_item["text"], text_duration, size=video_size, wallpaper=wallpaper)
+    # Use mobile_text for mobile mode, fallback to text if not provided
+    text = timeline_item.get("mobile_text", timeline_item["text"]) if mobile_mode else timeline_item["text"]
+    text_screen = create_text_screen(text, text_duration, size=video_size, wallpaper=wallpaper, mobile_mode=mobile_mode)
     text_screen = text_screen.with_effects([vfx.FadeOut(0.3)])
     
     # Calculate duration per clip
     duration_per_clip = clips_duration / len(clip_names)
     
+    # Get clip options from timeline item (with defaults)
+    scale_duration = timeline_item.get("scale_duration", True)
+    include_audio = timeline_item.get("include_audio", False)
+    
     # Load and prepare video clips
     video_clips = []
     for clip_name in clip_names:
-        # Speed is now automatically adjusted to show the full clip within duration_per_clip
-        clip = load_and_prepare_clip(clip_name, duration_per_clip, size=video_size)
+        # Speed is adjusted or clipped based on scale_duration parameter
+        clip = load_and_prepare_clip(
+            clip_name, 
+            duration_per_clip, 
+            size=video_size, 
+            scale_duration=scale_duration, 
+            include_audio=include_audio,
+            mobile_mode=mobile_mode
+        )
         clip = clip.with_effects([vfx.FadeIn(0.3), vfx.FadeOut(0.3)])
         video_clips.append(clip)
     
@@ -312,13 +412,22 @@ def create_segment(timeline_item, video_size=VIDEO_SIZE):
                 afx.MultiplyVolume(1.2)  # Boost narration volume slightly
             ])
             
-            # Attach narration to the segment
-            final_segment = final_segment.with_audio(narration_audio)
-            print(f"  → Added narration: {os.path.basename(narration_path)}")
+            # Mix narration with clip audio if clips have audio
+            if final_segment.audio is not None:
+                # Mix narration with existing clip audio
+                mixed_audio = CompositeAudioClip([final_segment.audio, narration_audio])
+                final_segment = final_segment.with_audio(mixed_audio)
+                print(f"  → Mixed narration with clip audio: {os.path.basename(narration_path)}")
+            else:
+                # No clip audio, just attach narration
+                final_segment = final_segment.with_audio(narration_audio)
+                print(f"  → Added narration: {os.path.basename(narration_path)}")
         except Exception as e:
             print(f"  ⚠ Could not load narration {narration_path}: {e}")
     elif narration_path:
         print(f"  ⚠ Narration not found: {narration_path}")
+    elif final_segment.audio is not None:
+        print("  → Using clip audio only (no narration)")
     
     return final_segment
 
@@ -427,11 +536,19 @@ def create_variable_volume_background_music(base_audio, timeline_segments):
     return variable_audio
 
 
-def create_outro(duration=4, video_size=VIDEO_SIZE, wallpaper=None, narration=None):
+def create_outro(duration=4, video_size=VIDEO_SIZE, wallpaper=None, narration=None, mobile_mode=False):
     """Create the final outro segment with logo and call-to-action"""
     # Auto-scale font sizes based on resolution
-    cta_font_size = int(video_size[1] / 10)   # CTA text
-    url_font_size = int(video_size[1] / 14)   # URL text
+    base_cta_font_size = int(video_size[1] / 10)   # CTA text
+    base_url_font_size = int(video_size[1] / 14)   # URL text
+    
+    # For mobile: half the base size, then 50% larger (0.5 * 1.5 = 0.75 of original)
+    if mobile_mode:
+        cta_font_size = int(base_cta_font_size / 2 * 1.5)
+        url_font_size = int(base_url_font_size / 2 * 1.5)
+    else:
+        cta_font_size = base_cta_font_size
+        url_font_size = base_url_font_size
     
     # Auto-scale stroke width based on resolution
     stroke_width = max(1, int(video_size[1] / 180))  # Scales with height, min 1px
@@ -446,7 +563,7 @@ def create_outro(duration=4, video_size=VIDEO_SIZE, wallpaper=None, narration=No
     wallpaper_path = wallpaper if wallpaper is not None else WALLPAPER_ANIMATED
     
     # Animated wallpaper background
-    bg = load_animated_wallpaper(wallpaper_path, duration, video_size)
+    bg = load_animated_wallpaper(wallpaper_path, duration, video_size, mobile_mode=mobile_mode)
     
     elements = [bg]
     
@@ -454,9 +571,14 @@ def create_outro(duration=4, video_size=VIDEO_SIZE, wallpaper=None, narration=No
     if os.path.exists(LOGO_FILE):
         try:
             logo = ImageClip(LOGO_FILE)
-            # Scale logo to fit nicely (max 60% of screen width, 40% of height)
-            max_width = int(video_size[0] * 0.6)
-            max_height = int(video_size[1] * 0.4)
+            # Scale logo to fit nicely
+            # Mobile: 95% width, Desktop: 60% width
+            if mobile_mode:
+                max_width = int(video_size[0] * 0.95)
+                max_height = int(video_size[1] * 0.4)
+            else:
+                max_width = int(video_size[0] * 0.6)
+                max_height = int(video_size[1] * 0.4)
             
             # Calculate scaling
             scale = min(max_width / logo.w, max_height / logo.h)
@@ -548,26 +670,41 @@ def create_outro(duration=4, video_size=VIDEO_SIZE, wallpaper=None, narration=No
     return outro
 
 
-def create_trailer(preview_mode=False):
+def create_trailer(preview_mode=False, mobile_mode=False):
     """Main function to create the complete trailer"""
-    # Adjust settings for preview mode
+    # Adjust settings for preview mode and mobile mode
+    if mobile_mode:
+        # Mobile uses vertical resolution (flip width and height)
+        base_video_size = (1080, 1920)  # Vertical for mobile
+        output_suffix = "_mobile"
+    else:
+        # Desktop uses horizontal resolution
+        base_video_size = VIDEO_SIZE
+        output_suffix = ""
+    
     if preview_mode:
-        video_size = (640, 360)  # Much lower resolution for faster rendering (360p)
+        # Scale down for preview while maintaining aspect ratio
+        if mobile_mode:
+            video_size = (360, 640)  # Vertical preview
+        else:
+            video_size = (640, 360)  # Horizontal preview
         fps = 10  # Very low FPS
         preset = "ultrafast"  # Fastest encoding
         bitrate = "1000k"  # Lower bitrate
         threads = 8
-        output_file = "theninja_rpg_trailer_preview.mp4"
-        print("Creating TheNinja-RPG Trailer (PREVIEW MODE)...")
-        print("⚡ Using fast preview settings for quick iteration (360p)")
+        output_file = f"theninja_rpg_trailer{output_suffix}_preview.mp4"
+        mode_str = "MOBILE " if mobile_mode else ""
+        print(f"Creating TheNinja-RPG Trailer ({mode_str}PREVIEW MODE)...")
+        print(f"⚡ Using fast preview settings for quick iteration ({video_size[0]}x{video_size[1]})")
     else:
-        video_size = VIDEO_SIZE
+        video_size = base_video_size
         fps = FPS
         preset = "medium"
         bitrate = "8000k"
         threads = 8
-        output_file = OUTPUT_FILE
-        print("Creating TheNinja-RPG Trailer...")
+        output_file = f"theninja_rpg_trailer{output_suffix}.mp4"
+        mode_str = "MOBILE " if mobile_mode else ""
+        print(f"Creating TheNinja-RPG {mode_str}Trailer...")
     
     # Calculate total duration from segments
     total_segment_duration = sum(item["duration"] for item in TIMELINE)
@@ -594,7 +731,7 @@ def create_trailer(preview_mode=False):
     # Create timeline segments and track their timing
     for i, timeline_item in enumerate(TIMELINE):
         print(f"Creating segment {i+1}/{len(TIMELINE)} ({timeline_item['duration']}s): {timeline_item['text'][:40]}...")
-        segment = create_segment(timeline_item, video_size=video_size)
+        segment = create_segment(timeline_item, video_size=video_size, mobile_mode=mobile_mode)
         segments.append(segment)
         
         # Calculate text and clips durations for this segment
@@ -613,7 +750,7 @@ def create_trailer(preview_mode=False):
     
     # Create outro
     print("Creating outro segment...")
-    outro = create_outro(duration=8, video_size=video_size, narration=OUTRO_NARRATION)
+    outro = create_outro(duration=8, video_size=video_size, narration=OUTRO_NARRATION, mobile_mode=mobile_mode)
     segments.append(outro)
     
     # Concatenate all segments
@@ -682,16 +819,24 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python gameTrailer.py              # Create full high-quality trailer (1080p)
-  python gameTrailer.py --preview    # Create quick preview (360p, ~5x faster)
+  python gameTrailer.py                    # Create full high-quality trailer (1080p horizontal)
+  python gameTrailer.py --preview          # Create quick preview (360p, ~5x faster)
+  python gameTrailer.py --mobile           # Create mobile trailer (1080x1920 vertical)
+  python gameTrailer.py --mobile --preview # Create mobile preview (360x640 vertical)
   
 Note: Trailer duration is automatically calculated from segment durations in TIMELINE.
+      Mobile mode appends "-mobile" to all clip filenames (e.g., "clip.mp4" -> "clip-mobile.mp4")
         """
     )
     parser.add_argument(
         "--preview",
         action="store_true",
         help="Create a quick low-quality preview for faster iteration (360p, 10fps, ultrafast preset)"
+    )
+    parser.add_argument(
+        "--mobile",
+        action="store_true",
+        help="Create mobile version with vertical resolution (1080x1920) and use clips with -mobile suffix"
     )
     args = parser.parse_args()
     
@@ -745,7 +890,7 @@ Note: Trailer duration is automatically calculated from segment durations in TIM
     print()
     
     try:
-        create_trailer(preview_mode=args.preview)
+        create_trailer(preview_mode=args.preview, mobile_mode=args.mobile)
     except Exception as e:
         print(f"\n✗ Error creating trailer: {e}")
         import traceback
