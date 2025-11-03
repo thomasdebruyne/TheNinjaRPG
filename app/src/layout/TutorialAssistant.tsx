@@ -467,6 +467,12 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     router,
   ]);
 
+  // Determine which step to show - hospitalized overrides everything
+  const isHospitalized = userData?.status === "HOSPITALIZED";
+  const currentTutorialStep = isHospitalized
+    ? TUTORIAL_HOSPITALIZED_STEP
+    : TUTORIAL_STEPS[currentStepNumber];
+
   // Render Game Menu tutorial (with bottom-right assistant)
   const renderGameMenuTutorial = () => {
     if (gameMenuHighlight) {
@@ -489,7 +495,11 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
               {/* Allow clicking to open the menu */}
               <div
                 className="absolute inset-0 cursor-pointer z-[2] pointer-events-auto"
-                onClick={() => setRightSideBarOpen(true)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setRightSideBarOpen(true);
+                }}
               />
             </div>
           </div>
@@ -545,6 +555,12 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     );
   };
 
+  // Derived
+  const pointerEvents =
+    currentTutorialStep?.proceedOnHighlightClick && highlight?.isPrimaryElement
+      ? "pointer-events-auto"
+      : "pointer-events-none";
+
   // If showing the special Game Menu tutorial
   if (showGameMenuTutorial) {
     return renderGameMenuTutorial();
@@ -553,20 +569,8 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   // If the regular tutorial is not visible, don't render anything
   if (!isAssistantVisible) return null;
 
-  // Determine which step to show - hospitalized overrides everything
-  const isHospitalized = userData?.status === "HOSPITALIZED";
-  const currentTutorialStep = isHospitalized
-    ? TUTORIAL_HOSPITALIZED_STEP
-    : TUTORIAL_STEPS[currentStepNumber];
-
   // Guard against undefined currentTutorialStep
   if (!currentTutorialStep) return null;
-
-  // Derived
-  const pointerEvents =
-    currentTutorialStep.proceedOnHighlightClick && highlight?.isPrimaryElement
-      ? "pointer-events-auto"
-      : "pointer-events-none";
 
   // Render the tutorial overlay with highlight and assistant panel
   return (
@@ -592,13 +596,23 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
                 className={cn("absolute inset-0 cursor-pointer z-[2]", pointerEvents)}
                 role="button"
                 aria-label="Continue tutorial"
-                onClick={() => {
+                onPointerDown={(e) => {
                   if (currentTutorialStep.proceedOnHighlightClick) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     handleNextStep();
                   }
                 }}
-                onTouchStart={() => {
+                onClick={(e) => {
                   if (currentTutorialStep.proceedOnHighlightClick) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onTouchStart={(e) => {
+                  if (currentTutorialStep.proceedOnHighlightClick) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     handleNextStep();
                   }
                 }}

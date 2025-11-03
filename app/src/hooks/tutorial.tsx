@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useUserData } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import { COMBAT_SECONDS } from "@/libs/combat/constants";
+import { MapPin } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import {
   TUTORIAL_JUTSU_ID,
@@ -280,7 +281,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     id: "YP5PEaCvfhJfdsl37V",
     title: "Assigning Stats",
     description:
-      "Wow, you're picking up things fast. You already acquired a substantial amount of additional XP. Let's go assign it.",
+      "Wow, you're picking up things fast. You already acquired a substantial amount of additional XP. Let's go assign it before we proceed on the mission.",
     elementIds: ["tutorial-unassigned-stats"],
     page: "/academy",
     proceedOnHighlightClick: true,
@@ -318,7 +319,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     id: "t1GFAMQyZuxQ7FyUX4",
     title: "Travel",
     description:
-      "Your target for our first practise mission will be to go eliminate a target in a different sector, thereby moving outside the borders of the village. Let's go. Don't worry, for this first mission I will accompany you.",
+      "Okay, you're now stronger, let's get back to our mission. Your target for our first practise mission will be to go eliminate a target in a different sector. So we'll have to move outside the borders of the village. Let's go. Don't worry, for this first mission I will accompany you.",
     elementIds: ["tutorial-travel"],
     page: "/profile",
     proceedOnHighlightClick: true,
@@ -351,8 +352,15 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     id: "eRw6ObsRONhzY7AUMO3vm",
     title: "Capture Target",
     elementIds: ["tutorial-travel-sector"],
-    description:
-      "Time to track down our target - you need to track down a sad puppy which has gone missing. Careful, it may be aggressive, so we may have to fight it before we can bring it back to the village. Move in the sector to approach the target, and overpower it.",
+    description: (
+      <div>
+        You need to track down a sad puppy which has gone missing. Careful, it may be
+        aggressive, so we may have to fight it before we can bring it back to the
+        village. Approach the target which is marked with a{" "}
+        <MapPin className="inline-block text-red-500 w-5 h-5" /> in the secto, and
+        overpower it.
+      </div>
+    ),
     page: "/travel",
     onCombatLoss: "qPx_xVsMAZY0t05thYgZj",
     onCombatWin: "UD2jVibug6Y0yKLYGzA_N",

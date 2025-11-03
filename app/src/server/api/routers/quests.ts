@@ -676,6 +676,7 @@ export const questsRouter = createTRPCRouter({
         return { success: true, message: `Quest already abandoned` };
       }
       if (
+        user.role === "USER" &&
         ![
           "mission",
           "crime",

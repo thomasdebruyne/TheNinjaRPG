@@ -37,22 +37,6 @@ FONT_FILE = os.path.join(CLIPS_DIR, "aAsianNinja.ttf")
 
 OUTRO_NARRATION = os.path.join(CLIPS_DIR, "play-for-free.mp3")
 
-# Recorded clips metadata
-RECORDED_CLIPS = [
-    {"file": "intro_hook_1.mp4", "seconds": 6, "description": "intro hook 1"},
-    {"file": "combat.mp4", "seconds": 5, "description": "combat between two players"},
-    {"file": "village.mp4", "seconds": 1, "description": "village hub overview showing all the buildings"},
-    {"file": "training.mp4", "seconds": 4, "description": "training ground overview showing all the training options"},
-    {"file": "itemshop.mp4", "seconds": 10, "description": "shows the item shop and purchase of item"},
-    {"file": "jutsus.mov", "seconds": 9, "description": "shows a list scrolling through justsus"},
-    {"file": "global.mp4", "seconds": 3, "description": "global map of seichi"},
-    {"file": "sector.mp4", "seconds": 2, "description": "travel in sector"},
-    {"file": "equipment.mov", "seconds": 5, "description": "shows user inventory"},
-    {"file": "profile.mov", "seconds": 7, "description": "show the user profile and stats"},
-    {"file": "bloodline.mov", "seconds": 9, "description": "shows the various bloodlines and their effects"},
-    {"file": "quest.mp4", "seconds": 7, "description": "demonstrates the quest system"},
-]
-
 # Timeline segments with text overlays
 # Each segment has a duration in seconds - much simpler!
 # Total content: 59 seconds + 0.5s intro + 4s outro = ~63.5 seconds
@@ -62,7 +46,8 @@ RECORDED_CLIPS = [
 # Each segment can optionally specify "scale_duration" (default True) to scale clips to fit duration or cut them off
 # Each segment can optionally specify "include_audio" (default False) to include audio from clips
 # Each segment should have "mobile_text" for mobile version line breaks (defaults to "text" if not provided)
-# Example: {"duration": 5, "text": "...", "mobile_text": "...", "clips": [...], "wallpaper": "clips/custom.mp4", "narration": "clips/voiceover.mp3", "scale_duration": True, "include_audio": False}
+# Each segment can optionally specify "mobile_clips" for mobile-specific video clips (uses "clips" if not provided)
+# Example: {"duration": 5, "text": "...", "mobile_text": "...", "clips": [...], "mobile_clips": [...], "wallpaper": "clips/custom.mp4", "narration": "clips/voiceover.mp3", "scale_duration": True, "include_audio": False}
 TIMELINE = [
     {
         "duration": 5,
@@ -78,6 +63,7 @@ TIMELINE = [
         "text": "FIGHT STRATEGIC BATTLES\nUSING JUTSUS AND WEAPONS",
         "mobile_text": "FIGHT STRATEGIC BATTLES USING JUTSUS\n AND WEAPONS",
         "clips": ["combat.mp4"],
+        "mobile_clips": ["combat-mobile.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-glacier-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "fight-strategic-battles.mp3"),
         "scale_duration": True,
@@ -88,16 +74,18 @@ TIMELINE = [
         "text": "EXPLORE THE WORLD OF SEICHI\nIN A FREE MMORPG",
         "mobile_text": "EXPLORE THE WORLD OF SEICHI IN A FREE \nMMORPG",
         "clips": ["global.mp4", "sector.mp4"],
+        "mobile_clips": ["global-sector-mobile.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-tsukimori-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "explore-the-world.mp3"),
         "scale_duration": True,
         "include_audio": False,
     },
     {
-        "duration": 5,
+        "duration": 7,
         "text": "TRAIN YOUR STATS\nAND MASTER YOUR JUTSUS",
         "mobile_text": "TRAIN YOUR STATS AND MASTER YOUR JUTSUS",
         "clips": ["training.mp4", "profile.mov"],
+        "mobile_clips": ["training-mobile.mov", "profile-mobile.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-shroud-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "train-your-stats.mp3"),
         "scale_duration": True,
@@ -109,6 +97,7 @@ TIMELINE = [
         "text": "CLAIM YOUR BLOODLINE\nAND UNLOCK UNIQUE ABILITIES",
         "mobile_text": "CLAIM YOUR BLOODLINE AND UNLOCK UNIQUE \nABILITIES",
         "clips": ["bloodline.mov"],
+        "mobile_clips": ["bloodline-mobile.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-current-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "claim-your-bloodline.mp3"),
         "scale_duration": True,
@@ -119,6 +108,7 @@ TIMELINE = [
         "text": "800+ UNIQUE JUTSU AND \n50+ BLOODLINES",
         "mobile_text": "800+ UNIQUE JUTSU AND 50+ BLOODLINES",
         "clips": ["jutsus.mov"],
+        "mobile_clips": ["jutsus-mobile.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-shine-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "more-than-content.mp3"),
         "scale_duration": True,
@@ -129,6 +119,7 @@ TIMELINE = [
         "text": "CUSTOMIZE YOUR NINJA WITH\nWEAPONS, ARMOR, AND SPECIAL ITEMS",
         "mobile_text": "CUSTOMIZE YOUR NINJA WITH WEAPONS, ARMOR, AND SPECIAL ITEMS",
         "clips": ["itemshop.mp4", "equipment.mov"],
+        "mobile_clips": ["itemshop-mobile.mp4", "equipment-mobile.mov"],
         "narration": os.path.join(CLIPS_DIR, "customize-your-ninja.mp3"),
         "scale_duration": True,
         "include_audio": False,
@@ -139,6 +130,7 @@ TIMELINE = [
         "text": "AND GO ON EPIC QUESTS \nTO SUPPORT YOUR VILLAGE",
         "mobile_text": "AND GO ON EPIC QUESTS TO SUPPORT YOUR\n VILLAGE",
         "clips": ["quest.mp4"],
+        "mobile_clips": ["quest-mobile.mp4"],
         "narration": os.path.join(CLIPS_DIR, "and-go-on-quests.mp3"),
         "scale_duration": True,
         "include_audio": False,
@@ -256,7 +248,7 @@ def create_text_screen(text, duration, size=VIDEO_SIZE, fontsize=None, color="wh
     return composite
 
 
-def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE, scale_duration=True, include_audio=False, mobile_mode=False):
+def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE, scale_duration=True, include_audio=False):
     """Load a video clip, resize, and adjust duration based on parameters
     
     Args:
@@ -265,13 +257,7 @@ def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE, scale_dur
         size: Target video size (width, height)
         scale_duration: If True, scale clip to fit duration; if False, cut off after duration
         include_audio: If True, keep clip audio; if False, mute it
-        mobile_mode: If True, append "-mobile" to clip filename before extension
     """
-    # Handle mobile mode - append "-mobile" before file extension
-    if mobile_mode:
-        name_parts = os.path.splitext(clip_name)
-        clip_name = f"{name_parts[0]}-mobile{name_parts[1]}"
-    
     # Handle clip names that already include file extension
     clip_path = os.path.join(CLIPS_DIR, clip_name)
     
@@ -347,7 +333,12 @@ def load_and_prepare_clip(clip_name, target_duration, size=VIDEO_SIZE, scale_dur
 def create_segment(timeline_item, video_size=VIDEO_SIZE, mobile_mode=False):
     """Create a segment with text screen followed by video clips"""
     total_duration = timeline_item["duration"]
-    clip_names = timeline_item["clips"]
+    
+    # Use mobile_clips if in mobile mode and they exist, otherwise use regular clips
+    if mobile_mode and "mobile_clips" in timeline_item:
+        clip_names = timeline_item["mobile_clips"]
+    else:
+        clip_names = timeline_item["clips"]
     
     # Allocate time: 3 seconds for text screen, remaining for clips
     text_duration = 3
@@ -377,8 +368,7 @@ def create_segment(timeline_item, video_size=VIDEO_SIZE, mobile_mode=False):
             duration_per_clip, 
             size=video_size, 
             scale_duration=scale_duration, 
-            include_audio=include_audio,
-            mobile_mode=mobile_mode
+            include_audio=include_audio
         )
         clip = clip.with_effects([vfx.FadeIn(0.3), vfx.FadeOut(0.3)])
         video_clips.append(clip)
@@ -825,7 +815,7 @@ Examples:
   python gameTrailer.py --mobile --preview # Create mobile preview (360x640 vertical)
   
 Note: Trailer duration is automatically calculated from segment durations in TIMELINE.
-      Mobile mode appends "-mobile" to all clip filenames (e.g., "clip.mp4" -> "clip-mobile.mp4")
+      Mobile mode uses the "mobile_clips" entry from timeline items when available, falling back to "clips".
         """
     )
     parser.add_argument(
@@ -836,7 +826,7 @@ Note: Trailer duration is automatically calculated from segment durations in TIM
     parser.add_argument(
         "--mobile",
         action="store_true",
-        help="Create mobile version with vertical resolution (1080x1920) and use clips with -mobile suffix"
+        help="Create mobile version with vertical resolution (1080x1920) using mobile_clips from timeline"
     )
     args = parser.parse_args()
     
@@ -850,22 +840,6 @@ Note: Trailer duration is automatically calculated from segment durations in TIM
     print(f"Looking for video clips in: {os.path.abspath(CLIPS_DIR)}")
     print()
     
-    # Check for available clips
-    available_clips = []
-    for clip_info in RECORDED_CLIPS:
-        clip_path = os.path.join(CLIPS_DIR, clip_info["file"])
-        if os.path.exists(clip_path):
-            available_clips.append(clip_info["file"])
-    
-    if available_clips:
-        print(f"Found {len(available_clips)} video clips:")
-        for clip in available_clips:
-            print(f"  ✓ {clip}")
-    else:
-        print("⚠ No video clips found. Placeholders will be used.")
-        print(f"  Place your .mp4 clips in: {os.path.abspath(CLIPS_DIR)}")
-    
-    print()
     
     # Check for background music
     if os.path.exists(BACKGROUND_MUSIC):
