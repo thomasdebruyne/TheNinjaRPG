@@ -307,7 +307,6 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     elementIds: ["tutorial-level-up-modal-content", "tutorial-level-up-btn"],
     page: "/profile",
   },
-
   {
     id: "f34p798tfn0327",
     title: "Level Up!",
@@ -358,11 +357,12 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
         You need to track down a sad puppy which has gone missing. Careful, it may be
         aggressive, so we may have to fight it before we can bring it back to the
         village. Approach the target which is marked with a{" "}
-        <MapPin className="inline-block text-red-500 w-5 h-5" /> in the secto, and
+        <MapPin className="inline-block text-red-500 w-5 h-5" /> in the sector, and
         overpower it.
       </div>
     ),
     page: "/travel",
+    relatedValue: TUTORIAL_STARTER_QUEST_ID,
     onCombatLoss: "qPx_xVsMAZY0t05thYgZj",
     onCombatWin: "UD2jVibug6Y0yKLYGzA_N",
   },

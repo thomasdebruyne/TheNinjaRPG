@@ -10,6 +10,8 @@ import { Gamepad2 } from "lucide-react";
 import Accordion from "@/layout/Accordion";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import { useTutorialStep } from "@/hooks/tutorial";
+import { useCheckRewards } from "@/layout/Logbook";
+import { getActiveObjective } from "@/libs/objectives";
 import { useState, useEffect } from "react";
 import { useRequiredUserData } from "@/utils/UserContext";
 import type { QuestType } from "@/drizzle/constants";
@@ -61,6 +63,9 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
     },
   });
 
+  // Rewards check hook
+  const { checkRewards } = useCheckRewards();
+
   // Handle certain tutorial syncronization steps
   useEffect(() => {
     // If we're on the dialog option of a quest which we don't have access to, then proceed the tutorial
@@ -83,10 +88,17 @@ const QuestPicker: React.FC<QuestPickerProps> = (props) => {
       currentStep?.relatedValue &&
       userData?.userQuests?.find((uq) => uq.questId === currentStep?.relatedValue)
     ) {
-      console.log("Quest already taken, proceeding to next step in tutorial");
-      void handleNextStepAsync();
+      const quest = quests?.find((q) => q.id === currentStep?.relatedValue);
+      const tracker = userData?.questData?.find((q) => q.id === quest?.id);
+      if (quest && tracker) {
+        const activeObjective = getActiveObjective(quest, tracker);
+        if (activeObjective?.task !== "dialog") {
+          void checkRewards({ questId: currentStep?.relatedValue as string });
+        }
+      }
     }
-  }, [currentStep, userData, quests, handleNextStepAsync]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, userData, quests]);
 
   // Default active tab
   useEffect(() => {

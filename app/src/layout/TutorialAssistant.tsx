@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import {
 import { cn } from "src/libs/shadui";
 import * as Sentry from "@sentry/nextjs";
 import type { TutorialStepConfig } from "@/hooks/tutorial";
+import { getActiveObjective } from "@/libs/objectives";
+import { useCheckRewards } from "@/layout/Logbook";
 
 /**
  * Reusable assistant portrait with correct styling
@@ -143,6 +145,9 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     isAssistantVisible,
     setIsAssistantVisible,
   } = useTutorialStep();
+
+  // Rewards check hook for dialog options
+  const { checkRewards, isCheckingRewards } = useCheckRewards();
 
   // Initialize tutorial visibility
   useEffect(() => {
@@ -489,6 +494,35 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     ? TUTORIAL_HOSPITALIZED_STEP
     : TUTORIAL_STEPS[currentStepNumber];
 
+  // Find dialog options if the current step relates to a quest with a dialog task
+  const dialogOptions = React.useMemo(() => {
+    if (!currentTutorialStep?.relatedValue || !userData?.userQuests) return null;
+
+    // Find the matching user quest
+    const matchingQuest = userData.userQuests.find(
+      (uq) => uq.questId === currentTutorialStep.relatedValue,
+    );
+
+    if (!matchingQuest) return null;
+
+    // Get the tracker for this quest
+    const tracker = userData.questData?.find((q) => q.id === matchingQuest.questId);
+    if (!tracker) return null;
+
+    // Get the active objective
+    const activeObjective = getActiveObjective(matchingQuest.quest, tracker);
+
+    // Check if it's a dialog task
+    if (activeObjective?.task === "dialog") {
+      return {
+        questId: matchingQuest.questId,
+        options: activeObjective.nextObjectiveId,
+      };
+    }
+
+    return null;
+  }, [currentTutorialStep?.relatedValue, userData?.userQuests, userData?.questData]);
+
   // Render Game Menu tutorial (with bottom-right assistant)
   const renderGameMenuTutorial = () => {
     if (gameMenuHighlight) {
@@ -680,6 +714,38 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
               >
                 Read Getting Started Guide
               </Button>
+            </div>
+          )}
+          {dialogOptions && (
+            <div className="mt-3 md:mt-4">
+              <h3 className="text-sm font-semibold mb-2">Dialog Options</h3>
+              <div className="flex flex-wrap gap-2">
+                {dialogOptions.options.map((entry) => (
+                  <Button
+                    key={entry.nextObjectiveId}
+                    variant="outline"
+                    size="sm"
+                    disabled={isCheckingRewards}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isCheckingRewards) {
+                        checkRewards({
+                          questId: dialogOptions.questId,
+                          nextObjectiveId: entry.nextObjectiveId,
+                        });
+                      }
+                    }}
+                    className="flex-1 min-w-[120px]"
+                  >
+                    {isCheckingRewards ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      entry.text
+                    )}
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
           {currentTutorialStep?.showNextButton && (
