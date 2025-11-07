@@ -27,7 +27,6 @@ import {
   BattleDataEntryType,
   RecruitmentMetrics,
   RecruitmentMetricMax,
-  RECRUITMENT_CTR,
   TUTORIAL_STEPS_COUNT,
 } from "@/drizzle/constants";
 import {
@@ -195,14 +194,12 @@ export const dataRouter = createTRPCRouter({
       }
 
       const [
-        allVisitorsRow,
-        signupsRow,
-        characterCreationsRow,
-        leveledSignupsRow,
-        nonStudentSignupsRow,
-        pvpSignupsRow,
-        tutorialFinishedSignupsRow,
-        totalRevenueRow,
+        allVisitorsRowRaw,
+        signupsRowRaw,
+        nonStudentGeninSignupsRowRaw,
+        pvpSignupsRowRaw,
+        tutorialFinishedSignupsRowRaw,
+        totalRevenueRowRaw,
         quests,
         completedQuests,
       ] = await Promise.all([
@@ -231,13 +228,12 @@ export const dataRouter = createTRPCRouter({
               eq(userData.isAi, false),
               lt(userData.tutorialStep, 100),
               gte(userData.createdAt, visitorLog.createdAt),
-              // If utmSource filter provided, also match referralSource.source to it
               ...(input.utmSource && input.utmSource.length > 0
                 ? [eq(referralSource.source, input.utmSource)]
                 : []),
             ),
           ),
-        // characterCreationsRow: fetch individual users with userAgent for device splitting
+        // nonStudentGeninSignupsRow: fetch individual users with userAgent for device splitting
         ctx.drizzle
           .select({
             userId: userData.userId,
@@ -250,46 +246,16 @@ export const dataRouter = createTRPCRouter({
             and(
               ...(visitorWhere.length > 0 ? visitorWhere : []),
               eq(userData.isAi, false),
-              lt(userData.tutorialStep, 100),
-              gte(userData.createdAt, visitorLog.createdAt),
-            ),
-          ),
-        // leveledSignupsRow
-        ctx.drizzle
-          .select({
-            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
-          })
-          .from(visitorLog)
-          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
-          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
-          .where(
-            and(
-              ...(visitorWhere.length > 0 ? visitorWhere : []),
-              eq(userData.isAi, false),
-              gte(userData.createdAt, visitorLog.createdAt),
-              gt(userData.level, 1),
-            ),
-          ),
-        // nonStudentSignupsRow
-        ctx.drizzle
-          .select({
-            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
-          })
-          .from(visitorLog)
-          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
-          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
-          .where(
-            and(
-              ...(visitorWhere.length > 0 ? visitorWhere : []),
-              eq(userData.isAi, false),
               gte(userData.createdAt, visitorLog.createdAt),
               ne(userData.rank, "STUDENT"),
+              ne(userData.rank, "GENIN"),
             ),
           ),
-        // pvpSignupsRow
+        // pvpSignupsRow: fetch individual users with userAgent for device splitting
         ctx.drizzle
           .select({
-            count: sql<number>`COUNT(DISTINCT ${visitorLog.ip})`.mapWith(Number),
+            userId: userData.userId,
+            userAgent: visitorLog.userAgent,
           })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
@@ -320,10 +286,11 @@ export const dataRouter = createTRPCRouter({
               lt(userData.tutorialStep, 100),
             ),
           ),
-        // totalRevenueRow
+        // totalRevenueRow: fetch individual transactions with userAgent for device splitting
         ctx.drizzle
           .select({
-            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
+            amount: paypalTransaction.amount,
+            userAgent: visitorLog.userAgent,
           })
           .from(paypalTransaction)
           .innerJoin(
@@ -379,6 +346,55 @@ export const dataRouter = createTRPCRouter({
               )
           : Promise.resolve([]),
       ]);
+
+      // Create mutable versions for filtering
+      let allVisitorsRow = allVisitorsRowRaw;
+      let signupsRow = signupsRowRaw;
+      let characterCreationsRow = signupsRowRaw;
+      let nonStudentGeninSignupsRow = nonStudentGeninSignupsRowRaw;
+      let pvpSignupsRow = pvpSignupsRowRaw;
+      let tutorialFinishedSignupsRow = tutorialFinishedSignupsRowRaw;
+      let totalRevenueRow = totalRevenueRowRaw;
+
+      // Filter the different rows by device type if specified
+      if (input.deviceType && input.deviceType.length > 0) {
+        allVisitorsRow = allVisitorsRow.filter((visitor) => {
+          const deviceType = getDeviceType(visitor.userAgent ?? undefined);
+          return input.deviceType!.includes(deviceType);
+        });
+        signupsRow = signupsRow.filter((signup) => {
+          const deviceType = getDeviceType(signup.userAgent ?? undefined);
+          return input.deviceType!.includes(deviceType);
+        });
+        characterCreationsRow = signupsRowRaw
+          .filter((signup) => signup.userId)
+          .filter((characterCreation) => {
+            const deviceType = getDeviceType(characterCreation.userAgent ?? undefined);
+            return input.deviceType!.includes(deviceType);
+          });
+        nonStudentGeninSignupsRow = nonStudentGeninSignupsRow.filter(
+          (nonStudentSignup) => {
+            const deviceType = getDeviceType(nonStudentSignup.userAgent ?? undefined);
+            return input.deviceType!.includes(deviceType);
+          },
+        );
+        pvpSignupsRow = pvpSignupsRow.filter((pvpSignup) => {
+          const deviceType = getDeviceType(pvpSignup.userAgent ?? undefined);
+          return input.deviceType!.includes(deviceType);
+        });
+        tutorialFinishedSignupsRow = tutorialFinishedSignupsRow.filter(
+          (tutorialFinishedSignup) => {
+            const deviceType = getDeviceType(
+              tutorialFinishedSignup.userAgent ?? undefined,
+            );
+            return input.deviceType!.includes(deviceType);
+          },
+        );
+        totalRevenueRow = totalRevenueRow.filter((totalRevenue) => {
+          const deviceType = getDeviceType(totalRevenue.userAgent ?? undefined);
+          return input.deviceType!.includes(deviceType);
+        });
+      }
 
       // Calculate visitors by device
       const visitorsByDevice = {
@@ -437,11 +453,13 @@ export const dataRouter = createTRPCRouter({
       const characterCreations = characterCreationsRow.length;
       const signupRate = clicks > 0 ? signups / clicks : 0;
       const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
-      const leveledSignups = leveledSignupsRow?.[0]?.count ?? 0;
-      const nonStudentSignups = nonStudentSignupsRow?.[0]?.count ?? 0;
-      const pvpSignups = pvpSignupsRow?.[0]?.count ?? 0;
+      const nonStudentGeninSignups = nonStudentGeninSignupsRow.length;
+      const pvpSignups = pvpSignupsRow.length;
       const tutorialFinishedSignups = tutorialFinishedSignupsRow.length;
-      const totalRevenueUsd = totalRevenueRow?.[0]?.totalUsd ?? 0;
+      const totalRevenueUsd = totalRevenueRow.reduce(
+        (acc, row) => acc + (row.amount ?? 0),
+        0,
+      );
       const clickValueUsd = clicks > 0 ? totalRevenueUsd / clicks : 0;
 
       // Extract quest funnels for each requested quest
@@ -505,7 +523,6 @@ export const dataRouter = createTRPCRouter({
       }));
 
       return {
-        ctr: RECRUITMENT_CTR,
         signupRate,
         visitors: clicks,
         visitorsByDevice,
@@ -514,8 +531,7 @@ export const dataRouter = createTRPCRouter({
         characterCreations,
         characterCreationRate,
         characterCreationsByDevice,
-        leveledBeyond1: leveledSignups,
-        nonStudentSignups,
+        nonStudentGeninSignups,
         pvpSignups,
         tutorialFinishedSignups,
         tutorialFinishedByDevice,

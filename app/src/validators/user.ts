@@ -145,6 +145,7 @@ export const updateUserPreferencesSchema = z
     musicOn: z.boolean().optional(),
     sfxOn: z.boolean().optional(),
     iframesMuted: z.boolean().optional(),
+    tutorialOn: z.boolean().optional(),
   })
   .refine(
     (data) => {

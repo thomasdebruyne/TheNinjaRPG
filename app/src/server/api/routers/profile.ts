@@ -58,7 +58,13 @@ import { activityStreakRewards } from "@/libs/profile";
 import { calcHP, calcSP, calcCP } from "@/libs/profile";
 import { COST_CHANGE_USERNAME, SENSEI_MAX_STUDENT_LEVEL } from "@/drizzle/constants";
 import { UserRolesWithSkillTreeAccess } from "@/drizzle/constants";
-import { MAX_ATTRIBUTES, MAX_SKILL_POINTS, SKILL_POINT_MIN_LEVEL, SKILL_POINT_MAX_LEVEL, MAX_SKILL_POINTS_FROM_LEVELING } from "@/drizzle/constants";
+import {
+  MAX_ATTRIBUTES,
+  MAX_SKILL_POINTS,
+  SKILL_POINT_MIN_LEVEL,
+  SKILL_POINT_MAX_LEVEL,
+  MAX_SKILL_POINTS_FROM_LEVELING,
+} from "@/drizzle/constants";
 import { REGEN_SECONDS } from "@/drizzle/constants";
 import { createStatSchema } from "@/libs/combat/types";
 import { isAvailableUserQuests } from "@/libs/quest";
@@ -170,7 +176,23 @@ export const profileRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.drizzle
         .update(userData)
-        .set(input)
+        .set({
+          ...(input.tutorialOn !== undefined ? { tutorialOn: input.tutorialOn } : {}),
+          ...(input.musicOn !== undefined ? { musicOn: input.musicOn } : {}),
+          ...(input.sfxOn !== undefined ? { sfxOn: input.sfxOn } : {}),
+          ...(input.iframesMuted !== undefined
+            ? { iframesMuted: input.iframesMuted }
+            : {}),
+          ...(input.preferredStat !== undefined
+            ? { preferredStat: input.preferredStat }
+            : {}),
+          ...(input.preferredGeneral1 !== undefined
+            ? { preferredGeneral1: input.preferredGeneral1 }
+            : {}),
+          ...(input.preferredGeneral2 !== undefined
+            ? { preferredGeneral2: input.preferredGeneral2 }
+            : {}),
+        })
         .where(eq(userData.userId, ctx.userId));
       return {
         success: result.rowsAffected > 0,
@@ -273,7 +295,13 @@ export const profileRouter = createTRPCRouter({
         ? Math.min(newLevel - SKILL_POINT_MIN_LEVEL + 1, MAX_SKILL_POINTS_FROM_LEVELING)
         : 0;
     // Only give skillpoints if they haven't received all their leveling skillpoints yet
-    const skillPointsGain = isChunin && newLevel >= SKILL_POINT_MIN_LEVEL && newLevel <= SKILL_POINT_MAX_LEVEL && expectedSkillPointsFromLeveling <= MAX_SKILL_POINTS_FROM_LEVELING ? 1 : 0;
+    const skillPointsGain =
+      isChunin &&
+      newLevel >= SKILL_POINT_MIN_LEVEL &&
+      newLevel <= SKILL_POINT_MAX_LEVEL &&
+      expectedSkillPointsFromLeveling <= MAX_SKILL_POINTS_FROM_LEVELING
+        ? 1
+        : 0;
 
     const result = await ctx.drizzle
       .update(userData)

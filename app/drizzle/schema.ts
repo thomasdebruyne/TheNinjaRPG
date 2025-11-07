@@ -2031,6 +2031,7 @@ export const userData = mysqlTable(
     sfxOn: boolean("sfxOn").default(true).notNull(),
     iframesMuted: boolean("iframesMuted").default(false).notNull(),
     tutorialStep: tinyint("tutorialStep", { unsigned: true }).default(0).notNull(),
+    tutorialOn: boolean("tutorialOn").default(true).notNull(),
     homeType: mysqlEnum("homeType", consts.HomeTypes).default("NONE").notNull(),
     staffAccount: boolean("staffAccount").default(false).notNull(),
     rankedLp: int("rankedLp").default(0).notNull(),

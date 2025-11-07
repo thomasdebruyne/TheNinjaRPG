@@ -23,7 +23,7 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 const Welcome: React.FC = () => {
   // AB test for active players count
-  const { isTreatment } = useAbVariant("ab_layout_new_2");
+  const { isTreatment } = useAbVariant("ab_layout_new_3");
 
   // Install prompt control
   const { showPrompt } = useInstallPrompt();
@@ -87,7 +87,7 @@ const Welcome: React.FC = () => {
             <div
               className={cn(
                 isTreatment
-                  ? "inline items-center gap-2 text-xl"
+                  ? "inline items-center gap-2 text-xl mb-4"
                   : "inline items-center gap-2",
               )}
             >
@@ -97,7 +97,7 @@ const Welcome: React.FC = () => {
               </Link>
             </div>
           </div>
-          {isTreatment && (
+          {/* {isTreatment && (
             <div className=" flex justify-center items-center flex-row">
               <button
                 onClick={showPrompt}
@@ -126,16 +126,11 @@ const Welcome: React.FC = () => {
                 />
               </button>
             </div>
-          )}
+          )} */}
         </div>
       </div>
       {isTreatment && (
-        <div
-          className={cn(
-            backgroundClass,
-            "text-5xl font-bold text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]",
-          )}
-        >
+        <div className={cn(backgroundClass, "text-5xl font-bold text-foreground")}>
           Game Features
         </div>
       )}

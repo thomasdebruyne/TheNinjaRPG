@@ -9,6 +9,8 @@ import { type TicketType, TicketTypes } from "@/validators/misc";
 import ChatBox from "@/layout/ChatBox";
 import { useUserData } from "@/utils/UserContext";
 import { AudioSettingsPanel } from "@/layout/AudioSettings";
+import { Button } from "@/components/ui/button";
+import { api } from "@/app/_trpc/client";
 
 interface LowerRightHelpProps {
   children?: React.ReactNode;
@@ -20,6 +22,15 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
     "ticketType2",
     "ai_support",
   );
+  const utils = api.useUtils();
+
+  // Mutation to toggle tutorial
+  const { mutate: toggleTutorial, isPending: isTogglingTutorial } =
+    api.profile.updatePreferences.useMutation({
+      onSuccess: async () => {
+        await utils.profile.getUser.invalidate();
+      },
+    });
 
   // Helper function to safely validate ticket types
   const getValidTicketType = useCallback((value: any): TicketType => {
@@ -175,10 +186,44 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
               </div>
             </TabsContent>
 
-            <TabsList className="text-center mt-2 grid grid-cols-3">
-              <TabsTrigger value="ai_support">AI Support</TabsTrigger>
-              <TabsTrigger value="human_support">Human Support</TabsTrigger>
+            <TabsContent value="tutorial_settings" className="w-full">
+              <p className="font-bold text-lg mb-2">Tutorial Settings</p>
+              <div className="space-y-4">
+                <p className="text-sm">
+                  The tutorial helps new players learn the game mechanics. You can
+                  enable or disable it at any time.
+                </p>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <p className="font-semibold">Tutorial Mode</p>
+                    <p className="text-sm text-muted-foreground">
+                      {userData?.tutorialOn
+                        ? "Currently enabled"
+                        : "Currently disabled"}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      toggleTutorial({ tutorialOn: !userData?.tutorialOn });
+                    }}
+                    disabled={isTogglingTutorial}
+                    variant={userData?.tutorialOn ? "destructive" : "default"}
+                  >
+                    {isTogglingTutorial
+                      ? "Updating..."
+                      : userData?.tutorialOn
+                        ? "Disable Tutorial"
+                        : "Enable Tutorial"}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsList className="text-center mt-2 grid grid-cols-4">
+              <TabsTrigger value="ai_support">AI</TabsTrigger>
+              <TabsTrigger value="human_support">Human</TabsTrigger>
               <TabsTrigger value="audio_settings">Audio</TabsTrigger>
+              <TabsTrigger value="tutorial_settings">Tutorial</TabsTrigger>
             </TabsList>
           </Tabs>
         )}

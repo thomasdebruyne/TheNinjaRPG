@@ -22,7 +22,7 @@ const LayoutSwitcher: React.FC<LayoutSwitcherProps> = ({ children }) => {
   // Used for landing page layout A/B test (disabled for now)
   // const pathname = usePathname();
   // const { isSignedIn, isLoaded } = useUser();
-  // const { isTreatment } = useAbVariant("ab_layout_new_2");
+  // const { isTreatment } = useAbVariant("ab_layout_new_3");
   // // Only apply A/B test on homepage for non-logged in users
   // const shouldApplyAbTest = pathname === "/" && !isSignedIn;
   // if (!isLoaded) return null;

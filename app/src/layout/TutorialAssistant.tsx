@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, X } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ import * as Sentry from "@sentry/nextjs";
 import type { TutorialStepConfig } from "@/hooks/tutorial";
 import { getActiveObjective } from "@/libs/objectives";
 import { useCheckRewards } from "@/layout/Logbook";
+import { api } from "@/app/_trpc/client";
+import Modal2 from "@/layout/Modal2";
 
 /**
  * Reusable assistant portrait with correct styling
@@ -44,12 +46,14 @@ const AssistantPortrait: React.FC = () => (
  * Reusable assistant dialog (uses the latter, correct styling)
  * @param title - The title of the dialog
  * @param children - The content of the dialog
+ * @param onOpenDisableModal - Optional callback when close button is clicked
  * @returns
  */
 const AssistantDialog: React.FC<{
   title: string;
   children: React.ReactNode;
-}> = ({ title, children }) => (
+  onOpenDisableModal?: () => void;
+}> = ({ title, children, onOpenDisableModal }) => (
   <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[60] pointer-events-auto">
     <div className="relative">
       {/* Assistant portrait positioned behind and above the dialog (top-right) */}
@@ -62,6 +66,21 @@ const AssistantDialog: React.FC<{
         </div>
         {/* Speech panel */}
         <div className="bg-card text-foreground rounded-xl border-2 border-primary shadow-2xl w-[80vw] md:w-[560px] p-4 md:p-5">
+          {onOpenDisableModal && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onOpenDisableModal();
+              }}
+              className="absolute top-2 right-2 h-6 w-6 p-0 opacity-50 hover:opacity-100"
+              title="Disable tutorial"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
           {children}
         </div>
       </div>
@@ -98,6 +117,19 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   const { data: userData, userAgent } = useUserData();
   const pathname = usePathname();
   const router = useRouter();
+  const utils = api.useUtils();
+
+  // Mutation to disable tutorial
+  const { mutate: disableTutorial } = api.profile.updatePreferences.useMutation({
+    onSuccess: async () => {
+      await utils.profile.getUser.invalidate();
+    },
+  });
+
+  const handleDisableTutorial = () => {
+    disableTutorial({ tutorialOn: false });
+  };
+
   const [highlight, setHighlight] = useState<{
     isPrimaryElement: boolean;
     top: number;
@@ -149,9 +181,15 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   // Rewards check hook for dialog options
   const { checkRewards, isCheckingRewards } = useCheckRewards();
 
+  // State for disable tutorial confirmation modal
+  const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
+
   // Initialize tutorial visibility
   useEffect(() => {
     if (userData) {
+      // Early exit if tutorial is disabled
+      if (userData?.tutorialOn === false) return;
+
       // Handle the tutorial step
       let tutorialStep = userData.tutorialStep;
 
@@ -226,6 +264,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     // Do not handle replays on done tutorial
     if (currentStepNumber >= TUTORIAL_STEPS.length) return;
     if (!userData) return;
+    if (userData?.tutorialOn === false) return;
     // Start replay if we're on step 0 (first step)
     const replay = Sentry.getReplay();
     if (replay && currentStepNumber === 0) {
@@ -268,7 +307,8 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     if (
       userData &&
       currentStep?.title === "Assigning Stats" &&
-      userData?.earnedExperience === 0
+      userData?.earnedExperience === 0 &&
+      userData?.tutorialOn === true
     ) {
       console.log("Assigning stats but no stats available, proceeding to next step");
       void handleNextStepAsync();
@@ -278,7 +318,14 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
   // Update highlight position based on current step and element
   useEffect(() => {
+    // Early exit if tutorial is disabled
+    if (userData && userData?.tutorialOn === false) return;
     if (!isAssistantVisible) return;
+    // Don't highlight when disable modal is open
+    if (isDisableModalOpen) {
+      setHighlight(null);
+      return;
+    }
 
     // Determine which step to use - hospitalized overrides everything
     const isHospitalized = userData?.status === "HOSPITALIZED";
@@ -348,11 +395,24 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       observer.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStepNumber, isAssistantVisible, pathname, userData?.status]);
+  }, [
+    currentStepNumber,
+    isAssistantVisible,
+    pathname,
+    userData?.status,
+    isDisableModalOpen,
+  ]);
 
   // Update game menu highlight position when showing game menu tutorial
   useEffect(() => {
+    // Early exit if tutorial is disabled
+    if (userData?.tutorialOn === false) return;
     if (!showGameMenuTutorial) {
+      setGameMenuHighlight(null);
+      return;
+    }
+    // Don't highlight when disable modal is open
+    if (isDisableModalOpen) {
       setGameMenuHighlight(null);
       return;
     }
@@ -427,10 +487,19 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       window.removeEventListener("resize", handleResize);
       observer.disconnect();
     };
-  }, [showGameMenuTutorial, pathname, rightSideBarRef, rightSideBarOpen]);
+  }, [
+    showGameMenuTutorial,
+    pathname,
+    rightSideBarRef,
+    rightSideBarOpen,
+    userData?.tutorialOn,
+    isDisableModalOpen,
+  ]);
 
   // Auto-center the highlighted element when it becomes available
   useEffect(() => {
+    // Early exit if tutorial is disabled
+    if (userData?.tutorialOn === false) return;
     if (!highlight || !isAssistantVisible) return;
 
     // Only scroll once per step
@@ -449,10 +518,12 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
     // Mark that we've scrolled for this step
     hasScrolledForStepRef.current = currentStepNumber;
-  }, [highlight, isAssistantVisible, currentStepNumber]);
+  }, [highlight, isAssistantVisible, currentStepNumber, userData?.tutorialOn]);
 
   // Add keyboard event listener for Enter and ArrowLeft keys to forward tutorial
   useEffect(() => {
+    // Early exit if tutorial is disabled
+    if (userData?.tutorialOn === false) return;
     // Only add keyboard listener when tutorial is visible (either regular or game menu)
     if (!isAssistantVisible && !showGameMenuTutorial) return;
 
@@ -483,6 +554,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     showGameMenuTutorial,
     pathname,
     userData?.status,
+    userData?.tutorialOn,
     handleNextStep,
     setRightSideBarOpen,
     router,
@@ -496,6 +568,8 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
   // Find dialog options if the current step relates to a quest with a dialog task
   const dialogOptions = React.useMemo(() => {
+    // Early exit if tutorial is disabled
+    if (userData?.tutorialOn === false) return null;
     if (!currentTutorialStep?.relatedValue || !userData?.userQuests) return null;
 
     // Find the matching user quest
@@ -521,7 +595,12 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     }
 
     return null;
-  }, [currentTutorialStep?.relatedValue, userData?.userQuests, userData?.questData]);
+  }, [
+    currentTutorialStep?.relatedValue,
+    userData?.userQuests,
+    userData?.questData,
+    userData?.tutorialOn,
+  ]);
 
   // Render Game Menu tutorial (with bottom-right assistant)
   const renderGameMenuTutorial = () => {
@@ -571,7 +650,10 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           />
 
           {/* Assistant panel bottom-right - large, game-like dialog */}
-          <AssistantDialog title="Game Menu">
+          <AssistantDialog
+            title="Game Menu"
+            onOpenDisableModal={() => setIsDisableModalOpen(true)}
+          >
             <p className="text-sm md:text-base leading-relaxed">
               Click the highlighted button to open the game menu and continue the
               tutorial.
@@ -604,6 +686,11 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       </Dialog>
     );
   };
+
+  // Early return if tutorial is disabled
+  if (userData?.tutorialOn === false) {
+    return null;
+  }
 
   // Derived
   const pointerEvents =
@@ -692,9 +779,31 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
         </div>
       )}
 
+      {/* Disable tutorial confirmation modal */}
+      {isDisableModalOpen && (
+        <Modal2
+          title="Disable Tutorial?"
+          isOpen={isDisableModalOpen}
+          setIsOpen={setIsDisableModalOpen}
+          proceed_label="Disable"
+          confirmClassName="bg-red-600 text-white hover:bg-red-700"
+          onAccept={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDisableTutorial();
+          }}
+        >
+          Are you sure you want to disable the tutorial? You can re-enable it later by
+          going to the support button in the bottom right corner.
+        </Modal2>
+      )}
+
       {/* Assistant panel bottom-right - large, game-like dialog */}
       {!currentTutorialStep.hideDialog && (
-        <AssistantDialog title={currentTutorialStep.title}>
+        <AssistantDialog
+          title={currentTutorialStep.title}
+          onOpenDisableModal={() => setIsDisableModalOpen(true)}
+        >
           {typeof currentTutorialStep.description === "string" ? (
             <p className="text-sm md:text-base leading-relaxed">
               {currentTutorialStep.description}

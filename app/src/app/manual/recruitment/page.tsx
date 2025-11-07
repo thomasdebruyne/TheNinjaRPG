@@ -36,10 +36,6 @@ import VisitorFiltering, {
   useFiltering as useVisitorFiltering,
   getFilter as getVisitorFilter,
 } from "@/layout/VisitorFiltering";
-import {
-  TUTORIAL_STARTER_QUEST_ID,
-  TUTORIAL_GENIN_EXAM_QUEST_ID,
-} from "@/drizzle/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AbTestResults from "@/layout/AbTestResults";
 import { QuestFunnelBar } from "@/layout/UsageStatistics";
@@ -58,16 +54,10 @@ export default function ManualRecruitment() {
 
   const visitorFilterState = useVisitorFiltering();
 
-  const questFunnels = [
-    { id: TUTORIAL_STARTER_QUEST_ID, title: "Starter Quest" },
-    { id: TUTORIAL_GENIN_EXAM_QUEST_ID, title: "Genin Exam Quest" },
-  ] as const;
-
   const { data: mainMetrics, isFetching: isFetchingMain } =
     api.data.getRecruitmentMainMetrics.useQuery(
       {
         ...getVisitorFilter(visitorFilterState),
-        questFunnels: questFunnels.map((q) => q.id),
       },
       {
         staleTime: 1000 * 60,
@@ -108,9 +98,7 @@ export default function ManualRecruitment() {
     );
 
   const goals = {
-    ctr: RECRUITMENT_GOALS.CTR_PERCENT,
     signupRate: RECRUITMENT_GOALS.SIGNUP_RATE_PERCENT,
-    levelRate: RECRUITMENT_GOALS.LEVEL_RATE_PERCENT,
     rankRate: RECRUITMENT_GOALS.RANK_RATE_PERCENT,
     pvpRate: RECRUITMENT_GOALS.PVP_RATE_PERCENT,
     tutorialRate: RECRUITMENT_GOALS.TUTORIAL_RATE_PERCENT,
@@ -147,33 +135,6 @@ export default function ManualRecruitment() {
 
         {allowed && (
           <div className="grid grid-cols-2 gap-2 mt-3">
-            <Card>
-              <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">
-                  Click-Through Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="py-1">
-                {isFetchingMain ? (
-                  <Loader explanation="Loading CTR" />
-                ) : (
-                  <>
-                    <div
-                      className={`text-xl font-bold ${getColorClass(
-                        (mainMetrics?.ctr ?? 0) * 100,
-                        goals.ctr,
-                      )}`}
-                    >
-                      {((mainMetrics?.ctr ?? 0) * 100).toFixed(3)}%
-                    </div>
-                    <div className="text-xs text-foreground-muted">
-                      Goal: {goals.ctr}%
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader className="pb-0 pt-2">
                 <CardTitle className="text-sm font-medium">Signup Rate</CardTitle>
@@ -337,81 +298,10 @@ export default function ManualRecruitment() {
                 )}
               </CardContent>
             </Card>
-            {mainMetrics?.tutorialSteps && mainMetrics.tutorialSteps.length > 0 && (
-              <div className="col-span-2">
-                <QuestFunnelBar
-                  stepsCompleted={mainMetrics.tutorialSteps}
-                  title="Tutorial Steps Completion"
-                  stepDescriptions={TUTORIAL_STEPS.map((step) =>
-                    typeof step.description === "string"
-                      ? step.description
-                      : step.title,
-                  )}
-                />
-              </div>
-            )}
-            {questFunnels &&
-              questFunnels.length > 0 &&
-              questFunnels.map((questFunnel) => {
-                const data = mainMetrics?.questFunnels?.[questFunnel.id];
-                const descriptions =
-                  mainMetrics?.questObjectiveDescriptions?.[questFunnel.id];
-                return data ? (
-                  <div className="col-span-2" key={questFunnel.id}>
-                    <QuestFunnelBar
-                      stepsCompleted={data}
-                      title={`Quest: ${questFunnel.title}`}
-                      stepDescriptions={descriptions}
-                    />
-                  </div>
-                ) : null;
-              })}
 
             <Card>
               <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">Leveled Beyond 1</CardTitle>
-              </CardHeader>
-              <CardContent className="py-1">
-                {isFetchingMain ? (
-                  <Loader explanation="Loading leveled signups" />
-                ) : (
-                  <>
-                    <div
-                      className={`text-xl font-bold ${getColorClass(
-                        (mainMetrics?.signups ?? 0) > 0
-                          ? ((mainMetrics?.leveledBeyond1 ?? 0) /
-                              (mainMetrics?.signups ?? 1)) *
-                              100
-                          : 0,
-                        goals.levelRate,
-                      )}`}
-                    >
-                      {((mainMetrics?.signups ?? 0) > 0
-                        ? ((mainMetrics?.leveledBeyond1 ?? 0) /
-                            (mainMetrics?.signups ?? 1)) *
-                          100
-                        : 0
-                      ).toFixed(1)}
-                      %
-                    </div>
-                    <div className="text-xs text-foreground-muted">
-                      Goal: {goals.levelRate}%
-                    </div>
-                  </>
-                )}
-                {!isFetchingMain && mainMetrics && (
-                  <div className="text-xs text-foreground-muted">
-                    out of {mainMetrics.signups} signups
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">
-                  Beyond Student Rank
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Beyond Genin Rank</CardTitle>
               </CardHeader>
               <CardContent className="py-1">
                 {isFetchingMain ? (
@@ -421,7 +311,7 @@ export default function ManualRecruitment() {
                     <div
                       className={`text-xl font-bold ${getColorClass(
                         (mainMetrics?.signups ?? 0) > 0
-                          ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                          ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
                               (mainMetrics?.signups ?? 1)) *
                               100
                           : 0,
@@ -429,7 +319,7 @@ export default function ManualRecruitment() {
                       )}`}
                     >
                       {((mainMetrics?.signups ?? 0) > 0
-                        ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                        ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
                             (mainMetrics?.signups ?? 1)) *
                           100
                         : 0
@@ -509,6 +399,19 @@ export default function ManualRecruitment() {
                 </div>
               </CardContent>
             </Card>
+            {mainMetrics?.tutorialSteps && mainMetrics.tutorialSteps.length > 0 && (
+              <div className="col-span-2">
+                <QuestFunnelBar
+                  stepsCompleted={mainMetrics.tutorialSteps}
+                  title="Tutorial Steps Completion"
+                  stepDescriptions={TUTORIAL_STEPS.map((step) =>
+                    typeof step.description === "string"
+                      ? step.description
+                      : step.title,
+                  )}
+                />
+              </div>
+            )}
           </div>
         )}
       </ContentBox>

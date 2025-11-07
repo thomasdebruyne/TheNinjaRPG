@@ -2129,6 +2129,13 @@
       "when": 1761348621943,
       "tag": "0303_hesitant_invisible_woman",
       "breakpoints": false
+    },
+    {
+      "idx": 304,
+      "version": "5",
+      "when": 1762529038399,
+      "tag": "0304_wonderful_black_queen",
+      "breakpoints": false
     }
   ]
 }

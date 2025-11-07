@@ -659,14 +659,11 @@ export const RecruitmentMetricMax: Record<RecruitmentMetric, number> = {
   completedQuests: 50,
 };
 
-export const RECRUITMENT_CTR = 0.00944;
 export const RECRUITMENT_GOALS = {
-  CTR_PERCENT: 1,
-  SIGNUP_RATE_PERCENT: 10,
-  LEVEL_RATE_PERCENT: 95,
-  RANK_RATE_PERCENT: 30,
+  SIGNUP_RATE_PERCENT: 20,
+  RANK_RATE_PERCENT: 5,
   PVP_RATE_PERCENT: 5,
-  TUTORIAL_RATE_PERCENT: 70,
+  TUTORIAL_RATE_PERCENT: 50,
   CLICK_VALUE_USD: 0.07,
 } as const;
 
