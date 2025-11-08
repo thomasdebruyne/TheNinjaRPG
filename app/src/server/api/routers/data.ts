@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { and, eq, gte, lte, lt, sql, asc, inArray, or, ne, gt } from "drizzle-orm";
+import {
+  and,
+  eq,
+  gte,
+  lte,
+  lt,
+  sql,
+  asc,
+  inArray,
+  or,
+  ne,
+  gt,
+  isNotNull,
+} from "drizzle-orm";
 import {
   userJutsu,
   userItem,
@@ -293,18 +306,14 @@ export const dataRouter = createTRPCRouter({
             userAgent: visitorLog.userAgent,
           })
           .from(paypalTransaction)
-          .innerJoin(
-            userData,
-            or(
-              eq(paypalTransaction.affectedUserId, userData.userId),
-              eq(paypalTransaction.createdById, userData.userId),
-            ),
-          )
+          .innerJoin(userData, eq(paypalTransaction.createdById, userData.userId))
           .innerJoin(historicalIp, eq(historicalIp.userId, userData.userId))
           .innerJoin(visitorLog, eq(visitorLog.ip, historicalIp.ip))
           .where(
             and(
-              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              ...(input.utmSource && input.utmSource.length > 0
+                ? [eq(visitorLog.utmSource, input.utmSource)]
+                : [isNotNull(visitorLog.utmSource)]),
               eq(userData.isAi, false),
               gte(userData.createdAt, visitorLog.createdAt),
             ),
@@ -460,7 +469,7 @@ export const dataRouter = createTRPCRouter({
         (acc, row) => acc + (row.amount ?? 0),
         0,
       );
-      const clickValueUsd = clicks > 0 ? totalRevenueUsd / clicks : 0;
+      const signupValueUsd = signups > 0 ? totalRevenueUsd / signups : 0;
 
       // Extract quest funnels for each requested quest
       const questFunnels: Record<
@@ -535,7 +544,8 @@ export const dataRouter = createTRPCRouter({
         pvpSignups,
         tutorialFinishedSignups,
         tutorialFinishedByDevice,
-        clickValueUsd,
+        signupValueUsd,
+        totalRevenueUsd,
         questFunnels,
         questObjectiveDescriptions,
         tutorialSteps,

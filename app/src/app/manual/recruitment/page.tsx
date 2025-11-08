@@ -111,7 +111,7 @@ export default function ManualRecruitment() {
   };
 
   const getClickValueColor = (valueUsd: number) => {
-    const goal = RECRUITMENT_GOALS.CLICK_VALUE_USD;
+    const goal = RECRUITMENT_GOALS.SIGNUP_VALUE_USD;
     if (valueUsd >= goal) return "text-green-600";
     if (valueUsd >= goal * 0.9) return "text-orange-500";
     return "text-red-600";
@@ -379,7 +379,9 @@ export default function ManualRecruitment() {
             </Card>
             <Card>
               <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">Click Value (USD)</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Signup Value (USD)
+                </CardTitle>
               </CardHeader>
               <CardContent className="py-1">
                 {isFetchingMain ? (
@@ -387,15 +389,16 @@ export default function ManualRecruitment() {
                 ) : (
                   <div
                     className={`text-xl font-bold ${getClickValueColor(
-                      Number(mainMetrics?.clickValueUsd ?? 0),
+                      Number(mainMetrics?.signupValueUsd ?? 0),
                     )}`}
                   >
-                    ${mainMetrics?.clickValueUsd?.toFixed(2) ?? "0.00"}
+                    ${mainMetrics?.signupValueUsd?.toFixed(2) ?? "0.00"}
                   </div>
                 )}
                 <div className="text-xs text-foreground-muted">
-                  Total revenue / Paid Clicks (Goal: $
-                  {RECRUITMENT_GOALS.CLICK_VALUE_USD.toFixed(2)})
+                  Total revenue / Paid Signup (Goal: $
+                  {RECRUITMENT_GOALS.SIGNUP_VALUE_USD.toFixed(2)})<br />
+                  Ignores time filter!
                 </div>
               </CardContent>
             </Card>
