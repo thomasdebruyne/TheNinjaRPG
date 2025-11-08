@@ -559,6 +559,14 @@ export const useCheckRewards = () => {
         if (!data.success && "message" in data) {
           showMutationToast({ success: data.success, message: data.message });
         }
+        // Update state
+        await Promise.all([
+          utils.profile.getUser.invalidate(),
+          utils.quests.getQuestHistory.invalidate(),
+          utils.quests.allianceBuilding.invalidate(),
+          utils.quests.missionHall.invalidate(),
+          utils.quests.specificQuests.invalidate(),
+        ]);
         // If the quest is finished, handle the next step
         if (
           currentStep?.title === "Academy Dialog Option" &&
@@ -593,13 +601,6 @@ export const useCheckRewards = () => {
           if (resolved || showToast)
             showRewardToast(notifications, rewards, message, false, quest, badges);
         }
-        await Promise.all([
-          utils.profile.getUser.invalidate(),
-          utils.quests.getQuestHistory.invalidate(),
-          utils.quests.allianceBuilding.invalidate(),
-          utils.quests.missionHall.invalidate(),
-          utils.quests.specificQuests.invalidate(),
-        ]);
       },
     });
 

@@ -72,6 +72,21 @@ export default function Arena() {
   // Ensure user is in village
   const { userData, access } = useRequireInVillage("/battlearena");
 
+  // Tutorial step
+  const { currentStep } = useTutorialStep();
+
+  // If we're on "Start arena match", set tab to arena & set to current AI id
+  useEffect(() => {
+    if (
+      currentStep?.title === "Start Arena Match" &&
+      (aiId !== TUTORIAL_ARENA_DUMMY_ID || tab !== "Arena")
+    ) {
+      setTab("Arena");
+      setAiId(TUTORIAL_ARENA_DUMMY_ID);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, aiId, tab]);
+
   // Guards
   if (!access) return <Loader explanation="Accessing Battle Arena" />;
   if (!userData) return <Loader explanation="Loading user" />;
@@ -365,7 +380,7 @@ const ChallengeUser: React.FC = () => {
 
   // Ranked rules toggle
   const [useRankedRules, setUseRankedRules] = useState(false);
-  
+
   // Spectate toggle
   const [spectatable, setSpectatable] = useState(false);
 
@@ -427,7 +442,9 @@ const ChallengeUser: React.FC = () => {
           <Button
             id="challenge"
             className="mt-2 w-full"
-            onClick={() => create({ targetId: targetUser.userId, useRankedRules, spectatable })}
+            onClick={() =>
+              create({ targetId: targetUser.userId, useRankedRules, spectatable })
+            }
           >
             <Swords className="h-5 w-5 mr-2" />
             Challenge Now!

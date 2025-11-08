@@ -248,21 +248,11 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     page: "/itemshop",
   },
   {
-    id: "JeoGW2HFUESQdw2PlSRIg",
-    title: "Mission Hall",
-    elementIds: ["tutorial-missionhall"],
-    description:
-      "You are a lot stronger now, but there's still room for you to grow. A fundamental part of being a ninja is undertaking missions for your village. This is something you can do here at the mission hall.",
-    page: "/village",
-    proceedOnHighlightClick: true,
-    showNextButton: true,
-  },
-  {
     id: "U04RvrqvvYaOcenOGKMDw",
     title: "Academy",
     elementIds: ["tutorial-academy"],
     description:
-      "Wait, before we go to the mission hall, we should head to the academy. This is where I normally work as an instructor, and where we will guide you on your way to the next ninja rank of Genin. As a Genin, you will have access to more jutsus, more difficult missions, and much more. Let's go. ",
+      "You are a lot stronger now, but there's still room for you to grow. We should head to the academy. This is where I normally work as an instructor, and where we will guide you on your way to the next ninja rank of Genin. As a Genin, you will have access to more jutsus, more difficult missions, and much more. Let's go. ",
     page: "/village",
     proceedOnHighlightClick: true,
   },
