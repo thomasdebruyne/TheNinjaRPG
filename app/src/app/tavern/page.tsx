@@ -23,7 +23,7 @@ import { useRequiredUserData } from "@/utils/UserContext";
 export default function Tavern() {
   // State
   const [activeTab, setActiveTab] = useLocalStorage<string | undefined>(
-    "selectedTavern",
+    "selectedTavern2",
     undefined,
   );
 
@@ -68,7 +68,7 @@ export default function Tavern() {
   // If no tavern defined, set the tavern
   useEffect(() => {
     if (userData && !activeTab) {
-      setActiveTab(localTavern);
+      setActiveTab("Global");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData, localTavern]);
