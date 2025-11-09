@@ -480,6 +480,17 @@ export const getNewTrackers = (
             status = ObjectiveTracker.parse({ id: objective.id });
           }
 
+          // Self-healing: if a selectedNextObjectiveId is set, but this ID does not exist anymore, reset the objective
+          if (
+            status.selectedNextObjectiveId &&
+            !quest.content.objectives.find(
+              (o) => o.id === status.selectedNextObjectiveId,
+            )
+          ) {
+            status.selectedNextObjectiveId = undefined;
+            status.done = false;
+          }
+
           if ("sectorType" in objective && status.sector === undefined) {
             if (objective.sectorType === "specific") {
               status.sector = objective.sector;

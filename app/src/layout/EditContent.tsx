@@ -2104,6 +2104,13 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
           type: "db_values",
           label: FORM_LABEL_MAP[value] ?? value,
         };
+      } else if (["description", "successDescription"].includes(value)) {
+        return {
+          id: value,
+          label: FORM_LABEL_MAP[value] ?? value,
+          type: "richinput",
+          doubleWidth: true,
+        };
       } else if (
         innerType instanceof z.ZodLiteral ||
         innerType instanceof z.ZodString

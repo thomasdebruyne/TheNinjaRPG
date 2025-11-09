@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { ArrowRight, Loader2, X } from "lucide-react";
+import { ArrowRight, Loader2, X, Sparkles } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { parseHtml } from "@/utils/parse";
 import {
   Dialog,
   DialogContent,
@@ -23,18 +24,25 @@ import {
 import { cn } from "src/libs/shadui";
 import * as Sentry from "@sentry/nextjs";
 import type { TutorialStepConfig } from "@/hooks/tutorial";
-import { getActiveObjective } from "@/libs/objectives";
+import { getActiveObjective, isQuestObjectiveAvailable } from "@/libs/objectives";
 import { useCheckRewards } from "@/layout/Logbook";
 import { api } from "@/app/_trpc/client";
 import Modal2 from "@/layout/Modal2";
+import type { UserQuest } from "@/drizzle/schema";
+import type { QuestTrackerType } from "@/validators/objectives";
+import { isQuestComplete } from "@/libs/objectives";
+import { Objective } from "@/layout/Objective";
 
 /**
  * Reusable assistant portrait with correct styling
+ * @param characterImage - Optional custom character image to display instead of default assistant
  * @returns
  */
-const AssistantPortrait: React.FC = () => (
+const AssistantPortrait: React.FC<{ characterImage?: string }> = ({
+  characterImage,
+}) => (
   <Image
-    src={IMG_URL_ASSISTANT}
+    src={characterImage || IMG_URL_ASSISTANT}
     width={100}
     height={100}
     alt="Assistant"
@@ -47,17 +55,19 @@ const AssistantPortrait: React.FC = () => (
  * @param title - The title of the dialog
  * @param children - The content of the dialog
  * @param onOpenDisableModal - Optional callback when close button is clicked
+ * @param characterImage - Optional custom character image for the portrait
  * @returns
  */
 const AssistantDialog: React.FC<{
   title: string;
   children: React.ReactNode;
   onOpenDisableModal?: () => void;
-}> = ({ title, children, onOpenDisableModal }) => (
-  <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[60] pointer-events-auto">
+  characterImage?: string;
+}> = ({ title, children, onOpenDisableModal, characterImage }) => (
+  <div className="fixed bottom-24 right-4 md:bottom-4 md:right-4 z-[60] pointer-events-auto">
     <div className="relative">
       {/* Assistant portrait positioned behind and above the dialog (top-right) */}
-      <AssistantPortrait />
+      <AssistantPortrait characterImage={characterImage} />
       {/* Foreground content */}
       <div className="relative z-10">
         {/* Nameplate */}
@@ -560,47 +570,158 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     router,
   ]);
 
+  // Post tutorial state - quest data from userData
+  const [postTutorialQuest, setPostTutorialQuest] = useState<{
+    userQuest: UserQuest;
+    tracker: QuestTrackerType;
+  } | null>(null);
+
+  // Post tutorial state - whether to show the quest
+  const [showPostTutorialQuest, setShowPostTutorialQuest] = useState(false);
+
+  // Post-tutorial quest guidance: Find starter/tier quest when userData updates
+  useEffect(() => {
+    if (userData?.tutorialOn !== false && currentStepNumber >= TUTORIAL_STEPS.length) {
+      // Find the first starter or tier quest
+      const quest = userData?.userQuests?.find((uq) =>
+        ["starter", "tier"].includes(uq.quest.questType),
+      );
+
+      if (quest) {
+        // Get the tracker for this quest
+        const tracker = userData?.questData?.find((q) => q.id === quest.questId);
+
+        // Set quest if not complete
+        if (tracker && !isQuestComplete(quest.quest, tracker)) {
+          setPostTutorialQuest({ userQuest: quest, tracker });
+        } else {
+          setPostTutorialQuest(null);
+        }
+      } else {
+        setPostTutorialQuest(null);
+      }
+    } else {
+      setPostTutorialQuest(null);
+    }
+  }, [
+    userData?.tutorialOn,
+    userData?.userQuests,
+    userData?.questData,
+    currentStepNumber,
+  ]);
+
+  // Check if logbook entry exists on the page to determine whether to show the quest
+  useEffect(() => {
+    if (!postTutorialQuest) {
+      setShowPostTutorialQuest(false);
+      return;
+    }
+
+    const checkLogbookEntry = () => {
+      const logbookEntryExists = document.getElementById(
+        `logbook-entry-${postTutorialQuest.userQuest.questId}`,
+      );
+      setShowPostTutorialQuest(!logbookEntryExists);
+    };
+
+    // Initial check
+    checkLogbookEntry();
+
+    // Set up interval to keep checking
+    const interval = setInterval(checkLogbookEntry, 1000);
+
+    return () => clearInterval(interval);
+  }, [postTutorialQuest]);
+
   // Determine which step to show - hospitalized overrides everything
   const isHospitalized = userData?.status === "HOSPITALIZED";
-  const currentTutorialStep = isHospitalized
-    ? TUTORIAL_HOSPITALIZED_STEP
-    : TUTORIAL_STEPS[currentStepNumber];
+
+  // Create a dynamic tutorial step for post-tutorial quest guidance
+  let dynamicQuestStep: TutorialStepConfig | null = null;
+  if (showPostTutorialQuest && postTutorialQuest) {
+    const { userQuest, tracker } = postTutorialQuest;
+    const quest = userQuest.quest;
+    const activeObjective = getActiveObjective(quest, tracker);
+
+    // Determine the text to show
+    let description = quest.description;
+    if (quest.consecutiveObjectives && activeObjective?.description) {
+      description = activeObjective.description;
+    }
+
+    dynamicQuestStep = {
+      id: `quest-${quest.id}`,
+      title: quest.name,
+      description: description,
+      page: pathname,
+      relatedValue: quest.id,
+      showNextButton: false,
+    };
+  }
+
+  const currentTutorialStep =
+    dynamicQuestStep ||
+    (isHospitalized ? TUTORIAL_HOSPITALIZED_STEP : TUTORIAL_STEPS[currentStepNumber]);
 
   // Find dialog options if the current step relates to a quest with a dialog task
-  const dialogOptions = React.useMemo(() => {
-    // Early exit if tutorial is disabled
-    if (userData?.tutorialOn === false) return null;
-    if (!currentTutorialStep?.relatedValue || !userData?.userQuests) return null;
-
+  let dialogOptions = null;
+  if (
+    userData?.tutorialOn !== false &&
+    currentTutorialStep?.relatedValue &&
+    userData?.userQuests
+  ) {
     // Find the matching user quest
     const matchingQuest = userData.userQuests.find(
       (uq) => uq.questId === currentTutorialStep.relatedValue,
     );
 
-    if (!matchingQuest) return null;
+    if (matchingQuest) {
+      // Get the tracker for this quest
+      const tracker = userData.questData?.find((q) => q.id === matchingQuest.questId);
 
-    // Get the tracker for this quest
-    const tracker = userData.questData?.find((q) => q.id === matchingQuest.questId);
-    if (!tracker) return null;
+      if (tracker) {
+        // Get the active objective
+        const activeObjective = getActiveObjective(matchingQuest.quest, tracker);
 
-    // Get the active objective
-    const activeObjective = getActiveObjective(matchingQuest.quest, tracker);
-
-    // Check if it's a dialog task
-    if (activeObjective?.task === "dialog") {
-      return {
-        questId: matchingQuest.questId,
-        options: activeObjective.nextObjectiveId,
-      };
+        // Check if it's a dialog task
+        if (activeObjective?.task === "dialog") {
+          dialogOptions = {
+            questId: matchingQuest.questId,
+            options: activeObjective.nextObjectiveId,
+          };
+        }
+      }
     }
+  }
 
-    return null;
-  }, [
-    currentTutorialStep?.relatedValue,
-    userData?.userQuests,
-    userData?.questData,
-    userData?.tutorialOn,
-  ]);
+  // Get character images for post-tutorial quest (no background)
+  const postTutorialCharacterIds: string[] = [];
+  if (showPostTutorialQuest && postTutorialQuest) {
+    const { userQuest, tracker } = postTutorialQuest;
+    const quest = userQuest.quest;
+
+    // If consecutive objectives, use active objective's characters or fall back to quest characters
+    if (quest.consecutiveObjectives) {
+      const activeObjective = getActiveObjective(quest, tracker);
+      if (
+        activeObjective?.sceneCharacters &&
+        activeObjective.sceneCharacters.length > 0
+      ) {
+        postTutorialCharacterIds.push(...activeObjective.sceneCharacters);
+      } else {
+        postTutorialCharacterIds.push(...(quest.content.sceneCharacters || []));
+      }
+    } else {
+      // Not consecutive, use quest's characters
+      postTutorialCharacterIds.push(...(quest.content.sceneCharacters || []));
+    }
+  }
+
+  // Query to fetch character assets for post-tutorial quest
+  const { data: postTutorialCharacterAssets } = api.gameAsset.getSceneAssets.useQuery(
+    { assetIds: postTutorialCharacterIds },
+    { enabled: postTutorialCharacterIds.length > 0 },
+  );
 
   // Render Game Menu tutorial (with bottom-right assistant)
   const renderGameMenuTutorial = () => {
@@ -692,6 +813,14 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     return null;
   }
 
+  // Get character image for post-tutorial quest
+  const characterImage =
+    showPostTutorialQuest && postTutorialQuest
+      ? postTutorialCharacterAssets
+          ?.filter((asset) => asset.type === "SCENE_CHARACTER")
+          .map((asset) => asset.image)?.[0]
+      : undefined;
+
   // Derived
   const pointerEvents =
     currentTutorialStep?.proceedOnHighlightClick && highlight?.isPrimaryElement
@@ -703,8 +832,8 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     return renderGameMenuTutorial();
   }
 
-  // If the regular tutorial is not visible, don't render anything
-  if (!isAssistantVisible) return null;
+  // If the regular tutorial is not visible and there's no post-tutorial quest to show, don't render anything
+  if (!isAssistantVisible && !showPostTutorialQuest) return null;
 
   // Guard against undefined currentTutorialStep
   if (!currentTutorialStep) return null;
@@ -803,10 +932,11 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
         <AssistantDialog
           title={currentTutorialStep.title}
           onOpenDisableModal={() => setIsDisableModalOpen(true)}
+          characterImage={characterImage}
         >
           {typeof currentTutorialStep.description === "string" ? (
             <p className="text-sm md:text-base leading-relaxed">
-              {currentTutorialStep.description}
+              {parseHtml(currentTutorialStep.description)}
             </p>
           ) : (
             <div className="text-sm md:text-base leading-relaxed">
@@ -857,6 +987,60 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
               </div>
             </div>
           )}
+          {postTutorialQuest?.userQuest.quest.content.objectives &&
+            postTutorialQuest && (
+              <>
+                <div className={cn("mt-3 md:mt-4 grid grid-cols-1 gap-4 grid-cols-2")}>
+                  {postTutorialQuest.userQuest.quest.content.objectives.map(
+                    (objective, i) => {
+                      if (!postTutorialQuest) return null;
+                      const quest = postTutorialQuest.userQuest.quest;
+                      const tracker = postTutorialQuest.tracker;
+                      const allDone = isQuestComplete(quest, tracker);
+                      const activeObjective = getActiveObjective(quest, tracker);
+                      const status = tracker.goals.find((g) => g.id === objective.id);
+                      const hideIfNoRewards =
+                        objective.task === "dialog" ||
+                        (activeObjective && objective.id !== activeObjective?.id) ||
+                        (allDone && !status?.done);
+                      return (
+                        <Objective
+                          objective={objective}
+                          tracker={tracker}
+                          checkRewards={() => checkRewards({ questId: quest.id })}
+                          key={i}
+                          titlePrefix={
+                            quest.consecutiveObjectives ? "Objective: " : `${i + 1}. `
+                          }
+                          grayedOut={!isQuestObjectiveAvailable(quest, tracker, i)}
+                          hideIfNoRewards={hideIfNoRewards}
+                        />
+                      );
+                    },
+                  )}
+                </div>
+                {isQuestComplete(
+                  postTutorialQuest.userQuest.quest,
+                  postTutorialQuest.tracker,
+                ) &&
+                  userData?.status === "AWAKE" && (
+                    <div className="mt-3 md:mt-4">
+                      <Button
+                        onClick={() => {
+                          if (!postTutorialQuest) return;
+                          checkRewards({
+                            questId: postTutorialQuest.userQuest.quest.id,
+                          });
+                        }}
+                        className="w-full"
+                      >
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        Collect Reward
+                      </Button>
+                    </div>
+                  )}
+              </>
+            )}
           {currentTutorialStep?.showNextButton && (
             <div className="mt-3 md:mt-4 flex justify-end gap-2">
               <Button

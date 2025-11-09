@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAwake } from "@/utils/routing";
 import {
   UserRoundSearch,
-  Globe2,
+  Search,
   Eye,
   EyeOff,
   GitMerge,
@@ -388,7 +388,7 @@ export default function Travel() {
               <>
                 <Popover>
                   <PopoverTrigger>
-                    <Globe2 className={`h-7 w-7 mr-2 hover:text-orange-500`} />
+                    <Search className={`h-7 w-7 mr-2 hover:text-orange-500`} />
                   </PopoverTrigger>
                   <PopoverContent>
                     <p className="py-2">
