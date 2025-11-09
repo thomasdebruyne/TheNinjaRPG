@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useUserData } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import { COMBAT_SECONDS } from "@/libs/combat/constants";
@@ -387,6 +387,143 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     hideDialog: true,
   },
   {
+    id: "fdalgdwlcigydvs",
+    title: "Village",
+    description:
+      "Great job on getting the hang of things. Before I let you off the hook, let's review what is available in the village.",
+    elementIds: ["tutorial-village"],
+    page: "/academy",
+    proceedOnHighlightClick: true,
+    requiresGameMenu: true,
+  },
+  {
+    id: "32f4tesregsdaxsd3n8f7t",
+    title: "Ramen Shop",
+    description:
+      "In the ramen shop you can purchase ramen to regain your health, stamina and chakra.",
+    elementIds: ["tutorial-ramenshop"],
+    page: "/village",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "32f4tedfhgdfh3n8f7t",
+    title: "Mission Hall",
+    description:
+      "In the mission hall you can take missions to gain experience and ryo.",
+    elementIds: ["tutorial-missionhall"],
+    page: "/village",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "32f4tebsgfdg3n8f7t",
+    title: "Home",
+    description:
+      "At your home you can sleep to regain your health, stamina and chakra. Note that when you are in your home you are safe from being attacked by other players.",
+    elementIds: ["tutorial-home"],
+    page: "/village",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "gdffgdafgaerh",
+    title: "Clan Hall",
+    description:
+      "When you reach Chunin rank you can join a clan to fight together with other clans and get various benefits",
+    elementIds: ["tutorial-clanhall"],
+    page: "/village",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "32f4te3n8f7t",
+    title: "Town Hall",
+    description:
+      "Perhaps one of the most important buildings is the Town Hall. Let's go there to see what we can learn about the current village status.",
+    elementIds: ["tutorial-townhall"],
+    page: "/village",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "gsfgsdfg",
+    title: "Town Hall",
+    description:
+      "On the first tab you'll see the current alliance status between all the major villages in Seichi.",
+    elementIds: ["tutorial-townhall-alliance"],
+    page: "/townhall#Alliance",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "gsfgsdfg",
+    title: "Town Hall",
+    description: "Let's check on the kage of our village.",
+    elementIds: ["tutorial-Kage"],
+    page: "/townhall",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "gsfgsdfg",
+    title: "Town Hall",
+    description:
+      "This is the current kage of our village. The kage is the most powerful ninja, and gets to make decisions on behalf of the entire village together with the village elders.",
+    page: "/townhall#Kage",
+    showNextButton: true,
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "fadsbsdf",
+    title: "Village",
+    description:
+      "Allright, let's go back to the village. The last thing I want to show you is the black market.",
+    elementIds: ["tutorial-village"],
+    page: "/townhall",
+    proceedOnHighlightClick: true,
+    requiresGameMenu: true,
+  },
+  {
+    id: "fasdgshsrvre",
+    title: "Black Market",
+    description:
+      'The black market is a place where you can purchase and sell more "untraditional"items',
+    elementIds: ["tutorial-blackmarket"],
+    page: "/village",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "bfsvsfgerhtr",
+    title: "Black Market",
+    description:
+      'Here you can purchase and genetically modify your character with a different bloodline. To do so costs "reputation points", which can be acquired e.g. through special events. ',
+    elementIds: ["tutorial-bloodline-purchase"],
+    page: "/blackmarket#Bloodline",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "vsdffdsiugvd",
+    title: "Black Market",
+    description:
+      "One way to obtain reputation points is to exchange ryo for them. This is done in the ryo shop. ",
+    elementIds: ["tutorial-Ryo"],
+    page: "/blackmarket",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "vsdgfdgfdsiugvd",
+    title: "Black Market",
+    description:
+      "Here players are selling reputation points, which you can buy for ryo. Ryo is acquired by killing enemies, completing missions, etc.",
+    elementIds: ["tutorial-ryo-shop"],
+    page: "/blackmarket#Ryo",
+    proceedOnHighlightClick: true,
+  },
+  {
+    id: "YP5PEaCvfhJfdsl37V",
+    title: "Assigning Stats",
+    description:
+      "Okay, enough sightseeing. Great job on getting the hang of things. Let's assign all your experience points one more",
+    elementIds: ["tutorial-unassigned-stats"],
+    page: "/academy",
+    proceedOnHighlightClick: true,
+    requiresGameMenu: true,
+  },
+  {
     id: "YP5PEaCvfhJfdsl37V",
     title: "Assigning Stats",
     description:
@@ -418,7 +555,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     id: "f34p798tfn0327",
     title: "Academy",
     description:
-      "I'll let you off the hook soon, and then you can roam the village on your own a bit. Before that, let's go to the academy for the last time.",
+      "I'll let you off the hook now, and then you can roam the village on your own a bit. Before that, please follow me to the academy first.",
     elementIds: ["tutorial-village"],
     proceedOnHighlightClick: true,
     requiresGameMenu: true,
@@ -429,7 +566,7 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     id: "f34p798tfn0327",
     title: "Academy",
     description:
-      "I'll let you off the hook soon, and then you can roam the village on your own a bit. Before that, let's go to the academy for the last time.",
+      "I'll let you off the hook now, and then you can roam the village on your own a bit. Before that, please follow me to the academy first.",
     elementIds: ["tutorial-academy"],
     proceedOnHighlightClick: true,
     page: "/village",
@@ -479,7 +616,11 @@ export const useTutorialStep = () => {
           const nextStepPage = TUTORIAL_STEPS[data.data.tutorialStep]?.page;
           const onBattlePage = pathname === "/combat";
           if (nextStepPage && pathname !== nextStepPage && !onBattlePage) {
-            router.push(nextStepPage);
+            if (nextStepPage.includes("#")) {
+              window.location.href = nextStepPage; // Force reload to update anchor section
+            } else {
+              router.push(nextStepPage);
+            }
           }
         }
       },
@@ -492,68 +633,62 @@ export const useTutorialStep = () => {
   }, [userData?.tutorialStep]);
 
   // Handle next step
-  const handleNextStep = useCallback(
-    (forceStep?: string) => {
-      setCurrentStepNumber((prevStep) => {
-        // Force step if provided
-        const setStep = TUTORIAL_STEPS.findIndex((step) => step.id === forceStep);
-        const nextStep = forceStep && setStep > -1 ? setStep : prevStep + 1;
+  const handleNextStep = (forceStep?: string) => {
+    setCurrentStepNumber((prevStep) => {
+      // Force step if provided
+      const setStep = TUTORIAL_STEPS.findIndex((step) => step.id === forceStep);
+      const nextStep = forceStep && setStep > -1 ? setStep : prevStep + 1;
 
-        // Update the user's tutorial step in the database
-        if (!isPending && nextStep !== stepNumber) {
-          updateTutorialStep({ step: nextStep });
-        }
+      // Update the user's tutorial step in the database
+      if (!isPending && nextStep !== stepNumber) {
+        updateTutorialStep({ step: nextStep });
+      }
 
-        // If we've reached the end of the tutorial, hide it
-        if (nextStep >= TUTORIAL_STEPS.length) {
-          setIsAssistantVisible(false);
-          return prevStep; // Return current step since we're hiding the tutorial
-        }
+      // If we've reached the end of the tutorial, hide it
+      if (nextStep >= TUTORIAL_STEPS.length) {
+        setIsAssistantVisible(false);
+        return prevStep; // Return current step since we're hiding the tutorial
+      }
 
-        return nextStep;
-      });
-    },
-    [updateTutorialStep, setIsAssistantVisible],
-  );
+      return nextStep;
+    });
+  };
 
   /**
    * Async version of handleNextStep, returns a promise that resolves when the step is updated.
    * @param info Optional info object with forceStep and skipOptimisticUpdate.
    */
-  const handleNextStepAsync = useCallback(
-    async (forceStep?: string) => {
-      // Force step if provided
-      const setStep = TUTORIAL_STEPS.findIndex((step) => step.id === forceStep);
-      const nextStep = forceStep && setStep > -1 ? setStep : stepNumber + 1;
+  const handleNextStepAsync = async (forceStep?: string) => {
+    // Force step if provided
+    const setStep = TUTORIAL_STEPS.findIndex((step) => step.id === forceStep);
+    const nextStep = forceStep && setStep > -1 ? setStep : stepNumber + 1;
 
-      // If we've reached the end of the tutorial, hide it and resolve
-      if (nextStep >= TUTORIAL_STEPS.length) {
-        setIsAssistantVisible(false);
-      }
+    // If we've reached the end of the tutorial, hide it and resolve
+    if (nextStep >= TUTORIAL_STEPS.length) {
+      setIsAssistantVisible(false);
+    }
 
-      // Only update if not already at this step
-      if (!isPending && nextStep !== stepNumber) {
-        return new Promise<void>((resolve) => {
-          updateTutorialStep(
-            { step: nextStep },
-            {
-              onSuccess: () => {
-                setCurrentStepNumber(nextStep);
-                resolve();
-              },
-              onError: () => {
-                resolve();
-              },
+    // Only update if not already at this step
+    if (!isPending && nextStep !== stepNumber) {
+      return new Promise<void>((resolve) => {
+        updateTutorialStep(
+          { step: nextStep },
+          {
+            onSuccess: () => {
+              setCurrentStepNumber(nextStep);
+              resolve();
             },
-          );
-        });
-      } else {
-        setCurrentStepNumber(nextStep);
-        return Promise.resolve();
-      }
-    },
-    [updateTutorialStep, setIsAssistantVisible, stepNumber, isPending],
-  );
+            onError: () => {
+              resolve();
+            },
+          },
+        );
+      });
+    } else {
+      setCurrentStepNumber(nextStep);
+      return Promise.resolve();
+    }
+  };
 
   // Return
   return {

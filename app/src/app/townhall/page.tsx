@@ -27,12 +27,17 @@ import { canChallengeKage } from "@/utils/kage";
 import { findRelationship } from "@/utils/alliance";
 import { KAGE_PRESTIGE_REQUIREMENT } from "@/drizzle/constants";
 import { KAGE_CHALLENGE_SECS, KAGE_CHALLENGE_MINS } from "@/drizzle/constants";
-import { KAGE_RANK_REQUIREMENT, WAR_FUNDS_COST, KAGE_DELAY_SECS } from "@/drizzle/constants";
+import {
+  KAGE_RANK_REQUIREMENT,
+  WAR_FUNDS_COST,
+  KAGE_DELAY_SECS,
+} from "@/drizzle/constants";
 import { KAGE_PRESTIGE_COST } from "@/drizzle/constants";
 import { KAGE_MIN_DAYS_IN_VILLAGE } from "@/drizzle/constants";
 import { KAGE_CHALLENGE_MAX_DAILY_LOCKED_HOURS } from "@/drizzle/constants";
 import { getSearchValidator } from "@/validators/register";
 import { useForm, useWatch } from "react-hook-form";
+import { useLocalStorage } from "@/hooks/localstorage";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Village, VillageAlliance } from "@/drizzle/schema";
@@ -57,7 +62,11 @@ export default function TownHall() {
   const availableTabs = userData?.isOutlaw
     ? ["Alliance", "Wars", "Shrines"]
     : ["Alliance", "Kage", "Elders", "Wars", "Shrines"];
-  const [tab, setTab] = useState<(typeof availableTabs)[number] | null>(null);
+  const [tab, setTab] = useLocalStorage<(typeof availableTabs)[number] | null>(
+    "townhallTab",
+    null,
+    true,
+  );
 
   if (!userData) return <Loader explanation="Loading userdata" />;
   if (userData.isBanned) return <BanInfo />;
@@ -166,32 +175,37 @@ const ElderHall: React.FC<{
                       Lvl. {elder.level} {capitalizeFirstLetter(elder.rank)}
                     </div>
                   </div>
-                  {isKage && (() => {
-                    const threeDaysAgo = new Date(Date.now() - KAGE_DELAY_SECS * 1000);
-                    const canRemove = user.village?.leaderUpdatedAt && new Date(user.village.leaderUpdatedAt) <= threeDaysAgo;
-                    return canRemove ? (
-                      <Confirm2
-                        title="Confirm Demotion"
-                        button={
-                          <Ban className="absolute right-[13%] top-[3%] h-9 w-9 cursor-pointer rounded-full bg-slate-300 p-1 hover:text-orange-500" />
-                        }
-                        onAccept={(e) => {
-                          e.preventDefault();
-                          toggleElder({
-                            userId: elder.userId,
-                            villageId: elder.villageId,
-                          });
-                        }}
-                      >
-                        You are about to remove this user as a village elder. Are you
-                        sure?
-                      </Confirm2>
-                    ) : (
-                      <div className="absolute right-[13%] top-[3%] h-9 w-9 rounded-full bg-gray-200 p-1 flex items-center justify-center">
-                        <span className="text-xs text-gray-500">3d</span>
-                      </div>
-                    );
-                  })()}
+                  {isKage &&
+                    (() => {
+                      const threeDaysAgo = new Date(
+                        Date.now() - KAGE_DELAY_SECS * 1000,
+                      );
+                      const canRemove =
+                        user.village?.leaderUpdatedAt &&
+                        new Date(user.village.leaderUpdatedAt) <= threeDaysAgo;
+                      return canRemove ? (
+                        <Confirm2
+                          title="Confirm Demotion"
+                          button={
+                            <Ban className="absolute right-[13%] top-[3%] h-9 w-9 cursor-pointer rounded-full bg-slate-300 p-1 hover:text-orange-500" />
+                          }
+                          onAccept={(e) => {
+                            e.preventDefault();
+                            toggleElder({
+                              userId: elder.userId,
+                              villageId: elder.villageId,
+                            });
+                          }}
+                        >
+                          You are about to remove this user as a village elder. Are you
+                          sure?
+                        </Confirm2>
+                      ) : (
+                        <div className="absolute right-[13%] top-[3%] h-9 w-9 rounded-full bg-gray-200 p-1 flex items-center justify-center">
+                          <span className="text-xs text-gray-500">3d</span>
+                        </div>
+                      );
+                    })()}
                 </Link>
               </div>
             ))}
@@ -375,12 +389,12 @@ const KageHall: React.FC<{
           </Form>
         )}
       </ContentBox>
-      <KageChallenge user={user} />
       <PublicUserComponent
         userId={village.villageData.kageId}
         title={user.isOutlaw ? "Faction Kage" : "Village Kage"}
         initialBreak
       />
+      <KageChallenge user={user} />
       {village.defendedChallenges && village.defendedChallenges.length > 0 && (
         <ContentBox
           title="Challenge Record"
@@ -727,7 +741,7 @@ const KageChallenge: React.FC<{
             } else {
               showMutationToast({
                 success: false,
-                message: "Reason must be at least 10 characters long"
+                message: "Reason must be at least 10 characters long",
               });
             }
           }}
@@ -735,9 +749,10 @@ const KageChallenge: React.FC<{
         >
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              You are about to take the kage position as staff. This action will be logged and should only be used for administrative purposes.
+              You are about to take the kage position as staff. This action will be
+              logged and should only be used for administrative purposes.
             </p>
-            
+
             <div className="space-y-2">
               <Label htmlFor="reason">Reason *</Label>
               <Input
@@ -747,7 +762,8 @@ const KageChallenge: React.FC<{
                 placeholder="Enter reason for taking kage position (minimum 10 characters)..."
               />
               <p className="text-xs text-muted-foreground">
-                This reason will be logged in the action log. Minimum 10 characters required.
+                This reason will be logged in the action log. Minimum 10 characters
+                required.
               </p>
             </div>
           </div>
@@ -814,6 +830,7 @@ const AllianceHall: React.FC<{
   return (
     <>
       <ContentBox
+        id="tutorial-townhall-alliance"
         title={user.isOutlaw ? "Rumours" : "Town Hall"}
         subtitle="Villages & factions"
         defaultBackHref="/village"

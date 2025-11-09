@@ -236,7 +236,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       // Handle regular tutorial steps
       if (!shouldShowGameMenuTutorial) {
         // Show tutorial if we have a valid step and we're on the right page
-        const onCorrectPage = currentStepConfig && pathname === currentStepConfig.page;
+        const onCorrectPage = currentStepConfig?.page?.includes(pathname);
         const hasRequiredGameMenu =
           currentStepConfig?.requiresGameMenu && isMobile ? rightSideBarOpen : true;
 
@@ -350,7 +350,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     }
 
     // If we're not on the correct page for this step, don't try to highlight
-    if (pathname !== step.page) {
+    if (!step.page?.includes(pathname)) {
       return;
     }
 

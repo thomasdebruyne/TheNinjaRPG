@@ -84,7 +84,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
   } = props;
   const { data: userData } = useUserData();
   const router = useRouter();
-  
+
   // Get bloodline names for displaying bloodline requirements
   const { data: bloodlinesData } = api.bloodline.getAllNames.useQuery();
 
@@ -317,16 +317,22 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
             {!hideDetails && "description" in item && item.description && (
               <div>{parseHtml(item.description)}</div>
             )}
-            {!hideDetails && "itemType" in item && item.itemType === "CRYSTAL" && "crystalTargetTypes" in item && item.crystalTargetTypes && (
-              <div className="mt-2">
-                <b>Can Imbue: </b>
-                <span className="text-blue-600 font-medium">{item.crystalTargetTypes}</span>
-              </div>
-            )}
+            {!hideDetails &&
+              "itemType" in item &&
+              item.itemType === "CRYSTAL" &&
+              "crystalTargetTypes" in item &&
+              item.crystalTargetTypes && (
+                <div className="mt-2">
+                  <b>Can Imbue: </b>
+                  <span className="text-blue-600 font-medium">
+                    {item.crystalTargetTypes}
+                  </span>
+                </div>
+              )}
           </div>
         </div>
         <div>
-          <div className="my-2 grid grid-cols-2 rounded-lg bg-poppopover p-2">
+          <div className="my-2 grid grid-cols-2 rounded-lg bg-poppopover p-2 text-xs md:text-base">
             {"bloodline" in item && item.bloodline !== null && (
               <p className="col-span-2">
                 <b>Bloodline</b>: {(item?.bloodline as Bloodline)?.name}
@@ -563,7 +569,9 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
             )}
             {"bloodlineId" in item && item.bloodlineId && (
               <p>
-                <b>Required Bloodline</b>: {bloodlinesData?.find(b => b.id === item.bloodlineId)?.name || item.bloodlineId}
+                <b>Required Bloodline</b>:{" "}
+                {bloodlinesData?.find((b) => b.id === item.bloodlineId)?.name ||
+                  item.bloodlineId}
               </p>
             )}
             {"maxLevel" in item && item.maxLevel && (

@@ -138,7 +138,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   const shownNotifications = notifications?.filter(
     (n) => n.color !== "toast" && n.color !== "hidden",
   );
-
+  console.log("shownNotifications", shownNotifications);
   // Split menu into two parts
   const navbarMenuItemsLeft = navbarMenuItems.slice(0, 3);
   const navbarMenuItemsRight = navbarMenuItems.slice(3);
@@ -310,7 +310,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
       </Link>
       <AudioSettingsPopover userData={userData} updateUser={updateUser} />
       <Eclipse
-        className={`hover:cursor-pointer h-6 w-6 xl:h-7 xl:w-7 min-w-6 min-h-6 xl:min-w-7 xl:min-h-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 p-1 ${theme === "light" ? "bg-yellow-100" : "bg-blue-100"}`}
+        className={`hover:cursor-pointer h-6 w-6 xl:h-7 xl:w-7 min-w-6 min-h-6 xl:min-w-7 xl:min-h-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 p-1 bg-yellow-100 dark:bg-blue-100`}
         onClick={() => {
           if (!theme || theme === "light") {
             localStorage.setItem("theme", "dark");
@@ -498,18 +498,22 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           <div
             className={cn(
               "relative h-[15px] w-full shrink-0 bg-fill bg-repeat-x md:hidden",
-              shownNotifications && shownNotifications.length > 0
+              shownNotifications &&
+                shownNotifications.length > 0 &&
+                pathname !== "/combat"
                 ? "top-[100px]"
-                : "top-[80px]",
+                : "top-[70px]",
             )}
             style={{ backgroundImage: `url(${IMG_LAYOUT_MOBILE_TOP})` }}
           ></div>
           <div
             className={cn(
               "relative md:top-[-122px] flex flex-row z-10 h-full",
-              shownNotifications && shownNotifications.length > 0
+              shownNotifications &&
+                shownNotifications.length > 0 &&
+                pathname !== "/combat"
                 ? "top-[100px]"
-                : "top-[80px]",
+                : "top-[70px]",
             )}
           >
             {/* LEFT SIDEBANNER DESKTOP */}

@@ -75,6 +75,7 @@ export const PurchaseBloodline: React.FC<PurchaseBloodlineProps> = (props) => {
 
   return (
     <ContentBox
+      id="tutorial-bloodline-purchase"
       title="Bloodline"
       subtitle="Purchase special abilities"
       initialBreak={props.initialBreak}

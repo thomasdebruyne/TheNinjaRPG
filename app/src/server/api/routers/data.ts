@@ -324,7 +324,13 @@ export const dataRouter = createTRPCRouter({
             userAgent: visitorLog.userAgent,
           })
           .from(paypalTransaction)
-          .innerJoin(userData, eq(paypalTransaction.createdById, userData.userId))
+          .innerJoin(
+            userData,
+            or(
+              eq(paypalTransaction.createdById, userData.userId),
+              eq(paypalTransaction.affectedUserId, userData.userId),
+            ),
+          )
           .innerJoin(historicalIp, eq(historicalIp.userId, userData.userId))
           .innerJoin(visitorLog, eq(visitorLog.ip, historicalIp.ip))
           .where(

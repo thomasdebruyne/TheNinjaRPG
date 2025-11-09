@@ -44,6 +44,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useLocalStorage } from "@/hooks/localstorage";
 import { PITY_BLOODLINE_ROLLS, PITY_SYSTEM_ENABLED } from "@/drizzle/constants";
 import type { ArrayElement } from "@/utils/typeutils";
 import type { UserWithRelations } from "@/routers/profile";
@@ -51,7 +52,11 @@ import type { UserWithRelations } from "@/routers/profile";
 export default function BlackMarket() {
   // Tab selection
   const tabs = ["Bloodline", "Item", "Ryo"] as const;
-  const [tab, setTab] = useState<(typeof tabs)[number] | null>(null);
+  const [tab, setTab] = useLocalStorage<(typeof tabs)[number] | null>(
+    "blackmarketTab",
+    null,
+    true,
+  );
 
   // Settings
   const { data: userData } = useRequiredUserData();
@@ -231,10 +236,10 @@ const Bloodline: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
 
   return (
     <>
+      <PurchaseBloodline initialBreak={true} />
       {bloodlineId && (
         <CurrentBloodline bloodlineId={bloodlineId} initialBreak={true} />
       )}
-      <PurchaseBloodline initialBreak={true} />
     </>
   );
 };
@@ -449,6 +454,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
 
   return (
     <ContentBox
+      id="tutorial-ryo-shop"
       title="Ryo Shop"
       subtitle="Trade for reputation points"
       initialBreak={true}

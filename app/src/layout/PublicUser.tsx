@@ -619,8 +619,8 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                 <TooltipProvider delayDuration={50}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <PersonStanding 
-                        className="h-6 w-6 cursor-pointer hover:text-orange-500" 
+                      <PersonStanding
+                        className="h-6 w-6 cursor-pointer hover:text-orange-500"
                         onClick={() => setShowForceAwakeModal(true)}
                       />
                     </TooltipTrigger>
@@ -1020,14 +1020,14 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
           confirmClassName="bg-orange-600 hover:bg-orange-700"
           onAccept={() => {
             if (forceAwakeReason.trim().length >= 10) {
-              unstuckUser.mutate({ 
-                userId: profile.userId, 
-                reason: forceAwakeReason.trim() 
+              unstuckUser.mutate({
+                userId: profile.userId,
+                reason: forceAwakeReason.trim(),
               });
             } else {
               showMutationToast({
                 success: false,
-                message: "Reason must be at least 10 characters long"
+                message: "Reason must be at least 10 characters long",
               });
             }
           }}
@@ -1035,10 +1035,11 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
         >
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              You are about to force <strong>{profile.username}</strong> to awake status.
-              This action will be logged and should only be used to fix users stuck in a particular state.
+              You are about to force <strong>{profile.username}</strong> to awake
+              status. This action will be logged and should only be used to fix users
+              stuck in a particular state.
             </p>
-            
+
             <div className="space-y-2">
               <Label htmlFor="reason">Reason *</Label>
               <Input
@@ -1048,7 +1049,8 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                 placeholder="Enter reason for forcing awake status (minimum 10 characters)..."
               />
               <p className="text-xs text-muted-foreground">
-                This reason will be logged in the action log. Minimum 10 characters required.
+                This reason will be logged in the action log. Minimum 10 characters
+                required.
               </p>
             </div>
           </div>
