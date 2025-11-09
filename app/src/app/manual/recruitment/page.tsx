@@ -298,46 +298,6 @@ export default function ManualRecruitment() {
                 )}
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">Beyond Genin Rank</CardTitle>
-              </CardHeader>
-              <CardContent className="py-1">
-                {isFetchingMain ? (
-                  <Loader explanation="Loading rank progress" />
-                ) : (
-                  <>
-                    <div
-                      className={`text-xl font-bold ${getColorClass(
-                        (mainMetrics?.signups ?? 0) > 0
-                          ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
-                              (mainMetrics?.signups ?? 1)) *
-                              100
-                          : 0,
-                        goals.rankRate,
-                      )}`}
-                    >
-                      {((mainMetrics?.signups ?? 0) > 0
-                        ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
-                            (mainMetrics?.signups ?? 1)) *
-                          100
-                        : 0
-                      ).toFixed(1)}
-                      %
-                    </div>
-                    <div className="text-xs text-foreground-muted">
-                      Goal: {goals.rankRate}%
-                    </div>
-                  </>
-                )}
-                {!isFetchingMain && mainMetrics && (
-                  <div className="text-xs text-foreground-muted">
-                    out of {mainMetrics.signups} signups
-                  </div>
-                )}
-              </CardContent>
-            </Card>
             <Card>
               <CardHeader className="pb-0 pt-2">
                 <CardTitle className="text-sm font-medium">Did PvP Fight</CardTitle>
@@ -380,6 +340,87 @@ export default function ManualRecruitment() {
             <Card>
               <CardHeader className="pb-0 pt-2">
                 <CardTitle className="text-sm font-medium">
+                  Beyond Student Rank
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading student progress" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
+                              100
+                          : 0,
+                        goals.rankRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
+                          100
+                        : 0
+                      ).toFixed(1)}
+                      %
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.rankRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    {mainMetrics.nonStudentSignups} / {mainMetrics.signups}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Beyond Genin Rank</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading rank progress" />
+                ) : (
+                  <>
+                    <div
+                      className={`text-xl font-bold ${getColorClass(
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
+                              100
+                          : 0,
+                        goals.rankRate,
+                      )}`}
+                    >
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
+                          100
+                        : 0
+                      ).toFixed(1)}
+                      %
+                    </div>
+                    <div className="text-xs text-foreground-muted">
+                      Goal: {goals.rankRate}%
+                    </div>
+                  </>
+                )}
+                {!isFetchingMain && mainMetrics && (
+                  <div className="text-xs text-foreground-muted">
+                    out of {mainMetrics.signups} signups
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">
                   Signup Value (USD)
                 </CardTitle>
               </CardHeader>
@@ -402,6 +443,26 @@ export default function ManualRecruitment() {
                 </div>
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              </CardHeader>
+              <CardContent className="py-1">
+                {isFetchingMain ? (
+                  <Loader explanation="Loading total revenue" />
+                ) : (
+                  <div className="text-xl font-bold text-green-600">
+                    ${mainMetrics?.totalRevenueUsd?.toFixed(2) ?? "0.00"}
+                  </div>
+                )}
+                <div className="text-xs text-foreground-muted">
+                  Total revenue from all transactions
+                  <br />
+                  Ignores time filter!
+                </div>
+              </CardContent>
+            </Card>
+
             {mainMetrics?.tutorialSteps && mainMetrics.tutorialSteps.length > 0 && (
               <div className="col-span-2">
                 <QuestFunnelBar

@@ -209,6 +209,7 @@ export const dataRouter = createTRPCRouter({
       const [
         allVisitorsRowRaw,
         signupsRowRaw,
+        nonStudentSignupsRowRaw,
         nonStudentGeninSignupsRowRaw,
         pvpSignupsRowRaw,
         tutorialFinishedSignupsRowRaw,
@@ -244,6 +245,23 @@ export const dataRouter = createTRPCRouter({
               ...(input.utmSource && input.utmSource.length > 0
                 ? [eq(referralSource.source, input.utmSource)]
                 : []),
+            ),
+          ),
+        // nonStudentSignupsRow: fetch individual users beyond STUDENT rank
+        ctx.drizzle
+          .select({
+            userId: userData.userId,
+            userAgent: visitorLog.userAgent,
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .innerJoin(userData, eq(userData.userId, historicalIp.userId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              gte(userData.createdAt, visitorLog.createdAt),
+              ne(userData.rank, "STUDENT"),
             ),
           ),
         // nonStudentGeninSignupsRow: fetch individual users with userAgent for device splitting
@@ -360,6 +378,7 @@ export const dataRouter = createTRPCRouter({
       let allVisitorsRow = allVisitorsRowRaw;
       let signupsRow = signupsRowRaw;
       let characterCreationsRow = signupsRowRaw;
+      let nonStudentSignupsRow = nonStudentSignupsRowRaw;
       let nonStudentGeninSignupsRow = nonStudentGeninSignupsRowRaw;
       let pvpSignupsRow = pvpSignupsRowRaw;
       let tutorialFinishedSignupsRow = tutorialFinishedSignupsRowRaw;
@@ -381,6 +400,10 @@ export const dataRouter = createTRPCRouter({
             const deviceType = getDeviceType(characterCreation.userAgent ?? undefined);
             return input.deviceType!.includes(deviceType);
           });
+        nonStudentSignupsRow = nonStudentSignupsRow.filter((nonStudentSignup) => {
+          const deviceType = getDeviceType(nonStudentSignup.userAgent ?? undefined);
+          return input.deviceType!.includes(deviceType);
+        });
         nonStudentGeninSignupsRow = nonStudentGeninSignupsRow.filter(
           (nonStudentSignup) => {
             const deviceType = getDeviceType(nonStudentSignup.userAgent ?? undefined);
@@ -462,6 +485,7 @@ export const dataRouter = createTRPCRouter({
       const characterCreations = characterCreationsRow.length;
       const signupRate = clicks > 0 ? signups / clicks : 0;
       const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
+      const nonStudentSignups = nonStudentSignupsRow.length;
       const nonStudentGeninSignups = nonStudentGeninSignupsRow.length;
       const pvpSignups = pvpSignupsRow.length;
       const tutorialFinishedSignups = tutorialFinishedSignupsRow.length;
@@ -540,6 +564,7 @@ export const dataRouter = createTRPCRouter({
         characterCreations,
         characterCreationRate,
         characterCreationsByDevice,
+        nonStudentSignups,
         nonStudentGeninSignups,
         pvpSignups,
         tutorialFinishedSignups,
