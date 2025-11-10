@@ -35,6 +35,7 @@ Sentry.init({
     "Hydration Error", // Based on sentry inspection not seen by user
     "Failed to execute 'send' on 'WebSocket': Still in CONNECTING state.", // WebSocket error
     "Failed to read the 'localStorage' property from 'Window': Access is denied for this document.", // LocalStorage error
+    "Can't find variable: __firefox__", // Firefox error
   ],
 
   // Only enable Sentry in production
