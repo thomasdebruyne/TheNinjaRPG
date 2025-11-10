@@ -43,31 +43,9 @@ export default function InstallPrompt() {
   };
 
   // Don't show if already installed, if user recently dismissed, or if not on mobile
-  if (isStandalone || isInstalled || !isMobile) {
+  if (isStandalone || isInstalled || !isMobile || !isVisible) {
     return null;
   }
-
-  if (typeof window !== "undefined" && localStorage && !isVisible) {
-    // Check for long-term dismissal (60 days)
-    const dismissedLongTime = localStorage.getItem("pwa-install-dismissed-long");
-    if (
-      dismissedLongTime &&
-      Date.now() - parseInt(dismissedLongTime) < 60 * 24 * 60 * 60 * 1000
-    ) {
-      return null; // Don't show for 60 days after long-term dismissal
-    }
-
-    // Check for short-term dismissal (7 days)
-    const dismissedTime = localStorage.getItem("pwa-install-dismissed");
-    if (
-      dismissedTime &&
-      Date.now() - parseInt(dismissedTime) < 7 * 24 * 60 * 60 * 1000
-    ) {
-      return null; // Don't show for 7 days after dismissal
-    }
-  }
-
-  if (!isVisible) return null;
 
   if (currentStep && userData) return null;
 

@@ -138,7 +138,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   const shownNotifications = notifications?.filter(
     (n) => n.color !== "toast" && n.color !== "hidden",
   );
-  console.log("shownNotifications", shownNotifications);
+
   // Split menu into two parts
   const navbarMenuItemsLeft = navbarMenuItems.slice(0, 3);
   const navbarMenuItemsRight = navbarMenuItems.slice(3);

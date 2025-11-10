@@ -58,7 +58,27 @@ export function InstallPromptProvider({ children }: { children: ReactNode }) {
 
       // Auto-show install prompt after delay if not already installed and on mobile
       if (!standalone && mobile) {
-        setTimeout(() => setIsVisible(true), 3000);
+        setTimeout(() => {
+          // Check for long-term dismissal (60 days)
+          const dismissedLongTime = localStorage.getItem("pwa-install-dismissed-long");
+          if (
+            dismissedLongTime &&
+            Date.now() - parseInt(dismissedLongTime) < 60 * 24 * 60 * 60 * 1000
+          ) {
+            return; // Don't show for 60 days after long-term dismissal
+          }
+
+          // Check for short-term dismissal (7 days)
+          const dismissedTime = localStorage.getItem("pwa-install-dismissed");
+          if (
+            dismissedTime &&
+            Date.now() - parseInt(dismissedTime) < 7 * 24 * 60 * 60 * 1000
+          ) {
+            return; // Don't show for 7 days after dismissal
+          }
+
+          setIsVisible(true);
+        }, 3000);
       }
     };
 
