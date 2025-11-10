@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { conceptImage } from "@/drizzle/schema";
 
 // Route segment config
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 // Image metadata
 export const alt = "TheNinja-RPG Concept Art";
@@ -12,10 +12,17 @@ export const alt = "TheNinja-RPG Concept Art";
 export const contentType = "image/png";
 
 // Image generation
-export default async function Image({ params }: { params: { imageid: string } }) {
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ imageid: string }>;
+}) {
+  // Await params as per Next.js 16 requirements
+  const { imageid } = await params;
+
   // Get the image
   const image = await drizzleDB.query.conceptImage.findFirst({
-    where: eq(conceptImage.id, params.imageid || ""),
+    where: eq(conceptImage.id, imageid || ""),
   });
   const url = image?.image;
   const width = url ? 576 : 512;

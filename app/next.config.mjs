@@ -16,8 +16,8 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import("next").NextConfig} */
 const config = {
+  reactCompiler: true, // Fix user search, money sending, combat, search jutsu name
   experimental: {
-    reactCompiler: true, // Fix user search, money sending, combat, search jutsu name
     nextScriptWorkers: true,
     optimizePackageImports: ["three"],
   },
