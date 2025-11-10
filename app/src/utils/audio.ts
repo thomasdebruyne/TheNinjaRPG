@@ -157,20 +157,50 @@ export const resumeAudioContext = async (
   }
 };
 
-// Simple in-memory cache for Audio elements by URL
-const audioCache = new Map<string, HTMLAudioElement>();
+// Type for window-level audio cache to survive module reloads
+declare global {
+  interface Window {
+    __audioCache?: Map<string, HTMLAudioElement>;
+    __sharedAudioContext?: AudioContext;
+    __audioBufferCache?: Map<string, AudioBuffer>;
+    __audioBufferPending?: Map<string, Promise<AudioBuffer>>;
+  }
+}
 
-// Shared AudioContext + caches for decoded AudioBuffers
-let sharedAudioContext: AudioContext | null = null;
-const audioBufferCache = new Map<string, AudioBuffer>();
-const audioBufferPending = new Map<string, Promise<AudioBuffer>>();
+// Get audio cache (stored on window to survive HMR)
+const getAudioCache = (): Map<string, HTMLAudioElement> => {
+  if (typeof window === "undefined") return new Map();
+  if (!window.__audioCache) {
+    window.__audioCache = new Map<string, HTMLAudioElement>();
+  }
+  return window.__audioCache;
+};
 
+// Get shared AudioContext (stored on window to survive HMR)
 const getSharedAudioContext = (): AudioContext | null => {
   if (typeof window === "undefined") return null;
-  if (!sharedAudioContext) {
-    sharedAudioContext = createAudioContext();
+  if (!window.__sharedAudioContext) {
+    window.__sharedAudioContext = createAudioContext() ?? undefined;
   }
-  return sharedAudioContext;
+  return window.__sharedAudioContext ?? null;
+};
+
+// Get audio buffer cache (stored on window to survive HMR)
+const getAudioBufferCache = (): Map<string, AudioBuffer> => {
+  if (typeof window === "undefined") return new Map();
+  if (!window.__audioBufferCache) {
+    window.__audioBufferCache = new Map<string, AudioBuffer>();
+  }
+  return window.__audioBufferCache;
+};
+
+// Get audio buffer pending cache (stored on window to survive HMR)
+const getAudioBufferPending = (): Map<string, Promise<AudioBuffer>> => {
+  if (typeof window === "undefined") return new Map();
+  if (!window.__audioBufferPending) {
+    window.__audioBufferPending = new Map<string, Promise<AudioBuffer>>();
+  }
+  return window.__audioBufferPending;
 };
 
 const decodeAudioDataAsync = (
@@ -208,21 +238,23 @@ export const preloadAudioBuffers = async (urls: string[]) => {
   if (typeof window === "undefined") return;
   const ctx = getSharedAudioContext();
   if (!ctx) return;
+  const bufferCache = getAudioBufferCache();
+  const bufferPending = getAudioBufferPending();
   const unique = [...new Set(urls.filter(Boolean))];
   const results = await Promise.allSettled(
     unique.map(async (url) => {
-      if (audioBufferCache.has(url)) return audioBufferCache.get(url)!;
-      const existing = audioBufferPending.get(url);
+      if (bufferCache.has(url)) return bufferCache.get(url)!;
+      const existing = bufferPending.get(url);
       if (existing) return existing;
       const promise = (async () => {
         const response = await fetch(url, { mode: "cors", cache: "force-cache" });
         if (!response.ok) throw new Error(`Failed to fetch audio buffer: ${url}`);
         const arrayBuffer = await response.arrayBuffer();
         const buffer = await decodeAudioDataAsync(ctx, arrayBuffer);
-        audioBufferCache.set(url, buffer);
+        bufferCache.set(url, buffer);
         return buffer;
-      })().finally(() => audioBufferPending.delete(url));
-      audioBufferPending.set(url, promise);
+      })().finally(() => bufferPending.delete(url));
+      bufferPending.set(url, promise);
       return promise;
     }),
   );
@@ -238,7 +270,22 @@ export const preloadAudioBuffers = async (urls: string[]) => {
 export const playPreloadedAudio = async (url: string, volume = 0.8): Promise<void> => {
   if (!url || typeof window === "undefined") return;
   const ctx = getSharedAudioContext();
-  const buffer = url ? audioBufferCache.get(url) : undefined;
+  const bufferCache = getAudioBufferCache();
+  const bufferPending = getAudioBufferPending();
+
+  // Check if buffer is cached
+  let buffer = bufferCache.get(url);
+
+  // If not cached but pending, wait for it
+  if (!buffer && bufferPending.has(url)) {
+    try {
+      console.log("Waiting for pending buffer:", url);
+      buffer = await bufferPending.get(url);
+    } catch (err) {
+      console.warn("Failed to load pending buffer:", url, err);
+    }
+  }
+
   if (ctx && buffer) {
     try {
       await resumeAudioContext(ctx);
@@ -256,11 +303,15 @@ export const playPreloadedAudio = async (url: string, volume = 0.8): Promise<voi
         } catch {}
       };
       return;
-    } catch {
+    } catch (err) {
+      console.warn("Buffer playback failed:", url, err);
       // Fall through to element-based playback
     }
   }
+
+  console.log("Falling back to Audio element:", url);
   // Element-based fallback (still allows overlapping via clone)
+  const audioCache = getAudioCache();
   let audio = audioCache.get(url);
   if (!audio) {
     audio = new Audio(url);
@@ -384,7 +435,7 @@ export const muteUserIframe = (iframe: HTMLIFrameElement): void => {
     const allowedSpotifyHosts = [
       "open.spotify.com",
       "embed.spotify.com",
-      "www.spotify.com"
+      "www.spotify.com",
     ];
     if (allowedSpotifyHosts.includes(url.hostname)) {
       // Spotify does not support a mute flag; limit autoplay as a fallback
@@ -424,10 +475,7 @@ export const unmuteUserIframe = (iframe: HTMLIFrameElement): void => {
       iframe.src = url.toString();
       return;
     }
-    const soundcloudHosts = [
-      "soundcloud.com",
-      "www.soundcloud.com",
-    ];
+    const soundcloudHosts = ["soundcloud.com", "www.soundcloud.com"];
     if (soundcloudHosts.includes(host)) {
       // No-op; SoundCloud mute toggle not supported via URL; keep autoplay controls only
       return;
