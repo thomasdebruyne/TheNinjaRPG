@@ -11,6 +11,7 @@ import { showMutationToast } from "@/libs/toast";
 import { canAccessStructure } from "@/utils/village";
 import { atom } from "jotai";
 import { usePusherHandler } from "@/layout/PusherHandler";
+import * as Sentry from "@sentry/nextjs";
 import type Pusher from "pusher-js";
 import type { NavBarDropdownLink } from "@/libs/menus";
 import type { UserWithRelations } from "@/api/routers/profile";
@@ -139,6 +140,20 @@ export function UserContextProvider(props: { children: React.ReactNode }) {
         });
       });
   }, [data?.notifications]);
+
+  // Update Sentry user context when userData changes
+  useEffect(() => {
+    if (data?.userData) {
+      Sentry.setUser({
+        id: data.userData.userId,
+        username: data.userData.username,
+        email: user?.primaryEmailAddress?.emailAddress,
+      });
+    } else {
+      // Clear user context when logged out
+      Sentry.setUser(null);
+    }
+  }, [data?.userData, user?.primaryEmailAddress?.emailAddress]);
 
   return (
     <UserContext.Provider

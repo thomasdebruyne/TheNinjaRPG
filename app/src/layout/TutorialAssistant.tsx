@@ -274,6 +274,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     // Do not handle replays on done tutorial
     if (currentStepNumber >= TUTORIAL_STEPS.length) return;
     if (!userData) return;
+    if (userData.level > 1) return;
     if (userData?.tutorialOn === false) return;
     // Start replay if we're on step 0 (first step)
     const replay = Sentry.getReplay();
