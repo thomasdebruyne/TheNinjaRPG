@@ -205,7 +205,7 @@ export const getInfiniteThreads = async (props: {
 }) => {
   const { client, boardId, boardName, cursor, limit, highlightPinned } = props;
   const board = await fetchBoard(client, boardId, boardName);
-  if (!board) throw new Error("Board not found");
+  if (!board) throw new Error(`Board not found: ${boardId} ${boardName}`);
   const currentCursor = cursor ? cursor : 0;
   const skip = currentCursor * limit;
   const threads = await client.query.forumThread.findMany({
@@ -243,7 +243,7 @@ export const fetchBoard = async (
       ? eq(forumBoard.id, threadId ?? "")
       : eq(forumBoard.name, threadName ?? ""),
   });
-  if (!entry) throw new Error("Board not found");
+  if (!entry) throw new Error(`Board not found: ${threadId} ${threadName}`);
   return entry;
 };
 
