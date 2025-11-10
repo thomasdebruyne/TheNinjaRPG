@@ -1490,73 +1490,73 @@ export const createStatSchema = (min = 10, start = 10, user?: UserData) => {
     ninjutsuOffence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.ninjutsuOffence || 0))
+      .max(stats_cap - Math.min(user?.ninjutsuOffence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     taijutsuOffence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.taijutsuOffence || 0))
+      .max(stats_cap - Math.min(user?.taijutsuOffence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     genjutsuOffence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.genjutsuOffence || 0))
+      .max(stats_cap - Math.min(user?.genjutsuOffence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     bukijutsuOffence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.bukijutsuOffence || 0))
+      .max(stats_cap - Math.min(user?.bukijutsuOffence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     ninjutsuDefence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.ninjutsuDefence || 0))
+      .max(stats_cap - Math.min(user?.ninjutsuDefence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     taijutsuDefence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.taijutsuDefence || 0))
+      .max(stats_cap - Math.min(user?.taijutsuDefence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     genjutsuDefence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.genjutsuDefence || 0))
+      .max(stats_cap - Math.min(user?.genjutsuDefence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     bukijutsuDefence: z.coerce
       .number()
       .min(min)
-      .max(stats_cap - (user?.bukijutsuDefence || 0))
+      .max(stats_cap - Math.min(user?.bukijutsuDefence || 0, stats_cap))
       .transform(roundStat)
       .default(start),
     strength: z.coerce
       .number()
       .min(min)
-      .max(gens_cap - (user?.strength || 0))
+      .max(gens_cap - Math.min(user?.strength || 0, gens_cap))
       .transform(roundStat)
       .default(start),
     speed: z.coerce
       .number()
       .min(min)
-      .max(gens_cap - (user?.speed || 0))
+      .max(gens_cap - Math.min(user?.speed || 0, gens_cap))
       .transform(roundStat)
       .default(start),
     intelligence: z.coerce
       .number()
       .min(min)
-      .max(gens_cap - (user?.intelligence || 0))
+      .max(gens_cap - Math.min(user?.intelligence || 0, gens_cap))
       .transform(roundStat)
       .default(start),
     willpower: z.coerce
       .number()
       .min(min)
-      .max(gens_cap - (user?.willpower || 0))
+      .max(gens_cap - Math.min(user?.willpower || 0, gens_cap))
       .transform(roundStat)
       .default(start),
   });
