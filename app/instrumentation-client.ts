@@ -35,6 +35,8 @@ Sentry.init({
     "Hydration Error", // Based on sentry inspection not seen by user
     "Hydration failed - the server rendered HTML didn't match the client.", // Based on sentry inspection not seen by user
     "Hydration failed because the server rendered HTML didn't match the client", // Based on sentry inspection not seen by user
+    "https://reactjs.org/docs/error-decoder.html?invariant=423", // There was an error while hydrating...
+    "https://reactjs.org/docs/error-decoder.html?invariant=425", // There was an error while hydrating...
     "Failed to execute 'send' on 'WebSocket': Still in CONNECTING state.", // WebSocket error
     "Failed to read the 'localStorage' property from 'Window': Access is denied for this document.", // LocalStorage error
     "Can't find variable: __firefox__", // Firefox error
