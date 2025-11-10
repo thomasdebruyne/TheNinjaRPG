@@ -96,6 +96,9 @@ import {
   ID_SFX_SMOKE,
   ID_SFX_HIT,
   ID_SFX_HEAL,
+  ID_SFX_MOVE,
+  ID_SFX_CLEANSE,
+  ID_SFX_CLEAR,
 } from "@/drizzle/constants";
 import type { RankedLoadout } from "@/drizzle/schema";
 import type { BattleType } from "@/drizzle/constants";
@@ -1613,7 +1616,14 @@ export const initiateBattle = async (
     ),
   ]
     .filter((asset): asset is string => !!asset)
-    .concat([ID_SFX_SMOKE, ID_SFX_HIT, ID_SFX_HEAL]);
+    .concat([
+      ID_SFX_SMOKE,
+      ID_SFX_HIT,
+      ID_SFX_HEAL,
+      ID_SFX_MOVE,
+      ID_SFX_CLEANSE,
+      ID_SFX_CLEAR,
+    ]);
 
   // Insert data
   const [, , userResult] = await Promise.all([

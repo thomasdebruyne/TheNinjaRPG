@@ -87,9 +87,11 @@ export const miscRouter = createTRPCRouter({
       }
       return { success: true, message: "Visitor tracked" };
     }),
-  getAllGameAssetNames: publicProcedure.query(async ({ ctx }) => {
-    return await fetchGameAssets(ctx.drizzle);
-  }),
+  getAllGameAssetNames: publicProcedure
+    .input(z.object({ ids: z.array(z.string()) }).optional())
+    .query(async ({ ctx, input }) => {
+      return await fetchGameAssets(ctx.drizzle, input?.ids);
+    }),
   getCaptcha: protectedProcedure
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
@@ -502,9 +504,12 @@ export const validateCaptcha = async (
  * @param client - The DrizzleClient instance used to query the database.
  * @returns A promise that resolves to an array of game assets, each containing the id, name, and image.
  */
-export const fetchGameAssets = async (client: DrizzleClient) => {
+export const fetchGameAssets = async (client: DrizzleClient, ids?: string[]) => {
   return await client.query.gameAsset.findMany({
-    where: eq(gameAsset.hidden, false),
+    where: and(
+      eq(gameAsset.hidden, false),
+      ...(ids ? [inArray(gameAsset.id, ids)] : []),
+    ),
     orderBy: [desc(gameAsset.name)],
   });
 };

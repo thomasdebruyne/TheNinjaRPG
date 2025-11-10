@@ -103,8 +103,16 @@ const Combat: React.FC<CombatProps> = (props) => {
     (u) => u.userId === userData?.userId,
   );
 
+  // Asset IDs to fetch
+  const textureAssets = battle.current?.extraState.textureAssets || [];
+  const sfxAssets = battle.current?.extraState.sfxAssets || [];
+  const allAssets = [...textureAssets, ...sfxAssets];
+
   // Query data
-  const { data: gameAssets } = api.misc.getAllGameAssetNames.useQuery(undefined);
+  const { data: gameAssets } = api.misc.getAllGameAssetNames.useQuery(
+    { ids: allAssets },
+    { enabled: !!battle.current },
+  );
 
   // Preload all combat-related asset textures once assets list is ready
   useEffect(() => {
