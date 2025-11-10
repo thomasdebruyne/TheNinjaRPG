@@ -322,15 +322,12 @@ export const dataRouter = createTRPCRouter({
           .select({
             amount: paypalTransaction.amount,
             userAgent: visitorLog.userAgent,
+            userId: userData.userId,
+            userCreatedAt: userData.createdAt,
+            transactionCreatedAt: paypalTransaction.createdAt,
           })
           .from(paypalTransaction)
-          .innerJoin(
-            userData,
-            or(
-              eq(paypalTransaction.createdById, userData.userId),
-              eq(paypalTransaction.affectedUserId, userData.userId),
-            ),
-          )
+          .innerJoin(userData, eq(paypalTransaction.createdById, userData.userId))
           .innerJoin(historicalIp, eq(historicalIp.userId, userData.userId))
           .innerJoin(visitorLog, eq(visitorLog.ip, historicalIp.ip))
           .where(
@@ -428,10 +425,14 @@ export const dataRouter = createTRPCRouter({
             return input.deviceType!.includes(deviceType);
           },
         );
-        totalRevenueRow = totalRevenueRow.filter((totalRevenue) => {
-          const deviceType = getDeviceType(totalRevenue.userAgent ?? undefined);
-          return input.deviceType!.includes(deviceType);
-        });
+        totalRevenueRow = totalRevenueRow
+          .filter((totalRevenue) => {
+            const deviceType = getDeviceType(totalRevenue.userAgent ?? undefined);
+            return input.deviceType!.includes(deviceType);
+          })
+          .filter((totalRevenue) =>
+            signupsRow.find((signup) => signup.userId === totalRevenue.userId),
+          );
       }
 
       // Calculate visitors by device

@@ -377,33 +377,34 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
       options={
         <div className="ml-3">
           <div className="mt-2 flex flex-row items-center ">
-            {[
-              "mission",
-              "crime",
-              "event",
-              "errand",
-              "story",
-              "medical",
-              "hunting",
-              "gathering",
-              "battlepyramid",
-              "starter",
-              "anbu",
-            ].includes(quest.questType) && (
-              <Confirm2
-                title="Confirm deleting quest"
-                button={
-                  <X className="ml-2 h-8 w-8 hover:text-orange-500 cursor-pointer bg-popover border-2 rounded-full p-1" />
-                }
-                onAccept={(e) => {
-                  e.preventDefault();
-                  void abandon({ id: quest.id });
-                }}
-              >
-                Are you sure you want to abandon this quest? Note that even though you
-                abandon this quest, you have still used one of your daily attempts.
-              </Confirm2>
-            )}
+            {quest.questType !== "starter" &&
+              [
+                "mission",
+                "crime",
+                "event",
+                "errand",
+                "story",
+                "medical",
+                "hunting",
+                "gathering",
+                "battlepyramid",
+                "starter",
+                "anbu",
+              ].includes(quest.questType) && (
+                <Confirm2
+                  title="Confirm deleting quest"
+                  button={
+                    <X className="ml-2 h-8 w-8 hover:text-orange-500 cursor-pointer bg-popover border-2 rounded-full p-1" />
+                  }
+                  onAccept={(e) => {
+                    e.preventDefault();
+                    void abandon({ id: quest.id });
+                  }}
+                >
+                  Are you sure you want to abandon this quest? Note that even though you
+                  abandon this quest, you have still used one of your daily attempts.
+                </Confirm2>
+              )}
           </div>
         </div>
       }

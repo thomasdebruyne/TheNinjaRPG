@@ -116,7 +116,9 @@ const MenuBoxProfile: React.FC = () => {
 
   // Derived data
   const immunitySecsLeft =
-    (userData && (userData.immunityUntil.getTime() - Date.now()) / 1000) || 0;
+    (userData?.immunityUntil &&
+      (userData.immunityUntil.getTime() - Date.now()) / 1000) ||
+    0;
 
   // Battle user state
   const battleUser = battle?.usersState.find((u) => u.userId === userData?.userId);
