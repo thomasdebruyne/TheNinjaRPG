@@ -294,6 +294,9 @@ export const playPreloadedAudio = async (url: string, volume = 0.8): Promise<voi
       gain.gain.value = vol;
       const source = ctx.createBufferSource();
       source.buffer = buffer;
+      // Add small random pitch variation for variety (±5%)
+      const pitchVariation = 0.9 + Math.random() * 0.2; // Range: 0.9 to 1.1
+      source.playbackRate.value = pitchVariation;
       source.connect(gain).connect(ctx.destination);
       source.start(0);
       source.onended = () => {
