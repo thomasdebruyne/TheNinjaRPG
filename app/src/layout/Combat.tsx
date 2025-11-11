@@ -10,7 +10,7 @@ import { drawCombatBackground, drawCombatEffects } from "@/libs/combat/drawing";
 import { OrbitControls } from "@/libs/threejs/OrbitControls";
 import { COMBAT_SECONDS, COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { SpriteMixer } from "@/libs/threejs/SpriteMixer";
-import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/travel/util";
+import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/threejs/util";
 import { highlightTiles } from "@/libs/combat/drawing";
 import { highlightTooltips, highlightTileTooltips } from "@/libs/combat/drawing";
 import { highlightUsers } from "@/libs/combat/drawing";

@@ -25,7 +25,7 @@ import alea from "alea";
 import * as TWEEN from "@tweenjs/tween.js";
 import { createTexture, loadTexture } from "@/libs/threejs/util";
 import { useTutorialStep } from "@/hooks/tutorial";
-import { cleanUp, setupScene } from "@/libs/travel/util";
+import { cleanUp, setupScene } from "@/libs/threejs/util";
 import {
   groundColors,
   oceanColors,

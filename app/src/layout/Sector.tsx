@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 import { PathCalculator, findHex } from "@/libs/hexgrid";
 import { OrbitControls } from "@/libs/threejs/OrbitControls";
 import { getBackgroundColor } from "@/libs/travel/biome";
-import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/travel/util";
+import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/threejs/util";
 import { drawSector, drawVillage, drawUsers, drawQuest } from "@/libs/travel/sector";
 import { intersectUsers } from "@/libs/travel/sector";
 import { intersectTiles } from "@/libs/travel/sector";
