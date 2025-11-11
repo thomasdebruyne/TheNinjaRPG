@@ -23,7 +23,7 @@ import "sonner/dist/styles.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="h-full">
         <NextSSRPlugin
           /** https://docs.uploadthing.com/getting-started/appdir */
