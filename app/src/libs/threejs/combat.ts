@@ -16,11 +16,11 @@ import {
 import { loadTexture, createTexture } from "@/libs/threejs/util";
 import { playPreloadedAudio } from "@/utils/audio";
 import { getPossibleActionTiles, findHex, PathCalculator } from "../hexgrid";
-import { COMBAT_WIDTH } from "./constants";
-import { getAffectedTiles } from "./movement";
-import { actionPointsAfterAction } from "./actions";
-import { calcActiveUser } from "./actions";
-import { stillInBattle } from "./actions";
+import { COMBAT_WIDTH } from "@/libs/combat/constants";
+import { getAffectedTiles } from "@/libs/combat/util";
+import { actionPointsAfterAction } from "@/libs/combat/actions";
+import { calcActiveUser } from "@/libs/combat/actions";
+import { stillInBattle } from "@/libs/combat/actions";
 import { getBattleGrid } from "@/libs/combat/util";
 import {
   IMG_SECTOR_USER_MARKER,
@@ -34,10 +34,10 @@ import type { GameAsset, UserData } from "@/drizzle/schema";
 import type { Grid } from "honeycomb-grid";
 import type { Scene, Object3D, Raycaster } from "three";
 import type { TerrainHex, HexagonalFaceMesh } from "../hexgrid";
-import type { GroundEffect, UserEffect, BarrierTagType } from "./types";
-import type { ReturnedUserState, CombatAction } from "./types";
-import type { ReturnedBattle } from "./types";
-import type { SpriteMixer } from "../threejs/SpriteMixer";
+import type { GroundEffect, UserEffect, BarrierTagType } from "@/libs/combat/types";
+import type { ReturnedUserState, CombatAction } from "@/libs/combat/types";
+import type { ReturnedBattle } from "@/libs/combat/types";
+import type { SpriteMixer } from "@/libs/threejs/SpriteMixer";
 
 /**
  * Show animation on the hex

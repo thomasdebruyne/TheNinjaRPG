@@ -98,6 +98,4 @@ A particularly complex feature in the game is the combat system, which thus also
 
 - `/app/src/libs/combat/ai_v2.ts`: This file contains the logic for how the AI behaves in combat and which actions it takes. It's based off a sequential rule-based system.
 
-- `/app/src/libs/combat/movement.ts`: TO BE MOVED to `/app/src/libs/combat/util.ts`
 - `/app/src/libs/combat/constants.ts`: TO BE MOVED to `@/drizzle/constants`
-- `/app/src/libs/combat/ai_v1.ts`: Deprecated

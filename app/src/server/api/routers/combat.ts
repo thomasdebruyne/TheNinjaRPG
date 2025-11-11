@@ -12,7 +12,7 @@ import { eq, or, and, sql, gt, ne, isNotNull, isNull, inArray, gte } from "drizz
 import { alias } from "drizzle-orm/mysql-core";
 import { desc, lt } from "drizzle-orm";
 import { COMBAT_HEIGHT, COMBAT_WIDTH } from "@/libs/combat/constants";
-import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/libs/travel/constants";
+import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { RANKS_RESTRICTED_FROM_PVP, AutoBattleTypes } from "@/drizzle/constants";
 import { NonActionItemTypes, DURABILITY_USABILITY_THR } from "@/drizzle/constants";
@@ -79,7 +79,7 @@ import { calcActiveUserRegen } from "@/libs/profile";
 import { secondsPassed } from "@/utils/time";
 import { randomInt } from "@/utils/math";
 import { calcLevel } from "@/libs/profile";
-import { calcIsInVillage } from "@/libs/travel/controls";
+import { calcIsInVillage } from "@/libs/travel";
 import { getStrucBoost } from "@/utils/village";
 import { DecreaseDamageTakenTag } from "@/libs/combat/types";
 import { realizeTag } from "@/libs/combat/tags";

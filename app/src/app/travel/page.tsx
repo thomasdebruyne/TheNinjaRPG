@@ -32,8 +32,8 @@ import {
 import { HousePlus } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import { ActionSelector } from "@/layout/CombatActions";
-import { isAtEdge, findNearestEdge } from "@/libs/travel/controls";
-import { calcGlobalTravelTime } from "@/libs/travel/controls";
+import { isAtEdge, findNearestEdge } from "@/libs/travel";
+import { calcGlobalTravelTime } from "@/libs/travel";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { showMutationToast, showRewardToast } from "@/libs/toast";
 import { hasRequiredRank } from "@/libs/train";
@@ -58,7 +58,7 @@ import { Input } from "@/components/ui/input";
 import { HIDEOUT_COST } from "@/drizzle/constants";
 import { VILLAGE_REDUCED_GAINS_DAYS } from "@/drizzle/constants";
 import { VILLAGE_LEAVE_REQUIRED_RANK } from "@/drizzle/constants";
-import type { GlobalTile, SectorPoint, GlobalMapData } from "@/libs/travel/types";
+import type { GlobalTile, SectorPoint, GlobalMapData } from "@/libs/threejs/types";
 import { Button } from "@/components/ui/button";
 import type { UserItemWithItem } from "@/drizzle/schema";
 

@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import { eq, and, or, sql, lt, gte, inArray } from "drizzle-orm";
-import { HOSPITAL_LONG, HOSPITAL_LAT } from "@/libs/travel/constants";
+import { HOSPITAL_LONG, HOSPITAL_LAT } from "@/drizzle/constants";
 import {
   battle,
   battleAction,
@@ -554,7 +554,7 @@ export const updateUser = async (
     user.questData = trackers;
     // Add notifications to combatResult
     result.notifications.push(...notifications);
-    
+
     // Check for low durability warnings (percent-based: <=50% and <=25%) and for broken items
     const initialDurability = curBattle.extraState.initialDurability;
     if (initialDurability && initialDurability[userId]) {
@@ -595,7 +595,7 @@ export const updateUser = async (
         }
       });
     }
-    
+
     // Is it a kage challenge
     const isKageChallenge = ["KAGE_AI", "KAGE_PVP"].includes(curBattle.battleType);
     const deleteItems = user.items.filter((ui) => ui.quantity <= 0).map((i) => i.id);

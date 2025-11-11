@@ -1,8 +1,12 @@
 import { Vector3, MeshBasicMaterial, Sprite, SpriteMaterial } from "three";
 import { loadTexture } from "@/libs/threejs/util";
-import { groundAssets, oceanAssets, dessertAssets } from "./constants";
+import {
+  GROUND_ASSETS_PROPS,
+  OCEAN_ASSET_PROPS,
+  DESSERT_ASSET_PROPS,
+} from "@/drizzle/constants";
 import type { TerrainHex } from "../hexgrid";
-import type { GlobalTile } from "./types";
+import type { GlobalTile } from "@/libs/threejs/types";
 
 /**
  * Map materials & colors
@@ -68,16 +72,16 @@ export const getMapSprites = (
     let sprite = null;
     let assets = null;
     if (asset === "ground") {
-      assets = groundAssets;
+      assets = GROUND_ASSETS_PROPS;
       cost += 1;
     } else if (asset === "dessert") {
-      assets = dessertAssets;
+      assets = DESSERT_ASSET_PROPS;
       cost += 1;
     } else if (asset === "ice") {
-      assets = dessertAssets;
+      assets = DESSERT_ASSET_PROPS;
       cost += 1;
     } else {
-      assets = oceanAssets;
+      assets = OCEAN_ASSET_PROPS;
       cost += 5;
     }
     assets.every((asset) => {

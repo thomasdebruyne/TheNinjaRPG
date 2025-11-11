@@ -16,10 +16,10 @@ import {
 import { loadTexture, createTexture } from "@/libs/threejs/util";
 import { createNoise2D } from "simplex-noise";
 import { Grid, rectangle, Orientation } from "honeycomb-grid";
-import { SECTOR_HEIGHT, SECTOR_WIDTH } from "./constants";
-import { getTileInfo } from "./biome";
-import { calcIsInVillage } from "./controls";
-import { wallPlacements } from "./controls";
+import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
+import { getTileInfo } from "@/libs/threejs/biome";
+import { calcIsInVillage } from "@/libs/travel";
+import { wallPlacements } from "@/libs/travel";
 import { groupBy } from "@/utils/grouping";
 import { defineHex, findHex } from "../hexgrid";
 import { getActiveObjectives } from "@/libs/quest";
@@ -45,7 +45,7 @@ import { hasRequiredRank } from "@/libs/train";
 import type { ComplexObjectiveFields } from "@/validators/objectives";
 import type { UserWithRelations } from "@/routers/profile";
 import type { TerrainHex, PathCalculator, HexagonalFaceMesh } from "../hexgrid";
-import type { SectorUser, GlobalTile } from "./types";
+import type { SectorUser, GlobalTile } from "@/libs/threejs/types";
 import type { SectorVillage } from "@/routers/travel";
 import type { VillageStructure } from "@/drizzle/schema";
 

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import type { GlobalMapData } from "@/libs/travel/types";
-import { fetchMap } from "@/libs/travel/globe";
+import type { GlobalMapData } from "@/libs/threejs/types";
+import { fetchMap } from "@/libs/threejs/globe";
 
 export const useMap = (
   setGlobe: React.Dispatch<React.SetStateAction<GlobalMapData | null>>,

@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/app/_trpc/client";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { showMutationToast } from "@/libs/toast";
-import { calcChakraToPools } from "@/libs/hospital/hospital";
+import { calcChakraToPools } from "@/libs/hospital";
 import { calcCurrent } from "@/layout/StatusBar";
 import { IMG_ICON_HEAL } from "@/drizzle/constants";
-import type { SectorUser } from "@/libs/travel/types";
+import type { SectorUser } from "@/libs/threejs/types";
 
 /**
  * A reusable healing popover component that allows medical ninja to heal other users.

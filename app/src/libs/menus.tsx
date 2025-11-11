@@ -4,7 +4,7 @@ import { Atom, Bug, User, Globe2, BookOpenText } from "lucide-react";
 import { Paintbrush, MessagesSquare, Newspaper, Scale, Receipt } from "lucide-react";
 import { Inbox, Flag, ShieldHalf, Briefcase, LifeBuoy, Gavel } from "lucide-react";
 import { Clock, AlertCircle, CheckCircle, XCircle, MessageSquare } from "lucide-react";
-import { calcIsInVillage } from "./travel/controls";
+import { calcIsInVillage } from "@/libs/travel";
 import { api } from "@/app/_trpc/client";
 import { findVillageUserRelationship } from "@/utils/alliance";
 import type { UserWithRelations } from "@/routers/profile";

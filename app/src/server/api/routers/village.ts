@@ -19,7 +19,7 @@ import { isKage } from "@/utils/kage";
 import { findRelationship } from "@/utils/alliance";
 import { canAlly, canEnemy, canSurrender } from "@/utils/alliance";
 import { COST_SWAP_VILLAGE, IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { ALLIANCEHALL_LONG, ALLIANCEHALL_LAT } from "@/libs/travel/constants";
+import { ALLIANCEHALL_LONG, ALLIANCEHALL_LAT } from "@/drizzle/constants";
 import { KAGE_WAR_DECLARE_COST } from "@/drizzle/constants";
 import { UserRequestTypes } from "@/drizzle/constants";
 import { WAR_FUNDS_COST } from "@/drizzle/constants";

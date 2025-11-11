@@ -10,7 +10,7 @@ import Image from "next/image";
 import { hasRequiredRank } from "@/libs/train";
 import { Button } from "@/components/ui/button";
 import { getStrucBoost } from "@/utils/village";
-import { calcIsInVillage } from "@/libs/travel/controls";
+import { calcIsInVillage } from "@/libs/travel";
 import { useRequireInVillage } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { showUserRank } from "@/libs/profile";
@@ -20,8 +20,8 @@ import {
   calcHealFinish,
   calcMedninHealablePool,
   calcMedninRank,
-} from "@/libs/hospital/hospital";
-import { calcHealCost, calcChakraToPools } from "@/libs/hospital/hospital";
+} from "@/libs/hospital";
+import { calcHealCost, calcChakraToPools } from "@/libs/hospital";
 import { MEDNIN_MIN_RANK, IMG_BUILDING_HOSPITAL } from "@/drizzle/constants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ArrayElement } from "@/utils/typeutils";

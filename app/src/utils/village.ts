@@ -1,5 +1,5 @@
 import { findVillageUserRelationship } from "@/utils/alliance";
-import { calcIsInVillage } from "@/libs/travel/controls";
+import { calcIsInVillage } from "@/libs/travel";
 import type { UserWithRelations } from "@/routers/profile";
 import type { Village, VillageStructure, VillageAlliance } from "@/drizzle/schema";
 import type { StructureRoute, SHRINE_BOOST_TYPE } from "@/drizzle/constants";

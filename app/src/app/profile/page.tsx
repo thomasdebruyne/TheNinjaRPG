@@ -18,7 +18,7 @@ import { Wrench, Share2, Info } from "lucide-react";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { showUserRank } from "@/libs/profile";
-import { calcMedninRank } from "@/libs/hospital/hospital";
+import { calcMedninRank } from "@/libs/hospital";
 import { calcLevelRequirements } from "@/libs/profile";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import { differenceInDays, differenceInHours } from "date-fns";

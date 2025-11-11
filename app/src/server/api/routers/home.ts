@@ -5,7 +5,7 @@ import { eq, gte, and, sql } from "drizzle-orm";
 import { userData, userItem } from "@/drizzle/schema";
 import { fetchUpdatedUser } from "@/routers/profile";
 import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
-import { calcIsInVillage } from "@/libs/travel/controls";
+import { calcIsInVillage } from "@/libs/travel";
 import { fetchSectorVillage } from "@/routers/village";
 import { HomeTypes, HomeTypeDetails } from "@/drizzle/constants";
 import { fetchUserItems } from "@/routers/item";

@@ -7,7 +7,7 @@ import {
 } from "@/libs/combat/types";
 import { ClearTag, CleanseTag } from "@/libs/combat/types";
 import { nanoid } from "nanoid";
-import { getAffectedTiles } from "@/libs/combat/movement";
+import { getAffectedTiles } from "@/libs/combat/util";
 import { COMBAT_SECONDS } from "@/libs/combat/constants";
 import { checkFriendlyFire } from "@/libs/combat/process";
 import { applyEffects } from "@/libs/combat/process";
@@ -30,7 +30,7 @@ import { getPower } from "@/libs/combat/tags";
 import { realizeTag, updateStatUsage } from "@/libs/combat/tags";
 import { getPossibleActionTiles } from "@/libs/hexgrid";
 import { PathCalculator } from "@/libs/hexgrid";
-import { calcCombatHealPercentage } from "@/libs/hospital/hospital";
+import { calcCombatHealPercentage } from "@/libs/hospital";
 import { actionHasSharedCooldown } from "@/libs/combat/util";
 import { tagHasSharedCooldown } from "@/libs/combat/util";
 import {

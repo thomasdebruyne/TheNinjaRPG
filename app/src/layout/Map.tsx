@@ -18,7 +18,7 @@ import {
   Vector3,
 } from "three";
 import { IMG_MAP_WAR_ICON, IMG_MAP_QUEST_ICON } from "@/drizzle/constants";
-import { createUserAvatarSprite } from "@/libs/travel/util";
+import { createUserAvatarSprite } from "@/libs/threejs/globe";
 import { MAP_RESERVED_SECTORS } from "@/drizzle/constants";
 import WebGlError from "@/layout/WebGLError";
 import alea from "alea";
@@ -31,14 +31,14 @@ import {
   oceanColors,
   dessertColors,
   iceColors,
-} from "@/libs/travel/biome";
+} from "@/libs/threejs/biome";
 import { TrackballControls } from "@/libs/threejs/TrackBallControls";
 import { useUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import type { Village } from "@/drizzle/schema";
-import type { GlobalTile } from "@/libs/travel/types";
-import type { GlobalMapData } from "@/libs/travel/types";
-import type { GlobalPoint } from "@/libs/travel/types";
+import type { GlobalTile } from "@/libs/threejs/types";
+import type { GlobalMapData } from "@/libs/threejs/types";
+import type { GlobalPoint } from "@/libs/threejs/types";
 import type { HexagonalFaceMesh } from "@/libs/hexgrid";
 
 interface MapProps {

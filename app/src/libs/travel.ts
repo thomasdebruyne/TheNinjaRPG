@@ -1,5 +1,5 @@
-import { type SectorPoint, type GlobalMapData } from "./types";
-import { SECTOR_HEIGHT, SECTOR_WIDTH } from "./constants";
+import { type SectorPoint, type GlobalMapData } from "@/libs/threejs/types";
+import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { MAP_WAKE_ISLAND_SECTOR } from "@/drizzle/constants";
 import { MAP_GLOBAL_TRAVEL_TIME_CAP_SECS } from "@/drizzle/constants";
 

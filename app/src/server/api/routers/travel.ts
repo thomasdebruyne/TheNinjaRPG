@@ -8,10 +8,10 @@ import {
   hasUserMiddleware,
 } from "../trpc";
 import { serverError, baseServerResponse, errorResponse } from "../trpc";
-import { calcGlobalTravelTime } from "@/libs/travel/controls";
-import { calcIsInVillage } from "@/libs/travel/controls";
-import { isAtEdge, maxDistance } from "@/libs/travel/controls";
-import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/libs/travel/constants";
+import { calcGlobalTravelTime } from "@/libs/travel";
+import { calcIsInVillage } from "@/libs/travel";
+import { isAtEdge, maxDistance } from "@/libs/travel";
+import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { secondsFromNow } from "@/utils/time";
 import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
 import { userData, clan, village, actionLog, war } from "@/drizzle/schema";
@@ -34,7 +34,7 @@ import { fetchSector } from "@/routers/village";
 import * as map from "@/data/hexasphere.json";
 import { UserStatuses } from "@/drizzle/constants";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { GlobalMapData } from "@/libs/travel/types";
+import type { GlobalMapData } from "@/libs/threejs/types";
 
 // const redis = Redis.fromEnv();
 
@@ -93,7 +93,7 @@ export const travelRouter = createTRPCRouter({
       if (input.sector === 222) {
         return errorResponse("Cannot rob players in Wake Island");
       }
-      
+
       if (sectorData?.pvpDisabled) {
         // Only protect members of the PvP-disabled village, not all users in the sector
         if (target.villageId === sectorData.id) {
@@ -106,24 +106,24 @@ export const travelRouter = createTRPCRouter({
       if (target.immunityUntil && target.immunityUntil > new Date()) {
         return errorResponse("Target is immune from being robbed");
       }
-      
+
       // Level restrictions - prevent robbing users more than 15 levels under or above
       const robberLevel = calcLevel(user.experience);
       const targetLevel = calcLevel(target.experience);
       const levelDifference = robberLevel - targetLevel;
-      
+
       if (levelDifference > 15) {
         return errorResponse(
-          `Cannot rob ${target.username} - they are more than 15 levels below you (${levelDifference} level difference)`
+          `Cannot rob ${target.username} - they are more than 15 levels below you (${levelDifference} level difference)`,
         );
       }
-      
+
       if (levelDifference < -15) {
         return errorResponse(
-          `Cannot rob ${target.username} - they are more than 15 levels above you (${Math.abs(levelDifference)} level difference)`
+          `Cannot rob ${target.username} - they are more than 15 levels above you (${Math.abs(levelDifference)} level difference)`,
         );
       }
-      
+
       if (
         target.sector !== input.sector ||
         target.longitude !== input.longitude ||

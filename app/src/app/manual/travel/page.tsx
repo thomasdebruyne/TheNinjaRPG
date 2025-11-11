@@ -3,10 +3,10 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import ContentBox from "@/layout/ContentBox";
-import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/libs/travel/constants";
+import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { api } from "@/app/_trpc/client";
 import { useMap } from "@/hooks/map";
-import type { GlobalMapData } from "@/libs/travel/types";
+import type { GlobalMapData } from "@/libs/threejs/types";
 
 const GlobalMap = dynamic(() => import("@/layout/Map"), {
   ssr: false,

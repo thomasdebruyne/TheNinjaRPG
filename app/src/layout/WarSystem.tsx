@@ -45,7 +45,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { FetchActiveWarsReturnType } from "@/server/api/routers/war";
-import type { GlobalMapData } from "@/libs/travel/types";
+import type { GlobalMapData } from "@/libs/threejs/types";
 import { useMap } from "@/hooks/map";
 import StatusBar from "@/layout/StatusBar";
 import {
@@ -154,22 +154,24 @@ export const WarRoom: React.FC<{
       </ContentBox>
 
       {/* War Exhaustion Status */}
-      {userVillage?.warExhaustionEndedAt && userVillage.warExhaustionEndedAt > new Date() && (
-        <ContentBox
-          title="War Exhaustion"
-          subtitle="Village is under war exhaustion"
-          initialBreak={true}
-        >
-          <div className="text-center space-y-2">
-            <p className="text-muted-foreground">
-              Your village cannot declare war until the exhaustion period ends.
-            </p>
-            <p className="text-lg font-semibold">
-              Exhaustion ends: {new Date(userVillage.warExhaustionEndedAt).toLocaleString()}
-            </p>
-          </div>
-        </ContentBox>
-      )}
+      {userVillage?.warExhaustionEndedAt &&
+        userVillage.warExhaustionEndedAt > new Date() && (
+          <ContentBox
+            title="War Exhaustion"
+            subtitle="Village is under war exhaustion"
+            initialBreak={true}
+          >
+            <div className="text-center space-y-2">
+              <p className="text-muted-foreground">
+                Your village cannot declare war until the exhaustion period ends.
+              </p>
+              <p className="text-lg font-semibold">
+                Exhaustion ends:{" "}
+                {new Date(userVillage.warExhaustionEndedAt).toLocaleString()}
+              </p>
+            </div>
+          </ContentBox>
+        )}
 
       {userVillage && (
         <ContentBox

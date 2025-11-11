@@ -104,7 +104,7 @@ import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
 import { SHRINE_BOOST_TYPES } from "@/drizzle/constants";
 import { KAGE_MIN_PRESTIGE } from "@/drizzle/constants";
 import { KAGE_PRESTIGE_REQUIREMENT } from "@/drizzle/constants";
-import { ALLIANCEHALL_LONG, ALLIANCEHALL_LAT } from "@/libs/travel/constants";
+import { ALLIANCEHALL_LONG, ALLIANCEHALL_LAT } from "@/drizzle/constants";
 import { controlShownQuestLocationInformation } from "@/libs/quest";
 import { getPublicUsersSchema } from "@/validators/user";
 import { createThumbnail } from "@/libs/replicate";

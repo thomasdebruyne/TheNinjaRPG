@@ -4,8 +4,8 @@ import { serverError, baseServerResponse, errorResponse } from "@/server/api/trp
 import { sql, eq, gte, lte, and, or, inArray, isNull } from "drizzle-orm";
 import { userData } from "@/drizzle/schema";
 import { hasRequiredRank } from "@/libs/train";
-import { calcHealFinish } from "@/libs/hospital/hospital";
-import { calcHealCost } from "@/libs/hospital/hospital";
+import { calcHealFinish } from "@/libs/hospital";
+import { calcHealCost } from "@/libs/hospital";
 import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
 import { fetchStructures } from "@/routers/village";
 import { getStrucBoost } from "@/utils/village";
@@ -13,8 +13,8 @@ import { findRelationship } from "@/utils/alliance";
 import { fetchAlliances } from "@/routers/village";
 import { getNewTrackers } from "@/libs/quest";
 import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
-import { calcHealthToChakra } from "@/libs/hospital/hospital";
-import { calcHowMuchToHeal } from "@/libs/hospital/hospital";
+import { calcHealthToChakra } from "@/libs/hospital";
+import { calcHowMuchToHeal } from "@/libs/hospital";
 import { MEDNIN_MIN_RANK } from "@/drizzle/constants";
 import {
   MEDNIN_HEAL_TO_EXP,

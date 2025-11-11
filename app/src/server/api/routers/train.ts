@@ -7,7 +7,7 @@ import { getNewTrackers } from "@/libs/quest";
 import { energyPerSecond } from "@/libs/train";
 import { trainingMultiplier } from "@/libs/train";
 import { trainEfficiency } from "@/libs/train";
-import { calcIsInVillage } from "@/libs/travel/controls";
+import { calcIsInVillage } from "@/libs/travel";
 import { UserStatNames } from "@/drizzle/constants";
 import { TrainingSpeeds } from "@/drizzle/constants";
 import { getGameSettingBoost } from "@/libs/gamesettings";

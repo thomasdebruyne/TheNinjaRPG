@@ -4,7 +4,7 @@ import { ObjectiveTracker, QuestTracker } from "@/validators/objectives";
 import { secondsPassed } from "@/utils/time";
 import { isQuestObjectiveAvailable } from "@/libs/objectives";
 import { canChangeContent, canPlayHiddenQuests } from "@/utils/permissions";
-import { calcMedninRank } from "@/libs/hospital/hospital";
+import { calcMedninRank } from "@/libs/hospital";
 import {
   IMG_MISSION_S,
   IMG_MISSION_A,
@@ -27,7 +27,7 @@ import {
   QuestTypesWithMaxAttempts,
 } from "@/drizzle/constants";
 import { getShrineBoost } from "@/utils/village";
-import { SECTOR_WIDTH, SECTOR_HEIGHT } from "@/libs/travel/constants";
+import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { getUnique } from "@/utils/grouping";
 import { isQuestComplete, findCompletedPredecessor } from "@/libs/objectives";
 import type { UserWithRelations } from "@/routers/profile";
