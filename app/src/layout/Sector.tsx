@@ -81,6 +81,7 @@ const Sector: React.FC<SectorProps> = (props) => {
   const [sorrounding, setSorrounding] = useState<SectorUser[]>([]);
   const [allyAttack, setAllyAttack] = useLocalStorage<boolean>("friendlyAttack", false);
   const [storedLvl, setStoredLvl] = useLocalStorage<number>("minLevelOnScout", 1);
+  const [storedZoom, setStoredZoom] = useLocalStorage<number>("sectorZoom", 2);
   const [currentStructure, setCurrentStructure] = useState<VillageStructure | null>(
     null,
   );
@@ -643,7 +644,7 @@ const Sector: React.FC<SectorProps> = (props) => {
 
       // Setup camara
       const camera = new OrthographicCamera(0, WIDTH, HEIGHT, 0, -10, 10);
-      camera.zoom = villageData ? 2 : 2;
+      camera.zoom = storedZoom;
       camera.updateProjectionMatrix();
       cameraRef.current = camera;
 
@@ -685,12 +686,17 @@ const Sector: React.FC<SectorProps> = (props) => {
       controls.maxZoom = 3;
       controlsRef.current = controls;
 
+      // Save zoom level to localStorage when it changes
+      const onZoomChange = () => {
+        setStoredZoom(camera.zoom);
+      };
+      controls.addEventListener("change", onZoomChange);
+
       // Set initial position of controls & camera
       if (isInSector && origin.current) {
         const { x, y } = origin.current.center;
         controls.target.set(-WIDTH / 2 - x, -HEIGHT / 2 - y, 0);
         camera.position.copy(controls.target);
-        cameraTargetPosition.current = { x, y };
       }
 
       // Add the group to the scene
@@ -859,6 +865,7 @@ const Sector: React.FC<SectorProps> = (props) => {
         window.removeEventListener("resize", handleResize);
         document.removeEventListener("keydown", onDocumentKeyDown, false);
         sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
+        controls.removeEventListener("change", onZoomChange);
         cleanUp(scene, renderer);
         cancelAnimationFrame(animationId);
         if (sceneRef.contains(renderer.domElement)) {
