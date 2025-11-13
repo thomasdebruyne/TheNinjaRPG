@@ -664,11 +664,11 @@ const Sector: React.FC<SectorProps> = (props) => {
 
       // Draw the map
       const { group_dirt, group_tiles, group_edges, group_assets, honeycombGrid } =
-        drawSector(WIDTH, prng, villageData, props.tile);
+        drawSector(WIDTH, prng, villageData, props.tile, lightLayout);
       grid.current = honeycombGrid;
 
       // Draw any village in this sector
-      drawVillage(group_assets, villageData, structures, grid.current);
+      drawVillage(group_assets, villageData, structures, grid.current, lightLayout);
 
       // Reverse the order of objects in the group_assets
       group_assets.children.sort((a, b) => b.position.y - a.position.y);

@@ -134,6 +134,7 @@ export const drawSector = (
   prng: () => number,
   villageData: SectorVillage | null,
   globalTile: GlobalTile,
+  lightLayout = false,
 ) => {
   // Calculate hex size
   const stackingDisplacement = 1.31;
@@ -143,8 +144,10 @@ export const drawSector = (
   const noiseGen = createNoise2D(prng);
   const assetsGen = createNoise2D(prng);
 
-  // Generate wall placements dynamically based on sector dimensions
-  const wallPlacements = generateWallPlacements(SECTOR_WIDTH, SECTOR_HEIGHT);
+  // Generate wall placements dynamically based on sector dimensions (skip in light layout)
+  const wallPlacements = lightLayout
+    ? []
+    : generateWallPlacements(SECTOR_WIDTH, SECTOR_HEIGHT);
 
   // Create the grid first
   const Tile = defineHex({
@@ -283,10 +286,15 @@ export const drawSector = (
   // Draw the tiles
   grid.forEach((tile) => {
     if (tile) {
-      const { material, dirt, sprites, asset } = getTileInfo(prng, tile, globalTile);
+      const { material, dirt, sprites, asset } = getTileInfo(
+        prng,
+        tile,
+        globalTile,
+        lightLayout,
+      );
       tile.asset = asset;
 
-      if (sprites && sprites.length > 0 && !tile.hasStructure) {
+      if (sprites && sprites.length > 0 && !tile.hasStructure && !lightLayout) {
         sprites.forEach((sprite) => group_assets.add(sprite));
       }
 
@@ -295,8 +303,8 @@ export const drawSector = (
 
       // For ocean tiles, we displace them a little bit down, for depth effect
       const length = Math.abs((corners?.[5]?.x || 0) - (corners?.[0]?.x || 0)) / 3;
-      const offsetLength = asset === "ocean" ? -length / 2 : 0;
-      const offsetLayer = asset === "ocean" ? -1 : 0;
+      const offsetLength = asset === "ocean" && !lightLayout ? -length / 2 : 0;
+      const offsetLayer = asset === "ocean" && !lightLayout ? -1 : 0;
 
       // Create the corners of the ground below
       const groundCorners = [
@@ -351,37 +359,39 @@ export const drawSector = (
       group_edges.add(edgeMesh);
 
       // Ground part of the tile
-      const groundGeometry = new BufferGeometry();
-      const groundVertices = new Float32Array(
-        groundPoints
-          .map((p) => groundCorners[p])
-          .flatMap((p) => (p ? [p.x, p.y, DIRT_LAYER] : [])),
-      );
-      groundGeometry.setAttribute("position", new BufferAttribute(groundVertices, 3));
-      if (groundUVArray) {
-        groundGeometry.setAttribute("uv", new BufferAttribute(groundUVArray, 2));
-      }
-
-      const groundMesh = new Mesh(groundGeometry, dirt);
-      groundMesh.userData.type = "tile";
-      groundMesh.userData.tile = tile;
-      groundMesh.userData.highlight = false;
-      groundMesh.userData.selected = false;
-      groundMesh.userData.canClick = false;
-      group_dirt.add(groundMesh);
-
-      // Draw vertical lines for the dirt tiles
-      groundEdges.forEach((edge) => {
-        const edgeGeometry = new BufferGeometry();
-        const edgeVertices = new Float32Array(
-          edge
+      if (!lightLayout) {
+        const groundGeometry = new BufferGeometry();
+        const groundVertices = new Float32Array(
+          groundPoints
             .map((p) => groundCorners[p])
             .flatMap((p) => (p ? [p.x, p.y, DIRT_LAYER] : [])),
         );
-        edgeGeometry.setAttribute("position", new BufferAttribute(edgeVertices, 3));
-        const edgeMesh = new Line(edgeGeometry, lineMaterial);
-        group_dirt.add(edgeMesh);
-      });
+        groundGeometry.setAttribute("position", new BufferAttribute(groundVertices, 3));
+        if (groundUVArray) {
+          groundGeometry.setAttribute("uv", new BufferAttribute(groundUVArray, 2));
+        }
+
+        const groundMesh = new Mesh(groundGeometry, dirt);
+        groundMesh.userData.type = "tile";
+        groundMesh.userData.tile = tile;
+        groundMesh.userData.highlight = false;
+        groundMesh.userData.selected = false;
+        groundMesh.userData.canClick = false;
+        group_dirt.add(groundMesh);
+
+        // Draw vertical lines for the dirt tiles
+        groundEdges.forEach((edge) => {
+          const edgeGeometry = new BufferGeometry();
+          const edgeVertices = new Float32Array(
+            edge
+              .map((p) => groundCorners[p])
+              .flatMap((p) => (p ? [p.x, p.y, DIRT_LAYER] : [])),
+          );
+          edgeGeometry.setAttribute("position", new BufferAttribute(edgeVertices, 3));
+          const edgeMesh = new Line(edgeGeometry, lineMaterial);
+          group_dirt.add(edgeMesh);
+        });
+      }
     }
   });
 
@@ -632,9 +642,10 @@ export const drawVillage = (
   village: SectorVillage,
   structures: VillageStructure[],
   grid: Grid<TerrainHex>,
+  lightLayout = false,
 ) => {
-  // Village wall
-  if (village?.type === "VILLAGE" || village?.type === "TOWN") {
+  // Village wall (skip in light layout)
+  if (!lightLayout && (village?.type === "VILLAGE" || village?.type === "TOWN")) {
     // Generate wall placements dynamically based on sector dimensions
     const wallPlacements = generateWallPlacements(SECTOR_WIDTH, SECTOR_HEIGHT);
     const wall_tower_texture = loadTexture(IMG_SECTOR_WALL_STONE_TOWER);

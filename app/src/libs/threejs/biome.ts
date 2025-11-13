@@ -43,6 +43,10 @@ export const oceanMats = oceanColors.map((color) => {
   return waterMaterial;
 });
 
+export const oceanMatsLight = oceanColors.map(
+  (color) => new MeshBasicMaterial({ color, transparent: true }),
+);
+
 export const dessertMats = dessertColors.map(
   (color) => new MeshBasicMaterial({ color, transparent: true }),
 );
@@ -76,8 +80,13 @@ export const getDirtMaterial = (tileType: TileType) => {
   return new MeshBasicMaterial({ map: texture, side: DoubleSide });
 };
 
-export const getTileInfo = (prng: () => number, hex: TerrainHex, tile: GlobalTile) => {
-  const material = getMaterial(hex, tile);
+export const getTileInfo = (
+  prng: () => number,
+  hex: TerrainHex,
+  tile: GlobalTile,
+  lightLayout = false,
+) => {
+  const material = getMaterial(hex, tile, lightLayout);
   material.sprites = getMapSprites(prng, material.asset, hex);
   material.dirt = getDirtMaterial(material.asset);
   return material;
@@ -153,14 +162,15 @@ const loadSectorAsset = (
   return sprite;
 };
 
-const getMaterial = (hex: TerrainHex, tile: GlobalTile) => {
+const getMaterial = (hex: TerrainHex, tile: GlobalTile, lightLayout = false) => {
+  const oceanMatsToUse = lightLayout ? oceanMatsLight : oceanMats;
   if (tile.t === 0) {
     if (hex.level < 0.3) {
-      return { material: oceanMats[0], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[0], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.6) {
-      return { material: oceanMats[1], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[1], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.8) {
-      return { material: oceanMats[2], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.85) {
       return { material: dessertMats[0], asset: "dessert" } as TileInfo;
     } else if (hex.level < 0.9) {
@@ -172,11 +182,11 @@ const getMaterial = (hex: TerrainHex, tile: GlobalTile) => {
     }
   } else if (tile.t === 1) {
     if (hex.level < 0.05) {
-      return { material: oceanMats[0], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[0], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.1) {
-      return { material: oceanMats[1], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[1], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.15) {
-      return { material: oceanMats[2], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.2) {
       return { material: groundMats[2], asset: "ground" } as TileInfo;
     } else if (hex.level < 0.5) {
@@ -192,7 +202,7 @@ const getMaterial = (hex: TerrainHex, tile: GlobalTile) => {
     }
   } else if (tile.t === 2) {
     if (hex.level < 0.05) {
-      return { material: oceanMats[2], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.1) {
       return { material: groundMats[2], asset: "ground" } as TileInfo;
     } else if (hex.level < 0.3) {
@@ -204,7 +214,7 @@ const getMaterial = (hex: TerrainHex, tile: GlobalTile) => {
     }
   } else {
     if (hex.level < 0.05) {
-      return { material: oceanMats[2], asset: "ocean" } as TileInfo;
+      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
     } else if (hex.level < 0.3) {
       return { material: snowMats[0], asset: "ice" } as TileInfo;
     } else if (hex.level < 0.6) {
