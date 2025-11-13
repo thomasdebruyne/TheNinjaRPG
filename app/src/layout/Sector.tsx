@@ -220,7 +220,11 @@ const Sector: React.FC<SectorProps> = (props) => {
   });
 
   // Convenience method for updating user list
-  const updateUsersList = async (data: UserData, instantMove = false) => {
+  const updateUsersList = async (
+    data: UserData,
+    instantMove = false,
+    skipStateUpdate = false,
+  ) => {
     if (data.userId) {
       if (users.current) {
         const allianceStatus = getAllyStatus(userData?.village, data.villageId);
@@ -273,7 +277,10 @@ const Sector: React.FC<SectorProps> = (props) => {
           .map((idx) => users.current?.splice(idx, 1));
       }
     }
-    setSorrounding(users.current.filter((u) => u?.userId) || []);
+    // Only update state if not explicitly skipped (to avoid excessive updates during animation)
+    if (!skipStateUpdate) {
+      setSorrounding(users.current.filter((u) => u?.userId) || []);
+    }
   };
 
   const { mutate: move, isPending: isMoving } = api.travel.moveInSector.useMutation({
@@ -307,14 +314,8 @@ const Sector: React.FC<SectorProps> = (props) => {
               location: data.location,
             } as UserData,
             true,
+            true, // Skip state update during animation
           );
-          setMoves((prev) => prev + 1);
-          await updateUser({
-            location: data.location,
-            updatedAt: new Date(),
-            longitude: tile.col,
-            latitude: tile.row,
-          });
 
           // Update camera target position if zoomed in
           if (cameraRef.current && cameraRef.current.zoom > 1.5) {
@@ -324,8 +325,17 @@ const Sector: React.FC<SectorProps> = (props) => {
 
           await sleep(50);
         }
-        // Update parent position state only once at the end
+        // Update all state only once at the end to avoid excessive re-renders
         setPosition({ x: data.longitude, y: data.latitude });
+        setMoves((prev) => prev + 1);
+        await updateUser({
+          location: data.location,
+          updatedAt: new Date(),
+          longitude: data.longitude,
+          latitude: data.latitude,
+        });
+        // Update surrounding users state at the end
+        setSorrounding(users.current.filter((u) => u?.userId) || []);
       }
       // Check Quests
       if (userData && data) {
