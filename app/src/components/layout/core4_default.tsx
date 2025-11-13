@@ -28,7 +28,7 @@ import { Bell, Info, ShieldAlert, ShieldCheck, Eclipse } from "lucide-react";
 import { Earth, House, MessageCircleWarning, Inbox } from "lucide-react";
 import { Link2, Music } from "lucide-react";
 import { useGameMenu, getMainNavbarLinks } from "@/libs/menus";
-import { AudioSettingsPopover, GlobalAudioProvider } from "@/layout/AudioSettings";
+import { GameSettingsPopover, GlobalAudioProvider } from "@/layout/GameSettings";
 import { useUserData } from "@/utils/UserContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -308,7 +308,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
       >
         <Bell className="h-6 w-6 xl:h-7 xl:w-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 ml-2 p-1" />
       </Link>
-      <AudioSettingsPopover userData={userData} updateUser={updateUser} />
+      <GameSettingsPopover userData={userData} updateUser={updateUser} />
       <Eclipse
         className={`hover:cursor-pointer h-6 w-6 xl:h-7 xl:w-7 min-w-6 min-h-6 xl:min-w-7 xl:min-h-7 hover:text-black hover:bg-blue-300 text-slate-700 bg-blue-100 bg-opacity-80 rounded-full mx-1 p-1 bg-yellow-100 dark:bg-blue-100`}
         onClick={() => {

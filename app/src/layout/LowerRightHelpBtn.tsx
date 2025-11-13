@@ -8,7 +8,7 @@ import { useLocalStorage } from "@/hooks/localstorage";
 import { type TicketType, TicketTypes } from "@/validators/misc";
 import ChatBox from "@/layout/ChatBox";
 import { useUserData } from "@/utils/UserContext";
-import { AudioSettingsPanel } from "@/layout/AudioSettings";
+import { GameSettingsPanel } from "@/layout/GameSettings";
 import { Button } from "@/components/ui/button";
 import { api } from "@/app/_trpc/client";
 
@@ -107,7 +107,7 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
           <div>
             <p className="font-bold text-lg mb-2">Audio Settings</p>
             <div className="max-h-[400px] overflow-y-auto">
-              <AudioSettingsPanel userData={userData} updateUser={updateUser} />
+              <GameSettingsPanel userData={userData} updateUser={updateUser} />
             </div>
           </div>
         ) : (
@@ -180,9 +180,9 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
             </TabsContent>
 
             <TabsContent value="audio_settings" className="w-full">
-              <p className="font-bold text-lg mb-2">Audio Settings</p>
+              <p className="font-bold text-lg mb-2">Game Settings</p>
               <div className="max-h-[400px] overflow-y-auto">
-                <AudioSettingsPanel userData={userData} updateUser={updateUser} />
+                <GameSettingsPanel userData={userData} updateUser={updateUser} />
               </div>
             </TabsContent>
 
@@ -222,7 +222,7 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
             <TabsList className="text-center mt-2 grid grid-cols-4">
               <TabsTrigger value="ai_support">AI</TabsTrigger>
               <TabsTrigger value="human_support">Human</TabsTrigger>
-              <TabsTrigger value="audio_settings">Audio</TabsTrigger>
+              <TabsTrigger value="audio_settings">Settings</TabsTrigger>
               <TabsTrigger value="tutorial_settings">Tutorial</TabsTrigger>
             </TabsList>
           </Tabs>

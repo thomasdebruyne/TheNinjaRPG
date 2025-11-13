@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
+import { useLocalStorage } from "@/hooks/localstorage";
 import { loadSlim } from "@tsparticles/slim";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const ParticleProvider = () => {
   const [init, setInit] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [lightLayout] = useLocalStorage<boolean>("lightLayout", false);
 
   // this should be run only once per application lifetime
   useEffect(() => {
+    if (lightLayout) return;
     initParticlesEngine(async (engine) => {
       // you can initiate the tsParticles instance (engine) here, adding custom shapes or presets
       // this loads the tsparticles package bundle, it's the easiest method for getting everything ready
@@ -30,7 +33,7 @@ const ParticleProvider = () => {
 
   return (
     <>
-      {init && isDesktop && (
+      {init && isDesktop && !lightLayout && (
         <Particles
           id="tsparticles"
           options={{

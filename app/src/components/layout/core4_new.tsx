@@ -12,7 +12,7 @@ import React from "react";
 import { getImageSet } from "@/components/layout/core4_default";
 import { LogIn, Menu, Music } from "lucide-react";
 import { getMainNavbarLinks } from "@/libs/menus";
-import { GlobalAudioProvider } from "@/layout/AudioSettings";
+import { GlobalAudioProvider } from "@/layout/GameSettings";
 import LowerRightHelpBtn from "@/layout/LowerRightHelpBtn";
 import { useUserData } from "@/utils/UserContext";
 import { cn } from "src/libs/shadui";

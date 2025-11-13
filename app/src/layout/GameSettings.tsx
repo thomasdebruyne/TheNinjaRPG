@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, createContext, useContext, type ReactNode } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { UncontrolledSliderField } from "@/layout/SliderField";
 import { useAudio } from "@/hooks/useAudio";
 import { useIframeMute } from "@/hooks/useIframeMute";
+import { useLocalStorage } from "@/hooks/localstorage";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";
 import {
@@ -18,7 +20,7 @@ import {
 } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
 
-interface AudioSettingsProps {
+interface GameSettingsProps {
   userData?: UserWithRelations | null;
   updateUser?: (data: Partial<UserWithRelations>) => Promise<void>;
 }
@@ -121,7 +123,7 @@ const useGlobalAudio = () => {
  * Hook to manage all audio-related state and logic
  * Now uses the global audio instance instead of creating its own
  */
-const useAudioSettings = (userData?: UserWithRelations | null) => {
+export const useGameSettings = (userData?: UserWithRelations | null) => {
   // Use the global audio instance
   const { audioEnabled, setAudioEnabled, requiresInteraction } = useGlobalAudio();
 
@@ -156,6 +158,9 @@ const useAudioSettings = (userData?: UserWithRelations | null) => {
     isClient ? getInitialSfxVolumeState() : 0.8,
   );
 
+  // Light layout preference state
+  const [lightLayout, setLightLayout] = useLocalStorage<boolean>("lightLayout", false);
+
   // Embedded iframe mute state
   const { isIframesMuted, setIframesMuted } = useIframeMute();
 
@@ -186,6 +191,8 @@ const useAudioSettings = (userData?: UserWithRelations | null) => {
     setSfxOn,
     sfxVolume,
     setSfxVolume,
+    lightLayout,
+    setLightLayout,
     isIframesMuted,
     setIframesMuted,
     requiresInteraction,
@@ -194,11 +201,16 @@ const useAudioSettings = (userData?: UserWithRelations | null) => {
 };
 
 /**
- * Audio settings panel component (for use in tabs, settings pages, etc.)
+ * Shared settings content component
  */
-export const AudioSettingsPanel: React.FC<AudioSettingsProps> = ({
+interface GameSettingsContentProps extends GameSettingsProps {
+  variant?: "panel" | "popover";
+}
+
+const GameSettingsContent: React.FC<GameSettingsContentProps> = ({
   userData,
   updateUser,
+  variant = "panel",
 }) => {
   const {
     audioEnabled,
@@ -207,41 +219,99 @@ export const AudioSettingsPanel: React.FC<AudioSettingsProps> = ({
     setSfxOn,
     sfxVolume,
     setSfxVolume,
+    lightLayout,
+    setLightLayout,
     isIframesMuted,
     setIframesMuted,
     requiresInteraction,
     updatePreferences,
-  } = useAudioSettings(userData);
+  } = useGameSettings(userData);
+
+  // Track initial lightLayout value to detect changes
+  const [initialLightLayout, setInitialLightLayout] = useState<boolean>(lightLayout);
+  const [lightLayoutChanged, setLightLayoutChanged] = useState(false);
+
+  // Update tracking when lightLayout changes
+  useEffect(() => {
+    setLightLayoutChanged(lightLayout !== initialLightLayout);
+  }, [lightLayout, initialLightLayout]);
+
+  const handleRefreshPage = () => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  };
+
+  const handleMusicToggle = async (checked: boolean) => {
+    await setAudioEnabled(checked);
+    if (userData) {
+      updatePreferences({
+        preferredStat: userData.preferredStat ?? null,
+        preferredGeneral1: userData.preferredGeneral1 ?? null,
+        preferredGeneral2: userData.preferredGeneral2 ?? null,
+        musicOn: checked,
+      });
+      if (updateUser) {
+        await updateUser({ musicOn: checked });
+      }
+    } else if (typeof window !== "undefined") {
+      localStorage.setItem("musicOn", JSON.stringify(checked));
+    }
+  };
+
+  const handleSfxToggle = (checked: boolean) => {
+    setSfxOn(checked);
+    if (userData) {
+      updatePreferences({
+        preferredStat: userData.preferredStat ?? null,
+        preferredGeneral1: userData.preferredGeneral1 ?? null,
+        preferredGeneral2: userData.preferredGeneral2 ?? null,
+        sfxOn: checked,
+      });
+      if (updateUser) {
+        void updateUser({ sfxOn: checked });
+      }
+    } else if (typeof window !== "undefined") {
+      localStorage.setItem("sfxOn", JSON.stringify(checked));
+    }
+  };
+
+  const handleSfxVolumeChange = (nextValue: React.SetStateAction<number>) => {
+    let percent: number;
+    if (typeof nextValue === "function") {
+      percent = nextValue(Math.round(sfxVolume * 100));
+    } else {
+      percent = nextValue;
+    }
+    const safePercent = Math.min(100, Math.max(0, percent));
+    const newVolume = safePercent / 100;
+    setSfxVolume(newVolume);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sfxVolume", JSON.stringify(newVolume));
+    }
+  };
+
+  const isPanel = variant === "panel";
+  const sectionClass = isPanel ? "space-y-4" : "space-y-3";
+  const textClass = isPanel ? "text-sm" : "text-xs text-muted-foreground";
+  const headerClass = "text-lg font-bold";
 
   return (
-    <div className="space-y-4 p-4">
+    <div className={sectionClass}>
       <div>
-        <p className="font-medium mb-3">Music</p>
+        <p className={headerClass}>Music</p>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm">Background soundtrack</p>
-            <p className="text-xs text-muted-foreground">
-              {audioEnabled ? "Playing" : "Paused"}
-            </p>
+            <p className={textClass}>Background soundtrack</p>
+            {isPanel && (
+              <p className="text-xs text-muted-foreground">
+                {audioEnabled ? "Playing" : "Paused"}
+              </p>
+            )}
           </div>
           <Switch
             checked={!!audioEnabled}
-            onCheckedChange={async (checked) => {
-              await setAudioEnabled(checked);
-              if (userData) {
-                updatePreferences({
-                  preferredStat: userData.preferredStat ?? null,
-                  preferredGeneral1: userData.preferredGeneral1 ?? null,
-                  preferredGeneral2: userData.preferredGeneral2 ?? null,
-                  musicOn: checked,
-                });
-                if (updateUser) {
-                  await updateUser({ musicOn: checked });
-                }
-              } else if (typeof window !== "undefined") {
-                localStorage.setItem("musicOn", JSON.stringify(checked));
-              }
-            }}
+            onCheckedChange={handleMusicToggle}
             aria-label="Toggle music"
           />
         </div>
@@ -250,48 +320,35 @@ export const AudioSettingsPanel: React.FC<AudioSettingsProps> = ({
       <div>
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <p className="text-sm">Nindo Audio</p>
-            <p className="text-xs text-muted-foreground">
-              Embedded iframe audio control
-            </p>
+            <p className={textClass}>Nindo Audio</p>
+            {isPanel && (
+              <p className="text-xs text-muted-foreground">
+                Embedded iframe audio control
+              </p>
+            )}
           </div>
           <Switch
             checked={!isIframesMuted}
-            onCheckedChange={(checked) => {
-              setIframesMuted(!checked);
-            }}
+            onCheckedChange={(checked) => setIframesMuted(!checked)}
             aria-label="Toggle embedded iframe audio"
           />
         </div>
       </div>
 
       <div>
-        <p className="font-medium mb-3">Sound effects</p>
+        <p className={headerClass}>Sound effects</p>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm">Combat SFX</p>
-            <p className="text-xs text-muted-foreground">
-              {sfxOn ? "Enabled" : "Disabled"}
-            </p>
+            <p className={textClass}>Combat SFX</p>
+            {isPanel && (
+              <p className="text-xs text-muted-foreground">
+                {sfxOn ? "Enabled" : "Disabled"}
+              </p>
+            )}
           </div>
           <Switch
             checked={!!sfxOn}
-            onCheckedChange={(checked) => {
-              setSfxOn(checked);
-              if (userData) {
-                updatePreferences({
-                  preferredStat: userData.preferredStat ?? null,
-                  preferredGeneral1: userData.preferredGeneral1 ?? null,
-                  preferredGeneral2: userData.preferredGeneral2 ?? null,
-                  sfxOn: checked,
-                });
-                if (updateUser) {
-                  void updateUser({ sfxOn: checked });
-                }
-              } else if (typeof window !== "undefined") {
-                localStorage.setItem("sfxOn", JSON.stringify(checked));
-              }
-            }}
+            onCheckedChange={handleSfxToggle}
             aria-label="Toggle sound effects"
           />
         </div>
@@ -300,10 +357,14 @@ export const AudioSettingsPanel: React.FC<AudioSettingsProps> = ({
       {sfxOn && (
         <div className="space-y-2">
           <div>
-            <p className="text-sm">SFX Volume</p>
-            <p className="text-xs text-muted-foreground">
-              Current volume: {Math.round(sfxVolume * 100)}%
+            <p className={textClass}>
+              {isPanel ? "SFX Volume" : `SFX Volume (${Math.round(sfxVolume * 100)}%)`}
             </p>
+            {isPanel && (
+              <p className="text-xs text-muted-foreground">
+                Current volume: {Math.round(sfxVolume * 100)}%
+              </p>
+            )}
           </div>
           <UncontrolledSliderField
             id="sfxVolume"
@@ -311,26 +372,51 @@ export const AudioSettingsPanel: React.FC<AudioSettingsProps> = ({
             value={Math.round(sfxVolume * 100)}
             min={0}
             max={100}
-            setValue={(nextValue: React.SetStateAction<number>) => {
-              let percent: number;
-              if (typeof nextValue === "function") {
-                percent = nextValue(Math.round(sfxVolume * 100));
-              } else {
-                percent = nextValue;
-              }
-              const safePercent = Math.min(100, Math.max(0, percent));
-              const newVolume = safePercent / 100;
-              setSfxVolume(newVolume);
-              if (typeof window !== "undefined") {
-                localStorage.setItem("sfxVolume", JSON.stringify(newVolume));
-              }
-            }}
+            setValue={handleSfxVolumeChange}
           />
         </div>
       )}
 
+      <div>
+        <p className={headerClass}>Display</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={textClass}>Lighter Layout</p>
+            {isPanel && (
+              <p className="text-xs text-muted-foreground">
+                {lightLayout ? "Enabled" : "Disabled"}
+              </p>
+            )}
+          </div>
+          <Switch
+            checked={!!lightLayout}
+            onCheckedChange={setLightLayout}
+            aria-label="Toggle lighter layout"
+          />
+        </div>
+        {lightLayoutChanged && (
+          <div className={isPanel ? "mt-3" : "mt-2"}>
+            <Button
+              onClick={handleRefreshPage}
+              variant="default"
+              size="sm"
+              className="w-full"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {isPanel ? "Refresh to Apply Changes" : "Refresh to Apply"}
+            </Button>
+          </div>
+        )}
+      </div>
+
       {requiresInteraction && audioEnabled && (
-        <p className="text-xs text-muted-foreground italic">
+        <p
+          className={
+            isPanel
+              ? "text-xs text-muted-foreground italic"
+              : "text-[10px] text-muted-foreground"
+          }
+        >
           Audio requires interaction on this browser; click anywhere to start
         </p>
       )}
@@ -339,24 +425,31 @@ export const AudioSettingsPanel: React.FC<AudioSettingsProps> = ({
 };
 
 /**
- * Audio settings popover button (for use in navbar/header)
+ * Game settings panel component (for use in tabs, settings pages, etc.)
  */
-export const AudioSettingsPopover: React.FC<AudioSettingsProps> = ({
+export const GameSettingsPanel: React.FC<GameSettingsProps> = ({
   userData,
   updateUser,
 }) => {
-  const {
-    audioEnabled,
-    setAudioEnabled,
-    sfxOn,
-    setSfxOn,
-    sfxVolume,
-    setSfxVolume,
-    isIframesMuted,
-    setIframesMuted,
-    requiresInteraction,
-    updatePreferences,
-  } = useAudioSettings(userData);
+  return (
+    <div className="p-4">
+      <GameSettingsContent
+        userData={userData}
+        updateUser={updateUser}
+        variant="panel"
+      />
+    </div>
+  );
+};
+
+/**
+ * Audio settings popover button (for use in navbar/header)
+ */
+export const GameSettingsPopover: React.FC<GameSettingsProps> = ({
+  userData,
+  updateUser,
+}) => {
+  const { audioEnabled } = useGameSettings(userData);
 
   return (
     <Popover>
@@ -373,107 +466,11 @@ export const AudioSettingsPopover: React.FC<AudioSettingsProps> = ({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72" sideOffset={8}>
-        <div className="space-y-3">
-          <p className="font-medium">Music</p>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Background soundtrack</p>
-            </div>
-            <Switch
-              checked={!!audioEnabled}
-              onCheckedChange={async (checked) => {
-                await setAudioEnabled(checked);
-                if (userData) {
-                  updatePreferences({
-                    preferredStat: userData.preferredStat ?? null,
-                    preferredGeneral1: userData.preferredGeneral1 ?? null,
-                    preferredGeneral2: userData.preferredGeneral2 ?? null,
-                    musicOn: checked,
-                  });
-                  if (updateUser) {
-                    await updateUser({ musicOn: checked });
-                  }
-                } else if (typeof window !== "undefined") {
-                  localStorage.setItem("musicOn", JSON.stringify(checked));
-                }
-              }}
-              aria-label="Toggle music"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <p className="text-xs text-muted-foreground">Nindo Audio</p>
-            </div>
-            <Switch
-              checked={!isIframesMuted}
-              onCheckedChange={(checked) => {
-                setIframesMuted(!checked);
-              }}
-              aria-label="Toggle embedded iframe audio"
-            />
-          </div>
-          <p className="font-medium">Sound effects</p>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Combat SFX</p>
-            </div>
-            <Switch
-              checked={!!sfxOn}
-              onCheckedChange={(checked) => {
-                setSfxOn(checked);
-                if (userData) {
-                  updatePreferences({
-                    preferredStat: userData.preferredStat ?? null,
-                    preferredGeneral1: userData.preferredGeneral1 ?? null,
-                    preferredGeneral2: userData.preferredGeneral2 ?? null,
-                    sfxOn: checked,
-                  });
-                  if (updateUser) {
-                    void updateUser({ sfxOn: checked });
-                  }
-                } else if (typeof window !== "undefined") {
-                  localStorage.setItem("sfxOn", JSON.stringify(checked));
-                }
-              }}
-              aria-label="Toggle sound effects"
-            />
-          </div>
-          {sfxOn && (
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  SFX Volume ({Math.round(sfxVolume * 100)}%)
-                </p>
-              </div>
-              <UncontrolledSliderField
-                id="sfxVolume"
-                label=""
-                value={Math.round(sfxVolume * 100)}
-                min={0}
-                max={100}
-                setValue={(nextValue: React.SetStateAction<number>) => {
-                  let percent: number;
-                  if (typeof nextValue === "function") {
-                    percent = nextValue(Math.round(sfxVolume * 100));
-                  } else {
-                    percent = nextValue;
-                  }
-                  const safePercent = Math.min(100, Math.max(0, percent));
-                  const newVolume = safePercent / 100;
-                  setSfxVolume(newVolume);
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("sfxVolume", JSON.stringify(newVolume));
-                  }
-                }}
-              />
-            </div>
-          )}
-          {requiresInteraction && audioEnabled && (
-            <p className="text-[10px] text-muted-foreground">
-              Audio requires interaction on this browser; click anywhere to start
-            </p>
-          )}
-        </div>
+        <GameSettingsContent
+          userData={userData}
+          updateUser={updateUser}
+          variant="popover"
+        />
       </PopoverContent>
     </Popover>
   );

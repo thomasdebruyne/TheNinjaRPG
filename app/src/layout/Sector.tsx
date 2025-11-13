@@ -73,6 +73,9 @@ const Sector: React.FC<SectorProps> = (props) => {
   const { sector, target, showActive, autoAttackMode } = props;
   const { setTarget, setPosition } = props;
 
+  // Light layout preference state
+  const [lightLayout] = useLocalStorage<boolean>("lightLayout", false);
+
   // State pertaining to the sector
   const [webglError, setWebglError] = useState<boolean>(false);
   const [targetUser, setTargetUser] = useState<SectorUser | null>(null);
@@ -848,8 +851,10 @@ const Sector: React.FC<SectorProps> = (props) => {
         controls.update();
 
         // Update wind animation for sprites
-        updateWindAnimation(group_assets, performance.now() / 1000);
-        updateWaveAnimation(group_tiles, performance.now() / 1000);
+        if (!lightLayout) {
+          updateWindAnimation(group_assets, performance.now() / 1000);
+          updateWaveAnimation(group_tiles, performance.now() / 1000);
+        }
 
         // Render the scene
         animationId = requestAnimationFrame(render);
