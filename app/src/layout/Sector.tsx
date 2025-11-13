@@ -700,9 +700,13 @@ const Sector: React.FC<SectorProps> = (props) => {
       controls.maxZoom = 3;
       controlsRef.current = controls;
 
-      // Save zoom level to localStorage when it changes
+      // Save zoom level to localStorage when it changes (debounced to avoid excessive updates)
+      let zoomTimeout: ReturnType<typeof setTimeout> | null = null;
       const onZoomChange = () => {
-        setStoredZoom(camera.zoom);
+        if (zoomTimeout) clearTimeout(zoomTimeout);
+        zoomTimeout = setTimeout(() => {
+          setStoredZoom(camera.zoom);
+        }, 300); // Wait 300ms after last change before saving
       };
       controls.addEventListener("change", onZoomChange);
 
@@ -878,6 +882,7 @@ const Sector: React.FC<SectorProps> = (props) => {
 
       // Remove the mouseover listener
       return () => {
+        if (zoomTimeout) clearTimeout(zoomTimeout);
         window.removeEventListener("resize", handleResize);
         document.removeEventListener("keydown", onDocumentKeyDown, false);
         sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
