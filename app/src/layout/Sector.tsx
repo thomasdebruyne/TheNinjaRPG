@@ -308,7 +308,6 @@ const Sector: React.FC<SectorProps> = (props) => {
             } as UserData,
             true,
           );
-          setPosition({ x: tile.col, y: tile.row });
           setMoves((prev) => prev + 1);
           await updateUser({
             location: data.location,
@@ -325,6 +324,8 @@ const Sector: React.FC<SectorProps> = (props) => {
 
           await sleep(50);
         }
+        // Update parent position state only once at the end
+        setPosition({ x: data.longitude, y: data.latitude });
       }
       // Check Quests
       if (userData && data) {
