@@ -1,0 +1,14 @@
+UPDATE VillageStructure SET longitude = 3, latitude = 20 WHERE route = '/bank';
+UPDATE VillageStructure SET longitude = 16, latitude = 20 WHERE route = '/home';
+UPDATE VillageStructure SET longitude = 12, latitude = 18 WHERE route = '/ramenshop';
+UPDATE VillageStructure SET longitude = 15, latitude = 4 WHERE route = '/battlearena';
+UPDATE VillageStructure SET longitude = 3, latitude = 9 WHERE route = '/townhall';
+UPDATE VillageStructure SET longitude = 16, latitude = 16 WHERE route = '/traininggrounds';
+UPDATE VillageStructure SET longitude = 5, latitude = 5 WHERE route = '/itemshop';
+UPDATE VillageStructure SET longitude = 7, latitude = 8 WHERE route = '/blackmarket';
+UPDATE VillageStructure SET longitude = 3, latitude = 13 WHERE route = '/clanhall';
+UPDATE VillageStructure SET longitude = 7, latitude = 15 WHERE route = '/anbu';
+UPDATE VillageStructure SET longitude = 16, latitude = 12 WHERE route = '/missionhall';
+UPDATE VillageStructure SET longitude = 13, latitude = 8 WHERE route = '/hospital';
+UPDATE VillageStructure SET longitude = -1, latitude = -1 WHERE name = 'Walls';
+UPDATE VillageStructure SET longitude = -1, latitude = -1 WHERE name = 'Protectors';

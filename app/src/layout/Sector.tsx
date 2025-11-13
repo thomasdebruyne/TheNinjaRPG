@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { PathCalculator, findHex } from "@/libs/hexgrid";
 import { OrbitControls } from "@/libs/threejs/OrbitControls";
 import { getBackgroundColor } from "@/libs/threejs/biome";
+import { updateWindAnimation, updateWaveAnimation } from "@/libs/threejs/shaders";
 import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/threejs/util";
 import { drawSector, drawVillage, drawUsers, drawQuest } from "@/libs/threejs/sector";
 import { intersectUsers } from "@/libs/threejs/sector";
@@ -43,6 +44,7 @@ import {
   IMG_SECTOR_ATTACK,
   IMG_SECTOR_ROB,
   IMG_ICON_MOVE,
+  STRUCTURE_ADJACENTS,
 } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
 import type { UserData } from "@/drizzle/schema";
@@ -96,6 +98,9 @@ const Sector: React.FC<SectorProps> = (props) => {
   const showAllyAttack = useRef<boolean>(allyAttack);
   const userRef = useRef<UserWithRelations>(undefined);
   const lastAutoAttackTime = useRef<number | null>(null);
+  const cameraRef = useRef<OrthographicCamera | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const cameraTargetPosition = useRef<{ x: number; y: number } | null>(null);
   const mouse = new Vector2();
 
   // tRPC utility
@@ -113,14 +118,16 @@ const Sector: React.FC<SectorProps> = (props) => {
   const structures = villageData?.structures || [];
 
   // If we're in an active sector war, then we add a shrine to the center of the sector
-  const shrine = createGenericStructure({
-    name: "Sector Shrine",
-    route: "/shrine",
-    image: WAR_SHRINE_IMAGE,
-    longitude: 10,
-    latitude: 5,
-  });
-  structures.push(shrine);
+  if (!structures.find((s) => s.route === "/shrine")) {
+    const shrine = createGenericStructure({
+      name: "Sector Shrine",
+      route: "/shrine",
+      image: WAR_SHRINE_IMAGE,
+      longitude: 10,
+      latitude: 5,
+    });
+    structures.push(shrine);
+  }
 
   // Router for forwarding
   const router = useRouter();
@@ -305,6 +312,13 @@ const Sector: React.FC<SectorProps> = (props) => {
             longitude: tile.col,
             latitude: tile.row,
           });
+
+          // Update camera target position if zoomed in
+          if (cameraRef.current && cameraRef.current.zoom > 1.5) {
+            const { x, y } = tile.center;
+            cameraTargetPosition.current = { x, y };
+          }
+
           await sleep(50);
         }
       }
@@ -384,6 +398,7 @@ const Sector: React.FC<SectorProps> = (props) => {
     showAllyAttack.current = allyAttack;
   }, [allyAttack]);
 
+  // Listening to webcket events
   useEffect(() => {
     if (pusher) {
       const channel = pusher.subscribe(props.sector.toString());
@@ -571,9 +586,15 @@ const Sector: React.FC<SectorProps> = (props) => {
 
       // Check if user is on a structure
       if (structures) {
-        const structure = structures.find(
-          (s) => s.longitude === userData.longitude && s.latitude === userData.latitude,
-        );
+        const structure = structures.find((s) => {
+          if (s.longitude === userData.longitude && s.latitude === userData.latitude)
+            return true;
+          return STRUCTURE_ADJACENTS.some(
+            ({ dCol, dRow }) =>
+              s.longitude === userData.longitude + dCol &&
+              s.latitude === userData.latitude + dRow,
+          );
+        });
         setCurrentStructure(structure || null);
       } else {
         setCurrentStructure(null);
@@ -607,7 +628,7 @@ const Sector: React.FC<SectorProps> = (props) => {
         height: HEIGHT,
         sortObjects: false,
         color: color,
-        colorAlpha: 1,
+        colorAlpha: 0,
         width2height: SECTOR_LENGTH_TO_WIDTH,
       });
 
@@ -622,20 +643,20 @@ const Sector: React.FC<SectorProps> = (props) => {
 
       // Setup camara
       const camera = new OrthographicCamera(0, WIDTH, HEIGHT, 0, -10, 10);
-      camera.zoom = villageData ? 1 : 1;
+      camera.zoom = villageData ? 2 : 2;
       camera.updateProjectionMatrix();
+      cameraRef.current = camera;
 
       // Draw the map
-      const { group_tiles, group_edges, group_assets, honeycombGrid } = drawSector(
-        WIDTH,
-        prng,
-        villageData !== undefined,
-        props.tile,
-      );
+      const { group_dirt, group_tiles, group_edges, group_assets, honeycombGrid } =
+        drawSector(WIDTH, prng, villageData, props.tile);
       grid.current = honeycombGrid;
 
       // Draw any village in this sector
-      group_assets.add(drawVillage(villageData, structures, grid.current));
+      drawVillage(group_assets, villageData, structures, grid.current);
+
+      // Reverse the order of objects in the group_assets
+      group_assets.children.sort((a, b) => b.position.y - a.position.y);
 
       // Store current highlights and create a path calculator object
       pathFinder.current = new PathCalculator(grid.current);
@@ -662,15 +683,18 @@ const Sector: React.FC<SectorProps> = (props) => {
       controls.zoomSpeed = 1.0;
       controls.minZoom = 1;
       controls.maxZoom = 3;
+      controlsRef.current = controls;
 
       // Set initial position of controls & camera
       if (isInSector && origin.current) {
         const { x, y } = origin.current.center;
         controls.target.set(-WIDTH / 2 - x, -HEIGHT / 2 - y, 0);
         camera.position.copy(controls.target);
+        cameraTargetPosition.current = { x, y };
       }
 
       // Add the group to the scene
+      scene.add(group_dirt);
       scene.add(group_tiles);
       scene.add(group_edges);
       scene.add(group_assets);
@@ -794,8 +818,32 @@ const Sector: React.FC<SectorProps> = (props) => {
           });
         }
 
+        // Smooth camera following
+        if (
+          cameraTargetPosition.current &&
+          cameraRef.current &&
+          controlsRef.current &&
+          cameraRef.current.zoom > 1.5
+        ) {
+          const { x, y } = cameraTargetPosition.current;
+          const WIDTH = mountRef.current?.getBoundingClientRect().width || 0;
+          const HEIGHT = WIDTH * SECTOR_LENGTH_TO_WIDTH;
+          const targetX = -WIDTH / 2 - x;
+          const targetY = -HEIGHT / 2 - y;
+
+          // Smooth interpolation (lerp) with factor 0.1 for smooth following
+          const lerpFactor = 0.1;
+          controls.target.x += (targetX - controls.target.x) * lerpFactor;
+          controls.target.y += (targetY - controls.target.y) * lerpFactor;
+          camera.position.copy(controls.target);
+        }
+
         // Trackball updates
         controls.update();
+
+        // Update wind animation for sprites
+        updateWindAnimation(group_assets, performance.now() / 1000);
+        updateWaveAnimation(group_tiles, performance.now() / 1000);
 
         // Render the scene
         animationId = requestAnimationFrame(render);

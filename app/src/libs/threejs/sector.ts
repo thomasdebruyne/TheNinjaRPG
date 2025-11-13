@@ -14,12 +14,11 @@ import {
   type Raycaster,
 } from "three";
 import { loadTexture, createTexture } from "@/libs/threejs/util";
+import { applyBlurShader, applyWaveShader } from "@/libs/threejs/shaders";
 import { createNoise2D } from "simplex-noise";
 import { Grid, rectangle, Orientation } from "honeycomb-grid";
 import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
-import { getTileInfo } from "@/libs/threejs/biome";
-import { calcIsInVillage } from "@/libs/travel";
-import { wallPlacements } from "@/libs/travel";
+import { getTileInfo, generateWallPlacements } from "@/libs/threejs/biome";
 import { groupBy } from "@/utils/grouping";
 import { defineHex, findHex } from "../hexgrid";
 import { getActiveObjectives } from "@/libs/quest";
@@ -34,12 +33,12 @@ import {
   IMG_SECTOR_ATTACK,
   IMG_SECTOR_USER_MARKER,
   IMG_SECTOR_USER_SPRITE_MASK,
-  IMG_SECTOR_SHADOW,
   IMG_SECTOR_USERSPRITE_LEFT,
   IMG_SECTOR_USERSPRITE_RIGHT,
   IMG_SECTOR_VS_ICON,
   IMG_SECTOR_WALL_STONE_TOWER,
   IMG_ICON_HEAL,
+  STRUCTURE_ADJACENTS,
 } from "@/drizzle/constants";
 import { hasRequiredRank } from "@/libs/train";
 import type { ComplexObjectiveFields } from "@/validators/objectives";
@@ -48,6 +47,13 @@ import type { TerrainHex, PathCalculator, HexagonalFaceMesh } from "../hexgrid";
 import type { SectorUser, GlobalTile } from "@/libs/threejs/types";
 import type { SectorVillage } from "@/routers/travel";
 import type { VillageStructure } from "@/drizzle/schema";
+
+// Drawing layers on the sector
+const ASSETS_LAYER = -8;
+const TILES_LAYER = -9;
+const DIRT_LAYER = -10;
+const USER_LAYER = -6;
+const USER_HUD_LAYER = -5;
 
 export const drawQuest = (info: {
   group_quest: Group;
@@ -88,7 +94,7 @@ export const drawQuest = (info: {
           markerSprite.material.color.setHex(0x6666a3);
         }
         Object.assign(markerSprite.scale, new Vector3(h, h * 1.2, 1));
-        Object.assign(markerSprite.position, new Vector3(w / 2, h * 0.9, -6));
+        Object.assign(markerSprite.position, new Vector3(w / 2, h * 0.9, USER_LAYER));
         mesh.add(markerSprite);
         // White background for items
         const alphaMap = loadTexture(IMG_SECTOR_USER_SPRITE_MASK);
@@ -96,7 +102,7 @@ export const drawQuest = (info: {
         const alphaSprite = new Sprite(alphaMaterial);
         alphaSprite.material.color.setHex(0xd3d9ea);
         Object.assign(alphaSprite.scale, new Vector3(h * 0.8, h * 0.8, 1));
-        Object.assign(alphaSprite.position, new Vector3(w / 2, h * 1.0, -6));
+        Object.assign(alphaSprite.position, new Vector3(w / 2, h * 1.0, USER_LAYER));
         mesh.add(alphaSprite);
         // Image Sprite
         const map = loadTexture(objective.image ? `${objective.image}?1=1` : "");
@@ -105,7 +111,7 @@ export const drawQuest = (info: {
         const material = new SpriteMaterial({ map: map, alphaMap: alphaMap });
         const sprite = new Sprite(material);
         Object.assign(sprite.scale, new Vector3(h * 0.8, h * 0.8, 1));
-        Object.assign(sprite.position, new Vector3(w / 2, h * 1.0, -6));
+        Object.assign(sprite.position, new Vector3(w / 2, h * 1.0, USER_LAYER));
         mesh.add(sprite);
         group_quest.add(mesh);
       }
@@ -126,7 +132,7 @@ export const drawQuest = (info: {
 export const drawSector = (
   width: number,
   prng: () => number,
-  hasVillage: boolean,
+  villageData: SectorVillage | null,
   globalTile: GlobalTile,
 ) => {
   // Calculate hex size
@@ -135,10 +141,14 @@ export const drawSector = (
 
   // Used for procedural map generation
   const noiseGen = createNoise2D(prng);
+  const assetsGen = createNoise2D(prng);
+
+  // Generate wall placements dynamically based on sector dimensions
+  const wallPlacements = generateWallPlacements(SECTOR_WIDTH, SECTOR_HEIGHT);
 
   // Create the grid first
   const Tile = defineHex({
-    dimensions: hexsize,
+    dimensions: { width: hexsize * 2, height: hexsize },
     origin: { x: -hexsize, y: -hexsize },
     orientation: Orientation.FLAT,
   });
@@ -152,20 +162,120 @@ export const drawSector = (
       }
     })
     .map((tile) => {
+      // Minimum level required if there is a structure on the tile
+      const minStructureLevel = globalTile.t === 0 ? 0.9 : 0.5;
+      // Set the default level to the noise
       const nx = tile.col / SECTOR_WIDTH - 0.5;
       const ny = tile.row / SECTOR_HEIGHT - 0.5;
       tile.level = noiseGen(nx, ny) / 2 + 0.5;
+      tile.assetStrength = assetsGen(nx, ny) / 2 + 0.5;
       tile.cost = 1;
+
+      // If level is below the minimum structure level, check for structures
+      // Check village structures first
+      const hasStructure = villageData?.structures?.some((s) => {
+        if (s.longitude === tile.col && s.latitude === tile.row) return true;
+        return STRUCTURE_ADJACENTS.some(
+          ({ dCol, dRow }) =>
+            s.longitude === tile.col + dCol && s.latitude === tile.row + dRow,
+        );
+      });
+      if (hasStructure) {
+        tile.level = minStructureLevel;
+        tile.hasStructure = true;
+        return tile;
+      }
+      // Check walls
+      const hasWall = wallPlacements.find((w) => w.x === tile.col && w.y === tile.row);
+      if (hasWall) {
+        tile.level = minStructureLevel;
+        tile.hasStructure = true;
+        return tile;
+      }
       return tile;
     });
 
   // Groups for organizing objects
+  const group_dirt = new Group();
   const group_tiles = new Group();
   const group_edges = new Group();
   const group_assets = new Group();
 
   // Hex points
   const points = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5];
+  const groundPoints = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 7, 7, 4, 5, 7, 5, 6];
+  const groundEdges = [
+    [1, 2],
+    [0, 3],
+    [7, 4],
+    [5, 6],
+    [0, 1],
+    [0, 7],
+    [6, 7],
+  ];
+
+  // Calculate UV coordinates once for ground geometry using first tile's shape
+  const firstTile = grid.toArray()[0];
+  let groundUVArray: Float32Array | null = null;
+  let tileUVArray: Float32Array | null = null;
+  if (firstTile) {
+    const corners = firstTile.corners;
+    const length = Math.abs((corners?.[5]?.x || 0) - (corners?.[0]?.x || 0)) / 3;
+
+    // Ground UV coordinates
+    const canonicalGroundCorners = [
+      { x: corners?.[0]?.x!, y: corners?.[0]?.y! - length },
+      { x: corners?.[1]?.x!, y: corners?.[1]?.y! - length },
+      { x: corners?.[1]?.x!, y: corners?.[1]?.y! },
+      { x: corners?.[0]?.x!, y: corners?.[0]?.y! },
+      { x: corners?.[5]?.x!, y: corners?.[5]?.y! },
+      { x: corners?.[4]?.x!, y: corners?.[4]?.y! },
+      { x: corners?.[4]?.x!, y: corners?.[4]?.y! - length },
+      { x: corners?.[5]?.x!, y: corners?.[5]?.y! - length },
+    ];
+    const minX = Math.min(...canonicalGroundCorners.map((c) => c.x));
+    const maxX = Math.max(...canonicalGroundCorners.map((c) => c.x));
+    const minY = Math.min(...canonicalGroundCorners.map((c) => c.y));
+    const maxY = Math.max(...canonicalGroundCorners.map((c) => c.y));
+    const uvWidth = maxX - minX;
+    const uvHeight = maxY - minY;
+    const canonicalGroundUVs = canonicalGroundCorners.map(
+      (corner) =>
+        [(corner.x - minX) / uvWidth, (corner.y - minY) / uvHeight] as [number, number],
+    );
+    const uvNumbers: number[] = [];
+    groundPoints.forEach((p) => {
+      const uv = canonicalGroundUVs[p];
+      if (uv) {
+        uvNumbers.push(uv[0], uv[1]);
+      }
+    });
+    groundUVArray = new Float32Array(uvNumbers);
+
+    // Tile (top face) UV coordinates
+    const canonicalTileCorners = corners.map((c) => ({ x: c.x, y: c.y }));
+    const tileMinX = Math.min(...canonicalTileCorners.map((c) => c.x));
+    const tileMaxX = Math.max(...canonicalTileCorners.map((c) => c.x));
+    const tileMinY = Math.min(...canonicalTileCorners.map((c) => c.y));
+    const tileMaxY = Math.max(...canonicalTileCorners.map((c) => c.y));
+    const tileUVWidth = tileMaxX - tileMinX;
+    const tileUVHeight = tileMaxY - tileMinY;
+    const canonicalTileUVs = canonicalTileCorners.map(
+      (corner) =>
+        [(corner.x - tileMinX) / tileUVWidth, (corner.y - tileMinY) / tileUVHeight] as [
+          number,
+          number,
+        ],
+    );
+    const tileUVNumbers: number[] = [];
+    points.forEach((p) => {
+      const uv = canonicalTileUVs[p];
+      if (uv) {
+        tileUVNumbers.push(uv[0], uv[1]);
+      }
+    });
+    tileUVArray = new Float32Array(tileUVNumbers);
+  }
 
   // Line material to use for edges
   const lineMaterial = new LineBasicMaterial({ color: 0x555555 });
@@ -173,23 +283,56 @@ export const drawSector = (
   // Draw the tiles
   grid.forEach((tile) => {
     if (tile) {
-      const { material, sprites, asset } = getTileInfo(prng, tile, globalTile);
+      const { material, dirt, sprites, asset } = getTileInfo(prng, tile, globalTile);
       tile.asset = asset;
-      if (
-        prng() < 0.1 ||
-        !hasVillage ||
-        !calcIsInVillage({ x: tile.col, y: tile.row })
-      ) {
-        sprites.map((sprite) => group_assets.add(sprite));
+
+      if (sprites && sprites.length > 0 && !tile.hasStructure) {
+        sprites.forEach((sprite) => group_assets.add(sprite));
       }
 
-      const geometry = new BufferGeometry();
+      // Corners of the tile and the below ground
       const corners = tile.corners;
+
+      // For ocean tiles, we displace them a little bit down, for depth effect
+      const length = Math.abs((corners?.[5]?.x || 0) - (corners?.[0]?.x || 0)) / 3;
+      const offsetLength = asset === "ocean" ? -length / 2 : 0;
+      const offsetLayer = asset === "ocean" ? -1 : 0;
+
+      // Create the corners of the ground below
+      const groundCorners = [
+        { x: corners?.[0]?.x!, y: corners?.[0]?.y! - length },
+        { x: corners?.[1]?.x!, y: corners?.[1]?.y! - length },
+        { x: corners?.[1]?.x!, y: corners?.[1]?.y! + offsetLength },
+        { x: corners?.[0]?.x!, y: corners?.[0]?.y! + offsetLength },
+        { x: corners?.[5]?.x!, y: corners?.[5]?.y! + offsetLength },
+        { x: corners?.[4]?.x!, y: corners?.[4]?.y! + offsetLength },
+        { x: corners?.[4]?.x!, y: corners?.[4]?.y! - length },
+        { x: corners?.[5]?.x!, y: corners?.[5]?.y! - length },
+      ] as const;
+
+      // Top face of the tile
+      const geometry = new BufferGeometry();
       const vertices = new Float32Array(
-        points.map((p) => corners[p]).flatMap((p) => (p ? [p.x, p.y, -10] : [])),
+        points
+          .map((p) => corners[p])
+          .flatMap((p) =>
+            p ? [p.x, p.y + offsetLength, TILES_LAYER + offsetLayer] : [],
+          ),
       );
       geometry.setAttribute("position", new BufferAttribute(vertices, 3));
-      const mesh = new Mesh(geometry, material?.clone());
+      if (tileUVArray) {
+        geometry.setAttribute("uv", new BufferAttribute(tileUVArray, 2));
+      }
+      const clonedMaterial = material?.clone();
+
+      // Apply wave shader to ocean tiles (must be done after cloning)
+      if (asset === "ocean" && clonedMaterial) {
+        // Generate random offset (0 to 2*PI) for this tile to desynchronize waves
+        const randomOffset = Math.random() * Math.PI * 2;
+        applyWaveShader(clonedMaterial, randomOffset);
+      }
+
+      const mesh = new Mesh(geometry, clonedMaterial);
       mesh.name = `${tile.row},${tile.col}`;
       mesh.userData.type = "tile";
       mesh.userData.tile = tile;
@@ -200,18 +343,51 @@ export const drawSector = (
       mesh.matrixAutoUpdate = false;
       group_tiles.add(mesh);
 
+      // Edges on the top face
       const edges = new EdgesGeometry(geometry);
       edges.translate(0, 0, 1);
       const edgeMesh = new Line(edges, lineMaterial);
       edgeMesh.matrixAutoUpdate = false;
       group_edges.add(edgeMesh);
+
+      // Ground part of the tile
+      const groundGeometry = new BufferGeometry();
+      const groundVertices = new Float32Array(
+        groundPoints
+          .map((p) => groundCorners[p])
+          .flatMap((p) => (p ? [p.x, p.y, DIRT_LAYER] : [])),
+      );
+      groundGeometry.setAttribute("position", new BufferAttribute(groundVertices, 3));
+      if (groundUVArray) {
+        groundGeometry.setAttribute("uv", new BufferAttribute(groundUVArray, 2));
+      }
+
+      const groundMesh = new Mesh(groundGeometry, dirt);
+      groundMesh.userData.type = "tile";
+      groundMesh.userData.tile = tile;
+      groundMesh.userData.highlight = false;
+      groundMesh.userData.selected = false;
+      groundMesh.userData.canClick = false;
+      group_dirt.add(groundMesh);
+
+      // Draw vertical lines for the dirt tiles
+      groundEdges.forEach((edge) => {
+        const edgeGeometry = new BufferGeometry();
+        const edgeVertices = new Float32Array(
+          edge
+            .map((p) => groundCorners[p])
+            .flatMap((p) => (p ? [p.x, p.y, DIRT_LAYER] : [])),
+        );
+        edgeGeometry.setAttribute("position", new BufferAttribute(edgeVertices, 3));
+        const edgeMesh = new Line(edgeGeometry, lineMaterial);
+        group_dirt.add(edgeMesh);
+      });
     }
   });
 
-  // Reverse the order of objects in the group_assets
-  group_assets.children.sort((a, b) => b.position.y - a.position.y);
+  group_dirt.children.sort((a, b) => b.position.y - a.position.y);
 
-  return { group_tiles, group_edges, group_assets, honeycombGrid: grid };
+  return { group_dirt, group_tiles, group_edges, group_assets, honeycombGrid: grid };
 };
 
 /**
@@ -237,7 +413,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
   const highlightSprite = new Sprite(highlightMaterial);
   highlightSprite.userData.type = "marker";
   highlightSprite.scale.set(h * 1.1, h * 1.3, 1);
-  highlightSprite.position.set(w / 2, h * 0.9, -6);
+  highlightSprite.position.set(w / 2, h * 0.9, USER_LAYER);
   highlightSprite.userData.type = "userMarker";
   highlightSprite.userData.userId = userData.userId;
   highlightSprite.material.color.setHex(highlightColor);
@@ -249,7 +425,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
   const markerSprite = new Sprite(markerMat);
   markerSprite.userData.type = "marker";
   Object.assign(markerSprite.scale, new Vector3(h, h * 1.2, 1));
-  Object.assign(markerSprite.position, new Vector3(w / 2, h * 0.9, -6));
+  Object.assign(markerSprite.position, new Vector3(w / 2, h * 0.9, USER_LAYER));
   group.add(markerSprite);
 
   // Avatar Sprite
@@ -261,7 +437,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
   const material = new SpriteMaterial({ map: map, alphaMap: alphaMap });
   const sprite = new Sprite(material);
   Object.assign(sprite.scale, new Vector3(h * 0.8, h * 0.8, 1));
-  Object.assign(sprite.position, new Vector3(w / 2, h * 1.0, -6));
+  Object.assign(sprite.position, new Vector3(w / 2, h * 1.0, USER_LAYER));
   group.add(sprite);
 
   // Attack button
@@ -273,7 +449,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
     attackSprite.userData.userId = userData.userId;
     attackSprite.userData.type = "attack";
     Object.assign(attackSprite.scale, new Vector3(h * 0.8, h * 0.8, 1));
-    Object.assign(attackSprite.position, new Vector3(w * 0.9, h * 1.4, -5));
+    Object.assign(attackSprite.position, new Vector3(w * 0.9, h * 1.4, USER_HUD_LAYER));
     attackSprite.name = `${userData.userId}-attack`;
     group.add(attackSprite);
   }
@@ -286,7 +462,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
   healSprite.userData.userId = userData.userId;
   healSprite.userData.type = "heal";
   Object.assign(healSprite.scale, new Vector3(h * 0.7, h * 0.7, 1));
-  Object.assign(healSprite.position, new Vector3(w, h * 0.5, -5));
+  Object.assign(healSprite.position, new Vector3(w, h * 0.5, USER_HUD_LAYER));
   healSprite.name = `${userData.userId}-heal`;
   group.add(healSprite);
 
@@ -298,7 +474,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
   infoSprite.userData.userId = userData.userId;
   infoSprite.userData.type = "info";
   Object.assign(infoSprite.scale, new Vector3(h * 0.7, h * 0.7, 1));
-  Object.assign(infoSprite.position, new Vector3(w * 0.1, h * 1.4, -5));
+  Object.assign(infoSprite.position, new Vector3(w * 0.1, h * 1.4, USER_HUD_LAYER));
   infoSprite.name = `${userData.userId}-info`;
   group.add(infoSprite);
 
@@ -334,7 +510,7 @@ export const createCombatSprite = (
   const highlightSprite = new Sprite(highlightMaterial);
   highlightSprite.userData.type = "marker";
   highlightSprite.scale.set(h * 1.1, h * 1.3, 1);
-  highlightSprite.position.set(w / 2, h * 0.9, -6);
+  highlightSprite.position.set(w / 2, h * 0.9, USER_LAYER);
   highlightSprite.userData.type = "battleMarker";
   highlightSprite.userData.battleId = battleId;
   highlightSprite.material.color.setHex(highlightColor);
@@ -346,7 +522,7 @@ export const createCombatSprite = (
   const markerSprite = new Sprite(markerMat);
   markerSprite.userData.type = "marker";
   Object.assign(markerSprite.scale, new Vector3(h, h * 1.2, 1));
-  Object.assign(markerSprite.position, new Vector3(w / 2, h * 0.9, -6));
+  Object.assign(markerSprite.position, new Vector3(w / 2, h * 0.9, USER_LAYER));
   group.add(markerSprite);
 
   // User 1: Avatar Sprite
@@ -357,7 +533,7 @@ export const createCombatSprite = (
   const material1 = new SpriteMaterial({ map: map1, alphaMap: alphaMap1 });
   const sprite1 = new Sprite(material1);
   Object.assign(sprite1.scale, new Vector3(h * 0.8, h * 0.8, 1));
-  Object.assign(sprite1.position, new Vector3(w / 2, h * 1.0, -6));
+  Object.assign(sprite1.position, new Vector3(w / 2, h * 1.0, USER_LAYER));
   group.add(sprite1);
 
   // User 2: Avatar Sprite
@@ -368,7 +544,7 @@ export const createCombatSprite = (
   const material2 = new SpriteMaterial({ map: map2, alphaMap: alphaMap2 });
   const sprite2 = new Sprite(material2);
   Object.assign(sprite2.scale, new Vector3(h * 0.8, h * 0.8, 1));
-  Object.assign(sprite2.position, new Vector3(w / 2, h * 1.0, -6));
+  Object.assign(sprite2.position, new Vector3(w / 2, h * 1.0, USER_LAYER));
   group.add(sprite2);
 
   const map = loadTexture(IMG_SECTOR_VS_ICON);
@@ -377,7 +553,7 @@ export const createCombatSprite = (
   const material = new SpriteMaterial({ map: map });
   const sprite = new Sprite(material);
   Object.assign(sprite.scale, new Vector3(h * 0.6, h * 0.6, 1));
-  Object.assign(sprite.position, new Vector3(w / 2, h * 0.5, -6));
+  Object.assign(sprite.position, new Vector3(w / 2, h * 0.5, USER_LAYER));
   group.add(sprite);
 
   // Name
@@ -437,7 +613,7 @@ export const createMultipleUserSprite = (
   texture.needsUpdate = true;
   const material = new SpriteMaterial({ map: texture });
   const sprite = new Sprite(material);
-  sprite.position.set(w * 0.8, h * 1.3, -4);
+  sprite.position.set(w * 0.8, h * 1.3, USER_LAYER);
   sprite.scale.set(h * 0.5, h * 0.5, 0.00000001);
   group.add(sprite);
 
@@ -452,13 +628,15 @@ export const createMultipleUserSprite = (
  * Draw village on map
  */
 export const drawVillage = (
+  group: Group,
   village: SectorVillage,
   structures: VillageStructure[],
   grid: Grid<TerrainHex>,
 ) => {
-  const group = new Group();
   // Village wall
   if (village?.type === "VILLAGE" || village?.type === "TOWN") {
+    // Generate wall placements dynamically based on sector dimensions
+    const wallPlacements = generateWallPlacements(SECTOR_WIDTH, SECTOR_HEIGHT);
     const wall_tower_texture = loadTexture(IMG_SECTOR_WALL_STONE_TOWER);
     const wall_tower_material = new SpriteMaterial({ map: wall_tower_texture });
     let prevPos: TerrainHex | null = null;
@@ -468,57 +646,68 @@ export const drawVillage = (
         const { height: h, x, y } = pos;
         const sprite = new Sprite(wall_tower_material);
         sprite.scale.set(h * 0.9, h * 1.3, 1);
-        sprite.position.set(x, y + h / 3, -7);
+        sprite.position.set(x, y + h / 3, ASSETS_LAYER);
         group.add(sprite);
         if (prevPos) {
           const x2 = (prevPos.x * 3 + pos.x) / 4;
           const y2 = (prevPos.y * 3 + pos.y) / 4;
           const sprite2 = new Sprite(wall_tower_material);
           sprite2.scale.set(h * 0.5, h * 0.8, 1);
-          sprite2.position.set(x2, y2 + h / 4, -7);
+          sprite2.position.set(x2, y2 + h / 4, ASSETS_LAYER);
           group.add(sprite2);
           const x3 = (prevPos.x + pos.x * 3) / 4;
           const y3 = (prevPos.y + pos.y * 3) / 4;
           const sprite3 = new Sprite(wall_tower_material);
           sprite3.scale.set(h * 0.5, h * 0.8, 1);
-          sprite3.position.set(x3, y3 + h / 4, -7);
+          sprite3.position.set(x3, y3 + h / 4, ASSETS_LAYER);
           group.add(sprite3);
           const x4 = (prevPos.x * 2 + pos.x * 2) / 4;
           const y4 = (prevPos.y * 2 + pos.y * 2) / 4;
           const sprite4 = new Sprite(wall_tower_material);
-          sprite4.scale.set(h * 0.5, h * 0.8, 1);
-          sprite4.position.set(x4, y4 + h / 4, -7);
+          sprite4.scale.set(h * 1, h * 1.6, 1);
+          sprite4.position.set(x4, y4 + h / 4, ASSETS_LAYER);
           group.add(sprite4);
         }
         prevPos = pos;
       }
     });
   }
-  group.children.sort((a, b) => b.position.y - a.position.y);
   // Village structures
   structures
     .filter((s) => s.hasPage !== 0)
     .map((structure) => {
       const pos = grid.getHex({ col: structure.longitude, row: structure.latitude });
       if (pos) {
+        // Add a structure group
         const { height: h, x, y } = pos;
-        //  Structure shadow
-        const shadow_texture = loadTexture(IMG_SECTOR_SHADOW);
-        const shadow_material = new SpriteMaterial({ map: shadow_texture });
-        const shadow_sprite = new Sprite(shadow_material);
-        shadow_sprite.scale.set(h * 1.6, h * 0.9, 1);
-        shadow_sprite.position.set(x, y - h / 5, -7);
-        group.add(shadow_sprite);
+        //  Structure shadow in the top of the structure, with edges from the original structure
+        const shadow_texture2 = loadTexture(structure.image);
+        const shadow_material2 = new SpriteMaterial({
+          map: shadow_texture2,
+          color: 0x000000,
+          opacity: 0.3,
+          transparent: true,
+          depthWrite: false,
+          depthTest: false,
+        });
+        applyBlurShader(shadow_material2, 0.01);
+        const shadow_sprite2 = new Sprite(shadow_material2);
+        shadow_sprite2.scale.set(h * 3.3, h * 3.3, 1);
+        shadow_sprite2.position.set(x - 0.2 * h, y + h / 10 + 0.2 * h, ASSETS_LAYER);
+        group.add(shadow_sprite2);
         // Structure
         const texture = loadTexture(structure.image);
-        const material = new SpriteMaterial({ map: texture });
+        const material = new SpriteMaterial({
+          map: texture,
+          depthWrite: false,
+          depthTest: false,
+        });
         const sprite = new Sprite(material);
-        sprite.scale.set(h * 1.4, h * 1.4, 1);
-        sprite.position.set(x, y + h / 10, -7);
+        sprite.scale.set(h * 3.0, h * 3.0, 1);
+        sprite.position.set(x, y + h / 10, ASSETS_LAYER);
         group.add(sprite);
       }
     });
-  return group;
 };
 
 /**

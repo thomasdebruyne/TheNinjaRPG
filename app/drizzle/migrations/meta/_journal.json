@@ -2143,6 +2143,13 @@
       "when": 1762607281040,
       "tag": "0305_omniscient_tomas",
       "breakpoints": false
+    },
+    {
+      "idx": 306,
+      "version": "5",
+      "when": 1762945572813,
+      "tag": "0306_striped_king_bedlam",
+      "breakpoints": false
     }
   ]
 }

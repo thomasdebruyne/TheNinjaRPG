@@ -14,7 +14,9 @@ import type { HexOffset, HexOptions } from "honeycomb-grid";
 export class TerrainHex extends Hex {
   asset?: "ocean" | "ground" | "dessert" | "ice";
   name?: string;
+  hasStructure?: boolean;
   level!: number;
+  assetStrength!: number;
   cost!: number;
 }
 
