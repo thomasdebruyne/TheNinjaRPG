@@ -576,7 +576,11 @@ export const travelRouter = createTRPCRouter({
         void updateUserOnMap(pusher, input.sector, output);
         return { success: true, message: "OK", data: output };
       } else {
+        // Get the user data
         const user = await fetchUser(ctx.drizzle, userId);
+        // Force an update on the map of the real information
+        void updateUserOnMap(pusher, user.sector, user);
+        // Figure out return message
         if (user.status !== "AWAKE") {
           return errorResponse(`Status is: ${user.status.toLowerCase()}`);
         }
