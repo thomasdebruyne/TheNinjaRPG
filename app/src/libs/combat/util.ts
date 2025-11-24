@@ -96,37 +96,32 @@ export const getDefaultBattleSizes = (battleType: BattleType, userLevel: number)
       } else if (userLevel < 40) {
         return { width: 11, height: 10 };
       } else if (userLevel < 50) {
-        return { width: 12, height: 11 };
-      } else if (userLevel < 60) {
-        return { width: 13, height: 12 };
-      } else if (userLevel < 70) {
-        return { width: 14, height: 13 };
+        return { width: 12, height: 10 };
       } else {
-        return { width: 15, height: 14 };
+        return { width: 12, height: 10 };
       }
     case "COMBAT":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "SPARRING":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "KAGE_AI":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "KAGE_PVP":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "CLAN_CHALLENGE":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "CLAN_BATTLE":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "SHRINE_WAR":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "TOURNAMENT":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "VILLAGE_PROTECTOR":
-      return { width: 15, height: 14 };
-
+      return { width: 12, height: 10 };
     case "RANKED_PVP":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
     case "RANKED_SPARRING":
-      return { width: 15, height: 14 };
+      return { width: 12, height: 10 };
   }
 };
 
