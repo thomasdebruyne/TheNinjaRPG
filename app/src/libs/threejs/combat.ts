@@ -14,7 +14,12 @@ import {
 import { loadTexture, createTexture } from "@/libs/threejs/util";
 import { playPreloadedAudio } from "@/utils/audio";
 import { getPossibleActionTiles, findHex, PathCalculator } from "../hexgrid";
-import { COMBAT_BORDER } from "@/libs/combat/constants";
+import {
+  COMBAT_BORDER_LEFT,
+  COMBAT_BORDER_RIGHT,
+  COMBAT_BORDER_TOP,
+  COMBAT_BORDER_BOTTOM,
+} from "@/libs/combat/constants";
 import { getAffectedTiles } from "@/libs/combat/util";
 import { actionPointsAfterAction } from "@/libs/combat/actions";
 import { calcActiveUser } from "@/libs/combat/actions";
@@ -153,10 +158,10 @@ export const drawCombatBackground = (
     if (tile) {
       // Determine if this is a battle tile (playable area) or border tile
       const isBattleTile =
-        tile.col >= COMBAT_BORDER &&
-        tile.col < battle.width - COMBAT_BORDER &&
-        tile.row >= COMBAT_BORDER &&
-        tile.row < battle.height - COMBAT_BORDER;
+        tile.col >= COMBAT_BORDER_LEFT &&
+        tile.col < battle.width - COMBAT_BORDER_RIGHT &&
+        tile.row >= COMBAT_BORDER_BOTTOM &&
+        tile.row < battle.height - COMBAT_BORDER_TOP;
 
       // Get tile info (material, dirt, sprites)
       const { material, dirt, sprites, asset } = getTileInfo(

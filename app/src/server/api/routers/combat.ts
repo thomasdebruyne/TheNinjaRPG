@@ -11,7 +11,12 @@ import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
 import { eq, or, and, sql, gt, ne, isNotNull, isNull, inArray, gte } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { desc, lt } from "drizzle-orm";
-import { COMBAT_BORDER } from "@/libs/combat/constants";
+import {
+  COMBAT_BORDER_LEFT,
+  COMBAT_BORDER_RIGHT,
+  COMBAT_BORDER_TOP,
+  COMBAT_BORDER_BOTTOM,
+} from "@/libs/combat/constants";
 import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { RANKS_RESTRICTED_FROM_PVP, AutoBattleTypes } from "@/drizzle/constants";
@@ -1945,11 +1950,11 @@ export const processUsersForBattle = async (
 
     // Convenience function for assigning location of user
     const assignLocation = (min: number, max: number) => {
-      let x = randomInt(min + COMBAT_BORDER, max - COMBAT_BORDER);
-      let y = randomInt(1 + COMBAT_BORDER, height - COMBAT_BORDER - 1);
+      let x = randomInt(min + COMBAT_BORDER_LEFT, max - COMBAT_BORDER_RIGHT);
+      let y = randomInt(1 + COMBAT_BORDER_BOTTOM, height - COMBAT_BORDER_TOP - 1);
       do {
-        x = randomInt(min + COMBAT_BORDER, max - COMBAT_BORDER);
-        y = randomInt(1 + COMBAT_BORDER, height - COMBAT_BORDER - 1);
+        x = randomInt(min + COMBAT_BORDER_LEFT, max - COMBAT_BORDER_RIGHT);
+        y = randomInt(1 + COMBAT_BORDER_BOTTOM, height - COMBAT_BORDER_TOP - 1);
       } while (takenLocations.some((l) => l.x === x && l.y === y));
       takenLocations.push({ x, y });
       return { x, y };
@@ -1970,7 +1975,7 @@ export const processUsersForBattle = async (
         user.longitude = x;
         user.latitude = y;
       } else {
-        const { x, y } = assignLocation(halfWidth + 1, width - 1);
+        const { x, y } = assignLocation(halfWidth + 1, width - 3);
         user.longitude = x;
         user.latitude = y;
       }

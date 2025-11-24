@@ -1,4 +1,7 @@
-export const COMBAT_BORDER = 2;
+export const COMBAT_BORDER_LEFT = 2;
+export const COMBAT_BORDER_RIGHT = 2;
+export const COMBAT_BORDER_TOP = 2;
+export const COMBAT_BORDER_BOTTOM = 0;
 export const COMBAT_SECONDS = 60;
 export const COMBAT_LOBBY_SECONDS = 15;
 

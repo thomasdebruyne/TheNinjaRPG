@@ -89,9 +89,7 @@ export const getDefaultBattleSizes = (battleType: BattleType, userLevel: number)
     case "ARENA":
     case "TRAINING":
     case "QUEST":
-      if (userLevel < 10) {
-        return { width: 8, height: 7 };
-      } else if (userLevel < 20) {
+      if (userLevel < 20) {
         return { width: 9, height: 8 };
       } else if (userLevel < 30) {
         return { width: 10, height: 9 };
