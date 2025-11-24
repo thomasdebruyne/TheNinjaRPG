@@ -223,7 +223,7 @@ export const travelRouter = createTRPCRouter({
             userIds: [ctx.userId],
             targetIds: [input.userId],
             client: ctx.drizzle,
-            asset: "ground",
+            biome: "default",
           },
           "COMBAT",
         );
@@ -560,7 +560,7 @@ export const travelRouter = createTRPCRouter({
                   targetIds: ["MJMzOE67Cx2YP3NX8SAbh"],
                   client: ctx.drizzle,
                   scaleTarget: true,
-                  asset: "ground",
+                  biome: "default",
                 },
                 "VILLAGE_PROTECTOR",
               );

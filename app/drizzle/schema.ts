@@ -43,7 +43,6 @@ import type {
 import type { AiRuleType } from "@/validators/ai";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { AdditionalContext } from "@/validators/reports";
-import type { ZodBgSchemaType } from "@/validators/backgroundSchema";
 import type { CoreMessage } from "ai";
 
 export const vector = customType<{
@@ -229,7 +228,9 @@ export const battle = mysqlTable(
     updatedAt: datetime("updatedAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
-    background: varchar("background", { length: 191 }).notNull(),
+    background: mysqlEnum("background", consts.COMBAT_BIOMES).notNull(),
+    width: int("width").default(13).notNull(),
+    height: int("height").default(9).notNull(),
     battleType: mysqlEnum("battleType", consts.BattleTypes).notNull(),
     usersState: json("usersState").$type<BattleUserState[]>().notNull(),
     usersEffects: json("usersEffects").$type<UserEffect[]>().notNull(),
@@ -2380,7 +2381,9 @@ export const auctionListing = mysqlTable(
     startingPrice: double("startingPrice").notNull(),
     buyoutPrice: double("buyoutPrice"),
     currentPrice: double("currentPrice").notNull(),
-    currencyType: mysqlEnum("currencyType", consts.TRADEABLE_CURRENCY_TYPES).default("MONEY").notNull(),
+    currencyType: mysqlEnum("currencyType", consts.TRADEABLE_CURRENCY_TYPES)
+      .default("MONEY")
+      .notNull(),
     expiresAt: datetime("expiresAt", { mode: "date", fsp: 3 }).notNull(),
     status: mysqlEnum("status", consts.AUCTION_LISTING_STATES)
       .default("ACTIVE")
@@ -3293,32 +3296,6 @@ export const userRewardsRelations = relations(userRewards, ({ one }) => ({
     references: [userData.userId],
   }),
 }));
-
-export const backgroundSchema = mysqlTable(
-  "backgroundSchema",
-  {
-    id: varchar("id", { length: 191 })
-      .primaryKey()
-      .notNull()
-      .default(sql`(UUID())`),
-    schema: json("schema").$type<ZodBgSchemaType>().notNull(),
-    name: varchar("name", { length: 191 }).notNull(),
-    description: varchar("description", { length: 191 }).notNull(),
-    isActive: boolean("isActive").default(false).notNull(),
-    createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
-      .default(sql`(CURRENT_TIMESTAMP(3))`)
-      .notNull(),
-    updatedAt: datetime("updatedAt", { mode: "date", fsp: 3 })
-      .default(sql`(CURRENT_TIMESTAMP(3))`)
-      .notNull(),
-  },
-  (table) => {
-    return {
-      nameKey: uniqueIndex("backgroundSchema_name_key").on(table.name),
-    };
-  },
-);
-export type BackgroundSchema = InferSelectModel<typeof backgroundSchema>;
 
 export const linkPromotion = mysqlTable(
   "LinkPromotion",

@@ -18,7 +18,6 @@ import Model3d from "@/layout/Model3d";
 import type { ItemRarity, GameAsset } from "@/drizzle/schema";
 import type { Bloodline, Item, Jutsu, Quest } from "@/drizzle/schema";
 import type { ZodAllTags } from "@/libs/combat/types";
-import type { BackgroundSchema } from "@/drizzle/schema";
 import { getRewardArray } from "@/libs/objectives";
 
 export type GenericObject = {
@@ -44,7 +43,6 @@ export interface ItemWithEffectsProps {
     | (Item & { imbuements?: Item[]; curDurability?: number })
     | Jutsu
     | Quest
-    | BackgroundSchema
     | GameAsset
     | GenericObject;
   hideDetails?: boolean;
@@ -60,7 +58,6 @@ export interface ItemWithEffectsProps {
     | "quest"
     | "badge"
     | "asset"
-    | "backgroundSchema"
     | "skillTree";
   showStatistic?: "bloodline" | "item" | "jutsu" | "ai";
   showCopy?: "quest" | "ai" | "item";

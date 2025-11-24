@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import alea from "alea";
 import { Vector2, OrthographicCamera, Group, Clock } from "three";
 import Countdown from "./Countdown";
 import WebGlError from "@/layout/WebGLError";
@@ -10,12 +11,19 @@ import { drawCombatBackground, drawCombatEffects } from "@/libs/threejs/combat";
 import { OrbitControls } from "@/libs/threejs/OrbitControls";
 import { COMBAT_SECONDS, COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { SpriteMixer } from "@/libs/threejs/SpriteMixer";
-import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/threejs/util";
+import {
+  cleanUp,
+  setupScene,
+  setRaycasterFromMouse,
+  smoothCameraFollow,
+} from "@/libs/threejs/util";
+import { getBackgroundColor } from "@/libs/threejs/biome";
 import { highlightTiles } from "@/libs/threejs/combat";
 import { highlightTooltips, highlightTileTooltips } from "@/libs/threejs/combat";
 import { highlightUsers } from "@/libs/threejs/combat";
 import { calcActiveUser, availableUserActions } from "@/libs/combat/actions";
 import { drawCombatUsers } from "@/libs/threejs/combat";
+import { updateWindAnimation, updateWaveAnimation } from "@/libs/threejs/shaders";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { api, useGlobalOnMutateProtect } from "@/app/_trpc/client";
 import { secondsFromNow } from "@/utils/time";
@@ -26,13 +34,19 @@ import { Check } from "lucide-react";
 import { PvpBattleTypes } from "@/drizzle/constants";
 import ItemLoadoutSelector from "@/layout/ItemLoadoutSelector";
 import JutsuLoadoutSelector from "@/layout/JutsuLoadoutSelector";
-import { IMG_INITIATIVE_D20 } from "@/drizzle/constants";
+import {
+  IMG_INITIATIVE_D20,
+  HEX_STACKING_DISPLACEMENT,
+  HEX_ASPECT_RATIO,
+} from "@/drizzle/constants";
 import type { Grid } from "honeycomb-grid";
 import type { ReturnedBattle, StatSchemaType } from "@/libs/combat/types";
+import type { CachedIntersections } from "@/libs/combat/types";
 import type { CombatAction } from "@/libs/combat/types";
 import type { BattleState } from "@/libs/combat/types";
 import type { TerrainHex } from "@/libs/hexgrid";
 import { useLocalStorage } from "@/hooks/localstorage";
+import { usePerformanceMonitor } from "@/hooks/performance-monitor";
 import Modal2 from "@/layout/Modal2";
 import { useTutorialStep } from "@/hooks/tutorial";
 import { LogbookEntry } from "@/layout/Logbook";
@@ -58,6 +72,13 @@ const Combat: React.FC<CombatProps> = (props) => {
   const [logbookModalOpen, setLogbookModalOpen] = useState<boolean>(false);
   const [logbookModalQuestId, setLogbookModalQuestId] = useState<string | null>(null);
 
+  // Light layout preference state
+  const [lightLayout] = useLocalStorage<boolean>("lightLayout", false);
+  const [storedZoom, setStoredZoom] = useLocalStorage<number>("combatZoom", 1.5);
+
+  // Performance monitoring (unbounded for max FPS testing in dev)
+  const performanceMonitor = usePerformanceMonitor(true);
+
   // References which shouldn't update
   const [webglError, setWebglError] = useState<boolean>(false);
   const [hasFocus, setHasFocus] = useState<boolean>(true);
@@ -74,6 +95,11 @@ const Combat: React.FC<CombatProps> = (props) => {
 
   // Reference to group holding tile names for toggling visibility
   const groupNamesRef = useRef<Group | null>(null);
+
+  // Camera following refs
+  const cameraRef = useRef<OrthographicCamera | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const cameraTargetPosition = useRef<{ x: number; y: number } | null>(null);
 
   // Tutorial step
   const { currentStep, handleNextStepAsync } = useTutorialStep();
@@ -443,15 +469,20 @@ const Combat: React.FC<CombatProps> = (props) => {
 
     if (sceneRef && battle.current && gameAssets !== undefined) {
       // Used for map size calculations
-      const backgroundLengthToWidth = 576 / 1024;
+      const width2height =
+        ((battle.current.height + 2) * HEX_ASPECT_RATIO) /
+        (battle.current.width - HEX_STACKING_DISPLACEMENT * (battle.current.width - 1));
 
       // Map size
       const WIDTH = sceneRef.getBoundingClientRect().width;
-      const HEIGHT = WIDTH * backgroundLengthToWidth;
+      const HEIGHT = WIDTH * width2height;
 
       // Listeners
       sceneRef.addEventListener("mousemove", onDocumentMouseMove, false);
       sceneRef.addEventListener("mouseleave", onDocumentMouseLeave, false);
+
+      // Get background color based on battle background/biome
+      const { color } = getBackgroundColor(battle.current.background);
 
       // Setup scene, renderer and raycaster
       const { scene, renderer, raycaster, handleResize } = setupScene({
@@ -459,9 +490,9 @@ const Combat: React.FC<CombatProps> = (props) => {
         width: WIDTH,
         height: HEIGHT,
         sortObjects: false,
-        color: 0x000000,
-        colorAlpha: 1,
-        width2height: backgroundLengthToWidth,
+        color: color,
+        colorAlpha: 0.5,
+        width2height: width2height,
       });
 
       // If no renderer, then we have an error with the browser, let the user know
@@ -475,12 +506,22 @@ const Combat: React.FC<CombatProps> = (props) => {
 
       // Setup camara
       const camera = new OrthographicCamera(0, WIDTH, HEIGHT, 0, -10, 10);
-      camera.zoom = 1.5;
+      camera.zoom = storedZoom;
       camera.updateProjectionMatrix();
+      cameraRef.current = camera;
+
+      // Seeded noise generator for map gen from battle ID
+      const prng = alea(battle.current.id);
 
       // Draw the background
-      const { group_tiles, group_edges, group_names, honeycombGrid } =
-        drawCombatBackground(WIDTH, HEIGHT, scene, battle.current.background);
+      const {
+        group_dirt,
+        group_tiles,
+        group_edges,
+        group_names,
+        group_assets,
+        honeycombGrid,
+      } = drawCombatBackground(WIDTH, battle.current, prng, lightLayout);
       grid.current = honeycombGrid;
 
       // Set initial visibility based on prop and store reference
@@ -505,11 +546,24 @@ const Combat: React.FC<CombatProps> = (props) => {
       controls.zoomSpeed = 0.3;
       controls.minZoom = 1;
       controls.maxZoom = 3;
+      controlsRef.current = controls;
+
+      // Save zoom level to localStorage when it changes (debounced to avoid excessive updates)
+      let zoomTimeout: ReturnType<typeof setTimeout> | null = null;
+      const onZoomChange = () => {
+        if (zoomTimeout) clearTimeout(zoomTimeout);
+        zoomTimeout = setTimeout(() => {
+          setStoredZoom(camera.zoom);
+        }, 300); // Wait 300ms after last change before saving
+      };
+      controls.addEventListener("change", onZoomChange);
 
       // Add the group to the scene
+      scene.add(group_dirt);
       scene.add(group_tiles);
       scene.add(group_edges);
       scene.add(group_names);
+      scene.add(group_assets);
       scene.add(group_ground);
       scene.add(group_users);
       scene.add(group_effects);
@@ -570,6 +624,9 @@ const Combat: React.FC<CombatProps> = (props) => {
       const clock = new Clock();
       clock.start();
       function render() {
+        // Performance monitor
+        performanceMonitor.begin();
+
         // Use clock for animating sprites
         spriteMixer.update(clock.getDelta());
 
@@ -595,6 +652,18 @@ const Combat: React.FC<CombatProps> = (props) => {
             gameAssets: gameAssets ?? [],
           });
 
+          // Update camera target to follow player's character
+          if (user && cameraRef.current && cameraRef.current.zoom > 1.5) {
+            const tile = grid.current.getHex({
+              col: user.longitude,
+              row: user.latitude,
+            });
+            if (tile) {
+              const { x, y } = tile.center;
+              cameraTargetPosition.current = { x, y };
+            }
+          }
+
           // Draw all ground effects on the map
           drawCombatEffects({
             groupEffects: group_effects,
@@ -607,11 +676,20 @@ const Combat: React.FC<CombatProps> = (props) => {
             sfxVolume: sfxVolume,
           });
 
+          // Performance optimization: Run raycaster intersections once per frame
+          const tilesIntersects = raycaster.intersectObjects(group_tiles.children);
+          const cachedIntersections: CachedIntersections = {
+            tiles: tilesIntersects,
+            battleTiles: tilesIntersects.filter(
+              (i) => i.object.userData.isBattleTile === true,
+            ),
+            ground: raycaster.intersectObjects(group_effects.children),
+          };
+
           // Highlight information on user hover
           userHighlights = highlightUsers({
-            group_tiles,
             group_users,
-            raycaster,
+            cachedIntersections,
             userId: userId.current,
             users: battle.current.usersState,
             currentHighlights: userHighlights,
@@ -621,7 +699,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           if (user) {
             highlights = highlightTiles({
               group_tiles,
-              raycaster,
+              cachedIntersections,
               user,
               timeDiff,
               action: action.current,
@@ -635,7 +713,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           // Highlight tooltips when hovering on battlefield
           tooltips = highlightTooltips({
             group_ground,
-            raycaster,
+            cachedIntersections,
             battle: battle.current,
             currentTooltips: tooltips,
           });
@@ -643,7 +721,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           // Highlight tile tooltips when hovering on tiles with ground effects
           tileTooltips = highlightTileTooltips({
             group_tiles,
-            raycaster,
+            cachedIntersections,
             battle: battle.current,
             currentTileTooltips: tileTooltips,
             mouseX: mouseScreen.current.x,
@@ -651,26 +729,51 @@ const Combat: React.FC<CombatProps> = (props) => {
           });
         }
 
+        // Smooth camera following
+        if (cameraRef.current && controlsRef.current) {
+          const WIDTH = mountRef.current?.getBoundingClientRect().width || 0;
+          const HEIGHT = WIDTH * width2height;
+          smoothCameraFollow({
+            camera: cameraRef.current,
+            controls: controlsRef.current,
+            targetPosition: cameraTargetPosition.current,
+            width: WIDTH,
+            height: HEIGHT,
+          });
+        }
+
         // Trackball updates
         controls.update();
 
+        // Update wind and wave animations for sprites and tiles
+        if (!lightLayout) {
+          updateWindAnimation(group_assets, performance.now() / 1000);
+          updateWaveAnimation(group_tiles, performance.now() / 1000);
+        }
+
         // Render the scene
-        animationId = requestAnimationFrame(render);
         renderer?.render(scene, camera);
+
+        // Performance monitor
+        performanceMonitor.end();
+
+        animationId = performanceMonitor.requestFrame(render);
       }
       render();
 
       // Remove the mouseover listener
       return () => {
+        if (zoomTimeout) clearTimeout(zoomTimeout);
         void setBattleAtom(undefined);
         window.removeEventListener("resize", handleResize);
         sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
         sceneRef.removeEventListener("mouseleave", onDocumentMouseLeave);
+        controls.removeEventListener("change", onZoomChange);
         if (sceneRef.contains(renderer.domElement)) {
           sceneRef.removeChild(renderer.domElement);
         }
         cleanUp(scene, renderer);
-        cancelAnimationFrame(animationId);
+        performanceMonitor.cancelFrame(animationId);
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

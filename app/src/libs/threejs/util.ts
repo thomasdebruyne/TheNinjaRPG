@@ -1,7 +1,7 @@
 import { TextureLoader, Texture, SRGBColorSpace } from "three";
 import { type RefObject } from "react";
 import { Scene, WebGLRenderer, Raycaster } from "three";
-import { Vector2 } from "three";
+import { Vector2, Vector3 } from "three";
 import type { OrthographicCamera, PerspectiveCamera } from "three";
 import { type Material } from "three";
 import { BufferGeometry } from "three";
@@ -130,7 +130,7 @@ export const setupScene = (info: {
   if (renderer) {
     renderer.setSize(info.width, info.height);
     renderer.setClearColor(info.color, info.colorAlpha);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = false;
     renderer.sortObjects = info.sortObjects;
   }
@@ -168,4 +168,49 @@ export const setRaycasterFromMouse = (
   pointer.x = (event.offsetX / width) * 2 - 1;
   pointer.y = -(event.offsetY / height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
+};
+
+/**
+ * Smoothly moves camera to follow a target position using linear interpolation
+ * @param params Configuration object for camera following
+ * @param params.camera The orthographic camera to move
+ * @param params.controls The orbit controls managing the camera
+ * @param params.targetPosition The target position to follow (world coordinates)
+ * @param params.width Width of the viewport
+ * @param params.height Height of the viewport
+ * @param params.minZoom Minimum zoom level required for camera following (default: 1.5)
+ * @param params.lerpFactor Interpolation factor for smooth following (default: 0.1)
+ */
+export const smoothCameraFollow = (params: {
+  camera: OrthographicCamera;
+  controls: { target: Vector3; update: () => void };
+  targetPosition: { x: number; y: number } | null;
+  width: number;
+  height: number;
+  minZoom?: number;
+  lerpFactor?: number;
+}) => {
+  const {
+    camera,
+    controls,
+    targetPosition,
+    width,
+    height,
+    minZoom = 1.5,
+    lerpFactor = 0.1,
+  } = params;
+
+  // Only follow if target position exists and zoom is sufficient
+  if (!targetPosition || camera.zoom <= minZoom) {
+    return;
+  }
+
+  const { x, y } = targetPosition;
+  const targetX = -width / 2 - x;
+  const targetY = -height / 2 - y;
+
+  // Smooth interpolation (lerp) for smooth camera following
+  controls.target.x += (targetX - controls.target.x) * lerpFactor;
+  controls.target.y += (targetY - controls.target.y) * lerpFactor;
+  camera.position.copy(controls.target);
 };

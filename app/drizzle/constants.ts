@@ -434,10 +434,28 @@ export const PvpBattleTypes: BattleType[] = [
   "RANKED_SPARRING",
 ];
 
+// Combat backgrounds
+export const COMBAT_BIOMES = [
+  "ocean",
+  "ground",
+  "dessert",
+  "ice",
+  "snow",
+  "arena",
+  "default",
+] as const;
+export type CombatBiome = (typeof COMBAT_BIOMES)[number];
+
+export const HEXTILE_BIOMES = ["ocean", "ground", "dessert", "ice", "snow"] as const;
+export type HEXTILE_TYPE = (typeof HEXTILE_BIOMES)[number];
+
+// HEX grid settings
+export const HEX_STACKING_DISPLACEMENT = 0.25; // To compensate for how hexagons stack, this is how much (in percent of width) we lose from a stacking op
+export const HEX_ASPECT_RATIO = 0.5; // To give perspective, make hex height smaller than width
+
 // Sector settings
 export const SECTOR_WIDTH = 20;
 export const SECTOR_HEIGHT = 26;
-export const SECTOR_LENGTH_TO_WIDTH = 0.9;
 
 // Alliance hall settings default
 export const ALLIANCEHALL_LONG = 10;
@@ -1336,6 +1354,20 @@ export const DRACO_DECODER_URL =
 export const DRACO_ENCODER_URL =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJGexpLZRfoVrha0LP4mAS5KM7wtiZbUNXJxdC";
 
+// Biome backgrounds
+export const IMG_BG_OCEAN =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJIo4wHixfOewksxBoS1HQCihpL7c42Ky9uUFv";
+export const IMG_BG_GROUND =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJEJszlXPLfKL5D7TAFe29bymSaPCIQ846MdzG";
+export const IMG_BG_DESSERT =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJnQHU9dvmojJ0EqeDCvBrNmZaXVdY97gSpOWi";
+export const IMG_BG_ICE =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJRXmgug0udmODoNtpa0FMcwI4k2Eq7nJhyvjl";
+export const IMG_BG_SNOW =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJVWyAP1F2veAXohUuE59nTQHRJIYjtiG18aF4";
+export const IMG_BG_DIRT =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJob2ojkZ9MPZpHJ7VliuEWDfATdxhv62SXnm4";
+
 // Images
 export const IMG_PLAY_STORE_BANNER =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJyI5pULukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp";
@@ -1465,14 +1497,6 @@ export const IMG_BG_ARENA_KONOKI =
   "https://utfs.io/f/Hzww9EQvYURJDyj0BtAzEwoh0WXMnscL279N8ayVQUCbRzS3";
 export const IMG_BG_ARENA_SILENCE =
   "https://utfs.io/f/Hzww9EQvYURJSZtKvF3jWrEB7TyZlmpoAxMK5Qi16kNPVJuH";
-export const IMG_BG_OCEAN =
-  "https://utfs.io/f/Hzww9EQvYURJWrGawgvszvj71yaSYC0MDOmbko5q9JAGuLHf";
-export const IMG_BG_FOREST =
-  "https://utfs.io/f/Hzww9EQvYURJIPGHFyxfOewksxBoS1HQCihpL7c42Ky9uUFv";
-export const IMG_BG_DESSERT =
-  "https://utfs.io/f/Hzww9EQvYURJnAdfRSmojJ0EqeDCvBrNmZaXVdY97gSpOWiA";
-export const IMG_BG_ICE =
-  "https://utfs.io/f/Hzww9EQvYURJGVWObnRfoVrha0LP4mAS5KM7wtiZbUNXJxdC";
 
 export const IMG_VILLAGE_FACTION =
   "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJyODt1NukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp";

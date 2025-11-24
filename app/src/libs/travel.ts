@@ -2,6 +2,8 @@ import { type SectorPoint, type GlobalMapData } from "@/libs/threejs/types";
 import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { MAP_WAKE_ISLAND_SECTOR } from "@/drizzle/constants";
 import { MAP_GLOBAL_TRAVEL_TIME_CAP_SECS } from "@/drizzle/constants";
+import type { GlobalTile } from "@/libs/threejs/types";
+import type { CombatBiome } from "@/drizzle/constants";
 
 /**
  * Check if a given position is at the edge of a sector
@@ -14,6 +16,21 @@ export const isAtEdge = (position: SectorPoint | null) => {
       position.y === 0 ||
       position.y === SECTOR_HEIGHT - 1)
   );
+};
+
+/**
+ * Gets the biome of a tile from a global tile
+ * @param tile - The tile to get the biome from
+ * @returns The biome of the tile
+ */
+export const getBiomeFromGlobalTile = (tile: GlobalTile): CombatBiome => {
+  return tile.t === 0
+    ? "ocean"
+    : tile.t === 1
+      ? "ground"
+      : tile.t === 2
+        ? "dessert"
+        : "ice";
 };
 
 /**

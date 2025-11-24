@@ -1904,7 +1904,7 @@ export const handleQuestConsequences = async (
                     targetIds: opponent.ids,
                     client: client,
                     scaleTarget: opponent.scaleStats ? true : false,
-                    asset: "ground",
+                    biome: "default",
                     forceKeepPools: opponent.forceKeepPools ?? false,
                   },
                   opponent.type === "random_encounter" ? "RANDOM_ENCOUNTER" : "QUEST",

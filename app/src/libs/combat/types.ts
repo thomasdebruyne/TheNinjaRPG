@@ -31,16 +31,29 @@ import type {
 } from "@/drizzle/schema";
 import type { UserData, AiProfile } from "@/drizzle/schema";
 import type { AnbuSquad } from "@/drizzle/schema";
+import type { CombatBiome } from "@/drizzle/constants";
 import type { TerrainHex } from "@/libs/hexgrid";
 import type { BattleType } from "@/drizzle/constants";
 import type { UserSkill, SkillTree } from "@/drizzle/schema";
 import type { BountyStatus } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
+import type { Intersection, Object3D } from "three";
 
 export type BattleWar = War & {
   warAllies: { villageId: string; supportVillageId: string }[];
   attackerVillage: { name: string } | null;
   defenderVillage: { name: string } | null;
+};
+
+/**
+ * Cached raycaster intersections to avoid redundant calculations
+ * Performance optimization: run raycaster.intersectObjects() once per frame
+ * instead of 4+ times (once per highlight function)
+ */
+export type CachedIntersections = {
+  tiles: Intersection<Object3D>[];
+  battleTiles: Intersection<Object3D>[];
+  ground: Intersection<Object3D>[];
 };
 
 /**
@@ -130,7 +143,9 @@ export type CompleteBattle = {
   createdAt: Date;
   updatedAt: Date;
   roundStartAt: Date;
-  background: string;
+  background: CombatBiome;
+  width: number;
+  height: number;
   battleType: BattleType;
   version: number;
   round: number;

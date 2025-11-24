@@ -251,7 +251,7 @@ export const tournamentRouter = createTRPCRouter({
             userIds: [matchData.userId2],
             targetIds: [matchData.userId1],
             client: ctx.drizzle,
-            asset: "arena",
+            biome: "arena",
           },
           "TOURNAMENT",
         );

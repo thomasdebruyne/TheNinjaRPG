@@ -6,14 +6,17 @@ import { availableUserActions } from "./actions";
 import { calcActiveUser } from "./actions";
 import { stillInBattle } from "./actions";
 import { checkFriendlyFire } from "./process";
-import { KAGE_PRESTIGE_COST, FRIENDLY_PRESTIGE_COST } from "@/drizzle/constants";
+import {
+  KAGE_PRESTIGE_COST,
+  FRIENDLY_PRESTIGE_COST,
+  BattleType,
+} from "@/drizzle/constants";
 import { KAGE_CHALLENGE_WIN_PRESTIGE } from "@/drizzle/constants";
 import { CLAN_BATTLE_REWARD_POINTS } from "@/drizzle/constants";
 import { USER_CAPS } from "@/drizzle/constants";
 import { Orientation, Grid, rectangle } from "honeycomb-grid";
 import { defineHex } from "../hexgrid";
 import { actionPointsAfterAction } from "@/libs/combat/actions";
-import { COMBAT_HEIGHT, COMBAT_WIDTH } from "./constants";
 import { KILLING_NOTORIETY_GAIN } from "@/drizzle/constants";
 import { findWarsWithUser } from "@/libs/war";
 import { STREAK_LEVEL_DIFF } from "@/drizzle/constants";
@@ -45,6 +48,7 @@ import {
   PVP_KILL_PRESTIGE_REWARD_ANBU,
   PVP_KILL_PRESTIGE_REWARD_ASSASSIN,
   PVP_KILL_ANBU_POINTS_REWARD,
+  HEX_ASPECT_RATIO,
 } from "@/drizzle/constants";
 import { calculateLpEloChange } from "@/libs/ranked_pvp";
 import { checkCoLeader, checkAssassin } from "@/validators/clan";
@@ -74,15 +78,75 @@ export const actionHasSharedCooldown = (action: { effects: ZodAllTags[] }): bool
 };
 
 /**
- * Retrieves the battle grid.
+ * Gets the default width and height of the battle grid based on the type of battle and the level of the user
+ * @param battleType - The type of battle
+ * @param userLevel - The level of the user
+ * @returns The default width and height of the battle grid
  */
-export const getBattleGrid = (hexsize: number, origin?: { x: number; y: number }) => {
+export const getDefaultBattleSizes = (battleType: BattleType, userLevel: number) => {
+  switch (battleType) {
+    case "RANDOM_ENCOUNTER":
+    case "ARENA":
+    case "TRAINING":
+    case "QUEST":
+      if (userLevel < 10) {
+        return { width: 8, height: 7 };
+      } else if (userLevel < 20) {
+        return { width: 9, height: 8 };
+      } else if (userLevel < 30) {
+        return { width: 10, height: 9 };
+      } else if (userLevel < 40) {
+        return { width: 11, height: 10 };
+      } else if (userLevel < 50) {
+        return { width: 12, height: 11 };
+      } else if (userLevel < 60) {
+        return { width: 13, height: 12 };
+      } else if (userLevel < 70) {
+        return { width: 14, height: 13 };
+      } else {
+        return { width: 15, height: 14 };
+      }
+    case "COMBAT":
+      return { width: 15, height: 14 };
+    case "SPARRING":
+      return { width: 15, height: 14 };
+    case "KAGE_AI":
+      return { width: 15, height: 14 };
+    case "KAGE_PVP":
+      return { width: 15, height: 14 };
+    case "CLAN_CHALLENGE":
+      return { width: 15, height: 14 };
+    case "CLAN_BATTLE":
+      return { width: 15, height: 14 };
+    case "SHRINE_WAR":
+      return { width: 15, height: 14 };
+    case "TOURNAMENT":
+      return { width: 15, height: 14 };
+    case "VILLAGE_PROTECTOR":
+      return { width: 15, height: 14 };
+
+    case "RANKED_PVP":
+      return { width: 15, height: 14 };
+    case "RANKED_SPARRING":
+      return { width: 15, height: 14 };
+  }
+};
+
+/**
+ * Retrieves the full battle grid including border tiles for rendering assets.
+ */
+export const getBattleGrid = (
+  hexsize: number,
+  battle: ReturnedBattle,
+  origin?: { x: number; y: number },
+) => {
   const Tile = defineHex({
-    dimensions: hexsize,
+    dimensions: { width: hexsize, height: hexsize * HEX_ASPECT_RATIO },
     origin,
     orientation: Orientation.FLAT,
   });
-  const grid = new Grid(Tile, rectangle({ width: COMBAT_WIDTH, height: COMBAT_HEIGHT }))
+
+  const grid = new Grid(Tile, rectangle({ width: battle.width, height: battle.height }))
     .filter((tile) => {
       try {
         return tile.width !== 0;

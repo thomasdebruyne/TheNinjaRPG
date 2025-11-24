@@ -1,43 +1,65 @@
 import {
-  BufferGeometry,
-  BufferAttribute,
   Color,
   DoubleSide,
-  EdgesGeometry,
   Group,
   LineBasicMaterial,
   LinearFilter,
-  Line,
-  MeshBasicMaterial,
   Mesh,
   SpriteMaterial,
   Sprite,
+  Texture,
+  Line,
+  type BufferGeometry,
 } from "three";
 import { loadTexture, createTexture } from "@/libs/threejs/util";
 import { playPreloadedAudio } from "@/utils/audio";
 import { getPossibleActionTiles, findHex, PathCalculator } from "../hexgrid";
-import { COMBAT_WIDTH } from "@/libs/combat/constants";
+import { COMBAT_BORDER } from "@/libs/combat/constants";
 import { getAffectedTiles } from "@/libs/combat/util";
 import { actionPointsAfterAction } from "@/libs/combat/actions";
 import { calcActiveUser } from "@/libs/combat/actions";
 import { stillInBattle } from "@/libs/combat/actions";
 import { getBattleGrid } from "@/libs/combat/util";
+import { getTileInfo } from "@/libs/threejs/biome";
+import { applyWaveShader } from "@/libs/threejs/shaders";
+import {
+  getHexPoints,
+  calculateHexUVCoordinates,
+  calculateTileOffset,
+  createGroundCorners,
+  createTileGeometry,
+  createTileEdges,
+  createGroundGeometry,
+  createGroundEdges,
+  mergeBufferGeometries,
+} from "@/libs/threejs/hexgrid";
+import { createNoise2D } from "simplex-noise";
+import { Grid } from "honeycomb-grid";
 import {
   IMG_SECTOR_USER_MARKER,
   IMG_SECTOR_USER_SPRITE_MASK,
   IMG_SECTOR_SHADOW,
   IMG_BATTLEFIELD_TOMBSTONE,
   IMG_BATTLEFIELD_STAR,
+  HEX_STACKING_DISPLACEMENT,
 } from "@/drizzle/constants";
 import { ID_SFX_MOVE } from "@/drizzle/constants";
 import type { GameAsset, UserData } from "@/drizzle/schema";
-import type { Grid } from "honeycomb-grid";
-import type { Scene, Object3D, Raycaster } from "three";
+import type { Object3D } from "three";
 import type { TerrainHex, HexagonalFaceMesh } from "../hexgrid";
 import type { GroundEffect, UserEffect, BarrierTagType } from "@/libs/combat/types";
 import type { ReturnedUserState, CombatAction } from "@/libs/combat/types";
-import type { ReturnedBattle } from "@/libs/combat/types";
+import type { ReturnedBattle, CachedIntersections } from "@/libs/combat/types";
 import type { SpriteMixer } from "@/libs/threejs/SpriteMixer";
+
+// Drawing layers on the battlefield
+const ASSETS_LAYER = -8;
+const TILES_LAYER = -9;
+const DIRT_LAYER = -10;
+
+// Performance optimization: Cache status bar textures to avoid recreating canvases
+// Key format: "width-height-color-stroke"
+const statusBarTextureCache = new Map<string, Texture>();
 
 /**
  * Show animation on the hex
@@ -71,137 +93,250 @@ export const showAnimation = (
 };
 
 /**
- * Creates heaxognal grid & draw it using js. Return groups of objects drawn
+ * Creates hexagonal grid & draw it using js. Return groups of objects drawn
+ * Similar to drawSector but for combat, with expanded border for assets
  */
 export const drawCombatBackground = (
   width: number,
-  height: number,
-  scene: Scene,
-  background: string,
+  battle: ReturnedBattle,
+  prng: () => number,
+  lightLayout = false,
 ) => {
-  // Set scene background
-  const bg_texture = loadTexture(background);
-  const bg_material = new SpriteMaterial({ map: bg_texture });
-  const bg_sprite = new Sprite(bg_material);
-  bg_sprite.scale.set(width, height, 1);
-  bg_sprite.position.set(width / 2, height / 2, -10);
-  scene.add(bg_sprite);
-
-  // Padding for the tiles [in % of width/height]
-  const leftPadding = 0.11 * width;
-  const bottomPadding = 0.1 * height;
-
   // Calculate hex size
-  const stackingDisplacement = 1.31;
-  const hexsize = (width / COMBAT_WIDTH / 2.6) * stackingDisplacement;
+  const hexsize =
+    width / (battle.width - HEX_STACKING_DISPLACEMENT * (battle.width - 1));
+
+  // Used for procedural map generation
+  const noiseGen = createNoise2D(prng);
+  const assetsGen = createNoise2D(prng);
 
   // Groups for organizing objects
+  const group_dirt = new Group();
   const group_tiles = new Group();
   const group_edges = new Group();
   const group_names = new Group();
+  const group_assets = new Group();
 
-  // Create the grid first
-  const honeycombGrid = getBattleGrid(hexsize, {
-    x: -hexsize - leftPadding,
-    y: -hexsize - bottomPadding,
+  // Create single grid with border included
+  const honeycombGrid = getBattleGrid(hexsize, battle, {
+    x: -hexsize * 0.5,
+    y: -hexsize * 0.5,
+  }).map((tile) => {
+    // Set noise-based level using grid coordinates
+    const nx = tile.col / battle.width - 0.5;
+    const ny = tile.row / battle.height - 0.5;
+    tile.level = noiseGen(nx, ny) / 2 + 0.5;
+    tile.assetStrength = assetsGen(nx, ny) / 2 + 0.5;
+    return tile;
   });
 
-  // Hex points
-  const points = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5];
+  // Get hex points for geometry construction
+  const { points, groundPoints, groundEdges } = getHexPoints();
+
+  // Calculate UV coordinates once using first tile
+  const firstTile = honeycombGrid.toArray()[0];
+  const { groundUVArray, tileUVArray } = calculateHexUVCoordinates(
+    firstTile,
+    points,
+    groundPoints,
+  );
 
   // Line material to use for edges
-  const lineMaterial = new LineBasicMaterial({ color: 0x000000 });
-  const material = new MeshBasicMaterial({
-    color: 0x000000,
-    opacity: 0.1,
-    transparent: true,
-  });
+  const lineMaterial = new LineBasicMaterial({ color: 0x555555 });
+
+  // Arrays to collect geometries for merging (major performance optimization)
+  const groundGeometries: BufferGeometry[] = [];
+  const groundEdgeGeometries: BufferGeometry[] = [];
+
   // Draw the tiles
   honeycombGrid.forEach((tile) => {
     if (tile) {
-      // Draw the tile
-      const geometry = new BufferGeometry();
-      const corners = tile.corners;
-      const vertices = new Float32Array(
-        points.map((p) => corners[p]).flatMap((p) => (p ? [p.x, p.y, -10] : [])),
+      // Determine if this is a battle tile (playable area) or border tile
+      const isBattleTile =
+        tile.col >= COMBAT_BORDER &&
+        tile.col < battle.width - COMBAT_BORDER &&
+        tile.row >= COMBAT_BORDER &&
+        tile.row < battle.height - COMBAT_BORDER;
+
+      // Get tile info (material, dirt, sprites)
+      const { material, dirt, sprites, asset } = getTileInfo(
+        prng,
+        tile,
+        battle.background,
+        lightLayout,
       );
-      geometry.setAttribute("position", new BufferAttribute(vertices, 3));
-      const mesh = new Mesh(geometry, material?.clone());
+      tile.asset = asset;
+
+      // Add sprites to border tiles, or to battle tiles if they're marked as small
+      if (sprites && sprites.length > 0 && !lightLayout) {
+        sprites.forEach((sprite) => {
+          const isSmall = sprite.userData.small === true;
+          if (!isBattleTile || isSmall) {
+            sprite.matrixAutoUpdate = false;
+            sprite.updateMatrix();
+            group_assets.add(sprite);
+          }
+        });
+      }
+
+      // Corners of the tile
+      const corners = tile.corners;
+
+      // Calculate offset for ocean tiles (they are displaced down for depth effect)
+      const { length, offsetLength, offsetLayer } = calculateTileOffset(
+        corners,
+        asset,
+        lightLayout,
+      );
+
+      // Create the corners of the ground below
+      const groundCorners = createGroundCorners(corners, offsetLength, length);
+
+      // Top face of the tile
+      const geometry = createTileGeometry({
+        corners,
+        points,
+        tileUVArray,
+        offsetLength,
+        offsetLayer,
+        layer: TILES_LAYER,
+      });
+
+      const clonedMaterial = material?.clone();
+
+      // Apply wave shader to ocean tiles
+      if (asset === "ocean" && clonedMaterial) {
+        const randomOffset = Math.random() * Math.PI * 2;
+        applyWaveShader(clonedMaterial, randomOffset);
+      }
+
+      const mesh = new Mesh(geometry, clonedMaterial);
+
+      // For battle tiles, use battle grid coordinates; for border tiles use expanded coordinates
       mesh.name = `${tile.row},${tile.col}`;
       mesh.userData.type = "tile";
       mesh.userData.tile = tile;
-      mesh.userData.hex = material?.color.getHex();
+      mesh.userData.originalColor = clonedMaterial?.color.clone();
       mesh.userData.highlight = false;
       mesh.userData.selected = false;
-      mesh.userData.canClick = false;
+      mesh.userData.canClick = isBattleTile; // Only battle tiles are clickable
+      mesh.userData.isBattleTile = isBattleTile;
       mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
       group_tiles.add(mesh);
 
-      // Draw the edges
-      const edges = new EdgesGeometry(geometry);
-      edges.translate(0, 0, 1);
-      const edgeMesh = new Line(edges, lineMaterial);
-      edgeMesh.matrixAutoUpdate = false;
+      // Edges on the top face
+      const edgeMesh = createTileEdges(geometry, lineMaterial);
+      edgeMesh.updateMatrix();
       group_edges.add(edgeMesh);
 
-      // Draw the name
-      // Draw the tile name using a 2D canvas and render as a texture on a sprite
-      // Draw the tile name using a 2D canvas and render as a texture on a sprite
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // Set font and measure text
-        const fontSize = 18;
-        const text = tile.name ?? "";
-        ctx.font = `${fontSize}px Arial`;
-        const textWidth = ctx.measureText(text).width;
+      // Ground part of the tile
+      if (!lightLayout) {
+        const groundGeometry = createGroundGeometry({
+          groundCorners,
+          groundPoints,
+          groundUVArray,
+          layer: DIRT_LAYER,
+        });
 
-        // Set canvas size based on text
-        canvas.width = Math.ceil(textWidth + 12);
-        canvas.height = Math.ceil(fontSize + 10);
+        // Instead of creating individual meshes, collect geometries for merging
+        groundGeometries.push(groundGeometry);
 
-        // Redraw font after resizing
-        ctx.font = `${fontSize}px arial narrow`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.globalAlpha = 0.3; // Set alpha to 0.5 for all drawing
-        ctx.fillStyle = "white";
-        ctx.lineWidth = 4;
-
-        // Draw text with stroke for contrast
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
-        ctx.fillText(text, cx, cy);
-
-        // Create texture and sprite
-        const texture = createTexture(canvas);
-        texture.needsUpdate = true;
-        const spriteMaterial = new SpriteMaterial({ map: texture, transparent: true });
-        const sprite = new Sprite(spriteMaterial);
-
-        // Position the sprite at the tile center, slightly above the tile
-        // The z-index is set to be above the tile and edge meshes
-        sprite.position.set(tile.x, tile.y - (2 * cy) / 3, -8);
-
-        // Scale the sprite to fit the tile size
-        // Use hex size to determine a reasonable scale
-        const scale = (Math.max(tile.height, tile.width) * 0.2) / fontSize;
-        sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
-
-        // Add to the tiles group
-        group_names.add(sprite);
+        // Collect edge geometries
+        const edgeMeshes = createGroundEdges({
+          groundCorners,
+          groundEdges,
+          lineMaterial,
+          layer: DIRT_LAYER,
+        });
+        edgeMeshes.forEach((edgeMesh) => {
+          if (edgeMesh.geometry) {
+            groundEdgeGeometries.push(edgeMesh.geometry);
+          }
+        });
       }
 
-      // Draw any objects on the tiles based on randomness
-      // const sprites = getMapSprites(prng, 1, "combat", tile, 0);
-      // sprites.map((sprite) => group_assets.add(sprite));
+      // Draw tile name for battle grid tiles
+      if (isBattleTile && tile.name) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const fontSize = 18;
+          const text = tile.name;
+          ctx.font = `${fontSize}px Arial`;
+          const textWidth = ctx.measureText(text).width;
+
+          canvas.width = Math.ceil(textWidth + 12);
+          canvas.height = Math.ceil(fontSize + 10);
+
+          ctx.font = `${fontSize}px arial narrow`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.globalAlpha = 0.3;
+          ctx.fillStyle = "white";
+          ctx.lineWidth = 4;
+
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2;
+          ctx.fillText(text, cx, cy);
+
+          const texture = createTexture(canvas);
+          texture.needsUpdate = true;
+          const spriteMaterial = new SpriteMaterial({
+            map: texture,
+          });
+          const sprite = new Sprite(spriteMaterial);
+
+          sprite.position.set(tile.x, tile.y - (2 * cy) / 3, ASSETS_LAYER);
+
+          const scale = (Math.max(tile.height, tile.width) * 0.2) / fontSize;
+          sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
+
+          // Performance optimization: Static name sprites never move
+          sprite.matrixAutoUpdate = false;
+          sprite.updateMatrix();
+
+          group_names.add(sprite);
+        }
+      }
     }
   });
 
-  // Reverse the order of objects in the group_assets
-  // group_assets.children.sort((a, b) => b.position.y - a.position.y);
+  // Merge all ground geometries into a single mesh (huge performance gain)
+  if (!lightLayout && groundGeometries.length > 0) {
+    const mergedGroundGeometry = mergeBufferGeometries(groundGeometries);
+    // Use the first tile's dirt material
+    const firstTile = honeycombGrid.toArray()[0];
+    if (firstTile) {
+      const { dirt } = getTileInfo(prng, firstTile, battle.background, lightLayout);
+      const mergedGroundMesh = new Mesh(mergedGroundGeometry, dirt);
+      mergedGroundMesh.userData.type = "ground_merged";
+      mergedGroundMesh.matrixAutoUpdate = false;
+      mergedGroundMesh.updateMatrix();
+      group_dirt.add(mergedGroundMesh);
+    }
 
-  return { group_tiles, group_edges, group_names, honeycombGrid };
+    // Merge all ground edge geometries into a single line mesh
+    if (groundEdgeGeometries.length > 0) {
+      const mergedEdgeGeometry = mergeBufferGeometries(groundEdgeGeometries);
+      const mergedEdgeMesh = new Line(mergedEdgeGeometry, lineMaterial);
+      mergedEdgeMesh.matrixAutoUpdate = false;
+      mergedEdgeMesh.updateMatrix();
+      group_dirt.add(mergedEdgeMesh);
+    }
+  }
+
+  // Sort assets by position (one-time during scene setup)
+  group_assets.children.sort((a, b) => b.position.y - a.position.y);
+
+  return {
+    group_dirt,
+    group_tiles,
+    group_edges,
+    group_names,
+    group_assets,
+    honeycombGrid,
+  };
 };
 
 /**
@@ -384,6 +519,7 @@ export const drawCombatEffect = (info: {
 
 /**
  * Draw a status bar on user
+ * Performance optimization: Uses texture cache to avoid recreating canvases
  */
 export const drawStatusBar = (
   w: number,
@@ -393,42 +529,79 @@ export const drawStatusBar = (
   name: string,
   yOffset: number,
 ) => {
-  const canvas = document.createElement("canvas");
   const r = 3;
-  canvas.width = r * w;
-  canvas.height = (r * h) / 10;
-  const context = canvas.getContext("2d");
-  if (context) {
-    context.fillStyle = color;
-    context.lineWidth = 4;
-    context.strokeStyle = "black";
-    if (stroke) {
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.strokeRect(0, 0, canvas.width, canvas.height);
-    } else {
-      context.fillRect(2, 2, canvas.width - 4, canvas.height - 4);
+  const canvasWidth = r * w;
+  const canvasHeight = (r * h) / 10;
+
+  // Create cache key for this specific status bar configuration
+  const cacheKey = `${canvasWidth}-${canvasHeight}-${color}-${stroke}`;
+
+  // Check if we already have a cached texture for this configuration
+  let texture = statusBarTextureCache.get(cacheKey);
+
+  if (!texture) {
+    // Create new canvas and texture if not cached
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.fillStyle = color;
+      // Scale line width proportionally to canvas size, but keep reasonable bounds
+      const lineWidth = Math.max(1, Math.min(4, canvasHeight / 6));
+      context.lineWidth = lineWidth;
+      context.strokeStyle = "black";
+      if (stroke) {
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.strokeRect(0, 0, canvas.width, canvas.height);
+      } else {
+        const padding = lineWidth / 2;
+        context.fillRect(
+          padding,
+          padding,
+          canvas.width - 2 * padding,
+          canvas.height - 2 * padding,
+        );
+      }
     }
+    texture = createTexture(canvas);
+    texture.generateMipmaps = false;
+    texture.minFilter = LinearFilter;
+    texture.needsUpdate = true;
+
+    // Cache the texture for reuse
+    statusBarTextureCache.set(cacheKey, texture);
   }
-  const texture = createTexture(canvas);
-  texture.generateMipmaps = false;
-  texture.minFilter = LinearFilter;
-  texture.needsUpdate = true;
+
   const bar_material = new SpriteMaterial({ map: texture });
   const bar_sprite = new Sprite(bar_material);
-  bar_sprite.position.set(w / 2, h * 1.58 - (yOffset * (canvas.height - 2)) / r, -5);
-  bar_sprite.scale.set(canvas.width / r, canvas.height / r, 1);
+  bar_sprite.position.set(w / 2, h * 1.58 - (yOffset * (canvasHeight - 2)) / r, -5);
+  bar_sprite.scale.set(canvasWidth / r, canvasHeight / r, 1);
   bar_sprite.name = name;
   bar_sprite.userData.full_width = w;
+  bar_sprite.userData.previousValue = undefined; // Track previous value for change detection
   bar_sprite.visible = false;
   return bar_sprite;
 };
 
 /**
  * Update status bar of a user sprite
+ * Performance optimization: Only updates if value changed (dirty flag system)
  */
 export const updateStatusBar = (name: string, userSpriteGroup: Group, perc: number) => {
   const bar = userSpriteGroup.getObjectByName(name);
   if (bar) {
+    // Check if value actually changed (dirty flag optimization)
+    const previousValue = bar.userData.previousValue as number | undefined;
+    if (previousValue !== undefined && Math.abs(previousValue - perc) < 0.001) {
+      // Value hasn't changed significantly, skip update
+      return;
+    }
+
+    // Store current value for next frame comparison
+    bar.userData.previousValue = perc;
+
+    // Perform the actual update
     const width = bar.userData.full_width as number;
     const newWidth = width * perc;
     const newPosition = width / 2 - (width * (1 - perc)) / 2;
@@ -635,7 +808,10 @@ type UserMeshData = {
   movement?: MovementState;
   initialized?: boolean;
 };
-type GroupUsersData = { pathFinder?: PathCalculator };
+type GroupUsersData = {
+  pathFinder?: PathCalculator;
+  needsSort?: boolean;
+};
 
 /** Returns a cached PathCalculator on the users group, creating it if missing */
 const getOrCreatePathFinder = (
@@ -650,6 +826,13 @@ const getOrCreatePathFinder = (
     (group_users as unknown as { userData: GroupUsersData }).userData = data;
   }
   return ensured;
+};
+
+/** Marks the group as needing a sort on the next render */
+const markGroupNeedsSort = (group: Group) => {
+  const data = (group.userData as GroupUsersData) ?? {};
+  data.needsSort = true;
+  (group as unknown as { userData: GroupUsersData }).userData = data;
 };
 
 /** Ensures meshData exists and initializes current visual tile/position when first seen */
@@ -709,6 +892,7 @@ const stepAlongPath = (
   meshData: UserMeshData,
   targetTile: TerrainHex,
   speed: number,
+  parentGroup: Group,
   onTileStep?: () => void,
 ) => {
   const { x: curX, y: curY } = userMesh.position;
@@ -751,6 +935,7 @@ const stepAlongPath = (
       index += 1;
       meshData.movement = { path, index };
       if (onTileStep) onTileStep();
+      markGroupNeedsSort(parentGroup);
       if (!path || index >= path.length) {
         const { x: tx, y: ty } = targetTile.center;
         userMesh.position.set(-tx, -ty, 0);
@@ -767,7 +952,11 @@ const stepAlongPath = (
     const step = speed * easedMultiplier(progress);
     const reached = moveTowards(-x, -y, step);
     if (reached) {
+      const previousHex = meshData.hex;
       meshData.hex = targetTile;
+      if (parentGroup && previousHex !== targetTile) {
+        markGroupNeedsSort(parentGroup);
+      }
     }
   }
 };
@@ -807,7 +996,10 @@ export const drawCombatUsers = (info: {
           user.username = userData.username;
         }
         userMesh = createUserSprite(user, hex, playerId);
-        if (userMesh) group_users.add(userMesh);
+        if (userMesh) {
+          group_users.add(userMesh);
+          markGroupNeedsSort(group_users);
+        }
       }
       // Get location
       if (userMesh && grid) {
@@ -827,7 +1019,7 @@ export const drawCombatUsers = (info: {
             } catch {}
           }
         };
-        stepAlongPath(userMesh, meshData, targetTile, speed, onTileStep);
+        stepAlongPath(userMesh, meshData, targetTile, speed, group_users, onTileStep);
         userMesh.userData = meshData;
         // Handle remove users from combat.
         if (!stillInBattle(user) && user.hidden === undefined) {
@@ -851,7 +1043,17 @@ export const drawCombatUsers = (info: {
       }
     }
   });
-  group_users.children.sort((a, b) => b.position.y - a.position.y);
+
+  // Only sort when a user has moved to a new tile (not during interpolation)
+  // This optimization prevents O(n log n) sorting every frame (~60fps)
+  const groupData = group_users.userData as GroupUsersData;
+  if (groupData?.needsSort) {
+    group_users.children.sort((a, b) => b.position.y - a.position.y);
+    group_users.children.forEach((child, index) => {
+      child.renderOrder = index;
+    });
+    groupData.needsSort = false;
+  }
 
   // Hide all user counters which are not used anymore
   group_users.children.forEach((object) => {
@@ -863,10 +1065,11 @@ export const drawCombatUsers = (info: {
 
 /**
  * Highlight possible squares based on action
+ * Uses cached intersections to avoid redundant raycasting
  */
 export const highlightTiles = (info: {
   group_tiles: Group;
-  raycaster: Raycaster;
+  cachedIntersections: CachedIntersections;
   user: ReturnedUserState;
   timeDiff: number;
   action: CombatAction | undefined;
@@ -877,8 +1080,8 @@ export const highlightTiles = (info: {
 }) => {
   // Definitions
   const { group_tiles, user, battle, currentHighlights, action, grid, timeDiff } = info;
-  const intersects = info.raycaster.intersectObjects(group_tiles.children);
-  const hit = intersects.length > 0 && intersects[0];
+  const battleTileIntersects = info.cachedIntersections.battleTiles;
+  const hit = battleTileIntersects.length > 0 && battleTileIntersects[0];
   const users = battle.usersState;
   const origin = user && grid.getHex({ col: user.longitude, row: user.latitude });
 
@@ -902,11 +1105,10 @@ export const highlightTiles = (info: {
         const mesh = group_tiles.getObjectByName(
           `${tile.row},${tile.col}`,
         ) as HexagonalFaceMesh;
-        if (mesh.userData.highlight === false) {
+        if (mesh && mesh.userData.isBattleTile) {
           mesh.userData.highlight = true;
-          mesh.material.opacity = 0.3;
+          newHighlights.add(mesh.name);
         }
-        newHighlights.add(mesh.name);
       }
     });
   }
@@ -944,23 +1146,39 @@ export const highlightTiles = (info: {
     green.forEach((tile) => {
       const name = `${tile.row},${tile.col}`;
       const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
-      mesh.userData.selected = true;
-      mesh.userData.canClick = true;
-      if (hasMove && tile === targetTile) {
-        mesh.material.color = new Color("rgb(0, 0, 255)");
-      } else {
-        mesh.material.color = new Color("rgb(0, 255, 0)");
+      if (mesh) {
+        mesh.userData.selected = true;
+        mesh.userData.canClick = true;
+        const originalColor = mesh.userData.originalColor;
+        if (originalColor) {
+          const tintedColor = originalColor.clone();
+          if (hasMove && tile === targetTile) {
+            // Tint with blue for move destination
+            tintedColor.lerp(new Color("rgb(0, 150, 255)"), 0.2);
+          } else {
+            // Tint with green for valid targets
+            tintedColor.lerp(new Color("rgb(0, 255, 100)"), 0.2);
+          }
+          mesh.material.color.copy(tintedColor);
+        }
+        newSelection.add(name);
       }
-
-      newSelection.add(name);
     });
     red.forEach((tile) => {
       const name = `${tile.row},${tile.col}`;
       const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
-      mesh.userData.selected = true;
-      mesh.userData.canClick = false;
-      mesh.material.color = new Color("rgb(255, 0, 0)");
-      newSelection.add(name);
+      if (mesh) {
+        mesh.userData.selected = true;
+        mesh.userData.canClick = false;
+        const originalColor = mesh.userData.originalColor;
+        if (originalColor) {
+          // Tint with red for invalid targets
+          const tintedColor = originalColor.clone();
+          tintedColor.lerp(new Color("rgb(255, 50, 50)"), 0.2);
+          mesh.material.color.copy(tintedColor);
+        }
+        newSelection.add(name);
+      }
     });
     // Set cursor type on highlight
     if (
@@ -977,38 +1195,53 @@ export const highlightTiles = (info: {
     }
   }
 
-  // Remove highlights from tiles that are no longer in the path
+  // Apply colors to all tiles based on their state
+  // Process all tiles that were previously highlighted or selected
   currentHighlights.forEach((name) => {
-    if (!newHighlights.has(name)) {
-      const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
-      mesh.userData.highlight = false;
-      mesh.material.opacity = 0.1;
-    }
-    if (!newSelection.has(name)) {
-      const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
-      mesh.userData.selected = false;
-      mesh.userData.canClick = false;
-      mesh.material.color.setHex(mesh.userData.hex);
+    const isHighlighted = newHighlights.has(name);
+    const isSelected = newSelection.has(name);
+    const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
+
+    if (mesh && mesh.userData.originalColor) {
+      // Update states
+      mesh.userData.highlight = isHighlighted;
+      if (!isSelected) {
+        mesh.userData.selected = false;
+        mesh.userData.canClick = false;
+      }
+
+      // Apply color based on priority: selection > highlight > original
+      if (isSelected) {
+        // Selection color already applied in the selection loop above
+      } else if (isHighlighted) {
+        // Apply gray tint for highlighted tiles
+        const highlightColor = mesh.userData.originalColor.clone();
+        highlightColor.lerp(new Color("rgb(128, 128, 128)"), 0.4);
+        mesh.material.color.copy(highlightColor);
+      } else {
+        // Reset to original if neither highlighted nor selected
+        mesh.material.color.copy(mesh.userData.originalColor);
+      }
     }
   });
   return new Set([...newHighlights, ...newSelection]);
 };
 
 /**
- * Highlight possible squares based on action
+ * Highlight user information like health bars on intersection
+ * Uses cached intersections to avoid redundant raycasting
  */
 export const highlightUsers = (info: {
-  group_tiles: Group;
   group_users: Group;
-  raycaster: Raycaster;
+  cachedIntersections: CachedIntersections;
   userId: string;
   users: ReturnedUserState[];
   currentHighlights: Set<string>;
 }) => {
   // Definitions
-  const { group_tiles, group_users, users, userId, currentHighlights } = info;
-  const intersects = info.raycaster.intersectObjects(group_tiles.children);
-  const hit = intersects.length > 0 && intersects[0];
+  const { group_users, users, userId, currentHighlights } = info;
+  const battleTileIntersects = info.cachedIntersections.battleTiles;
+  const hit = battleTileIntersects.length > 0 && battleTileIntersects[0];
   const newSelection = new Set<string>();
   if (hit) {
     const intersected = hit.object as HexagonalFaceMesh;
@@ -1073,16 +1306,17 @@ export const setStatusBarVisibility = (userMesh: Group, visible: boolean) => {
 
 /**
  * Highlight different things in the environment based on raycaster
+ * Uses cached intersections to avoid redundant raycasting
  */
 export const highlightTooltips = (info: {
   group_ground: Group;
-  raycaster: Raycaster;
+  cachedIntersections: CachedIntersections;
   battle: ReturnedBattle;
   currentTooltips: Set<string>;
 }) => {
   // Definitions
   const { group_ground, battle, currentTooltips } = info;
-  const intersects = info.raycaster.intersectObjects(group_ground.children);
+  const intersects = info.cachedIntersections.ground;
   const newTooltips = new Set<string>();
 
   // Barriers
@@ -1123,10 +1357,11 @@ export const highlightTooltips = (info: {
 
 /**
  * Highlight ground effects on tiles when hovering
+ * Uses cached intersections to avoid redundant raycasting
  */
 export const highlightTileTooltips = (info: {
   group_tiles: Group;
-  raycaster: Raycaster;
+  cachedIntersections: CachedIntersections;
   battle: ReturnedBattle;
   currentTileTooltips: Set<string>;
   mouseX?: number;
@@ -1134,11 +1369,11 @@ export const highlightTileTooltips = (info: {
 }) => {
   // Definitions
   const { group_tiles, battle, currentTileTooltips } = info;
-  const intersects = info.raycaster.intersectObjects(group_tiles.children);
+  const battleTileIntersects = info.cachedIntersections.battleTiles;
   const newTooltips = new Set<string>();
 
-  // Check if we're hovering over a tile
-  const tileHit = intersects.find((i) => i.object.userData.type === "tile");
+  // Check if we're hovering over a battle tile (not border tiles)
+  const tileHit = battleTileIntersects.length > 0 ? battleTileIntersects[0] : undefined;
   if (tileHit) {
     const tile = tileHit.object.userData.tile as TerrainHex;
     const tileName = `${tile.row},${tile.col}`;

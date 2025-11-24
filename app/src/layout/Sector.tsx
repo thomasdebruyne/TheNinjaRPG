@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "src/components/ui/label";
 import { z } from "zod";
 import { useLocalStorage } from "@/hooks/localstorage";
+import { usePerformanceMonitor } from "@/hooks/performance-monitor";
 import { useForm } from "react-hook-form";
 import { Vector2, OrthographicCamera, Group } from "three";
 import { api } from "@/app/_trpc/client";
@@ -22,7 +23,12 @@ import { PathCalculator, findHex } from "@/libs/hexgrid";
 import { OrbitControls } from "@/libs/threejs/OrbitControls";
 import { getBackgroundColor } from "@/libs/threejs/biome";
 import { updateWindAnimation, updateWaveAnimation } from "@/libs/threejs/shaders";
-import { cleanUp, setupScene, setRaycasterFromMouse } from "@/libs/threejs/util";
+import {
+  cleanUp,
+  setupScene,
+  setRaycasterFromMouse,
+  smoothCameraFollow,
+} from "@/libs/threejs/util";
 import { drawSector, drawVillage, drawUsers, drawQuest } from "@/libs/threejs/sector";
 import { intersectUsers } from "@/libs/threejs/sector";
 import { intersectTiles } from "@/libs/threejs/sector";
@@ -35,7 +41,12 @@ import { round } from "@/utils/math";
 import { sleep } from "@/utils/time";
 import { findVillageUserRelationship } from "@/utils/alliance";
 import { isQuestObjectiveAvailable } from "@/libs/objectives";
-import { SECTOR_LENGTH_TO_WIDTH } from "@/drizzle/constants";
+import {
+  HEX_STACKING_DISPLACEMENT,
+  HEX_ASPECT_RATIO,
+  SECTOR_WIDTH,
+  SECTOR_HEIGHT,
+} from "@/drizzle/constants";
 import { RANKS_RESTRICTED_FROM_PVP, MEDNIN_MIN_RANK } from "@/drizzle/constants";
 import { WAR_SHRINE_IMAGE } from "@/drizzle/constants";
 import { isWarAllies } from "@/libs/war";
@@ -75,6 +86,9 @@ const Sector: React.FC<SectorProps> = (props) => {
 
   // Light layout preference state
   const [lightLayout] = useLocalStorage<boolean>("lightLayout", false);
+
+  // Performance monitoring (unbounded for max FPS testing in dev)
+  const performanceMonitor = usePerformanceMonitor(true);
 
   // State pertaining to the sector
   const [webglError, setWebglError] = useState<boolean>(false);
@@ -621,13 +635,14 @@ const Sector: React.FC<SectorProps> = (props) => {
   useEffect(() => {
     const sceneRef = mountRef.current;
     if (sceneRef && userRef.current && fetchedUsers !== undefined) {
+      // Used for map size calculations
+      const width2height =
+        ((SECTOR_HEIGHT + 2) * HEX_ASPECT_RATIO) /
+        (SECTOR_WIDTH - HEX_STACKING_DISPLACEMENT * (SECTOR_WIDTH - 1));
+
       // Map size
       const WIDTH = sceneRef.getBoundingClientRect().width;
-      const HEIGHT = WIDTH * SECTOR_LENGTH_TO_WIDTH;
-
-      // Performance monitor
-      // const stats = new Stats();
-      // document.body.appendChild(stats.dom);
+      const HEIGHT = WIDTH * width2height;
 
       // Listeners
       sceneRef.addEventListener("mousemove", onDocumentMouseMove, false);
@@ -643,8 +658,8 @@ const Sector: React.FC<SectorProps> = (props) => {
         height: HEIGHT,
         sortObjects: false,
         color: color,
-        colorAlpha: 0,
-        width2height: SECTOR_LENGTH_TO_WIDTH,
+        colorAlpha: 0.5,
+        width2height: width2height,
       });
 
       // If no renderer, then we have an error with the browser, let the user know
@@ -799,6 +814,9 @@ const Sector: React.FC<SectorProps> = (props) => {
       let animationId = 0;
       let userAngle = 0;
       function render() {
+        // Performance monitor
+        performanceMonitor.begin();
+
         // Use raycaster to detect mouse intersections
         raycaster.setFromCamera(mouse, camera);
 
@@ -843,23 +861,16 @@ const Sector: React.FC<SectorProps> = (props) => {
         }
 
         // Smooth camera following
-        if (
-          cameraTargetPosition.current &&
-          cameraRef.current &&
-          controlsRef.current &&
-          cameraRef.current.zoom > 1.5
-        ) {
-          const { x, y } = cameraTargetPosition.current;
+        if (cameraRef.current && controlsRef.current) {
           const WIDTH = mountRef.current?.getBoundingClientRect().width || 0;
-          const HEIGHT = WIDTH * SECTOR_LENGTH_TO_WIDTH;
-          const targetX = -WIDTH / 2 - x;
-          const targetY = -HEIGHT / 2 - y;
-
-          // Smooth interpolation (lerp) with factor 0.1 for smooth following
-          const lerpFactor = 0.1;
-          controls.target.x += (targetX - controls.target.x) * lerpFactor;
-          controls.target.y += (targetY - controls.target.y) * lerpFactor;
-          camera.position.copy(controls.target);
+          const HEIGHT = WIDTH * width2height;
+          smoothCameraFollow({
+            camera: cameraRef.current,
+            controls: controlsRef.current,
+            targetPosition: cameraTargetPosition.current,
+            width: WIDTH,
+            height: HEIGHT,
+          });
         }
 
         // Trackball updates
@@ -872,8 +883,12 @@ const Sector: React.FC<SectorProps> = (props) => {
         }
 
         // Render the scene
-        animationId = requestAnimationFrame(render);
         renderer?.render(scene, camera);
+
+        // Performance monitor
+        performanceMonitor.end();
+
+        animationId = performanceMonitor.requestFrame(render);
       }
       render();
 
@@ -888,7 +903,7 @@ const Sector: React.FC<SectorProps> = (props) => {
         sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
         controls.removeEventListener("change", onZoomChange);
         cleanUp(scene, renderer);
-        cancelAnimationFrame(animationId);
+        performanceMonitor.cancelFrame(animationId);
         if (sceneRef.contains(renderer.domElement)) {
           sceneRef.removeChild(renderer.domElement);
         }

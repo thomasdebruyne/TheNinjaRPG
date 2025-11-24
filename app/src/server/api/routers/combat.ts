@@ -11,7 +11,7 @@ import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
 import { eq, or, and, sql, gt, ne, isNotNull, isNull, inArray, gte } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { desc, lt } from "drizzle-orm";
-import { COMBAT_HEIGHT, COMBAT_WIDTH } from "@/libs/combat/constants";
+import { COMBAT_BORDER } from "@/libs/combat/constants";
 import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { RANKS_RESTRICTED_FROM_PVP, AutoBattleTypes } from "@/drizzle/constants";
@@ -24,6 +24,7 @@ import { updateUser, updateBattle } from "@/libs/combat/database";
 import { calcHP, calcSP, calcCP, calcLevelRequirements } from "@/libs/profile";
 import { controlShownQuestLocationInformation } from "@/libs/quest";
 import { getReskinnedBloodline } from "@/libs/bloodline";
+import { getDefaultBattleSizes } from "@/libs/combat/util";
 import {
   selectJutsuLoadout,
   fetchJutsuLoadouts,
@@ -43,17 +44,10 @@ import {
 } from "@/libs/combat/database";
 import { fetchUpdatedUser, fetchUser } from "./profile";
 import { performAIaction } from "@/libs/combat/ai_v2";
-import {
-  userData,
-  questHistory,
-  quest,
-  gameSetting,
-  jutsu,
-  userRequest,
-} from "@/drizzle/schema";
+import { userData, questHistory, quest, gameSetting, jutsu } from "@/drizzle/schema";
 import { battle, battleAction, battleHistory, war, item } from "@/drizzle/schema";
 import { villageAlliance, village, tournamentMatch, bounty } from "@/drizzle/schema";
-import { backgroundSchema, sector } from "@/drizzle/schema";
+import { sector } from "@/drizzle/schema";
 import { performActionSchema, statSchema } from "@/libs/combat/types";
 import { performBattleAction, stillInBattle } from "@/libs/combat/actions";
 import { availableUserActions } from "@/libs/combat/actions";
@@ -99,7 +93,10 @@ import {
   ID_SFX_MOVE,
   ID_SFX_CLEANSE,
   ID_SFX_CLEAR,
+  HEXTILE_BIOMES,
 } from "@/drizzle/constants";
+import { getBiomeFromGlobalTile } from "@/libs/travel";
+import * as mapData from "@/data/hexasphere.json";
 import type { RankedLoadout } from "@/drizzle/schema";
 import type { BattleType } from "@/drizzle/constants";
 import type { BattleUserState, StatSchemaType } from "@/libs/combat/types";
@@ -107,8 +104,7 @@ import type { GroundEffect, UserEffect } from "@/libs/combat/types";
 import type { ActionEffect } from "@/libs/combat/types";
 import type { CompleteBattle } from "@/libs/combat/types";
 import type { DrizzleClient } from "@/server/db";
-import { IMG_BG_FOREST } from "@/drizzle/constants";
-import type { ZodBgSchemaType } from "@/validators/backgroundSchema";
+import { type CombatBiome } from "@/drizzle/constants";
 import type {
   VillageAlliance,
   Village,
@@ -117,6 +113,7 @@ import type {
 } from "@/drizzle/schema";
 import type { BattleWar } from "@/libs/combat/types";
 import type { Item, UserItem, AiProfile } from "@/drizzle/schema";
+import type { GlobalMapData } from "@/libs/threejs/types";
 
 // Debug flag when testing battle
 const debug = false;
@@ -415,15 +412,15 @@ export const combatRouter = createTRPCRouter({
       const db = ctx.drizzle;
       const actionRounds: number[] = [];
 
-      // Create the grid for the battle
-      const grid = getBattleGrid(1);
-
       // OUTER LOOP: Attempt to perform action untill success || error thrown
       // The primary purpose here is that if the battle version was already updated, we retry the user's action
       while (true) {
         // Fetch battle from database
         const battle = await fetchBattle(db, input.battleId);
         if (!battle) return { updateClient: true };
+
+        // Create the grid for the battle
+        const grid = getBattleGrid(1, battle);
 
         // For kage battles, only allow one move per action
         const maxActions = AutoBattleTypes.includes(battle.battleType) ? 1 : 5;
@@ -697,7 +694,7 @@ export const combatRouter = createTRPCRouter({
             targetIds: [selectedAI.userId],
             client: ctx.drizzle,
             targetStatDistribution: input.stats ?? undefined,
-            asset: "arena",
+            biome: "default",
           },
           input.stats ? "TRAINING" : "ARENA",
         );
@@ -722,7 +719,7 @@ export const combatRouter = createTRPCRouter({
           .max(SECTOR_HEIGHT - 1),
         sector: z.number().int(),
         userId: z.string(),
-        asset: z.enum(["ocean", "ground", "dessert", "ice"]).optional(),
+        asset: z.enum(HEXTILE_BIOMES).optional(),
       }),
     )
     .output(baseServerResponse.extend({ battleId: z.string().optional() }))
@@ -735,7 +732,7 @@ export const combatRouter = createTRPCRouter({
           userIds: [ctx.userId],
           targetIds: [input.userId],
           client: ctx.drizzle,
-          asset: input.asset || "ground",
+          biome: input.asset || "default",
         },
         "COMBAT",
       );
@@ -842,6 +839,8 @@ export const combatRouter = createTRPCRouter({
         villages: data.villages,
         defaultProfile: data.defaultProfile,
         battleType: userBattle.battleType,
+        width: userBattle.width,
+        height: userBattle.height,
         hide: false,
         isSummon: false,
       });
@@ -1013,7 +1012,7 @@ export const combatRouter = createTRPCRouter({
           targetIds: targetIds,
           forceDefenderVillageId: userWar.defenderVillageId,
           client: ctx.drizzle,
-          asset: "arena",
+          biome: "default",
         },
         "SHRINE_WAR",
       );
@@ -1101,27 +1100,6 @@ export const fetchBattle = async (client: DrizzleClient, battleId: string) => {
   return result as CompleteBattle;
 };
 
-const getBackground = (
-  asset?: "ocean" | "ground" | "dessert" | "ice" | "arena" | "default",
-  schema?: ZodBgSchemaType,
-) => {
-  if (!schema) return IMG_BG_FOREST;
-
-  switch (asset) {
-    case "ocean":
-      return schema.ocean;
-    case "ice":
-      return schema.ice;
-    case "dessert":
-      return schema.dessert;
-    case "ground":
-      return schema.ground;
-    case "arena":
-      return schema.arena;
-    default:
-      return schema.default;
-  }
-};
 export const initiateBattle = async (
   info: {
     longitude?: number;
@@ -1135,7 +1113,7 @@ export const initiateBattle = async (
     scaleTarget?: boolean;
     forceLoadouts?: RankedLoadout[];
     forceDefenderVillageId?: string;
-    asset?: "ocean" | "ground" | "dessert" | "ice" | "arena" | "default";
+    biome?: CombatBiome;
     forceKeepPools?: boolean;
   },
   battleType: BattleType,
@@ -1157,7 +1135,6 @@ export const initiateBattle = async (
   // Use Promise.all to fetch all independent data in parallel
   const [
     { defaultProfile, activeWars, settings, villages, relations },
-    activeSchema,
     assets,
     achievements,
     fetchedUsers,
@@ -1168,10 +1145,6 @@ export const initiateBattle = async (
   ] = await Promise.all([
     // Essentials
     fetchBattleEssentials(client),
-    // Conditionally Fetch background schema
-    client.query.backgroundSchema.findFirst({
-      where: eq(backgroundSchema.isActive, true),
-    }),
     // Fetch game assets
     fetchGameAssets(client),
     // Fetch achievements
@@ -1319,7 +1292,16 @@ export const initiateBattle = async (
   }
 
   // Get background for the battle
-  const background = getBackground(info.asset, activeSchema?.schema);
+  let background: CombatBiome = info.biome ?? "default";
+
+  // If background is default and we have a sector, determine biome from the global tile
+  if (background === "default" && sector !== undefined) {
+    const map = mapData as unknown as GlobalMapData;
+    const tile = map.tiles[sector];
+    if (tile) {
+      background = getBiomeFromGlobalTile(tile);
+    }
+  }
 
   // Create the users array to be inserted in battle. We do it like this in case some of the targetIds are entered multiple times
   const users = [...userIds, ...targetIds]
@@ -1367,6 +1349,9 @@ export const initiateBattle = async (
       };
     }
   }
+
+  // Calculate battle width and height
+  const gridSize = getDefaultBattleSizes(battleType, users[0]?.level ?? 0);
 
   // Loop through each user
   for (const i of users.keys()) {
@@ -1518,6 +1503,8 @@ export const initiateBattle = async (
     villages: villages,
     defaultProfile: defaultProfile,
     battleType: battleType,
+    width: gridSize.width,
+    height: gridSize.height,
     hide: false,
     leftSideUserIds: userIds,
     isSummon: false,
@@ -1540,8 +1527,8 @@ export const initiateBattle = async (
   // Starting ground effects
   const groundEffects: GroundEffect[] = [];
   const groundAssets = assets.filter((a) => a.onInitialBattleField);
-  for (let col = 0; col < COMBAT_WIDTH; col++) {
-    for (let row = 0; row < COMBAT_HEIGHT; row++) {
+  for (let col = 0; col < gridSize.width; col++) {
+    for (let row = 0; row < gridSize.height; row++) {
       // Ignore the spots where we placed users
       const foundUser = usersState.find(
         (u) => u.longitude === col && u.latitude === row,
@@ -1649,6 +1636,8 @@ export const initiateBattle = async (
       usersState: usersState,
       usersEffects: userEffects,
       groundEffects: groundEffects,
+      width: gridSize.width,
+      height: gridSize.height,
       extraState: {
         jutsus: injectableJutsus,
         settings: settings,
@@ -1791,10 +1780,22 @@ export const processUsersForBattle = async (
     hide: boolean;
     leftSideUserIds?: string[];
     isSummon: boolean;
+    width: number;
+    height: number;
   },
 ) => {
   // Destructure
-  const { users, settings, relations, battleType, hide, leftSideUserIds, wars } = info;
+  const {
+    users,
+    settings,
+    relations,
+    battleType,
+    hide,
+    leftSideUserIds,
+    wars,
+    width,
+    height,
+  } = info;
   // Collect user effects here
   const allSummons: string[] = [];
   const userEffects: UserEffect[] = [];
@@ -1939,13 +1940,16 @@ export const processUsersForBattle = async (
     user.originalMoney = user.money;
     user.actionPoints = 100;
 
+    // Half the width of the battlefield
+    const halfWidth = Math.floor(width / 2);
+
     // Convenience function for assigning location of user
     const assignLocation = (min: number, max: number) => {
-      let x = randomInt(min, max);
-      let y = randomInt(1, 3);
+      let x = randomInt(min + COMBAT_BORDER, max - COMBAT_BORDER);
+      let y = randomInt(1 + COMBAT_BORDER, height - COMBAT_BORDER - 1);
       do {
-        x = randomInt(min, max);
-        y = randomInt(1, 3);
+        x = randomInt(min + COMBAT_BORDER, max - COMBAT_BORDER);
+        y = randomInt(1 + COMBAT_BORDER, height - COMBAT_BORDER - 1);
       } while (takenLocations.some((l) => l.x === x && l.y === y));
       takenLocations.push({ x, y });
       return { x, y };
@@ -1962,11 +1966,11 @@ export const processUsersForBattle = async (
       user.curHealth = 0;
     } else if (leftSideUserIds && leftSideUserIds.length > 0) {
       if (leftSideUserIds?.includes(user.userId)) {
-        const { x, y } = assignLocation(1, 5);
+        const { x, y } = assignLocation(1, halfWidth);
         user.longitude = x;
         user.latitude = y;
       } else {
-        const { x, y } = assignLocation(7, 11);
+        const { x, y } = assignLocation(halfWidth + 1, width - 1);
         user.longitude = x;
         user.latitude = y;
       }
@@ -2344,6 +2348,8 @@ export const processUsersForBattle = async (
           villages: info.villages,
           defaultProfile: info.defaultProfile,
           battleType: info.battleType,
+          width: info.width,
+          height: info.height,
           hide: true,
           isSummon: true,
         });

@@ -37,7 +37,6 @@ import { tournamentRouter } from "./routers/tournament";
 import { villageRouter } from "./routers/village";
 import { marriageRouter } from "./routers/marriage";
 import { staffRouter } from "./routers/staff";
-import { backgroundSchemaRouter } from "./routers/backgroundSchema";
 import { linkPromotionRouter } from "./routers/linkpromotion";
 import { warRouter } from "./routers/war";
 import { shrineRouter } from "./routers/shrine";
@@ -92,7 +91,6 @@ export const appRouter = createTRPCRouter({
   tournament: tournamentRouter,
   village: villageRouter,
   marriage: marriageRouter,
-  backgroundSchema: backgroundSchemaRouter,
   staff: staffRouter,
   linkPromotion: linkPromotionRouter,
   war: warRouter,

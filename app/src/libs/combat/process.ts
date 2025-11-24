@@ -849,6 +849,7 @@ export const applySingleEffect = (
           info = timeDilation(effect, usersEffects, curTarget);
         } else if (effect.type === "redirection") {
           info = redirection(
+            battle,
             effect,
             usersEffects,
             curTarget,

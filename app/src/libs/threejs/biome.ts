@@ -3,12 +3,18 @@ import {
   MeshBasicMaterial,
   Sprite,
   SpriteMaterial,
-  Group,
   RepeatWrapping,
   DoubleSide,
+  AddOperation,
+  Texture,
 } from "three";
+import { IMG_BG_OCEAN, IMG_BG_ICE, IMG_BG_SNOW } from "@/drizzle/constants";
 import { loadTexture } from "@/libs/threejs/util";
 import { applyWindShader } from "@/libs/threejs/shaders";
+import { COMBAT_BIOMES } from "@/drizzle/constants";
+import { getBiomeFromGlobalTile } from "@/libs/travel";
+import type { HEXTILE_TYPE } from "@/drizzle/constants";
+import type { CombatBiome } from "@/drizzle/constants";
 import type { TerrainHex } from "../hexgrid";
 import type { GlobalTile } from "@/libs/threejs/types";
 
@@ -25,65 +31,97 @@ export const iceColors = [0x9febf7, 0x89cde0, 0x98dfe8] as const;
 
 export const snowColors = [0xffffff, 0xeeeeee, 0xfefefe] as const;
 
-export const groundMats = groundColors.map(
-  (color) => new MeshBasicMaterial({ color, transparent: true }),
-);
-
-export const oceanMats = oceanColors.map((color) => {
-  const waterTexture = loadTexture(
-    "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJIo4wHixfOewksxBoS1HQCihpL7c42Ky9uUFv",
-  );
-  waterTexture.wrapS = waterTexture.wrapT = RepeatWrapping;
-  waterTexture.repeat.set(1, 1);
-  const waterMaterial = new MeshBasicMaterial({
-    color,
-    transparent: true,
-    map: waterTexture,
+/**
+ * Helper function to create textured materials from colors and texture URL
+ * Adds subtle lightness variation for variety
+ */
+const createTexturedMaterials = (colors: readonly number[], textureUrl: string) => {
+  return colors.map((color) => {
+    const texture = loadTexture(textureUrl);
+    texture.wrapS = texture.wrapT = RepeatWrapping;
+    texture.repeat.set(1, 1);
+    return new MeshBasicMaterial({ color: color, map: texture, combine: AddOperation });
   });
-  return waterMaterial;
-});
-
-export const oceanMatsLight = oceanColors.map(
-  (color) => new MeshBasicMaterial({ color, transparent: true }),
-);
-
-export const dessertMats = dessertColors.map(
-  (color) => new MeshBasicMaterial({ color, transparent: true }),
-);
-
-export const iceMats = iceColors.map(
-  (color) => new MeshBasicMaterial({ color, transparent: true }),
-);
-
-export const snowMats = snowColors.map(
-  (color) => new MeshBasicMaterial({ color, transparent: true }),
-);
+};
 
 /**
- * Returns materials and potential game assets to show on a given tile
+ * Helper function to create textured materials from colors and texture URL
+ * Adds subtle lightness variation for variety
  */
-type TileType = "ocean" | "ground" | "dessert" | "ice";
+const createNoisedMaterials = (colors: readonly number[]) => {
+  return colors.map((color) => {
+    // Create a small canvas for the noisy texture
+    const size = 64;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    // Fill with solid color
+    ctx.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
+    ctx.fillRect(0, 0, size, size);
+
+    // Add random noise
+    const imageData = ctx.getImageData(0, 0, size, size);
+    for (let i = 0; i < size * size * 4; i += 4) {
+      const noise = Math.floor(Math.random() * 32) - 16; // -16 to +15
+      imageData.data[i] = Math.min(255, Math.max(0, imageData.data[i]! + noise));
+      imageData.data[i + 1] = Math.min(
+        255,
+        Math.max(0, imageData.data[i + 1]! + noise),
+      );
+      imageData.data[i + 2] = Math.min(
+        255,
+        Math.max(0, imageData.data[i + 2]! + noise),
+      );
+      // alpha (i+3) remains unchanged (255)
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    const texture = new Texture(canvas);
+    texture.needsUpdate = true;
+    texture.wrapS = texture.wrapT = RepeatWrapping;
+    texture.repeat.set(1, 1);
+
+    return new MeshBasicMaterial({ color, map: texture, combine: AddOperation });
+  });
+};
+
+/**
+ * Helper function to create light (color-only) materials
+ */
+const createLightMaterials = (colors: readonly number[]) => {
+  return colors.map((color) => new MeshBasicMaterial({ color }));
+};
+
+export const groundMats = createNoisedMaterials(groundColors);
+export const groundMatsLight = createLightMaterials(groundColors);
+
+export const oceanMats = createTexturedMaterials(oceanColors, IMG_BG_OCEAN);
+export const oceanMatsLight = createLightMaterials(oceanColors);
+
+export const dessertMats = createNoisedMaterials(dessertColors);
+export const dessertMatsLight = createLightMaterials(dessertColors);
+
+export const iceMats = createTexturedMaterials(iceColors, IMG_BG_ICE);
+export const iceMatsLight = createLightMaterials(iceColors);
+
+export const snowMats = createTexturedMaterials(snowColors, IMG_BG_SNOW);
+export const snowMatsLight = createLightMaterials(snowColors);
 
 interface TileInfo {
   material: MeshBasicMaterial;
   dirt: MeshBasicMaterial;
   sprites: Sprite[];
-  asset: TileType;
+  asset: HEXTILE_TYPE;
 }
 
-export const getDirtMaterial = (tileType: TileType) => {
-  const texture = loadTexture(
-    "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJob2ojkZ9MPZpHJ7VliuEWDfATdxhv62SXnm4",
-  );
-  texture.wrapS = texture.wrapT = RepeatWrapping;
-  texture.repeat.set(2, 2);
-  return new MeshBasicMaterial({ map: texture, side: DoubleSide });
+export const getDirtMaterial = (tileType: HEXTILE_TYPE) => {
+  return new MeshBasicMaterial({ color: 0x696969, side: DoubleSide });
 };
 
 export const getTileInfo = (
   prng: () => number,
   hex: TerrainHex,
-  tile: GlobalTile,
+  tile: GlobalTile | CombatBiome,
   lightLayout = false,
 ) => {
   const material = getMaterial(hex, tile, lightLayout);
@@ -92,7 +130,11 @@ export const getTileInfo = (
   return material;
 };
 
-export const getMapSprites = (prng: () => number, asset: string, hex: TerrainHex) => {
+export const getMapSprites = (
+  prng: () => number,
+  asset: HEXTILE_TYPE,
+  hex: TerrainHex,
+) => {
   const sprites: Sprite[] = [];
   // Fetch tile sprite
   let cost = hex.cost;
@@ -107,6 +149,9 @@ export const getMapSprites = (prng: () => number, asset: string, hex: TerrainHex
     cost += 1;
   } else if (asset === "ice") {
     assets = ICE_ASSET_PROPS;
+    cost += 1;
+  } else if (asset === "snow") {
+    assets = SNOW_ASSET_PROPS;
     cost += 1;
   } else {
     assets = OCEAN_ASSET_PROPS;
@@ -131,9 +176,16 @@ export const getMapSprites = (prng: () => number, asset: string, hex: TerrainHex
     const { x, y } = hex.center;
     const posX = -x + w / 2 + w * posVariation * (prng() - 0.5);
     const posY = -y + (size * h) / 2 + 0.1 * h * size;
-    sprite = loadSectorAsset(selectedAsset.filepath, rand, selectedAsset.windAffected);
+    sprite = loadSectorAsset(
+      selectedAsset.filepath,
+      rand,
+      selectedAsset.windAffected,
+      selectedAsset.randomRotation,
+    );
     Object.assign(sprite.scale, new Vector3(size * h, size * h, 1));
     Object.assign(sprite.position, new Vector3(posX, posY, -8));
+    // Mark sprite as small if asset is small
+    sprite.userData.small = selectedAsset.small === true;
     sprites.push(sprite);
   }
   hex.cost = cost;
@@ -147,6 +199,7 @@ const loadSectorAsset = (
   filepath: string,
   rand: number,
   windAffected?: boolean | null,
+  randomRotation?: boolean,
 ) => {
   const texture = loadTexture(filepath);
   const material = new SpriteMaterial({ map: texture });
@@ -159,82 +212,136 @@ const loadSectorAsset = (
   }
 
   const sprite = new Sprite(material);
+
+  // Apply random rotation if specified
+  if (randomRotation) {
+    sprite.material.rotation = 100 * rand * Math.PI * 2;
+  }
+
   return sprite;
 };
 
-const getMaterial = (hex: TerrainHex, tile: GlobalTile, lightLayout = false) => {
+/**
+ * Returns the material for a given hexagon and tile
+ * @param hex - The hexagon to get the material for
+ * @param tile - The tile to get the material for
+ * @param lightLayout - Whether to use the light layout
+ * @returns The material for the given hexagon and tile
+ */
+const getMaterial = (
+  hex: TerrainHex,
+  tile: GlobalTile | CombatBiome,
+  lightLayout = false,
+) => {
+  // Some cleanup for which assets to return based on state
   const oceanMatsToUse = lightLayout ? oceanMatsLight : oceanMats;
-  if (tile.t === 0) {
-    if (hex.level < 0.3) {
-      return { material: oceanMatsToUse[0], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.6) {
-      return { material: oceanMatsToUse[1], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.8) {
-      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.85) {
-      return { material: dessertMats[0], asset: "dessert" } as TileInfo;
-    } else if (hex.level < 0.9) {
-      return { material: dessertMats[1], asset: "dessert" } as TileInfo;
-    } else if (hex.level < 0.95) {
-      return { material: dessertMats[2], asset: "dessert" } as TileInfo;
-    } else {
-      return { material: groundMats[2], asset: "ground" } as TileInfo;
-    }
-  } else if (tile.t === 1) {
-    if (hex.level < 0.05) {
-      return { material: oceanMatsToUse[0], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.1) {
-      return { material: oceanMatsToUse[1], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.15) {
-      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.2) {
-      return { material: groundMats[2], asset: "ground" } as TileInfo;
-    } else if (hex.level < 0.5) {
-      return { material: groundMats[1], asset: "ground" } as TileInfo;
-    } else if (hex.level < 0.8) {
-      return { material: groundMats[0], asset: "ground" } as TileInfo;
-    } else if (hex.level < 0.9) {
-      return { material: dessertMats[0], asset: "dessert" } as TileInfo;
-    } else if (hex.level < 0.95) {
-      return { material: dessertMats[1], asset: "dessert" } as TileInfo;
-    } else {
-      return { material: dessertMats[2], asset: "dessert" } as TileInfo;
-    }
-  } else if (tile.t === 2) {
-    if (hex.level < 0.05) {
-      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.1) {
-      return { material: groundMats[2], asset: "ground" } as TileInfo;
-    } else if (hex.level < 0.3) {
-      return { material: dessertMats[0], asset: "dessert" } as TileInfo;
-    } else if (hex.level < 0.6) {
-      return { material: dessertMats[1], asset: "dessert" } as TileInfo;
-    } else {
-      return { material: dessertMats[2], asset: "dessert" } as TileInfo;
-    }
-  } else {
-    if (hex.level < 0.05) {
-      return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
-    } else if (hex.level < 0.3) {
-      return { material: snowMats[0], asset: "ice" } as TileInfo;
-    } else if (hex.level < 0.6) {
-      return { material: snowMats[1], asset: "ice" } as TileInfo;
-    } else {
-      return { material: snowMats[2], asset: "ice" } as TileInfo;
-    }
+  const groundMatsToUse = lightLayout ? groundMatsLight : groundMats;
+  const dessertMatsToUse = lightLayout ? dessertMatsLight : dessertMats;
+  const iceMatsToUse = lightLayout ? iceMatsLight : iceMats;
+  const snowMatsToUse = lightLayout ? snowMatsLight : snowMats;
+  const biome: CombatBiome =
+    typeof tile === "object"
+      ? getBiomeFromGlobalTile(tile)
+      : COMBAT_BIOMES.find((a) => a === tile)
+        ? (tile as CombatBiome)
+        : "default";
+
+  // Handle material choice based on levels
+  switch (biome) {
+    case "ocean":
+      if (hex.level < 0.3) {
+        return { material: oceanMatsToUse[0], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.6) {
+        return { material: oceanMatsToUse[1], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.8) {
+        return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.85) {
+        return { material: dessertMatsToUse[0], asset: "dessert" } as TileInfo;
+      } else if (hex.level < 0.9) {
+        return { material: dessertMatsToUse[1], asset: "dessert" } as TileInfo;
+      } else if (hex.level < 0.95) {
+        return { material: dessertMatsToUse[2], asset: "dessert" } as TileInfo;
+      } else {
+        return { material: groundMatsToUse[2], asset: "ground" } as TileInfo;
+      }
+    case "ground":
+    case "default":
+    case "arena":
+      if (hex.level < 0.05) {
+        return { material: oceanMatsToUse[0], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.1) {
+        return { material: oceanMatsToUse[1], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.15) {
+        return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.2) {
+        return { material: groundMatsToUse[2], asset: "ground" } as TileInfo;
+      } else if (hex.level < 0.5) {
+        return { material: groundMatsToUse[1], asset: "ground" } as TileInfo;
+      } else if (hex.level < 0.8) {
+        return { material: groundMatsToUse[0], asset: "ground" } as TileInfo;
+      } else if (hex.level < 0.9) {
+        return { material: dessertMatsToUse[0], asset: "dessert" } as TileInfo;
+      } else if (hex.level < 0.95) {
+        return { material: dessertMatsToUse[1], asset: "dessert" } as TileInfo;
+      } else {
+        return { material: dessertMatsToUse[2], asset: "dessert" } as TileInfo;
+      }
+    case "dessert":
+      if (hex.level < 0.05) {
+        return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.1) {
+        return { material: groundMatsToUse[2], asset: "ground" } as TileInfo;
+      } else if (hex.level < 0.3) {
+        return { material: dessertMatsToUse[0], asset: "dessert" } as TileInfo;
+      } else if (hex.level < 0.6) {
+        return { material: dessertMatsToUse[1], asset: "dessert" } as TileInfo;
+      } else {
+        return { material: dessertMatsToUse[2], asset: "dessert" } as TileInfo;
+      }
+    case "ice":
+    case "snow":
+      if (hex.level < 0.05) {
+        return { material: oceanMatsToUse[2], asset: "ocean" } as TileInfo;
+      } else if (hex.level < 0.1) {
+        return { material: iceMatsToUse[0], asset: "ice" } as TileInfo;
+      } else if (hex.level < 0.2) {
+        return { material: iceMatsToUse[1], asset: "ice" } as TileInfo;
+      } else if (hex.level < 0.25) {
+        return { material: iceMatsToUse[2], asset: "ice" } as TileInfo;
+      } else if (hex.level < 0.3) {
+        return { material: snowMatsToUse[0], asset: "snow" } as TileInfo;
+      } else if (hex.level < 0.6) {
+        return { material: snowMatsToUse[1], asset: "snow" } as TileInfo;
+      } else {
+        return { material: snowMatsToUse[2], asset: "snow" } as TileInfo;
+      }
   }
 };
 
-export const getBackgroundColor = (tile: GlobalTile) => {
-  if (tile.t === 0) {
-    return { color: oceanColors[0] };
-  } else if (tile.t === 1) {
-    return { color: groundColors[1] };
-  } else if (tile.t === 2) {
-    return { color: dessertColors[2] };
-  } else {
-    return { color: iceColors[2] };
+/**
+ * Returns the background color for a given tile
+ * @param tile - The tile to get the background color for
+ * @returns The background color for the given tile
+ */
+export const getBackgroundColor = (tile: GlobalTile | CombatBiome) => {
+  const biome: CombatBiome =
+    typeof tile === "object"
+      ? getBiomeFromGlobalTile(tile)
+      : COMBAT_BIOMES.find((a) => a === tile)
+        ? (tile as CombatBiome)
+        : "default";
+  switch (biome) {
+    case "ocean":
+      return { color: oceanColors[0] };
+    case "dessert":
+      return { color: dessertColors[2] };
+    case "ice":
+    case "snow":
+      return { color: iceColors[2] };
+    case "ground":
+      return { color: groundColors[1] };
   }
+  return { color: groundColors[1] };
 };
 
 export type AssetType = {
@@ -244,6 +351,8 @@ export type AssetType = {
   scaleVariation?: number;
   posVariation?: number;
   windAffected?: boolean;
+  small?: true;
+  randomRotation?: boolean;
 };
 
 // Ground assets settings default
@@ -257,6 +366,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
     scaleVariation: 0.2,
     posVariation: 0.25,
     windAffected: true,
+    small: true,
   },
   {
     filepath:
@@ -266,6 +376,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
     scaleVariation: 0.2,
     posVariation: 0.25,
     windAffected: true,
+    small: true,
   },
   {
     filepath:
@@ -275,6 +386,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
     scaleVariation: 0.2,
     posVariation: 0.25,
     windAffected: true,
+    small: true,
   },
   {
     filepath:
@@ -284,6 +396,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
     scaleVariation: 0.2,
     posVariation: 0.25,
     windAffected: false,
+    small: true,
   },
   // Green Trees
   {
@@ -353,6 +466,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
     scale: 1,
     scaleVariation: 0.2,
     posVariation: 0.25,
+    small: true,
   },
   {
     filepath:
@@ -361,6 +475,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
     scale: 1,
     scaleVariation: 0.2,
     posVariation: 0.25,
+    small: true,
   },
   {
     filepath:
@@ -369,11 +484,26 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
     scale: 1,
     scaleVariation: 0.2,
     posVariation: 0.25,
+    small: true,
   },
 ];
 
 // Dessert assets settings default
 export const ICE_ASSET_PROPS: AssetType[] = [
+  {
+    filepath:
+      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJzJ76QEemvaQu94EYJs8HpxVzofny6iPtbgCZ",
+    chance: 0.1,
+    scale: 0.9,
+    scaleVariation: 0.2,
+    posVariation: 0.25,
+    small: true,
+    randomRotation: true,
+  },
+];
+
+// Dessert assets settings default
+export const SNOW_ASSET_PROPS: AssetType[] = [
   // Stones
   {
     filepath:
@@ -382,6 +512,7 @@ export const ICE_ASSET_PROPS: AssetType[] = [
     scale: 1,
     scaleVariation: 0.2,
     posVariation: 0.25,
+    small: true,
   },
   {
     filepath:
@@ -390,6 +521,17 @@ export const ICE_ASSET_PROPS: AssetType[] = [
     scale: 1,
     scaleVariation: 0.2,
     posVariation: 0.25,
+    small: true,
+  },
+  // Green Trees
+  {
+    filepath:
+      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJrtEwSR2huJPmdY8zI2ptZXAoEj1c6BMKvrQO",
+    chance: 0.4,
+    scale: 2,
+    scaleVariation: 0.7,
+    posVariation: 0.25,
+    windAffected: true,
   },
 ];
 

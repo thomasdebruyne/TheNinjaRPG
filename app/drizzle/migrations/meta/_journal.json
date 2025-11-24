@@ -2150,6 +2150,13 @@
       "when": 1762945572813,
       "tag": "0306_striped_king_bedlam",
       "breakpoints": false
+    },
+    {
+      "idx": 307,
+      "version": "5",
+      "when": 1763891351171,
+      "tag": "0307_chief_wolfsbane",
+      "breakpoints": false
     }
   ]
 }

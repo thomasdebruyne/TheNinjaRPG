@@ -123,7 +123,7 @@ export const sparringRouter = createTRPCRouter({
           userIds: [challenge.receiverId],
           targetIds: [challenge.senderId],
           client: ctx.drizzle,
-          asset: "arena",
+          biome: "arena",
           targetStatDistribution: useRankedRules ? RANKED_PVP_STATS : undefined,
           userStatDistribution: useRankedRules ? RANKED_PVP_STATS : undefined,
           forceLoadouts,
@@ -132,7 +132,13 @@ export const sparringRouter = createTRPCRouter({
       );
       if (result.success) {
         await Promise.all([
-          updateRequestState(ctx.drizzle, input.id, "ACCEPTED", "SPAR", result.battleId),
+          updateRequestState(
+            ctx.drizzle,
+            input.id,
+            "ACCEPTED",
+            "SPAR",
+            result.battleId,
+          ),
           pusher.trigger(challenge.senderId, "event", {
             type: "userMessage",
             message: "Your challenge has been accepted",
@@ -249,9 +255,9 @@ export const updateRequestState = async (
 ) => {
   await client
     .update(userRequest)
-    .set({ 
+    .set({
       status,
-      ...(relatedId && { relatedId })
+      ...(relatedId && { relatedId }),
     })
     .where(and(eq(userRequest.id, challengeId), eq(userRequest.type, type)));
   return { success: true, message: "Challenge state updated" };

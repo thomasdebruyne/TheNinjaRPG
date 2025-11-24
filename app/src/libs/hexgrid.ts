@@ -7,12 +7,13 @@ import type { CombatAction } from "./combat/types";
 import type { BoundingBox, Grid, Ellipse } from "honeycomb-grid";
 import type { Orientation, Point } from "honeycomb-grid";
 import type { HexOffset, HexOptions } from "honeycomb-grid";
+import type { HEXTILE_TYPE } from "@/drizzle/constants";
 
 /**
  * Custom hex used by honeycomb.js
  */
 export class TerrainHex extends Hex {
-  asset?: "ocean" | "ground" | "dessert" | "ice";
+  asset?: HEXTILE_TYPE;
   name?: string;
   hasStructure?: boolean;
   level!: number;
@@ -33,6 +34,8 @@ export interface HexagonalFaceMesh extends THREE.Mesh {
     highlight: boolean;
     selected: boolean;
     canClick: boolean;
+    originalColor?: THREE.Color;
+    isBattleTile?: boolean;
   };
 }
 

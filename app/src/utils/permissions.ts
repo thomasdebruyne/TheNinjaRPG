@@ -301,10 +301,6 @@ export const canAwardReputation = (role: UserRole) => {
   );
 };
 
-export const canChangeCombatBgScheme = (role: UserRole) => {
-  return ["CODING-ADMIN", "CONTENT-ADMIN", "EVENT-ADMIN"].includes(role);
-};
-
 export const canReviewLinkPromotions = (role: UserRole) => {
   return ["CODING-ADMIN"].includes(role);
 };

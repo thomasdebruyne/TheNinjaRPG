@@ -913,7 +913,7 @@ export const clanRouter = createTRPCRouter({
           userIds: [ctx.userId],
           targetIds: [clanData.leaderId],
           client: ctx.drizzle,
-          asset: "arena",
+          biome: "arena",
         },
         "CLAN_CHALLENGE",
       );
@@ -1282,7 +1282,7 @@ export const clanRouter = createTRPCRouter({
           userIds: challengerIds,
           targetIds: defenderIds,
           client: ctx.drizzle,
-          asset: "arena",
+          biome: "default",
         },
         "CLAN_BATTLE",
       );

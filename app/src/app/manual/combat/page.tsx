@@ -1,34 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import ContentBox from "@/layout/ContentBox";
 import { COMBAT_SECONDS } from "@/libs/combat/constants";
 import React from "react";
-import { Image as LucideImage } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { canChangeContent } from "@/utils/permissions";
-import { useUserData } from "@/utils/UserContext";
 import { BattleLengthHistogram } from "@/layout/BattleLengthHistogram";
 
 export default function ManualCombat() {
-  const { data: userData } = useUserData();
-
   return (
     <>
       <ContentBox
         title="Combat"
         subtitle="Fighting for survival"
         defaultBackHref="/manual"
-        topRightContent={
-          userData &&
-          canChangeContent(userData.role) && (
-            <Link href="/manual/combat/backgroundSchema">
-              <Button hoverText="Background Schemas">
-                <LucideImage className="w-5 h-6" />
-              </Button>
-            </Link>
-          )
-        }
       >
         Combat is based on a turn-based system, where each user gets to perform their
         action in turns of {COMBAT_SECONDS} seconds. The user with the highest

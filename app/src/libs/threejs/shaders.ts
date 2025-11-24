@@ -4,9 +4,9 @@ import { Sprite, Mesh } from "three";
 // Wind effect parameters
 export const WIND_CONFIG = {
   enabled: true,
-  speed: 1.0, // How fast the wind moves
-  strength: 0.02, // How much distortion (0.0 - 1.0)
-  scale: 1.0, // How large the wind waves are
+  speed: 2.0, // How fast the wind moves
+  strength: 0.005, // How much distortion (0.0 - 1.0)
+  scale: 0.05, // How large the wind waves are
 };
 
 // Wave effect parameters for water

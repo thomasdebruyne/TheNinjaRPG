@@ -12,7 +12,6 @@ import { HealTag } from "@/libs/combat/types";
 import type { BattleUserState, Consequence } from "./types";
 import type { GroundEffect, UserEffect, ActionEffect } from "./types";
 import type { StatNames, GenNames, DmgConfig } from "./constants";
-import { COMBAT_WIDTH, COMBAT_HEIGHT } from "./constants";
 import type { WeaknessTagType } from "@/libs/combat/types";
 import type { ShieldTagType } from "@/libs/combat/types";
 import type { GeneralType } from "@/drizzle/constants";
@@ -20,6 +19,7 @@ import type { BattleType } from "@/drizzle/constants";
 import type { CombatAction } from "@/libs/combat/types";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import type { BattleEffect } from "./types";
+import type { ReturnedBattle } from "./types";
 import type { Battle } from "@/drizzle/schema";
 import { noCase } from "change-case";
 
@@ -252,15 +252,15 @@ export const mirror = (
     if (primaryCheck) {
       const excludedFromTypes = ["bloodline", "armor", "item", "village", "skill"];
       const excludedEffectTypes = [
-        "damage", 
-        "pierce", 
-        "clear", 
-        "buffprevent", 
-        "cleanseprevent", 
-        "moveprevent", 
+        "damage",
+        "pierce",
+        "clear",
+        "buffprevent",
+        "cleanseprevent",
+        "moveprevent",
         "healprevent",
         "wound",
-        "timecompression"
+        "timecompression",
       ];
 
       const negativeEffects = usersEffects.filter(
@@ -582,15 +582,22 @@ export const adjustStats = (effect: UserEffect, target: BattleUserState) => {
   }
   // Add direction information for increase/decrease stat effects
   let directionText = "";
-  if ("direction" in effect && effect.direction &&
-      (effect.type === "increasestat" || effect.type === "decreasestat")) {
+  if (
+    "direction" in effect &&
+    effect.direction &&
+    (effect.type === "increasestat" || effect.type === "decreasestat")
+  ) {
     if (effect.direction === "both") {
       directionText = " [offense and defense]";
     } else {
       directionText = ` [${effect.direction}]`;
     }
   }
-  return getInfo(target, effect, `${affected} is ${adverb} by ${qualifier}${directionText}`);
+  return getInfo(
+    target,
+    effect,
+    `${affected} is ${adverb} by ${qualifier}${directionText}`,
+  );
 };
 
 export const increaseStats = (
@@ -1504,7 +1511,8 @@ export const wound = (
     effect.timeTracker.originalDamage = original;
   }
 
-  const shouldApply = !effect.isNew && !effect.castThisRound && (effect.rounds ?? 0) > 0;
+  const shouldApply =
+    !effect.isNew && !effect.castThisRound && (effect.rounds ?? 0) > 0;
 
   // Calculate wound damage amount for display purposes
   const originalDamage = effect.timeTracker?.originalDamage || 0;
@@ -1550,11 +1558,7 @@ export const wound = (
 
   // Only show the message when the effect is first applied
   if (effect.isNew && effect.castThisRound) {
-    return getInfo(
-      target,
-      effect,
-      `will take ${woundDamage.toFixed(2)} wound damage`,
-    );
+    return getInfo(target, effect, `will take ${woundDamage.toFixed(2)} wound damage`);
   }
 
   return undefined;
@@ -2303,6 +2307,7 @@ export const timeDilation = (
  * Pull target towards the user by power number of spaces
  */
 export const redirection = (
+  battle: ReturnedBattle,
   effect: UserEffect,
   usersEffects: UserEffect[],
   target: BattleUserState,
@@ -2425,50 +2430,70 @@ export const redirection = (
       actualTarget.longitude + Math.round((deltaX / maxDelta) * moveDistance);
     newLatitude =
       actualTarget.latitude + Math.round((deltaY / maxDelta) * moveDistance);
-
   }
 
   // Helper function to validate and adjust position for push/pull effects
-  const validateAndAdjustPosition = (targetLongitude: number, targetLatitude: number) => {
-    const isOnCaster = targetLongitude === caster.longitude && targetLatitude === caster.latitude;
+  const validateAndAdjustPosition = (
+    targetLongitude: number,
+    targetLatitude: number,
+  ) => {
+    const isOnCaster =
+      targetLongitude === caster.longitude && targetLatitude === caster.latitude;
     const isOnOtherPlayer = usersState.some(
-      (u) => u.userId !== actualTarget.userId && u.longitude === targetLongitude && u.latitude === targetLatitude
+      (u) =>
+        u.userId !== actualTarget.userId &&
+        u.longitude === targetLongitude &&
+        u.latitude === targetLatitude,
     );
     const barrierAtPosition = groundEffects.find(
-      (g) => g.longitude === targetLongitude && g.latitude === targetLatitude && "curHealth" in g
+      (g) =>
+        g.longitude === targetLongitude &&
+        g.latitude === targetLatitude &&
+        "curHealth" in g,
     );
-    
+
     if (isOnCaster || isOnOtherPlayer || barrierAtPosition) {
       // Keep stepping back until we find a valid position
       const deltaX = actualTarget.longitude - targetLongitude;
       const deltaY = actualTarget.latitude - targetLatitude;
       const deltaZ = -deltaX - deltaY;
-      
+
       const maxDelta = Math.max(Math.abs(deltaX), Math.abs(deltaY), Math.abs(deltaZ));
       if (maxDelta > 0) {
         let stepBackCount = 0;
         const maxSteps = Math.max(Math.abs(deltaX), Math.abs(deltaY), Math.abs(deltaZ)); // Maximum possible steps
-        
+
         while (stepBackCount < maxSteps) {
           stepBackCount++;
           targetLongitude = targetLongitude + Math.round((deltaX / maxDelta) * 1);
           targetLatitude = targetLatitude + Math.round((deltaY / maxDelta) * 1);
-          
+
           // Check if this position is valid
-          const isOnCasterAfterStep = targetLongitude === caster.longitude && targetLatitude === caster.latitude;
+          const isOnCasterAfterStep =
+            targetLongitude === caster.longitude && targetLatitude === caster.latitude;
           const isOnOtherPlayerAfterStep = usersState.some(
-            (u) => u.userId !== actualTarget.userId && u.longitude === targetLongitude && u.latitude === targetLatitude
+            (u) =>
+              u.userId !== actualTarget.userId &&
+              u.longitude === targetLongitude &&
+              u.latitude === targetLatitude,
           );
           const barrierAtPositionAfterStep = groundEffects.find(
-            (g) => g.longitude === targetLongitude && g.latitude === targetLatitude && "curHealth" in g
+            (g) =>
+              g.longitude === targetLongitude &&
+              g.latitude === targetLatitude &&
+              "curHealth" in g,
           );
-          
+
           // If this position is valid, we're done
-          if (!isOnCasterAfterStep && !isOnOtherPlayerAfterStep && !barrierAtPositionAfterStep) {
+          if (
+            !isOnCasterAfterStep &&
+            !isOnOtherPlayerAfterStep &&
+            !barrierAtPositionAfterStep
+          ) {
             break;
           }
         }
-        
+
         // If we couldn't find a valid position after all steps, stay at original position
         if (stepBackCount >= maxSteps) {
           targetLongitude = actualTarget.longitude;
@@ -2480,13 +2505,13 @@ export const redirection = (
         targetLatitude = actualTarget.latitude;
       }
     }
-    
+
     return { longitude: targetLongitude, latitude: targetLatitude };
   };
 
   // Ensure we don't move the target outside the arena bounds first
-  const maxLongitude = COMBAT_WIDTH - 1;
-  const maxLatitude = COMBAT_HEIGHT - 1;
+  const maxLongitude = battle.width - 1;
+  const maxLatitude = battle.height - 1;
 
   let clampedLongitude = Math.max(0, Math.min(maxLongitude, newLongitude));
   let clampedLatitude = Math.max(0, Math.min(maxLatitude, newLatitude));
@@ -2497,7 +2522,10 @@ export const redirection = (
 
   // Apply position validation for both pull and push after bounds clamping
   if (direction === "pull" || direction === "push") {
-    const validatedPosition = validateAndAdjustPosition(clampedLongitude, clampedLatitude);
+    const validatedPosition = validateAndAdjustPosition(
+      clampedLongitude,
+      clampedLatitude,
+    );
     clampedLongitude = validatedPosition.longitude;
     clampedLatitude = validatedPosition.latitude;
   }
@@ -2526,7 +2554,9 @@ export const redirection = (
   const actualDistance = Math.max(
     Math.abs(originalLongitude - clampedLongitude),
     Math.abs(originalLatitude - clampedLatitude),
-    Math.abs((originalLongitude - clampedLongitude) + (originalLatitude - clampedLatitude))
+    Math.abs(
+      originalLongitude - clampedLongitude + (originalLatitude - clampedLatitude),
+    ),
   );
 
   const actionText = direction === "push" ? "pushed away from" : "pulled towards";

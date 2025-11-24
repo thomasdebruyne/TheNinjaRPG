@@ -2,16 +2,14 @@ import { nanoid } from "nanoid";
 import {
   Vector3,
   LineBasicMaterial,
-  EdgesGeometry,
-  Line,
   LinearFilter,
   SpriteMaterial,
   Sprite,
   Group,
-  BufferGeometry,
-  BufferAttribute,
   Mesh,
+  Line,
   type Raycaster,
+  type BufferGeometry,
 } from "three";
 import { loadTexture, createTexture } from "@/libs/threejs/util";
 import { applyBlurShader, applyWaveShader } from "@/libs/threejs/shaders";
@@ -24,9 +22,23 @@ import { defineHex, findHex } from "../hexgrid";
 import { getActiveObjectives } from "@/libs/quest";
 import { findVillageUserRelationship } from "@/utils/alliance";
 import {
+  getHexPoints,
+  calculateHexUVCoordinates,
+  calculateTileOffset,
+  createGroundCorners,
+  createTileGeometry,
+  createTileEdges,
+  createGroundGeometry,
+  createGroundEdges,
+  createTileMesh,
+  mergeBufferGeometries,
+} from "@/libs/threejs/hexgrid";
+import {
   IMG_AVATAR_DEFAULT,
   MEDNIN_MIN_RANK,
   RANKS_RESTRICTED_FROM_PVP,
+  HEX_STACKING_DISPLACEMENT,
+  HEX_ASPECT_RATIO,
 } from "@/drizzle/constants";
 import {
   IMG_SECTOR_INFO,
@@ -137,8 +149,8 @@ export const drawSector = (
   lightLayout = false,
 ) => {
   // Calculate hex size
-  const stackingDisplacement = 1.31;
-  const hexsize = (width / SECTOR_WIDTH / 2) * stackingDisplacement;
+  const hexsize =
+    width / (SECTOR_WIDTH - HEX_STACKING_DISPLACEMENT * (SECTOR_WIDTH - 1));
 
   // Used for procedural map generation
   const noiseGen = createNoise2D(prng);
@@ -151,8 +163,8 @@ export const drawSector = (
 
   // Create the grid first
   const Tile = defineHex({
-    dimensions: { width: hexsize * 2, height: hexsize },
-    origin: { x: -hexsize, y: -hexsize },
+    dimensions: { width: hexsize, height: hexsize * HEX_ASPECT_RATIO },
+    origin: { x: -hexsize * 0.5, y: -hexsize * 0.5 },
     orientation: Orientation.FLAT,
   });
   const grid = new Grid(Tile, rectangle({ width: SECTOR_WIDTH, height: SECTOR_HEIGHT }))
@@ -204,84 +216,23 @@ export const drawSector = (
   const group_edges = new Group();
   const group_assets = new Group();
 
-  // Hex points
-  const points = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5];
-  const groundPoints = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 7, 7, 4, 5, 7, 5, 6];
-  const groundEdges = [
-    [1, 2],
-    [0, 3],
-    [7, 4],
-    [5, 6],
-    [0, 1],
-    [0, 7],
-    [6, 7],
-  ];
+  // Get hex points for geometry construction
+  const { points, groundPoints, groundEdges } = getHexPoints();
 
   // Calculate UV coordinates once for ground geometry using first tile's shape
   const firstTile = grid.toArray()[0];
-  let groundUVArray: Float32Array | null = null;
-  let tileUVArray: Float32Array | null = null;
-  if (firstTile) {
-    const corners = firstTile.corners;
-    const length = Math.abs((corners?.[5]?.x || 0) - (corners?.[0]?.x || 0)) / 3;
-
-    // Ground UV coordinates
-    const canonicalGroundCorners = [
-      { x: corners?.[0]?.x!, y: corners?.[0]?.y! - length },
-      { x: corners?.[1]?.x!, y: corners?.[1]?.y! - length },
-      { x: corners?.[1]?.x!, y: corners?.[1]?.y! },
-      { x: corners?.[0]?.x!, y: corners?.[0]?.y! },
-      { x: corners?.[5]?.x!, y: corners?.[5]?.y! },
-      { x: corners?.[4]?.x!, y: corners?.[4]?.y! },
-      { x: corners?.[4]?.x!, y: corners?.[4]?.y! - length },
-      { x: corners?.[5]?.x!, y: corners?.[5]?.y! - length },
-    ];
-    const minX = Math.min(...canonicalGroundCorners.map((c) => c.x));
-    const maxX = Math.max(...canonicalGroundCorners.map((c) => c.x));
-    const minY = Math.min(...canonicalGroundCorners.map((c) => c.y));
-    const maxY = Math.max(...canonicalGroundCorners.map((c) => c.y));
-    const uvWidth = maxX - minX;
-    const uvHeight = maxY - minY;
-    const canonicalGroundUVs = canonicalGroundCorners.map(
-      (corner) =>
-        [(corner.x - minX) / uvWidth, (corner.y - minY) / uvHeight] as [number, number],
-    );
-    const uvNumbers: number[] = [];
-    groundPoints.forEach((p) => {
-      const uv = canonicalGroundUVs[p];
-      if (uv) {
-        uvNumbers.push(uv[0], uv[1]);
-      }
-    });
-    groundUVArray = new Float32Array(uvNumbers);
-
-    // Tile (top face) UV coordinates
-    const canonicalTileCorners = corners.map((c) => ({ x: c.x, y: c.y }));
-    const tileMinX = Math.min(...canonicalTileCorners.map((c) => c.x));
-    const tileMaxX = Math.max(...canonicalTileCorners.map((c) => c.x));
-    const tileMinY = Math.min(...canonicalTileCorners.map((c) => c.y));
-    const tileMaxY = Math.max(...canonicalTileCorners.map((c) => c.y));
-    const tileUVWidth = tileMaxX - tileMinX;
-    const tileUVHeight = tileMaxY - tileMinY;
-    const canonicalTileUVs = canonicalTileCorners.map(
-      (corner) =>
-        [(corner.x - tileMinX) / tileUVWidth, (corner.y - tileMinY) / tileUVHeight] as [
-          number,
-          number,
-        ],
-    );
-    const tileUVNumbers: number[] = [];
-    points.forEach((p) => {
-      const uv = canonicalTileUVs[p];
-      if (uv) {
-        tileUVNumbers.push(uv[0], uv[1]);
-      }
-    });
-    tileUVArray = new Float32Array(tileUVNumbers);
-  }
+  const { groundUVArray, tileUVArray } = calculateHexUVCoordinates(
+    firstTile,
+    points,
+    groundPoints,
+  );
 
   // Line material to use for edges
   const lineMaterial = new LineBasicMaterial({ color: 0x555555 });
+
+  // Arrays to collect geometries for merging (major performance optimization)
+  const groundGeometries: BufferGeometry[] = [];
+  const groundEdgeGeometries: BufferGeometry[] = [];
 
   // Draw the tiles
   grid.forEach((tile) => {
@@ -301,36 +252,26 @@ export const drawSector = (
       // Corners of the tile and the below ground
       const corners = tile.corners;
 
-      // For ocean tiles, we displace them a little bit down, for depth effect
-      const length = Math.abs((corners?.[5]?.x || 0) - (corners?.[0]?.x || 0)) / 3;
-      const offsetLength = asset === "ocean" && !lightLayout ? -length / 2 : 0;
-      const offsetLayer = asset === "ocean" && !lightLayout ? -1 : 0;
+      // Calculate offset for ocean tiles (they are displaced down for depth effect)
+      const { length, offsetLength, offsetLayer } = calculateTileOffset(
+        corners,
+        asset,
+        lightLayout,
+      );
 
       // Create the corners of the ground below
-      const groundCorners = [
-        { x: corners?.[0]?.x!, y: corners?.[0]?.y! - length },
-        { x: corners?.[1]?.x!, y: corners?.[1]?.y! - length },
-        { x: corners?.[1]?.x!, y: corners?.[1]?.y! + offsetLength },
-        { x: corners?.[0]?.x!, y: corners?.[0]?.y! + offsetLength },
-        { x: corners?.[5]?.x!, y: corners?.[5]?.y! + offsetLength },
-        { x: corners?.[4]?.x!, y: corners?.[4]?.y! + offsetLength },
-        { x: corners?.[4]?.x!, y: corners?.[4]?.y! - length },
-        { x: corners?.[5]?.x!, y: corners?.[5]?.y! - length },
-      ] as const;
+      const groundCorners = createGroundCorners(corners, offsetLength, length);
 
       // Top face of the tile
-      const geometry = new BufferGeometry();
-      const vertices = new Float32Array(
-        points
-          .map((p) => corners[p])
-          .flatMap((p) =>
-            p ? [p.x, p.y + offsetLength, TILES_LAYER + offsetLayer] : [],
-          ),
-      );
-      geometry.setAttribute("position", new BufferAttribute(vertices, 3));
-      if (tileUVArray) {
-        geometry.setAttribute("uv", new BufferAttribute(tileUVArray, 2));
-      }
+      const geometry = createTileGeometry({
+        corners,
+        points,
+        tileUVArray,
+        offsetLength,
+        offsetLayer,
+        layer: TILES_LAYER,
+      });
+
       const clonedMaterial = material?.clone();
 
       // Apply wave shader to ocean tiles (must be done after cloning)
@@ -340,62 +281,68 @@ export const drawSector = (
         applyWaveShader(clonedMaterial, randomOffset);
       }
 
-      const mesh = new Mesh(geometry, clonedMaterial);
-      mesh.name = `${tile.row},${tile.col}`;
-      mesh.userData.type = "tile";
-      mesh.userData.tile = tile;
-      mesh.userData.hex = material?.color.getHex();
-      mesh.userData.highlight = false;
-      mesh.userData.selected = false;
-      mesh.userData.canClick = false;
-      mesh.matrixAutoUpdate = false;
+      const mesh = createTileMesh({
+        tile,
+        geometry,
+        material: clonedMaterial,
+        originalColor: material?.color.getHex(),
+      });
       group_tiles.add(mesh);
 
       // Edges on the top face
-      const edges = new EdgesGeometry(geometry);
-      edges.translate(0, 0, 1);
-      const edgeMesh = new Line(edges, lineMaterial);
-      edgeMesh.matrixAutoUpdate = false;
+      const edgeMesh = createTileEdges(geometry, lineMaterial);
+
       group_edges.add(edgeMesh);
 
       // Ground part of the tile
       if (!lightLayout) {
-        const groundGeometry = new BufferGeometry();
-        const groundVertices = new Float32Array(
-          groundPoints
-            .map((p) => groundCorners[p])
-            .flatMap((p) => (p ? [p.x, p.y, DIRT_LAYER] : [])),
-        );
-        groundGeometry.setAttribute("position", new BufferAttribute(groundVertices, 3));
-        if (groundUVArray) {
-          groundGeometry.setAttribute("uv", new BufferAttribute(groundUVArray, 2));
-        }
+        const groundGeometry = createGroundGeometry({
+          groundCorners,
+          groundPoints,
+          groundUVArray,
+          layer: DIRT_LAYER,
+        });
 
-        const groundMesh = new Mesh(groundGeometry, dirt);
-        groundMesh.userData.type = "tile";
-        groundMesh.userData.tile = tile;
-        groundMesh.userData.highlight = false;
-        groundMesh.userData.selected = false;
-        groundMesh.userData.canClick = false;
-        group_dirt.add(groundMesh);
+        // Instead of creating individual meshes, collect geometries for merging
+        groundGeometries.push(groundGeometry);
 
-        // Draw vertical lines for the dirt tiles
-        groundEdges.forEach((edge) => {
-          const edgeGeometry = new BufferGeometry();
-          const edgeVertices = new Float32Array(
-            edge
-              .map((p) => groundCorners[p])
-              .flatMap((p) => (p ? [p.x, p.y, DIRT_LAYER] : [])),
-          );
-          edgeGeometry.setAttribute("position", new BufferAttribute(edgeVertices, 3));
-          const edgeMesh = new Line(edgeGeometry, lineMaterial);
-          group_dirt.add(edgeMesh);
+        // Collect edge geometries
+        const edgeMeshes = createGroundEdges({
+          groundCorners,
+          groundEdges,
+          lineMaterial,
+          layer: DIRT_LAYER,
+        });
+        edgeMeshes.forEach((edgeMesh) => {
+          if (edgeMesh.geometry) {
+            groundEdgeGeometries.push(edgeMesh.geometry);
+          }
         });
       }
     }
   });
 
-  group_dirt.children.sort((a, b) => b.position.y - a.position.y);
+  // Merge all ground geometries into a single mesh (huge performance gain)
+  if (!lightLayout && groundGeometries.length > 0) {
+    const mergedGroundGeometry = mergeBufferGeometries(groundGeometries);
+    // Use the first tile's dirt material
+    const firstTile = grid.toArray()[0];
+    if (firstTile) {
+      const { dirt } = getTileInfo(prng, firstTile, globalTile, lightLayout);
+      const mergedGroundMesh = new Mesh(mergedGroundGeometry, dirt);
+      mergedGroundMesh.userData.type = "ground_merged";
+      mergedGroundMesh.matrixAutoUpdate = false;
+      group_dirt.add(mergedGroundMesh);
+    }
+
+    // Merge all ground edge geometries into a single line mesh
+    if (groundEdgeGeometries.length > 0) {
+      const mergedEdgeGeometry = mergeBufferGeometries(groundEdgeGeometries);
+      const mergedEdgeMesh = new Line(mergedEdgeGeometry, lineMaterial);
+      mergedEdgeMesh.matrixAutoUpdate = false;
+      group_dirt.add(mergedEdgeMesh);
+    }
+  }
 
   return { group_dirt, group_tiles, group_edges, group_assets, honeycombGrid: grid };
 };
@@ -697,7 +644,6 @@ export const drawVillage = (
           map: shadow_texture2,
           color: 0x000000,
           opacity: 0.3,
-          transparent: true,
           depthWrite: false,
           depthTest: false,
         });
