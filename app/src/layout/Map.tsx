@@ -17,9 +17,13 @@ import {
   Vector2,
   Vector3,
 } from "three";
-import { IMG_MAP_WAR_ICON, IMG_MAP_QUEST_ICON } from "@/drizzle/constants";
+import {
+  IMG_MAP_WAR_ICON,
+  IMG_MAP_QUEST_ICON,
+  MAP_RESERVED_SECTORS,
+  MAP_WAR_TORN_BATTLEGROUND_SECTOR,
+} from "@/drizzle/constants";
 import { createUserAvatarSprite } from "@/libs/threejs/globe";
-import { MAP_RESERVED_SECTORS } from "@/drizzle/constants";
 import WebGlError from "@/layout/WebGLError";
 import alea from "alea";
 import * as TWEEN from "@tweenjs/tween.js";
@@ -311,6 +315,13 @@ const Map: React.FC<MapProps> = (props) => {
         color: typeof questTweenColor;
         type: "quest" | "war" | "highlight";
       }[] = [];
+
+      // Add war-torn battleground sector to highlight
+      sectorsToHighlight.push({
+        sector: MAP_WAR_TORN_BATTLEGROUND_SECTOR,
+        color: warTweenColor,
+        type: "war",
+      });
 
       // Add war sectors to highlight
       if (activeSectorWars.current.length > 0) {
