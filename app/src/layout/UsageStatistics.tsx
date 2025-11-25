@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ExportGraph from "@/layout/ExportGraph";
 import { Chart as ChartJS } from "chart.js/auto";
 import { groupBy } from "@/utils/grouping";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import type { BattleType } from "@/drizzle/constants";
 import type { DeviceType } from "@/utils/hardware";
 
@@ -359,8 +361,8 @@ export const RevenueBySourceBar: React.FC<RevenueBySourceProps> = (props) => {
 interface QuestFunnelBarProps {
   stepsCompleted:
     | number[]
-    | Array<{ steps: number; deviceType: DeviceType }>
-    | Array<{ objectives: number; deviceType: DeviceType }>;
+    | Array<{ steps: number; deviceType: DeviceType; username?: string }>
+    | Array<{ objectives: number; deviceType: DeviceType; username?: string }>;
   title: string;
   stepDescriptions?: string[];
 }
@@ -370,7 +372,48 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
   title,
   stepDescriptions,
 }) => {
+  const [mode, setMode] = useState<"count" | "dropoff">("count");
+  const [selectedStep, setSelectedStep] = useState<{
+    step: number;
+    description?: string;
+    usernames: { mobile: string[]; desktop: string[]; unknown: string[] };
+  } | null>(null);
   const chartRef = useRef<HTMLCanvasElement>(null);
+
+  // Helper function to extract usernames by step and device
+  const getUsernamesForStep = (
+    step: number,
+  ): { mobile: string[]; desktop: string[]; unknown: string[] } => {
+    const result = {
+      mobile: [] as string[],
+      desktop: [] as string[],
+      unknown: [] as string[],
+    };
+
+    if (
+      typeof stepsCompleted[0] === "object" &&
+      stepsCompleted[0] !== null &&
+      "deviceType" in stepsCompleted[0]
+    ) {
+      const dataWithDevices = stepsCompleted as Array<{
+        steps?: number;
+        objectives?: number;
+        deviceType: DeviceType;
+        username?: string;
+      }>;
+
+      dataWithDevices.forEach((item) => {
+        const itemStep = item.steps ?? item.objectives ?? 0;
+        if (itemStep === step && item.username) {
+          if (result[item.deviceType].length < 10) {
+            result[item.deviceType].push(item.username);
+          }
+        }
+      });
+    }
+
+    return result;
+  };
 
   useEffect(() => {
     const ctx = chartRef?.current?.getContext("2d");
@@ -414,6 +457,19 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
         unknownData.push(usersAtStep.filter((d) => d.deviceType === "unknown").length);
       }
 
+      // If in dropoff mode, convert counts to dropoffs
+      if (mode === "dropoff") {
+        for (let i = 0; i < mobileData.length - 1; i++) {
+          mobileData[i] = mobileData[i]! - mobileData[i + 1]!;
+          desktopData[i] = desktopData[i]! - desktopData[i + 1]!;
+          unknownData[i] = unknownData[i]! - unknownData[i + 1]!;
+        }
+        // Last step has no dropoff (no next step to compare to)
+        mobileData[mobileData.length - 1] = 0;
+        desktopData[desktopData.length - 1] = 0;
+        unknownData[unknownData.length - 1] = 0;
+      }
+
       const chart = new ChartJS(ctx, {
         type: "bar",
         data: {
@@ -442,13 +498,26 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
         options: {
           maintainAspectRatio: false,
           responsive: true,
+          onClick: (event, elements) => {
+            if (elements.length > 0 && elements[0]) {
+              const dataIndex = elements[0].index;
+              setSelectedStep({
+                step: dataIndex,
+                description: stepDescriptions?.[dataIndex],
+                usernames: getUsernamesForStep(dataIndex),
+              });
+            }
+          },
           scales: {
             x: { type: "category", stacked: true },
             y: {
               type: "linear",
               beginAtZero: true,
               stacked: true,
-              title: { display: true, text: "Number of Users" },
+              title: {
+                display: true,
+                text: mode === "dropoff" ? "Users Lost (Drop-off)" : "Number of Users",
+              },
               ticks: {
                 precision: 0,
               },
@@ -459,10 +528,16 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
               callbacks: {
                 footer: (tooltipItems) => {
                   const dataIndex = tooltipItems[0]?.dataIndex;
+                  const lines: string[] = [];
+
                   if (dataIndex !== undefined && stepDescriptions?.[dataIndex]) {
-                    return stepDescriptions[dataIndex];
+                    lines.push(stepDescriptions[dataIndex]);
                   }
-                  return "";
+
+                  lines.push("");
+                  lines.push("Click bar to see usernames");
+
+                  return lines.join("\n");
                 },
               },
             },
@@ -485,13 +560,25 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
         labels.push(step === 0 ? "0 steps (all)" : `${step}+ steps`);
       }
 
+      // If in dropoff mode, convert counts to dropoffs
+      if (mode === "dropoff") {
+        for (let i = 0; i < values.length - 1; i++) {
+          values[i] = values[i]! - values[i + 1]!;
+        }
+        // Last step has no dropoff (no next step to compare to)
+        values[values.length - 1] = 0;
+      }
+
       const chart = new ChartJS(ctx, {
         type: "bar",
         data: {
           labels,
           datasets: [
             {
-              label: "Number of users remaining",
+              label:
+                mode === "dropoff"
+                  ? "Users lost at this step"
+                  : "Number of users remaining",
               data: values,
               borderColor: "hsl(210 70% 45%)",
               backgroundColor: "hsl(210 70% 60% / 0.6)",
@@ -501,12 +588,25 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
         options: {
           maintainAspectRatio: false,
           responsive: true,
+          onClick: (event, elements) => {
+            if (elements.length > 0 && elements[0]) {
+              const dataIndex = elements[0].index;
+              setSelectedStep({
+                step: dataIndex,
+                description: stepDescriptions?.[dataIndex],
+                usernames: getUsernamesForStep(dataIndex),
+              });
+            }
+          },
           scales: {
             x: { type: "category" },
             y: {
               type: "linear",
               beginAtZero: true,
-              title: { display: true, text: "Number of Users" },
+              title: {
+                display: true,
+                text: mode === "dropoff" ? "Users Lost (Drop-off)" : "Number of Users",
+              },
               ticks: {
                 precision: 0,
               },
@@ -516,7 +616,16 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
             tooltip: {
               callbacks: {
                 label: (context) => `${context.parsed.y} users`,
-                afterLabel: (context) => stepDescriptions?.[context.dataIndex] ?? "",
+                afterLabel: (context) => {
+                  const lines: string[] = [];
+                  const desc = stepDescriptions?.[context.dataIndex];
+                  if (desc) {
+                    lines.push(desc);
+                  }
+                  lines.push("");
+                  lines.push("Click bar to see usernames");
+                  return lines.join("\n");
+                },
               },
             },
           },
@@ -525,17 +634,85 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
 
       return () => chart.destroy();
     }
-  }, [stepsCompleted, title, stepDescriptions]);
+  }, [stepsCompleted, title, stepDescriptions, mode]);
 
   return (
     <Card>
       <CardHeader className="pb-0 pt-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="quest-funnel-mode"
+              checked={mode === "dropoff"}
+              onCheckedChange={(checked) => setMode(checked ? "dropoff" : "count")}
+            />
+            <Label htmlFor="quest-funnel-mode" className="cursor-pointer text-xs">
+              Show drop-off
+            </Label>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="py-1">
         <div style={{ height: 360 }}>
           <canvas ref={chartRef} id="questFunnel"></canvas>
         </div>
+        {selectedStep && (
+          <div className="mt-4 p-3 border border-border rounded-md bg-card">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-sm">
+                Step {selectedStep.step}
+                {selectedStep.description && `: ${selectedStep.description}`}
+              </h4>
+              <button
+                onClick={() => setSelectedStep(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            </div>
+            {selectedStep.usernames.mobile.length > 0 ||
+            selectedStep.usernames.desktop.length > 0 ||
+            selectedStep.usernames.unknown.length > 0 ? (
+              <div className="space-y-3">
+                {selectedStep.usernames.mobile.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      📱 Mobile users ({selectedStep.usernames.mobile.length}):
+                    </p>
+                    <p className="text-sm font-mono select-all bg-muted p-2 rounded">
+                      {selectedStep.usernames.mobile.join(", ")}
+                    </p>
+                  </div>
+                )}
+                {selectedStep.usernames.desktop.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      💻 Desktop users ({selectedStep.usernames.desktop.length}):
+                    </p>
+                    <p className="text-sm font-mono select-all bg-muted p-2 rounded">
+                      {selectedStep.usernames.desktop.join(", ")}
+                    </p>
+                  </div>
+                )}
+                {selectedStep.usernames.unknown.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      ❓ Unknown device ({selectedStep.usernames.unknown.length}):
+                    </p>
+                    <p className="text-sm font-mono select-all bg-muted p-2 rounded">
+                      {selectedStep.usernames.unknown.join(", ")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No users currently at this step
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

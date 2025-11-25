@@ -228,6 +228,7 @@ export const dataRouter = createTRPCRouter({
         ctx.drizzle
           .select({
             userId: userData.userId,
+            username: userData.username,
             questData: userData.questData,
             tutorialStep: userData.tutorialStep,
             userAgent: visitorLog.userAgent,
@@ -556,10 +557,11 @@ export const dataRouter = createTRPCRouter({
         }
       }
 
-      // Extract tutorial steps for each signup with device type
+      // Extract tutorial steps for each signup with device type and username
       const tutorialSteps = filteredSignupsRow.map((r) => ({
         steps: r.tutorialStep ?? 0,
         deviceType: getDeviceType(r.userAgent ?? undefined),
+        username: r.username ?? "",
       }));
 
       return {
