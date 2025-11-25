@@ -47,6 +47,8 @@ export default function InstallPrompt() {
     return null;
   }
 
+  if (!userData) return null;
+
   if (currentStep && userData) return null;
 
   return (
