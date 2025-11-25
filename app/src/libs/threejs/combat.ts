@@ -1351,8 +1351,10 @@ export const highlightTooltips = (info: {
   currentTooltips.forEach((name) => {
     if (!newTooltips.has(name)) {
       const mesh = group_ground.getObjectByName(name) as Group;
+      if (!mesh) return;
       const background = mesh.getObjectByName("hp_background") as Sprite;
       const bar = mesh.getObjectByName("hp_current") as Sprite;
+      if (!background || !bar) return;
       background.visible = false;
       bar.visible = false;
     }
