@@ -540,9 +540,10 @@ export const clanRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Fetch
-      const [user, fetchedClan, image] = await Promise.all([
+      const [user, fetchedClan, clanWithName, image] = await Promise.all([
         fetchUser(ctx.drizzle, ctx.userId),
         fetchClan(ctx.drizzle, input.clanId),
+        fetchClanByName(ctx.drizzle, input.name),
         ctx.drizzle.query.historicalAvatar.findFirst({
           where: eq(historicalAvatar.avatar, input.image),
         }),
@@ -554,6 +555,9 @@ export const clanRouter = createTRPCRouter({
       if (!user) return errorResponse("User not found");
       if (!image) return errorResponse("Image not found");
       if (!image.avatar) return errorResponse("Image not found");
+      if (clanWithName && clanWithName.id !== fetchedClan.id) {
+        return errorResponse("Clan name already exists");
+      }
       if (fetchedClan.leaderId !== user.userId)
         return errorResponse(`Not ${groupLabel} leader`);
       if (fetchedClan.villageId !== user.villageId)
