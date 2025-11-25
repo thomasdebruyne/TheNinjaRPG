@@ -1,9 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import ContentBox from "@/layout/ContentBox";
+import WebGL2Warning, { WebGL2WarningBanner } from "@/layout/WebGL2Warning";
+import { useWebGL2Detection } from "@/hooks/webgl";
 import { SignIn } from "@clerk/nextjs";
 
 export default function LoginUser() {
+  const { webglError, isChecking } = useWebGL2Detection();
+  const [proceedAnyway, setProceedAnyway] = useState<boolean>(false);
+
+  if (isChecking) {
+    return null;
+  }
+
+  if (webglError && !proceedAnyway) {
+    return <WebGL2Warning onProceed={() => setProceedAnyway(true)} />;
+  }
+
   return (
     <ContentBox
       title="Login"
@@ -11,6 +25,7 @@ export default function LoginUser() {
       alreadyHasH1
       defaultBackHref="/"
     >
+      {webglError && <WebGL2WarningBanner />}
       <div className="flex flex-row items-center justify-center">
         <SignIn
           path="/login"
