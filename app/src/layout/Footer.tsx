@@ -37,7 +37,7 @@ const Footer: React.FC = () => {
           Rules
         </Link>{" "}
         -{" "}
-        <Link href="/staff" className="hover:text-gray-500">
+        <Link href="/manual/staff" className="hover:text-gray-500">
           Staff
         </Link>
       </p>

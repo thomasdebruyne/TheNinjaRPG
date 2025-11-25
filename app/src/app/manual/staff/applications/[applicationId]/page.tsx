@@ -32,7 +32,7 @@ export default function ApplicationDetailPage() {
       <ContentBox
         title="Application"
         subtitle="Not found"
-        defaultBackHref={isStaff ? "/applications" : "/staff"}
+        defaultBackHref={isStaff ? "/manual/staff/applications" : "/manual/staff"}
       >
         Not found or you do not have access to this application.
       </ContentBox>
@@ -44,7 +44,7 @@ export default function ApplicationDetailPage() {
       <ContentBox
         title={`Application: ${app.targetRole}`}
         subtitle={`Status: ${app.state.toLowerCase()}`}
-        defaultBackHref={isStaff ? "/applications" : "/staff"}
+        defaultBackHref={isStaff ? "/applications" : "/manual/staff"}
         topRightContent={
           isStaff && app.state !== "APPROVED" ? (
             <div className="flex gap-2">

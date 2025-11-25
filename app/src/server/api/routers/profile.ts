@@ -851,9 +851,9 @@ export const profileRouter = createTRPCRouter({
       if (roleChanged && !availableRoles.includes(input.data.role)) {
         return errorResponse(`Only available roles: ${availableRoles.join(", ")}`);
       }
-      if (roleChanged && target.role !== "USER") {
+      if (roleChanged && target.role !== "USER" && user.role !== "CODING-ADMIN") {
         return errorResponse(
-          "Promotion of users to staff need to go through staff application process",
+          "Promotion of users to staff need to go through staff application process. See manual.",
         );
       }
       if (village.id !== target.villageId) {

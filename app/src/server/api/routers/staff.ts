@@ -27,6 +27,7 @@ import {
   paypalSubscription,
   paypalTransaction,
   poll,
+  staffApplication,
   pollOption,
   questHistory,
   rankedUserRewards,
@@ -292,7 +293,15 @@ export const staffRouter = createTRPCRouter({
     }),
   forceAwake: protectedProcedure
     .output(baseServerResponse)
-    .input(z.object({ userId: z.string(), reason: z.string().min(10, "Reason must be at least 10 characters").transform((val) => val.trim()) }))
+    .input(
+      z.object({
+        userId: z.string(),
+        reason: z
+          .string()
+          .min(10, "Reason must be at least 10 characters")
+          .transform((val) => val.trim()),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Query
       const [user, targetUser] = await Promise.all([
@@ -312,7 +321,10 @@ export const staffRouter = createTRPCRouter({
           tableName: "user",
           relatedId: input.userId,
           relatedMsg: `Force updated status to awake from status: ${targetUser.status}`,
-          changes: [`Previous BattleId: ${targetUser.battleId}`, `Reason: ${input.reason}`],
+          changes: [
+            `Previous BattleId: ${targetUser.battleId}`,
+            `Reason: ${input.reason}`,
+          ],
         }),
         ctx.drizzle
           .update(userData)
@@ -1036,6 +1048,7 @@ export const deleteUser = async (client: DrizzleClient, userId: string) => {
       .where(eq(kageDefendedChallenges.kageId, userId)),
     client.delete(questHistory).where(eq(questHistory.userId, userId)),
     client.delete(userLikes).where(eq(userLikes.userId, userId)),
+    client.delete(staffApplication).where(eq(staffApplication.applicantUserId, userId)),
     client.delete(conceptImage).where(eq(conceptImage.userId, userId)),
     client.delete(userBadge).where(eq(userBadge.userId, userId)),
     client.delete(userRequest).where(eq(userRequest.senderId, userId)),

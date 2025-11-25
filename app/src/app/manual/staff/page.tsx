@@ -64,14 +64,14 @@ export default function Staff() {
         subtitle="Structure"
         topRightContent={
           isStaff ? (
-            <Link href={`/applications`}>
+            <Link href={`/manual/staff/applications`}>
               <Button>
                 <List className="w-5 h-5 mr-2" />
                 Applications
               </Button>
             </Link>
           ) : pending ? (
-            <Link href={`/applications/${pending.id}`}>
+            <Link href={`/manual/staff/applications/${pending.id}`}>
               <Button>
                 <FileUser className="w-5 h-5 mr-2" />
                 Your Application

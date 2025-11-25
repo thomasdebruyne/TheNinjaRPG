@@ -22,6 +22,7 @@ import {
   IMG_MANUAL_SKILLTREE,
   IMG_MANUAL_BALANCE,
   IMG_MANUAL_BACKUP,
+  IMG_MANUAL_STAFF,
 } from "@/drizzle/constants";
 import ContentBox from "@/layout/ContentBox";
 import { useUserData } from "@/utils/UserContext";
@@ -52,6 +53,7 @@ export default function ManualMain() {
     { name: "polls", img: IMG_MANUAL_POLLS },
     { name: "pvp_rank", img: IMG_MANUAL_RANKED },
     { name: "balance", img: IMG_MANUAL_BALANCE },
+    { name: "staff", img: IMG_MANUAL_STAFF },
   ];
 
   const withRecruitment = canSeeRecruitment

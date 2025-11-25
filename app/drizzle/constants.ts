@@ -1560,6 +1560,8 @@ export const IMG_MANUAL_ITEM =
   "https://utfs.io/f/Hzww9EQvYURJb59vlYAtYUndMi56GkX19q0A4PzyeIloBrEa";
 export const IMG_MANUAL_AI =
   "https://utfs.io/f/Hzww9EQvYURJuTQifZCyJLoOFkrcn4gxSwCfEQ9eMNXZlG8b";
+export const IMG_MANUAL_STAFF =
+  "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJ3CT6Io8pYHJX5rdkUTfOKtvu2eGIELmSWqBx";
 export const IMG_MANUAL_QUEST =
   "https://utfs.io/f/Hzww9EQvYURJmWVaWXHE4IMO5Goa7cgLxPJ0VC6lU8vbt1Ap";
 export const IMG_MANUAL_LOGS =

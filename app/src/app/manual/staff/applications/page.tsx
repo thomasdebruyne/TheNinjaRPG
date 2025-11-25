@@ -36,7 +36,11 @@ export default function ApplicationsPage() {
 
   if (!isStaff) {
     return (
-      <ContentBox title="Applications" subtitle="Staff only" defaultBackHref="/staff">
+      <ContentBox
+        title="Applications"
+        subtitle="Staff only"
+        defaultBackHref="/manual/staff"
+      >
         You do not have access to this page.
       </ContentBox>
     );
@@ -67,7 +71,7 @@ export default function ApplicationsPage() {
     <ContentBox
       title="Applications"
       subtitle="Current staff applications"
-      defaultBackHref="/staff"
+      defaultBackHref="/manual/staff"
       padding={false}
       topRightContent={<ApplicationsFiltering state={filterState} />}
     >
@@ -76,7 +80,7 @@ export default function ApplicationsPage() {
       {!isPending && rows.length > 0 && (
         <Table
           data={rows}
-          linkPrefix="/applications/"
+          linkPrefix="/manual/staff/applications/"
           linkColumn={"id"}
           columns={[
             { key: "avatar", header: "", type: "avatar" } as any,
