@@ -388,6 +388,7 @@ export const commentsRouter = createTRPCRouter({
         }),
       ]);
       // Guard
+      if (!convo) return errorResponse("Conversation not found");
       if (!canViewConversation(convo, ctx.userId, user.role)) {
         return errorResponse("You are not allowed to view this conversation");
       }
@@ -506,6 +507,13 @@ export const commentsRouter = createTRPCRouter({
         }),
       ]);
       // Guard
+      if (!convo) {
+        return {
+          convo: null,
+          data: [],
+          nextCursor: null,
+        };
+      }
       if (!canViewConversation(convo, ctx.userId, user.role)) {
         throw serverError(
           "UNAUTHORIZED",
@@ -632,6 +640,7 @@ export const commentsRouter = createTRPCRouter({
       const effectiveUsername =
         sender && effectiveUserId === sender.userId ? sender.username : user.username;
       // Guard
+      if (!convo) return errorResponse("Conversation not found");
       if ((user.isBanned || user.isSilenced) && !convo.isStaffAvailable) {
         return errorResponse("You are banned");
       }
@@ -911,10 +920,7 @@ export const fetchConversation = async (params: FetchConvoOptions) => {
   if (convo) {
     return convo;
   } else {
-    throw serverError(
-      "UNAUTHORIZED",
-      `Conversation ${params.id}-${params.title} not found`,
-    );
+    return null;
   }
 };
 

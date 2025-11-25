@@ -216,6 +216,9 @@ const Conversation: React.FC<ConversationProps> = (props) => {
     utils.comments.getConversationComments.setInfiniteData(queryKey, (oldQueryData) => {
       if (!oldQueryData) return undefined;
 
+      // Guard: Don't update if there's no conversation
+      if (!oldQueryData.pages[0]?.convo) return oldQueryData;
+
       // Find the comment looking at all pages in the oldQueryData
       const comment = oldQueryData.pages
         .flatMap((page) => page.data)
@@ -225,18 +228,20 @@ const Conversation: React.FC<ConversationProps> = (props) => {
       // Update the reactions
       const newReactions = getNewReactions(comment.reactions, emoji, username);
 
+      // Type assertion: we know pages have valid convo after guard check
+      type ValidPage = Extract<(typeof oldQueryData.pages)[number], { convo: object }>;
+
       old = {
         pageParams: oldQueryData.pageParams,
-        pages: oldQueryData.pages.map((page) => {
+        pages: (oldQueryData.pages as ValidPage[]).map((page) => {
           return {
-            convo: page.convo,
+            ...page,
             data: page.data.map((c) => {
               if (c.id === commentId) {
                 return { ...c, reactions: newReactions };
               }
               return c;
             }),
-            nextCursor: page.nextCursor,
           };
         }),
       };
@@ -335,6 +340,9 @@ const Conversation: React.FC<ConversationProps> = (props) => {
     await utils.comments.getConversationComments.cancel();
     utils.comments.getConversationComments.setInfiniteData(queryKey, (oldQueryData) => {
       if (!oldQueryData) return undefined;
+
+      // Guard: Don't update if there's no conversation
+      if (!oldQueryData.pages[0]?.convo) return oldQueryData;
       const quoteText =
         quoteIds
           ?.map((id) => {
@@ -381,15 +389,18 @@ const Conversation: React.FC<ConversationProps> = (props) => {
               nRecruited: userData.nRecruited,
               tavernMessages: userData.tavernMessages,
             };
+
+      // Type assertion: we know pages have valid convo after guard check
+      type ValidPage = Extract<(typeof oldQueryData.pages)[number], { convo: object }>;
+
       // Bookkeeping of old and new
       old = {
         pageParams: oldQueryData.pageParams,
-        pages: oldQueryData.pages.map((page, i) => {
+        pages: (oldQueryData.pages as ValidPage[]).map((page, i) => {
           if (i === 0) {
             return {
-              convo: page.convo,
+              ...page,
               data: [next, ...page.data],
-              nextCursor: page.nextCursor,
             };
           }
           return page;
@@ -551,6 +562,11 @@ const Conversation: React.FC<ConversationProps> = (props) => {
               >
                 Clear search
               </Button>
+            </div>
+          )}
+          {!conversation && (
+            <div className="text-center text-muted-foreground">
+              Conversation not found
             </div>
           )}
           {conversation &&
