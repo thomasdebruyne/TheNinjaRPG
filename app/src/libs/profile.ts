@@ -169,8 +169,8 @@ export const activityStreakRewards = (streak: number) => {
   return rewards;
 };
 
-export const showUserRank = (user: { rank: UserRank; isOutlaw: boolean }) => {
-  if (!user) return "Unknown";
+export const showUserRank = (user?: { rank?: UserRank; isOutlaw?: boolean }) => {
+  if (!user || !user.rank) return "Unknown";
   if (user.isOutlaw) {
     switch (user.rank) {
       case "CHUNIN":
