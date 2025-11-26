@@ -351,6 +351,11 @@ export const drawCombatBackground = (
   };
 };
 
+// Queue for non-movement SFX that should play after movement completes
+type PendingSfx = { url: string; volume: number };
+let pendingSfxQueue: PendingSfx[] = [];
+let wasMovingLastFrame = false;
+
 /**
  * Draw/update the users on the map. Should be called on every render
  */
@@ -363,10 +368,24 @@ export const drawCombatEffects = (info: {
   gameAssets: GameAsset[];
   sfxEnabled?: boolean;
   sfxVolume?: number;
+  isAnyUserMoving?: boolean;
 }) => {
   // Destructure
   const { battle, groupEffects, spriteMixer, animationId, gameAssets } = info;
   const { groundEffects, usersEffects, usersState } = battle;
+  const isMoving = info.isAnyUserMoving ?? false;
+
+  // If movement just completed, play all queued SFX
+  if (wasMovingLastFrame && !isMoving && pendingSfxQueue.length > 0) {
+    // Small delay to let movement complete visually
+    setTimeout(() => {
+      pendingSfxQueue.forEach((sfx) => {
+        void playPreloadedAudio(sfx.url, sfx.volume);
+      });
+      pendingSfxQueue = [];
+    }, 50);
+  }
+  wasMovingLastFrame = isMoving;
 
   // Record of drawn IDs
   const drawnIds = new Set<string>();
@@ -387,6 +406,7 @@ export const drawCombatEffects = (info: {
       gameAssets,
       sfxEnabled: info.sfxEnabled,
       sfxVolume: info.sfxVolume,
+      isAnyUserMoving: isMoving,
     });
   });
   // Draw all user effects
@@ -407,6 +427,7 @@ export const drawCombatEffects = (info: {
         gameAssets,
         sfxEnabled: info.sfxEnabled,
         sfxVolume: info.sfxVolume,
+        isAnyUserMoving: isMoving,
       });
     }
   });
@@ -429,10 +450,24 @@ export const drawCombatEffect = (info: {
   gameAssets: GameAsset[];
   sfxEnabled?: boolean;
   sfxVolume?: number;
+  isAnyUserMoving?: boolean;
 }) => {
   // Destructure
   const { effect, groupEffects, animationId, hex, drawnIds } = info;
   const { spriteMixer, gameAssets } = info;
+  const isMoving = info.isAnyUserMoving ?? false;
+
+  // Helper to play or queue SFX based on movement state
+  const playOrQueueSfx = (url: string, volume: number) => {
+    if (isMoving) {
+      // Queue SFX to play after movement completes
+      pendingSfxQueue.push({ url, volume });
+    } else {
+      // No movement, play immediately
+      void playPreloadedAudio(url, volume);
+    }
+  };
+
   if (hex) {
     if (
       effect.staticAssetPath ||
@@ -470,13 +505,13 @@ export const drawCombatEffect = (info: {
             if (actionSprite) asset.add(actionSprite);
           }
         }
-        // If there is an appear SFX, play it once
+        // If there is an appear SFX, play or queue it
         if (effect.appearSfx && animationId !== 0 && info.sfxEnabled) {
           try {
             const sfx = gameAssets.find((a) => a.id === effect.appearSfx);
             const url = sfx?.url;
             if (url) {
-              void playPreloadedAudio(url, info.sfxVolume);
+              playOrQueueSfx(url, info.sfxVolume ?? 0.8);
             }
           } catch {}
         }
@@ -507,13 +542,13 @@ export const drawCombatEffect = (info: {
       if (asset) {
         if (effect.power !== undefined && effect.power <= 0) {
           asset.visible = false;
-          // Play disappear SFX when hiding
+          // Play or queue disappear SFX when hiding
           if (effect.disappearSfx && info.sfxEnabled && animationId !== 0) {
             try {
               const sfx = gameAssets.find((a) => a.id === effect.disappearSfx);
               const url = sfx?.url;
               if (url) {
-                void playPreloadedAudio(url, info.sfxVolume);
+                playOrQueueSfx(url, info.sfxVolume ?? 0.8);
               }
             } catch {}
           }
@@ -1026,6 +1061,7 @@ const updateAssetOpacityForUsers = (
 
 /**
  * Draw/update the users on the map. Should be called on every render
+ * Returns true if any user is currently animating movement
  */
 export const drawCombatUsers = (info: {
   group_users: Group;
@@ -1037,7 +1073,7 @@ export const drawCombatUsers = (info: {
   sfxEnabled?: boolean;
   sfxVolume?: number;
   gameAssets?: GameAsset[];
-}) => {
+}): boolean => {
   // Destruct
   const { users, group_users, grid, playerId, userData, group_assets } = info;
   // Cache or create a pathfinder for this group
@@ -1045,6 +1081,9 @@ export const drawCombatUsers = (info: {
 
   // Track if any user changed position (for asset opacity updates)
   let needsOpacityUpdate = false;
+
+  // Track if any user is currently animating movement
+  let anyUserMoving = false;
 
   // Store previous user positions to detect changes
   const userGroupData = group_users.userData as GroupUsersData & {
@@ -1107,6 +1146,15 @@ export const drawCombatUsers = (info: {
         };
         stepAlongPath(userMesh, meshData, targetTile, speed, group_users, onTileStep);
         userMesh.userData = meshData;
+
+        // Only check if not at target to determine if user is still moving
+        const { x: curX, y: curY } = userMesh.position;
+        const { x: targetX, y: targetY } = targetTile.center;
+        const notAtTarget =
+          Math.abs(curX - -targetX) > 0.01 || Math.abs(curY - -targetY) > 0.01;
+        if (notAtTarget) {
+          anyUserMoving = true;
+        }
         // Handle remove users from combat.
         if (!stillInBattle(user) && user.hidden === undefined) {
           setVisible(userMesh, false);
@@ -1156,6 +1204,8 @@ export const drawCombatUsers = (info: {
   if (group_assets && needsOpacityUpdate) {
     updateAssetOpacityForUsers(group_assets, users, grid);
   }
+
+  return anyUserMoving;
 };
 
 /**

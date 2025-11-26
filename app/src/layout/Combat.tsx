@@ -641,7 +641,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           );
 
           // Draw all users on the map + indicators for positions with multiple users
-          drawCombatUsers({
+          const isAnyUserMoving = drawCombatUsers({
             group_users: group_users,
             users: battle.current.usersState,
             grid: grid.current,
@@ -665,7 +665,7 @@ const Combat: React.FC<CombatProps> = (props) => {
             }
           }
 
-          // Draw all ground effects on the map
+          // Draw all ground effects on the map (non-movement SFX delayed until movement completes)
           drawCombatEffects({
             groupEffects: group_effects,
             battle: battle.current,
@@ -675,6 +675,7 @@ const Combat: React.FC<CombatProps> = (props) => {
             gameAssets: gameAssets ?? [],
             sfxEnabled: Boolean(userData?.sfxOn ?? true),
             sfxVolume: sfxVolume,
+            isAnyUserMoving,
           });
 
           // Performance optimization: Run raycaster intersections once per frame
