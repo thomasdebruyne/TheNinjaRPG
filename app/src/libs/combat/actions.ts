@@ -950,7 +950,10 @@ export const performBattleAction = (props: {
   }
 
   // Track weapon durability usage (skip for battles that don't lose durability)
-  if (action.type === "item" && !NO_DURABILITY_LOSS_COMBATS.includes(battle.battleType)) {
+  if (
+    action.type === "item" &&
+    !NO_DURABILITY_LOSS_COMBATS.includes(battle.battleType)
+  ) {
     const used = user.items.find((i) => i.item.id === action.id);
     if (used && used.item.itemType === "WEAPON") {
       const currentDurability = Math.min(used.durability, used.item.maxDurability);

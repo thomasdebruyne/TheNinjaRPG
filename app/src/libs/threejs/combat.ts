@@ -490,14 +490,14 @@ export const drawCombatEffect = (info: {
         }
         // Status bar
         if (effect.type === "barrier") {
-          const hp_background = drawStatusBar(w, h, "gray", true, "hp_background", 0);
-          const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", 0);
-          asset.add(hp_background);
+          const hp_back = drawStatusBar(w, h, "gray", true, "hp_background", 1, 1);
+          const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", h, 1);
+          asset.add(hp_back);
           asset.add(hp_bar);
-          hp_bar.position.set(w / 2, h, 0);
-          hp_background.position.set(w / 2, h, 0);
+          hp_bar.position.set(hp_bar.position.x, h, 0);
+          hp_back.position.set(hp_back.position.x, h, 0);
           hp_bar.visible = false;
-          hp_background.visible = false;
+          hp_back.visible = false;
         }
         // Add to group
         groupEffects.add(asset);
@@ -540,9 +540,11 @@ export const drawStatusBar = (
   stroke: boolean,
   name: string,
   yOffset: number,
+  zLayer: number,
 ) => {
   const r = 3;
-  const canvasWidth = r * w;
+  const L = w / 2;
+  const canvasWidth = r * L;
   const canvasHeight = (r * h) / 10;
 
   // Create cache key for this specific status bar configuration
@@ -587,10 +589,10 @@ export const drawStatusBar = (
 
   const bar_material = new SpriteMaterial({ map: texture });
   const bar_sprite = new Sprite(bar_material);
-  bar_sprite.position.set(w / 2, h * 1.58 - (yOffset * (canvasHeight - 2)) / r, -5);
-  bar_sprite.scale.set(canvasWidth / r, canvasHeight / r, 1);
+  bar_sprite.position.set(L, h * 1.58 - (yOffset * (canvasHeight - 2)) / r, zLayer);
+  bar_sprite.scale.set(L, canvasHeight / r, 1);
   bar_sprite.name = name;
-  bar_sprite.userData.full_width = w;
+  bar_sprite.userData.full_width = L;
   bar_sprite.userData.previousValue = undefined; // Track previous value for change detection
   bar_sprite.visible = false;
   return bar_sprite;
@@ -609,14 +611,12 @@ export const updateStatusBar = (name: string, userSpriteGroup: Group, perc: numb
       // Value hasn't changed significantly, skip update
       return;
     }
-
     // Store current value for next frame comparison
     bar.userData.previousValue = perc;
-
     // Perform the actual update
     const width = bar.userData.full_width as number;
     const newWidth = width * perc;
-    const newPosition = width / 2 - (width * (1 - perc)) / 2;
+    const newPosition = width - (width * (1 - perc)) / 2;
     bar.scale.set(newWidth, bar.scale.y, 1);
     bar.position.set(newPosition, bar.position.y, bar.position.z);
     if (perc === 0) {
@@ -748,23 +748,23 @@ export const createUserSprite = (
 
   // Health bar is shown on all
   const t = noMarker ? h / 8 : 0;
-  const hp_background = drawStatusBar(w, h, "gray", true, "hp_background", t);
-  const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", t);
+  const hp_background = drawStatusBar(w, h, "gray", true, "hp_background", t, -5);
+  const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", t, -5);
   group.add(hp_background);
   group.add(hp_bar);
 
   // Stamina Bar if available
   if ("curStamina" in userData && "maxStamina" in userData) {
-    const sp_background = drawStatusBar(w, h, "gray", true, "sp_background", t + 1);
-    const sp_bar = drawStatusBar(w, h, "green", true, "sp_current", t + 1);
+    const sp_background = drawStatusBar(w, h, "gray", true, "sp_background", t + 1, -5);
+    const sp_bar = drawStatusBar(w, h, "green", true, "sp_current", t + 1, -5);
     group.add(sp_background);
     group.add(sp_bar);
   }
 
   // Chakra Bar if available
   if ("curChakra" in userData && "maxChakra" in userData) {
-    const cp_background = drawStatusBar(w, h, "gray", true, "cp_background", t + 2);
-    const cp_bar = drawStatusBar(w, h, "blue", true, "cp_current", t + 2);
+    const cp_background = drawStatusBar(w, h, "gray", true, "cp_background", t + 2, -5);
+    const cp_bar = drawStatusBar(w, h, "blue", true, "cp_current", t + 2, -5);
     group.add(cp_background);
     group.add(cp_bar);
   }

@@ -419,7 +419,10 @@ export const applyEffects = (
             const t = newUsersState.find((u) => u.userId === target.userId);
             t?.items.forEach((ui) => {
               if (ui.item.itemType === "ARMOR" && ui.equipped !== "NONE") {
-                const currentDurability = Math.min(ui.durability, ui.item.maxDurability);
+                const currentDurability = Math.min(
+                  ui.durability,
+                  ui.item.maxDurability,
+                );
                 ui.durability = Math.max(0, currentDurability - 1);
                 if (ui.durability <= DURABILITY_USABILITY_THR) {
                   ui.equipped = "NONE" as const;
@@ -441,7 +444,10 @@ export const applyEffects = (
             const t = newUsersState.find((u) => u.userId === target.userId);
             t?.items.forEach((ui) => {
               if (ui.item.itemType === "ARMOR" && ui.equipped !== "NONE") {
-                const currentDurability = Math.min(ui.durability, ui.item.maxDurability);
+                const currentDurability = Math.min(
+                  ui.durability,
+                  ui.item.maxDurability,
+                );
                 ui.durability = Math.max(0, currentDurability - 1);
                 if (ui.durability <= DURABILITY_USABILITY_THR) {
                   ui.equipped = "NONE" as const;
@@ -463,7 +469,10 @@ export const applyEffects = (
             const t = newUsersState.find((u) => u.userId === target.userId);
             t?.items.forEach((ui) => {
               if (ui.item.itemType === "ARMOR" && ui.equipped !== "NONE") {
-                const currentDurability = Math.min(ui.durability, ui.item.maxDurability);
+                const currentDurability = Math.min(
+                  ui.durability,
+                  ui.item.maxDurability,
+                );
                 ui.durability = Math.max(0, currentDurability - 1);
                 if (ui.durability <= DURABILITY_USABILITY_THR) {
                   ui.equipped = "NONE" as const;

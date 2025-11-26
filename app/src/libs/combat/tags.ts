@@ -53,6 +53,11 @@ export const realizeTag = <T extends BattleEffect>(props: {
   tag.highestGenerals = user.highestGenerals;
   tag.barrierAbsorb = barrierAbsorb || 0;
   tag.actionId = props.actionId;
+  if ("maxHealth" in tag && "curHealth" in tag) {
+    if (tag.curHealth > tag.maxHealth) {
+      tag.curHealth = tag.maxHealth;
+    }
+  }
   if (target) {
     tag.targetHighestOffence = target.highestOffence;
     tag.targetHighestDefence = target.highestDefence;
