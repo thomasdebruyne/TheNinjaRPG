@@ -144,7 +144,7 @@ export const dataRouter = createTRPCRouter({
         const map = experiments.get(exp)!;
         if (!map[variant]) map[variant] = { loaded: 0, register: 0 };
         if (event === "loaded") map[variant].loaded += 1;
-        if (event === "register") map[variant].register += 1;
+        if (event === "success") map[variant].register += 1;
       });
 
       return Array.from(experiments.entries()).map(([experiment, variants]) => ({

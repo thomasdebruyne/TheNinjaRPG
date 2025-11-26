@@ -11,6 +11,7 @@ import {
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { serverError, baseServerResponse, errorResponse } from "../trpc";
 import {
+  abEvent,
   actionLog,
   recruitmentRewards,
   battleHistory,
@@ -161,6 +162,35 @@ export const profileRouter = createTRPCRouter({
         .update(userData)
         .set({ tutorialStep: input.step })
         .where(eq(userData.userId, ctx.userId));
+
+      // AB Test success
+      if (input.step === 15) {
+        const abLoadedEvent = await ctx.drizzle.query.abEvent.findFirst({
+          where: and(
+            eq(abEvent.ip, ctx.userIp ?? ""),
+            eq(abEvent.experiment, "ab_lemu_replacement"),
+            eq(abEvent.event, "loaded"),
+          ),
+        });
+        if (ctx.abLemuReplacementVariant && abLoadedEvent) {
+          await ctx.drizzle
+            .insert(abEvent)
+            .values({
+              id: nanoid(),
+              userId: ctx.userId,
+              experiment: "ab_lemu_replacement",
+              variant: ctx.abLemuReplacementVariant,
+              event: "success",
+              source: abLoadedEvent.source,
+              ip: ctx.userIp && ctx.userIp !== "unknown" ? ctx.userIp : undefined,
+              userAgent:
+                typeof ctx.userAgent === "string"
+                  ? ctx.userAgent.slice(0, 180)
+                  : undefined,
+            })
+            .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+        }
+      }
 
       // Return success response
       return {

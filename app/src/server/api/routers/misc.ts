@@ -54,7 +54,7 @@ export const miscRouter = createTRPCRouter({
         return { success: true, message: "IP already tracked" };
       }
 
-      // Insert new visitor and log AB layout test loaded event (if applicable) in parallel
+      // Insert new visitor and log AB test loaded event (if applicable) in parallel
       const [visitorResult] = await Promise.all([
         ctx.drizzle.insert(visitorLog).values({
           id: nanoid(),
@@ -63,14 +63,14 @@ export const miscRouter = createTRPCRouter({
           utmSource: input.utmSource,
           userAgent: String(ctx.userAgent).slice(0, 180),
         }),
-        ctx.abLayoutNewVariant
+        ctx.abLemuReplacementVariant
           ? ctx.drizzle
               .insert(abEvent)
               .values({
                 id: nanoid(),
                 userId: null,
-                experiment: "ab_layout_new_3",
-                variant: ctx.abLayoutNewVariant,
+                experiment: "ab_lemu_replacement",
+                variant: ctx.abLemuReplacementVariant,
                 event: "loaded",
                 source: input.utmSource,
                 ip: ctx.userIp && ctx.userIp !== "unknown" ? ctx.userIp : undefined,

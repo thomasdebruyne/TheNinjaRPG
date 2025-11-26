@@ -13,46 +13,34 @@ import { IMG_FRONTPAGE_SCREENSHOT_JUTSUS } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_GLOBAL } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_SECTOR } from "@/drizzle/constants";
 import { IMG_FRONTPAGE_SCREENSHOT_VILLAGE } from "@/drizzle/constants";
-import { IMG_PLAY_STORE_BANNER } from "@/drizzle/constants";
-import { IMG_APP_STORE_BANNER } from "@/drizzle/constants";
 import { api } from "@/app/_trpc/client";
 import { useUser } from "@clerk/nextjs";
 import { cn } from "src/libs/shadui";
-import { useAbVariant } from "@/hooks/useAbVariant";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 const Welcome: React.FC = () => {
-  // AB test for active players count
-  const { isTreatment } = useAbVariant("ab_layout_new_3");
-
   // Install prompt control
   const { showPrompt } = useInstallPrompt();
 
   // Snap container for full-height sections
   const backgroundClass = cn(
-    isTreatment
-      ? "flex flex-col gap-4 snap-start snap-always flex items-center justify-center"
-      : "",
+    "flex flex-col gap-4 snap-start snap-always flex justify-center",
   );
 
   // Content wrapper with background styling
   const contentClass = cn(
-    "flex flex-col items-center",
-    isTreatment ? "bg-popover/75 rounded-xl max-w-[768px] w-[99%] ml-auto mr-auto" : "",
+    "flex flex-col items-center bg-popover/75 rounded-xl max-w-[768px] w-[99%] ml-auto mr-auto",
   );
 
   // Render
   return (
     <div
       className={cn(
-        "flex flex-col",
-        isTreatment
-          ? "snap-y snap-mandatory h-screen overflow-y-scroll gap-4"
-          : "gap-4",
+        "flex flex-col snap-y snap-mandatory h-screen overflow-y-scroll gap-4",
       )}
     >
       <div className={cn(backgroundClass, "justify-start")}>
-        <div className={cn(contentClass, isTreatment ? "mb-10" : "")}>
+        <div className={cn(contentClass, "mb-10")}>
           <Image
             className=""
             src={IMG_LAYOUT_WELCOME_IMG}
@@ -84,13 +72,7 @@ const Welcome: React.FC = () => {
             </Link>
           </div>
           <div className={"w-full flex flex-col justify-center items-center gap-4"}>
-            <div
-              className={cn(
-                isTreatment
-                  ? "inline items-center gap-2 text-xl mb-4"
-                  : "inline items-center gap-2",
-              )}
-            >
+            <div className={cn("inline items-center gap-2 text-xl mb-4")}>
               Already have an account?{" "}
               <Link href="/login" aria-label="Login" className="underline font-bold">
                 Log In
@@ -129,21 +111,9 @@ const Welcome: React.FC = () => {
           )} */}
         </div>
       </div>
-      {isTreatment && (
-        <div className={cn(backgroundClass, "text-5xl font-bold text-foreground")}>
-          Game Features
-        </div>
-      )}
-      {!isTreatment && (
-        <div className={backgroundClass}>
-          <div className={contentClass}>
-            <div className="py-6 w-full px-3">
-              <hr className="h-px border-primary border-2" />
-            </div>
-            {textSEO}
-          </div>
-        </div>
-      )}
+      <div className={cn(backgroundClass, "text-5xl font-bold text-foreground pl-3")}>
+        Game Features
+      </div>
 
       <div className={backgroundClass}>
         <div className={contentClass}>
@@ -298,11 +268,9 @@ const Welcome: React.FC = () => {
           </div>
         </div>
       </div>
-      {isTreatment && (
-        <div className={backgroundClass}>
-          <div className={cn(contentClass, "p-3")}>{textSEO}</div>
-        </div>
-      )}
+      <div className={backgroundClass}>
+        <div className={cn(contentClass, "p-3")}>{textSEO}</div>
+      </div>
       <Suspense>
         <SetReferal />
       </Suspense>

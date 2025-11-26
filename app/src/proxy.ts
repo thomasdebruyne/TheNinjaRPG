@@ -42,16 +42,16 @@ export default clerkMiddleware(
     }
     // Ensure valid user agent
     // return uaMiddleware(request);
-    // A/B test: show active players count vs total players on welcome page (only for signed-out users)
+    // A/B test: ab_lemu_replacement (only for signed-out users)
     const { pathname } = request.nextUrl;
     const { userId } = await auth();
     if (pathname === "/" && !userId) {
-      const cookie = request.cookies.get("ab_layout_new_3");
+      const cookie = request.cookies.get("ab_lemu_replacement");
       const variant = cookie?.value ?? (Math.random() < 0.5 ? "treatment" : "control");
       const url = request.nextUrl.clone();
       console.log("variant", variant);
       const res = NextResponse.rewrite(url);
-      if (!cookie) res.cookies.set("ab_layout_new_3", variant, { path: "/" });
+      if (!cookie) res.cookies.set("ab_lemu_replacement", variant, { path: "/" });
       return res;
     }
   },

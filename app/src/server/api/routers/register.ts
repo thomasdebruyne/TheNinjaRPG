@@ -82,7 +82,7 @@ export const registerRouter = createTRPCRouter({
       const moderationResult = await checkForBadWords(input.username);
       if (!moderationResult.success) return moderationResult;
       // Query
-      const [villageData, user, reminder, selectedBloodline, currentIp, abLoadedEvent] =
+      const [villageData, user, reminder, selectedBloodline, currentIp] =
         await Promise.all([
           ctx.drizzle.query.village.findFirst({
             where: eq(village.name, "Horizon"),
@@ -100,13 +100,6 @@ export const registerRouter = createTRPCRouter({
             where: and(
               eq(historicalIp.ip, ctx.userIp ?? ""),
               eq(historicalIp.userId, ctx.userId),
-            ),
-          }),
-          ctx.drizzle.query.abEvent.findFirst({
-            where: and(
-              eq(abEvent.ip, ctx.userIp ?? ""),
-              eq(abEvent.experiment, "ab_layout_new_3"),
-              eq(abEvent.event, "loaded"),
             ),
           }),
         ]);
@@ -183,27 +176,6 @@ export const registerRouter = createTRPCRouter({
           goal: selectedBloodline.rank,
           used: 1,
         }),
-        // Log AB variant used for layout test when registering, if present
-        ...(ctx.abLayoutNewVariant && abLoadedEvent
-          ? [
-              ctx.drizzle
-                .insert(abEvent)
-                .values({
-                  id: nanoid(),
-                  userId: ctx.userId,
-                  experiment: "ab_layout_new_3",
-                  variant: ctx.abLayoutNewVariant,
-                  event: "register",
-                  source: input.utm_source ?? undefined,
-                  ip: ctx.userIp && ctx.userIp !== "unknown" ? ctx.userIp : undefined,
-                  userAgent:
-                    typeof ctx.userAgent === "string"
-                      ? ctx.userAgent.slice(0, 180)
-                      : undefined,
-                })
-                .onDuplicateKeyUpdate({ set: { id: sql`id` } }),
-            ]
-          : []),
         ...(ctx.userIp && !currentIp
           ? [
               ctx.drizzle.insert(historicalIp).values({

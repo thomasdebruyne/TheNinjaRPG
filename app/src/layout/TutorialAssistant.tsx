@@ -15,7 +15,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getMobileOperatingSystem } from "@/utils/hardware";
-import { IMG_URL_ASSISTANT, IMG_URL_HANDPOINTER } from "@/drizzle/constants";
+import {
+  IMG_URL_ASSISTANT,
+  IMG_URL_HANDPOINTER,
+  IMG_URL_ASSISTANT_2,
+} from "@/drizzle/constants";
 import {
   TUTORIAL_STEPS,
   TUTORIAL_HOSPITALIZED_STEP,
@@ -28,6 +32,7 @@ import { getActiveObjective, isQuestObjectiveAvailable } from "@/libs/objectives
 import { useCheckRewards } from "@/layout/Logbook";
 import { api } from "@/app/_trpc/client";
 import Modal2 from "@/layout/Modal2";
+import { useAbVariant } from "@/hooks/useAbVariant";
 import type { UserQuest } from "@/drizzle/schema";
 import type { QuestTrackerType } from "@/validators/objectives";
 import { isQuestComplete } from "@/libs/objectives";
@@ -40,15 +45,26 @@ import { Objective } from "@/layout/Objective";
  */
 const AssistantPortrait: React.FC<{ characterImage?: string }> = ({
   characterImage,
-}) => (
-  <Image
-    src={characterImage || IMG_URL_ASSISTANT}
-    width={100}
-    height={100}
-    alt="Assistant"
-    className="absolute -top-[9.5rem] right-0 md:-top-48 h-[9.5rem] md:h-48 w-auto object-contain drop-shadow-2xl select-none pointer-events-none z-0"
-  />
-);
+}) => {
+  const { variant } = useAbVariant("ab_lemu_replacement");
+  const defaultImage =
+    variant === "treatment" ? IMG_URL_ASSISTANT_2 : IMG_URL_ASSISTANT;
+  const className = cn(
+    "absolute right-0 w-auto object-contain drop-shadow-2xl select-none pointer-events-none z-0",
+    variant === "treatment"
+      ? "h-[14rem] md:h-96 scale-x-[-1] -top-[10rem] md:-top-70"
+      : "h-[9.5rem] md:h-48 -top-[9.5rem] md:-top-48",
+  );
+  return (
+    <Image
+      src={characterImage || defaultImage}
+      width={100}
+      height={100}
+      alt="Assistant"
+      className={className}
+    />
+  );
+};
 
 /**
  * Reusable assistant dialog (uses the latter, correct styling)
