@@ -39,7 +39,7 @@ import {
   mergeBufferGeometries,
 } from "@/libs/threejs/hexgrid";
 import { createNoise2D } from "simplex-noise";
-import { Grid } from "honeycomb-grid";
+import { Grid, ring } from "honeycomb-grid";
 import {
   IMG_SECTOR_USER_MARKER,
   IMG_SECTOR_USER_SPRITE_MASK,
@@ -177,6 +177,13 @@ export const drawCombatBackground = (
         sprites.forEach((sprite) => {
           const isSmall = sprite.userData.small === true;
           if (!isBattleTile || isSmall) {
+            // Store tile location for opacity updates
+            sprite.userData.tileKey = `${tile.col},${tile.row}`;
+            // Enable transparency for opacity changes
+            if (sprite.material && !isSmall) {
+              sprite.material.transparent = true;
+              sprite.material.opacity = 1.0;
+            }
             sprite.matrixAutoUpdate = false;
             sprite.updateMatrix();
             group_assets.add(sprite);
@@ -224,7 +231,7 @@ export const drawCombatBackground = (
       mesh.userData.originalColor = clonedMaterial?.color.clone();
       mesh.userData.highlight = false;
       mesh.userData.selected = false;
-      mesh.userData.canClick = isBattleTile; // Only battle tiles are clickable
+      mesh.userData.canClick = true;
       mesh.userData.isBattleTile = isBattleTile;
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
@@ -262,7 +269,7 @@ export const drawCombatBackground = (
       }
 
       // Draw tile name for battle grid tiles
-      if (isBattleTile && tile.name) {
+      if (tile.name) {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         if (ctx) {
@@ -967,6 +974,57 @@ const stepAlongPath = (
 };
 
 /**
+ * Update asset opacity based on user positions
+ * Makes assets transparent when users are on or near them
+ */
+const updateAssetOpacityForUsers = (
+  group_assets: Group,
+  users: ReturnedUserState[],
+  grid: Grid<TerrainHex>,
+) => {
+  // Collect all tiles that should have transparent assets
+  const affectedTiles = new Set<string>();
+
+  users.forEach((user) => {
+    if (user.curHealth > 0 && !user.fledBattle) {
+      const userHex = grid.getHex({ col: user.longitude, row: user.latitude });
+      if (userHex) {
+        // Add current tile
+        affectedTiles.add(`${userHex.col},${userHex.row}`);
+
+        // Add adjacent tiles (neighbors) using ring
+        const neighbors = grid.traverse(ring({ radius: 1, center: userHex }));
+        neighbors.forEach((neighbor) => {
+          if (neighbor) {
+            affectedTiles.add(`${neighbor.col},${neighbor.row}`);
+          }
+        });
+      }
+    }
+  });
+
+  // Update opacity of all assets
+  group_assets.children.forEach((asset) => {
+    if (asset instanceof Sprite && asset.userData.small !== true) {
+      // Get the tile this asset is on
+      const assetTileKey = asset.userData.tileKey as string | undefined;
+
+      if (assetTileKey && affectedTiles.has(assetTileKey)) {
+        // User is on or near this asset - make it transparent
+        if (asset.material && "opacity" in asset.material) {
+          asset.material.opacity = 0.5;
+        }
+      } else {
+        // No user nearby - restore full opacity
+        if (asset.material && "opacity" in asset.material) {
+          asset.material.opacity = 1.0;
+        }
+      }
+    }
+  });
+};
+
+/**
  * Draw/update the users on the map. Should be called on every render
  */
 export const drawCombatUsers = (info: {
@@ -975,14 +1033,26 @@ export const drawCombatUsers = (info: {
   grid: Grid<TerrainHex>;
   playerId: string | undefined;
   userData: UserData;
+  group_assets?: Group;
   sfxEnabled?: boolean;
   sfxVolume?: number;
   gameAssets?: GameAsset[];
 }) => {
   // Destruct
-  const { users, group_users, grid, playerId, userData } = info;
+  const { users, group_users, grid, playerId, userData, group_assets } = info;
   // Cache or create a pathfinder for this group
   const pathFinder = getOrCreatePathFinder(group_users, grid);
+
+  // Track if any user changed position (for asset opacity updates)
+  let needsOpacityUpdate = false;
+
+  // Store previous user positions to detect changes
+  const userGroupData = group_users.userData as GroupUsersData & {
+    lastUserPositions?: Map<string, string>;
+  };
+  const lastPositions = userGroupData.lastUserPositions || new Map<string, string>();
+  const currentPositions = new Map<string, string>();
+
   // Draw the users
   const drawnIds = new Set<string>();
   users.forEach((user) => {
@@ -991,6 +1061,16 @@ export const drawCombatUsers = (info: {
       y: user.latitude,
     });
     if (hex) {
+      // Track current position
+      const posKey = `${user.longitude},${user.latitude}`;
+      currentPositions.set(user.userId, posKey);
+
+      // Check if position changed
+      const lastPos = lastPositions.get(user.userId);
+      if (lastPos !== posKey) {
+        needsOpacityUpdate = true;
+      }
+
       // Fetch / create the user mesh
       let userMesh = group_users.getObjectByName(user.userId) as Group | undefined;
       if (!userMesh && hex) {
@@ -1004,6 +1084,7 @@ export const drawCombatUsers = (info: {
         if (userMesh) {
           group_users.add(userMesh);
           markGroupNeedsSort(group_users);
+          needsOpacityUpdate = true;
         }
       }
       // Get location
@@ -1066,6 +1147,15 @@ export const drawCombatUsers = (info: {
       object.visible = false;
     }
   });
+
+  // Store current positions for next frame comparison
+  userGroupData.lastUserPositions = currentPositions;
+  group_users.userData = userGroupData;
+
+  // Update asset opacity when users change positions
+  if (group_assets && needsOpacityUpdate) {
+    updateAssetOpacityForUsers(group_assets, users, grid);
+  }
 };
 
 /**
@@ -1110,7 +1200,7 @@ export const highlightTiles = (info: {
         const mesh = group_tiles.getObjectByName(
           `${tile.row},${tile.col}`,
         ) as HexagonalFaceMesh;
-        if (mesh && mesh.userData.isBattleTile) {
+        if (mesh) {
           mesh.userData.highlight = true;
           newHighlights.add(mesh.name);
         }
@@ -1221,7 +1311,7 @@ export const highlightTiles = (info: {
       } else if (isHighlighted) {
         // Apply gray tint for highlighted tiles
         const highlightColor = mesh.userData.originalColor.clone();
-        highlightColor.lerp(new Color("rgb(128, 128, 128)"), 0.4);
+        highlightColor.lerp(new Color("rgb(80, 80, 80)"), 0.7);
         mesh.material.color.copy(highlightColor);
       } else {
         // Reset to original if neither highlighted nor selected

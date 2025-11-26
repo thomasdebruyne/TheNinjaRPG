@@ -647,6 +647,7 @@ const Combat: React.FC<CombatProps> = (props) => {
             grid: grid.current,
             playerId: suid,
             userData: userData,
+            group_assets: group_assets,
             sfxEnabled: Boolean(userData?.sfxOn ?? true),
             sfxVolume: sfxVolume,
             gameAssets: gameAssets ?? [],
@@ -680,9 +681,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           const tilesIntersects = raycaster.intersectObjects(group_tiles.children);
           const cachedIntersections: CachedIntersections = {
             tiles: tilesIntersects,
-            battleTiles: tilesIntersects.filter(
-              (i) => i.object.userData.isBattleTile === true,
-            ),
+            battleTiles: tilesIntersects,
             ground: raycaster.intersectObjects(group_effects.children),
           };
 

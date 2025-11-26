@@ -382,7 +382,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
     filepath:
       "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJcpFFdRSnxBpQqGNDcTHbLmYz8uXAl3oa54ti",
     chance: 0.1,
-    scale: 1,
+    scale: 0.7,
     scaleVariation: 0.2,
     posVariation: 0.25,
     windAffected: true,

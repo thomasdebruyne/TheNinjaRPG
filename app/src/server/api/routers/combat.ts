@@ -17,7 +17,11 @@ import {
   COMBAT_BORDER_TOP,
   COMBAT_BORDER_BOTTOM,
 } from "@/libs/combat/constants";
-import { SECTOR_HEIGHT, SECTOR_WIDTH, MAP_WAR_TORN_BATTLEGROUND_SECTOR } from "@/drizzle/constants";
+import {
+  SECTOR_HEIGHT,
+  SECTOR_WIDTH,
+  MAP_WAR_TORN_BATTLEGROUND_SECTOR,
+} from "@/drizzle/constants";
 import { COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { RANKS_RESTRICTED_FROM_PVP, AutoBattleTypes } from "@/drizzle/constants";
 import { NonActionItemTypes, DURABILITY_USABILITY_THR } from "@/drizzle/constants";
@@ -227,12 +231,12 @@ export const combatRouter = createTRPCRouter({
 
           // Update user
           if (result) {
-  await Promise.all([
-    updateUser(ctx.drizzle, pusher, userBattle, result, ctx.userId),
-    updateWars(ctx.drizzle, userBattle, result, ctx.userId),
-    updateKage(ctx.drizzle, userBattle, result), // no ctx.userId needed
-  ]);
-}
+            await Promise.all([
+              updateUser(ctx.drizzle, pusher, userBattle, result, ctx.userId),
+              updateWars(ctx.drizzle, userBattle, result, ctx.userId),
+              updateKage(ctx.drizzle, userBattle, result), // no ctx.userId needed
+            ]);
+          }
 
           // Hide private state of non-session user
           const newMaskedBattle = maskBattle(userBattle, ctx.userId);
@@ -1535,7 +1539,9 @@ export const initiateBattle = async (
 
   // Starting ground effects
   const groundEffects: GroundEffect[] = [];
-  const groundAssets = assets.filter((a) => a.onInitialBattleField);
+  const groundAssets = assets.filter(
+    (a) => a.onInitialBattleField && a.type === "STATIC",
+  );
   for (let col = 0; col < gridSize.width; col++) {
     for (let row = 0; row < gridSize.height; row++) {
       // Ignore the spots where we placed users
