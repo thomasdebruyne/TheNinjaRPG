@@ -646,7 +646,7 @@ export const createUserSprite = (
   texture.minFilter = LinearFilter;
   const shadow_material = new SpriteMaterial({ map: texture });
   const shadow_sprite = new Sprite(shadow_material);
-  shadow_sprite.scale.set(w * 0.7, h * 0.4, 1);
+  shadow_sprite.scale.set(w * 0.8, h * 0.5, 1);
   shadow_sprite.position.set(w / 2, h * 0.3, -6);
   group.add(shadow_sprite);
 
@@ -663,8 +663,8 @@ export const createUserSprite = (
     const material = new SpriteMaterial({ map: map });
     material.side = DoubleSide;
     const sprite = new Sprite(material);
-    sprite.scale.set(-1 * h * 0.8, h * 0.8, 1);
-    sprite.position.set(w / 2, h * 0.6, -6);
+    sprite.scale.set(-2 * h * 0.8, 2 * h * 0.8, 1);
+    sprite.position.set(w / 2, h * 0.9, -6);
     group.add(sprite);
     // Star on summons
     if (userData.isSummon && userData.controllerId === playerId) {
