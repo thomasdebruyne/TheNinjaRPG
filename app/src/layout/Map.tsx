@@ -356,9 +356,10 @@ const Map: React.FC<MapProps> = (props) => {
           });
         }
         userData.userQuests.forEach((userquest) => {
-          userquest.quest.content.objectives.forEach((objective) => {
+          userquest.quest.content.objectives.forEach((objective, i) => {
             const isHidden = "hideLocation" in objective && objective.hideLocation;
-            if ("sector" in objective && objective.sector && !isHidden) {
+            const isDialog = objective.task === "dialog";
+            if ("sector" in objective && objective.sector && !isHidden && !isDialog) {
               sectorsToHighlight.push({
                 sector: objective.sector,
                 color: questTweenColor,
