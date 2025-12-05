@@ -136,7 +136,9 @@ export const applicationsRouter = createTRPCRouter({
             with: { village: { columns: { name: true } } },
           },
           approvals: {
-            with: { approver: { columns: { userId: true, username: true, avatar: true } } },
+            with: {
+              approver: { columns: { userId: true, username: true, avatar: true } },
+            },
           },
         },
         orderBy: [desc(staffApplication.createdAt)],
@@ -175,10 +177,13 @@ export const applicationsRouter = createTRPCRouter({
       if (!user) return errorResponse("Not allowed");
       if (!canDeleteStaffApplication(user.role)) return errorResponse("Not allowed");
       if (!app) return errorResponse("Application not found");
-      if (app.state !== "PENDING") return errorResponse("Only pending applications can be deleted");
+      if (app.state !== "PENDING")
+        return errorResponse("Only pending applications can be deleted");
 
       // Mutation: perform deletion
-      await ctx.drizzle.delete(staffApplication).where(eq(staffApplication.id, input.id));
+      await ctx.drizzle
+        .delete(staffApplication)
+        .where(eq(staffApplication.id, input.id));
       return { success: true, message: "Application deleted" };
     }),
 
@@ -273,7 +278,9 @@ export const applicationsRouter = createTRPCRouter({
         }),
       ]);
       // Guards
-
+      if (!app) return errorResponse("No application found");
+      if (!user.role.includes("ADMIN")) return errorResponse("Only admins can reject");
+      // Mutate: record rejection (upsert)
       await Promise.all([
         ctx.drizzle
           .insert(staffApplicationApproval)
