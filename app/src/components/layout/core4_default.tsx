@@ -368,13 +368,11 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
       )}
       <div className="w-full absolute top-0 bottom-0 md:relative">
         <div className="fixed right-1 bottom-1 md:right-5 md:bottom-5 z-50 bg-slate-500 rounded-full">
-          <LowerRightHelpBtn>
+          <LowerRightHelpBtn className="hidden md:block">
             {userData ? (
-              <MessageCircleWarning
-                className={cn(yellowButtonStyle, "hidden md:block")}
-              />
+              <MessageCircleWarning className={cn(yellowButtonStyle)} />
             ) : (
-              <Music className={cn(yellowButtonStyle, "hidden md:block")} />
+              <Music className={cn(yellowButtonStyle)} />
             )}
           </LowerRightHelpBtn>
         </div>
@@ -720,7 +718,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           {/* RIGHT SIDEBAR MOBILE */}
           <div className="grid grid-cols-2 gap-2 absolute top-4 right-4 block md:hidden">
             <div className="flex justify-center">
-              <LowerRightHelpBtn>
+              <LowerRightHelpBtn className="block md:hidden">
                 {userData ? (
                   <CircleHelp className={cn(yellowButtonStyle)} />
                 ) : (

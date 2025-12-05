@@ -31,7 +31,6 @@ import type { TutorialStepConfig } from "@/hooks/tutorial";
 import { getActiveObjective, isQuestObjectiveAvailable } from "@/libs/objectives";
 import { useCheckRewards } from "@/layout/Logbook";
 import { api } from "@/app/_trpc/client";
-import Modal2 from "@/layout/Modal2";
 import { useAbVariant } from "@/hooks/useAbVariant";
 import type { UserQuest } from "@/drizzle/schema";
 import type { QuestTrackerType } from "@/validators/objectives";
@@ -207,9 +206,6 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   // Rewards check hook for dialog options
   const { checkRewards, isCheckingRewards } = useCheckRewards();
 
-  // State for disable tutorial confirmation modal
-  const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
-
   // Initialize tutorial visibility
   useEffect(() => {
     if (userData) {
@@ -348,11 +344,6 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     // Early exit if tutorial is disabled
     if (userData && userData?.tutorialOn === false) return;
     if (!isAssistantVisible) return;
-    // Don't highlight when disable modal is open
-    if (isDisableModalOpen) {
-      setHighlight(null);
-      return;
-    }
 
     // Determine which step to use - hospitalized overrides everything
     const isHospitalized = userData?.status === "HOSPITALIZED";
@@ -422,24 +413,13 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       observer.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    currentStepNumber,
-    isAssistantVisible,
-    pathname,
-    userData?.status,
-    isDisableModalOpen,
-  ]);
+  }, [currentStepNumber, isAssistantVisible, pathname, userData?.status]);
 
   // Update game menu highlight position when showing game menu tutorial
   useEffect(() => {
     // Early exit if tutorial is disabled
     if (userData?.tutorialOn === false) return;
     if (!showGameMenuTutorial) {
-      setGameMenuHighlight(null);
-      return;
-    }
-    // Don't highlight when disable modal is open
-    if (isDisableModalOpen) {
       setGameMenuHighlight(null);
       return;
     }
@@ -520,7 +500,6 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     rightSideBarRef,
     rightSideBarOpen,
     userData?.tutorialOn,
-    isDisableModalOpen,
   ]);
 
   // Auto-center the highlighted element when it becomes available
@@ -620,12 +599,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     } else {
       setPostTutorialQuest(null);
     }
-  }, [
-    userData?.tutorialOn,
-    userData?.userQuests,
-    userData?.questData,
-    currentStepNumber,
-  ]);
+  }, [userData, currentStepNumber]);
 
   // Check if logbook entry exists on the page to determine whether to show the quest
   useEffect(() => {
@@ -793,10 +767,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           />
 
           {/* Assistant panel bottom-right - large, game-like dialog */}
-          <AssistantDialog
-            title="Game Menu"
-            onOpenDisableModal={() => setIsDisableModalOpen(true)}
-          >
+          <AssistantDialog title="Game Menu" onOpenDisableModal={handleDisableTutorial}>
             <p className="text-sm md:text-base leading-relaxed">
               Click the highlighted button to open the game menu and continue the
               tutorial.
@@ -930,30 +901,11 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
         </div>
       )}
 
-      {/* Disable tutorial confirmation modal */}
-      {isDisableModalOpen && (
-        <Modal2
-          title="Disable Tutorial?"
-          isOpen={isDisableModalOpen}
-          setIsOpen={setIsDisableModalOpen}
-          proceed_label="Disable"
-          confirmClassName="bg-red-600 text-white hover:bg-red-700"
-          onAccept={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleDisableTutorial();
-          }}
-        >
-          Are you sure you want to disable the tutorial? You can re-enable it later by
-          going to the support button in the bottom right corner.
-        </Modal2>
-      )}
-
       {/* Assistant panel bottom-right - large, game-like dialog */}
       {!currentTutorialStep.hideDialog && (
         <AssistantDialog
           title={currentTutorialStep.title}
-          onOpenDisableModal={() => setIsDisableModalOpen(true)}
+          onOpenDisableModal={handleDisableTutorial}
           characterImage={characterImage}
         >
           {typeof currentTutorialStep.description === "string" ? (

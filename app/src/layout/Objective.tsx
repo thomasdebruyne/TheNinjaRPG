@@ -138,6 +138,7 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
             <div className="pr-3 flex flex-row items-center">
               <div className="grow">
                 <StatusBar
+                  key={`${tracker.id}-${objective.id}-${value}`}
                   title="Goal"
                   tooltip="Status points"
                   color={getStatusColor(tier, done)}

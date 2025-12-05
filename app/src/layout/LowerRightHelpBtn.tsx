@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,8 +11,11 @@ import { useUserData } from "@/utils/UserContext";
 import { GameSettingsPanel } from "@/layout/GameSettings";
 import { Button } from "@/components/ui/button";
 import { api } from "@/app/_trpc/client";
+import { cn } from "src/libs/shadui";
+import { AlertCircle } from "lucide-react";
 
 interface LowerRightHelpProps {
+  className?: string;
   children?: React.ReactNode;
 }
 
@@ -22,6 +25,7 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
     "ticketType2",
     "ai_support",
   );
+  const [isOpen, setIsOpen] = useState(false);
   const utils = api.useUtils();
 
   // Mutation to toggle tutorial
@@ -29,8 +33,21 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
     api.profile.updatePreferences.useMutation({
       onSuccess: async () => {
         await utils.profile.getUser.invalidate();
+        setIsOpen(false);
       },
     });
+
+  // Check if user has incomplete starter or tier quests with tutorial disabled
+  const hasIncompleteStarterOrTierQuests = useMemo(() => {
+    if (!userData?.userQuests) return false;
+    return userData.userQuests.some(
+      (uq) => ["starter", "tier"].includes(uq.quest.questType) && uq.completed === 0,
+    );
+  }, [userData?.userQuests]);
+
+  // Show notification when tutorial is off but there are incomplete quests
+  const showTutorialNotification =
+    userData?.tutorialOn === false && hasIncompleteStarterOrTierQuests;
 
   // Helper function to safely validate ticket types
   const getValidTicketType = useCallback((value: any): TicketType => {
@@ -98,9 +115,16 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
   const safeDefaultValue = safeTicketType;
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger name="supportBtn" aria-label="supportBtn">
-        {props.children}
+        <div className={cn("relative", props.className)}>
+          {props.children}
+          {showTutorialNotification && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center animate-pulse">
+              !
+            </span>
+          )}
+        </div>
       </PopoverTrigger>
       <PopoverContent className="m-2 min-w-96 max-w-96">
         {!userData ? (
@@ -193,6 +217,20 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
                   The tutorial helps new players learn the game mechanics. You can
                   enable or disable it at any time.
                 </p>
+                {showTutorialNotification && (
+                  <div className="flex items-start gap-3 p-4 border border-orange-500 rounded-lg bg-orange-500/10">
+                    <AlertCircle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-semibold text-orange-500">
+                        You have active quests!
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Enable the tutorial to get guidance on your current starter or
+                        tier quests. The tutorial assistant will help you complete them.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <p className="font-semibold">Tutorial Mode</p>
@@ -223,7 +261,14 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
               <TabsTrigger value="ai_support">AI</TabsTrigger>
               <TabsTrigger value="human_support">Human</TabsTrigger>
               <TabsTrigger value="audio_settings">Settings</TabsTrigger>
-              <TabsTrigger value="tutorial_settings">Tutorial</TabsTrigger>
+              <TabsTrigger value="tutorial_settings" className="relative">
+                Tutorial
+                {showTutorialNotification && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
+                    !
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         )}
