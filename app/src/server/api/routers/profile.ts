@@ -166,11 +166,11 @@ export const profileRouter = createTRPCRouter({
         .where(eq(userData.userId, ctx.userId));
 
       // AB Test success
-      if (input.step === 15) {
+      if (input.step === 54) {
         const abLoadedEvent = await ctx.drizzle.query.abEvent.findFirst({
           where: and(
             eq(abEvent.ip, ctx.userIp ?? ""),
-            eq(abEvent.experiment, "ab_lemu_replacement"),
+            eq(abEvent.experiment, "ab_lemu_replacement_2"),
             eq(abEvent.event, "loaded"),
           ),
         });
@@ -180,7 +180,7 @@ export const profileRouter = createTRPCRouter({
             .values({
               id: nanoid(),
               userId: ctx.userId,
-              experiment: "ab_lemu_replacement",
+              experiment: "ab_lemu_replacement_2",
               variant: ctx.abLemuReplacementVariant,
               event: "success",
               source: abLoadedEvent.source,
@@ -596,7 +596,7 @@ export const profileRouter = createTRPCRouter({
         if (adminAppCount > 0) {
           notifications.push({
             href: "/manual/staff/applications",
-            name: `Staff applications awaiting your vote`,
+            name: `Staff applications (${adminAppCount})`,
             color: "blue",
             notificationCount: adminAppCount,
           });

@@ -373,7 +373,7 @@ export const QuestValidatorRawSchema = z.object({
   startsAt: z.string().regex(DateTimeRegExp, "Must be of format YYYY-MM-DD").nullable(),
 });
 export const QuestValidator = QuestValidatorRawSchema.superRefine((val, ctx) => {
-  if (["daily", "tier"].includes(val.questType)) {
+  if (["daily"].includes(val.questType)) {
     if (val.content.objectives.length < 3 || val.content.objectives.length > 7) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

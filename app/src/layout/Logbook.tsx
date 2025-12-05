@@ -24,7 +24,10 @@ import {
   MISSIONS_PER_DAY,
   ADDITIONAL_MISSION_REWARD_MULTIPLIER,
   IMG_SCENE_BACKGROUND,
+  IMG_URL_ASSISTANT,
+  IMG_URL_ASSISTANT_2,
 } from "@/drizzle/constants";
+import { useAbVariant } from "@/hooks/useAbVariant";
 import { getActiveObjective } from "@/libs/objectives";
 import { cn } from "src/libs/shadui";
 import type { QuestTrackerType } from "@/validators/objectives";
@@ -298,6 +301,7 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
   const quest = userQuest.quest;
   const tierOrDaily = ["tier", "daily"].includes(quest.questType);
   const missionOrCrime = ["mission", "crime"].includes(quest.questType);
+  const isStarterQuest = quest.questType === "starter";
   const rewardMultiplier =
     userData && missionOrCrime && userData.dailyMissions > MISSIONS_PER_DAY
       ? ADDITIONAL_MISSION_REWARD_MULTIPLIER
@@ -305,10 +309,16 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
   const allDone = isQuestComplete(quest, tracker);
   const utils = api.useUtils();
 
+  // A/B test for starter quest assistant image
+  const { variant } = useAbVariant("ab_lemu_replacement_2");
+  const assistantImage =
+    variant === "treatment" ? IMG_URL_ASSISTANT_2 : IMG_URL_ASSISTANT;
+
   // Scene composition
   // - If not consecutive objectives, use background & scene from quest
   // - If consecutive objectives, use background & scene from active objective
   // - If no background or scene, use default background & scene from quest
+  // - For starter quests, use the A/B tested assistant image instead of quest characters
   const activeObjective = getActiveObjective(quest, tracker);
   const assetIds: string[] = [];
   let shownText = quest.description;
@@ -318,13 +328,16 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
     } else if (quest.content.sceneBackground) {
       assetIds.push(quest.content.sceneBackground);
     }
-    if (
-      activeObjective?.sceneCharacters &&
-      activeObjective.sceneCharacters.length > 0
-    ) {
-      assetIds.push(...activeObjective.sceneCharacters);
-    } else {
-      assetIds.push(...(quest.content.sceneCharacters || []));
+    // For starter quests, skip adding scene characters (we'll use assistantImage directly)
+    if (!isStarterQuest) {
+      if (
+        activeObjective?.sceneCharacters &&
+        activeObjective.sceneCharacters.length > 0
+      ) {
+        assetIds.push(...activeObjective.sceneCharacters);
+      } else {
+        assetIds.push(...(quest.content.sceneCharacters || []));
+      }
     }
     if (activeObjective?.description) {
       shownText = activeObjective.description;
@@ -333,7 +346,10 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
     if (quest.content.sceneBackground) {
       assetIds.push(quest.content.sceneBackground);
     }
-    assetIds.push(...(quest.content.sceneCharacters || []));
+    // For starter quests, skip adding scene characters (we'll use assistantImage directly)
+    if (!isStarterQuest) {
+      assetIds.push(...(quest.content.sceneCharacters || []));
+    }
   }
 
   // Query to fetch the assets
@@ -346,10 +362,12 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
   const background =
     gameAssets?.filter((asset) => asset.type === "SCENE_BACKGROUND")?.[0]?.image ||
     IMG_SCENE_BACKGROUND;
-  const characters =
-    gameAssets
-      ?.filter((asset) => asset.type === "SCENE_CHARACTER")
-      .map((asset) => asset.image) || [];
+  // For starter quests, use the A/B tested assistant image instead of quest characters
+  const characters = isStarterQuest
+    ? [assistantImage]
+    : gameAssets
+        ?.filter((asset) => asset.type === "SCENE_CHARACTER")
+        .map((asset) => asset.image) || [];
 
   // Mutations
   const { checkRewards, isCheckingRewards } = useCheckRewards();

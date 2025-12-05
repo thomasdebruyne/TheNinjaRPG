@@ -69,7 +69,7 @@ export const miscRouter = createTRPCRouter({
               .values({
                 id: nanoid(),
                 userId: null,
-                experiment: "ab_lemu_replacement",
+                experiment: "ab_lemu_replacement_2",
                 variant: ctx.abLemuReplacementVariant,
                 event: "loaded",
                 source: input.utmSource,

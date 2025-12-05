@@ -46,7 +46,7 @@ import { Objective } from "@/layout/Objective";
 const AssistantPortrait: React.FC<{ characterImage?: string }> = ({
   characterImage,
 }) => {
-  const { variant } = useAbVariant("ab_lemu_replacement");
+  const { variant } = useAbVariant("ab_lemu_replacement_2");
   const defaultImage =
     variant === "treatment" ? IMG_URL_ASSISTANT_2 : IMG_URL_ASSISTANT;
   const className = cn(
@@ -712,25 +712,30 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   }
 
   // Get character images for post-tutorial quest (no background)
+  // For starter quests, skip fetching scene characters - we'll use the A/B tested assistant image instead
   const postTutorialCharacterIds: string[] = [];
   if (showPostTutorialQuest && postTutorialQuest) {
     const { userQuest, tracker } = postTutorialQuest;
     const quest = userQuest.quest;
+    const isStarterQuest = quest.questType === "starter";
 
-    // If consecutive objectives, use active objective's characters or fall back to quest characters
-    if (quest.consecutiveObjectives) {
-      const activeObjective = getActiveObjective(quest, tracker);
-      if (
-        activeObjective?.sceneCharacters &&
-        activeObjective.sceneCharacters.length > 0
-      ) {
-        postTutorialCharacterIds.push(...activeObjective.sceneCharacters);
+    // Skip fetching scene characters for starter quests - AssistantPortrait will use A/B tested default
+    if (!isStarterQuest) {
+      // If consecutive objectives, use active objective's characters or fall back to quest characters
+      if (quest.consecutiveObjectives) {
+        const activeObjective = getActiveObjective(quest, tracker);
+        if (
+          activeObjective?.sceneCharacters &&
+          activeObjective.sceneCharacters.length > 0
+        ) {
+          postTutorialCharacterIds.push(...activeObjective.sceneCharacters);
+        } else {
+          postTutorialCharacterIds.push(...(quest.content.sceneCharacters || []));
+        }
       } else {
+        // Not consecutive, use quest's characters
         postTutorialCharacterIds.push(...(quest.content.sceneCharacters || []));
       }
-    } else {
-      // Not consecutive, use quest's characters
-      postTutorialCharacterIds.push(...(quest.content.sceneCharacters || []));
     }
   }
 
