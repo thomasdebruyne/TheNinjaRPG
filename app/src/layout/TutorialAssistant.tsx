@@ -588,7 +588,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
         const tracker = userData?.questData?.find((q) => q.id === quest.questId);
 
         // Set quest if not complete
-        if (tracker && !isQuestComplete(quest.quest, tracker)) {
+        if (tracker && !quest.endAt) {
           setPostTutorialQuest({ userQuest: quest, tracker });
         } else {
           setPostTutorialQuest(null);
