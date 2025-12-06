@@ -231,6 +231,7 @@ export const dataRouter = createTRPCRouter({
             username: userData.username,
             questData: userData.questData,
             tutorialStep: userData.tutorialStep,
+            tutorialOn: userData.tutorialOn,
             userAgent: visitorLog.userAgent,
           })
           .from(visitorLog)
@@ -253,6 +254,7 @@ export const dataRouter = createTRPCRouter({
           .select({
             userId: userData.userId,
             userAgent: visitorLog.userAgent,
+            tutorialOn: userData.tutorialOn,
           })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
@@ -270,6 +272,7 @@ export const dataRouter = createTRPCRouter({
           .select({
             userId: userData.userId,
             userAgent: visitorLog.userAgent,
+            tutorialOn: userData.tutorialOn,
           })
           .from(visitorLog)
           .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
@@ -493,8 +496,6 @@ export const dataRouter = createTRPCRouter({
       const characterCreations = characterCreationsRow.length;
       const signupRate = clicks > 0 ? signups / clicks : 0;
       const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
-      const nonStudentSignups = nonStudentSignupsRow.length;
-      const nonStudentGeninSignups = nonStudentGeninSignupsRow.length;
       const pvpSignups = pvpSignupsRow.length;
       const tutorialFinishedSignups = tutorialFinishedSignupsRow.length;
       const totalRevenueUsd = totalRevenueRow.reduce(
@@ -564,6 +565,28 @@ export const dataRouter = createTRPCRouter({
         username: r.username ?? "",
       }));
 
+      // Tutorial on metrics (filtered from existing data)
+      const tutorialOnSignups = filteredSignupsRow.filter(
+        (r) => r.tutorialOn === true,
+      ).length;
+      const tutorialOnNonStudentSignups = nonStudentSignupsRow.filter(
+        (r) => r.tutorialOn === true,
+      ).length;
+      const tutorialOnNonStudentGeninSignups = nonStudentGeninSignupsRow.filter(
+        (r) => r.tutorialOn === true,
+      ).length;
+
+      // Tutorial disabled metrics (filtered from existing data)
+      const tutorialDisabledSignups = filteredSignupsRow.filter(
+        (r) => r.tutorialOn === false,
+      ).length;
+      const tutorialDisabledNonStudentSignups = nonStudentSignupsRow.filter(
+        (r) => r.tutorialOn === false,
+      ).length;
+      const tutorialDisabledNonStudentGeninSignups = nonStudentGeninSignupsRow.filter(
+        (r) => r.tutorialOn === false,
+      ).length;
+
       return {
         signupRate,
         visitors: clicks,
@@ -573,8 +596,6 @@ export const dataRouter = createTRPCRouter({
         characterCreations,
         characterCreationRate,
         characterCreationsByDevice,
-        nonStudentSignups,
-        nonStudentGeninSignups,
         pvpSignups,
         tutorialFinishedSignups,
         tutorialFinishedByDevice,
@@ -583,6 +604,12 @@ export const dataRouter = createTRPCRouter({
         questFunnels,
         questObjectiveDescriptions,
         tutorialSteps,
+        tutorialOnSignups,
+        tutorialOnNonStudentSignups,
+        tutorialOnNonStudentGeninSignups,
+        tutorialDisabledSignups,
+        tutorialDisabledNonStudentSignups,
+        tutorialDisabledNonStudentGeninSignups,
       };
     }),
   // Recruitment analytics
