@@ -42,8 +42,7 @@ const Model3d: React.FC<Model3dProps> = (props) => {
   useEffect(() => {
     const originalCreateImageBitmap = window.createImageBitmap;
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    // @ts-expect-error - Temporarily disable createImageBitmap for GLTF loading
     window.createImageBitmap = undefined;
 
     if (!modelUrl) {
@@ -74,8 +73,6 @@ const Model3d: React.FC<Model3dProps> = (props) => {
 
     return () => {
       // Restore global to keep the rest of the app functional
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       window.createImageBitmap = originalCreateImageBitmap;
     };
 

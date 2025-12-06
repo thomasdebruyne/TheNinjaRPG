@@ -9,7 +9,6 @@ import { referralSource } from "@/drizzle/schema";
 import { visitorLog } from "@/drizzle/schema";
 import { secondsFromNow } from "@/utils/time";
 import { checkForBadWords } from "@/utils/profanity";
-import { abEvent } from "@/drizzle/schema";
 import {
   TUTORIAL_STARTER_QUEST_ID,
   IMG_DEFAULT_PROFILE_PICTURE,

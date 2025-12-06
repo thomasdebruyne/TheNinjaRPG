@@ -237,7 +237,7 @@ export const drawSector = (
   // Draw the tiles
   grid.forEach((tile) => {
     if (tile) {
-      const { material, dirt, sprites, asset } = getTileInfo(
+      const { material, sprites, asset } = getTileInfo(
         prng,
         tile,
         globalTile,

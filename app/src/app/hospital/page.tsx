@@ -162,7 +162,7 @@ const HealOthersComponent: React.FC<HealOthersComponentProps> = (props) => {
   const { userData, timeDiff, updateUser } = props;
 
   // Maximum heal capacity
-  const [maxHeal, setMaxHeal] = useState(
+  const [maxHeal, setMaxHeal] = useState(() =>
     calcChakraToPools(
       userData,
       calcCurrent(

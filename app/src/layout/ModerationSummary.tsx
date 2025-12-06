@@ -126,9 +126,10 @@ export const ModerationSummary: React.FC<ModerationSummaryProps> = ({
   useEffect(() => {
     if (open) {
       // When dialog opens, ensure chart is created if we have data
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         createOrUpdateChart();
       }, 100); // Small delay to ensure the canvas is visible
+      return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);

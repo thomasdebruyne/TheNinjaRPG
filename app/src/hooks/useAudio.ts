@@ -117,10 +117,27 @@ export const useAudio = (options: UseAudioOptions): UseAudioReturn => {
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
 
+    // Safari fallback: track if canPlay has been handled to avoid stale closure issues
+    let canPlayHandled = false;
+    const wrappedHandleCanPlay = () => {
+      canPlayHandled = true;
+      handleCanPlay();
+    };
+
+    // Safari fallback: if loading events don't fire within 5 seconds, assume ready
+    const safariTimeout = setTimeout(() => {
+      if (isSafariOrIOS() && !canPlayHandled) {
+        canPlayHandled = true;
+        setIsLoading(false);
+        setCanPlay(true);
+        setError(null);
+      }
+    }, 5000);
+
     // Add event listeners - Safari needs both canplay and canplaythrough
     audio.addEventListener("loadstart", handleLoadStart);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("canplay", handleCanPlay); // Safari often fires this before canplaythrough
+    audio.addEventListener("canplay", wrappedHandleCanPlay); // Safari often fires this before canplaythrough
     audio.addEventListener("canplaythrough", handleCanPlayThrough);
     audio.addEventListener("error", handleError);
     audio.addEventListener("play", handlePlay);
@@ -128,15 +145,6 @@ export const useAudio = (options: UseAudioOptions): UseAudioReturn => {
     audio.addEventListener("ended", handleEnded);
 
     audioRef.current = audio;
-
-    // Safari fallback: if loading events don't fire within 5 seconds, assume ready
-    const safariTimeout = setTimeout(() => {
-      if (isSafariOrIOS() && !canPlay && !error) {
-        setIsLoading(false);
-        setCanPlay(true);
-        setError(null);
-      }
-    }, 5000);
 
     // Test autoplay capability
     const testAutoplay = async () => {
@@ -161,7 +169,7 @@ export const useAudio = (options: UseAudioOptions): UseAudioReturn => {
       clearTimeout(safariTimeout);
       audio.removeEventListener("loadstart", handleLoadStart);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("canplay", wrappedHandleCanPlay);
       audio.removeEventListener("canplaythrough", handleCanPlayThrough);
       audio.removeEventListener("error", handleError);
       audio.removeEventListener("play", handlePlay);
@@ -171,7 +179,7 @@ export const useAudio = (options: UseAudioOptions): UseAudioReturn => {
       audio.pause();
       audio.src = "";
     };
-  }, [src, loop, volume, effectivePreload, canPlay, error]);
+  }, [src, loop, volume, effectivePreload]);
 
   // Handle audio playback based on enabled state
   useEffect(() => {

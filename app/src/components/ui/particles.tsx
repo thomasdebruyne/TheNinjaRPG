@@ -29,7 +29,7 @@ const ParticleProvider = () => {
       .catch((error) => {
         console.error("Failed to initialize particles engine:", error);
       });
-  }, []);
+  }, [lightLayout]);
 
   return (
     <>

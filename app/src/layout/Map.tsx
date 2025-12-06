@@ -155,8 +155,9 @@ const Map: React.FC<MapProps> = (props) => {
       const group_highlights = new Group();
 
       // Add on double click tile handler
+      let onDblClick: (() => void) | null = null;
       if (props.intersection && props.onTileClick) {
-        const onClick = () => {
+        onDblClick = () => {
           const intersects = raycaster.intersectObjects(group_tiles.children);
           if (intersects.length > 0) {
             const sector = intersects?.[0]?.object?.userData?.id as number;
@@ -166,7 +167,7 @@ const Map: React.FC<MapProps> = (props) => {
             }
           }
         };
-        renderer.domElement.addEventListener("dblclick", onClick, true);
+        renderer.domElement.addEventListener("dblclick", onDblClick, true);
       }
 
       // Spheres from here: https://www.robscanlon.com/hexasphere/
@@ -356,7 +357,7 @@ const Map: React.FC<MapProps> = (props) => {
           });
         }
         userData.userQuests.forEach((userquest) => {
-          userquest.quest.content.objectives.forEach((objective, i) => {
+          userquest.quest.content.objectives.forEach((objective) => {
             const isHidden = "hideLocation" in objective && objective.hideLocation;
             const isDialog = objective.task === "dialog";
             if ("sector" in objective && objective.sector && !isHidden && !isDialog) {
@@ -554,7 +555,10 @@ const Map: React.FC<MapProps> = (props) => {
 
       return () => {
         if (props.intersection) {
-          document.removeEventListener("mousemove", onDocumentMouseMove);
+          sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
+        }
+        if (onDblClick) {
+          renderer.domElement.removeEventListener("dblclick", onDblClick, true);
         }
         window.removeEventListener("resize", handleResize);
         cleanUp(scene, renderer);

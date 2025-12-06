@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import ExportGraph from "@/layout/ExportGraph";
 import { Chart as ChartJS } from "chart.js/auto";
 import { groupBy } from "@/utils/grouping";
@@ -381,39 +381,40 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
   const chartRef = useRef<HTMLCanvasElement>(null);
 
   // Helper function to extract usernames by step and device
-  const getUsernamesForStep = (
-    step: number,
-  ): { mobile: string[]; desktop: string[]; unknown: string[] } => {
-    const result = {
-      mobile: [] as string[],
-      desktop: [] as string[],
-      unknown: [] as string[],
-    };
+  const getUsernamesForStep = useCallback(
+    (step: number): { mobile: string[]; desktop: string[]; unknown: string[] } => {
+      const result = {
+        mobile: [] as string[],
+        desktop: [] as string[],
+        unknown: [] as string[],
+      };
 
-    if (
-      typeof stepsCompleted[0] === "object" &&
-      stepsCompleted[0] !== null &&
-      "deviceType" in stepsCompleted[0]
-    ) {
-      const dataWithDevices = stepsCompleted as Array<{
-        steps?: number;
-        objectives?: number;
-        deviceType: DeviceType;
-        username?: string;
-      }>;
+      if (
+        typeof stepsCompleted[0] === "object" &&
+        stepsCompleted[0] !== null &&
+        "deviceType" in stepsCompleted[0]
+      ) {
+        const dataWithDevices = stepsCompleted as Array<{
+          steps?: number;
+          objectives?: number;
+          deviceType: DeviceType;
+          username?: string;
+        }>;
 
-      dataWithDevices.forEach((item) => {
-        const itemStep = item.steps ?? item.objectives ?? 0;
-        if (itemStep === step && item.username) {
-          if (result[item.deviceType].length < 10) {
-            result[item.deviceType].push(item.username);
+        dataWithDevices.forEach((item) => {
+          const itemStep = item.steps ?? item.objectives ?? 0;
+          if (itemStep === step && item.username) {
+            if (result[item.deviceType].length < 10) {
+              result[item.deviceType].push(item.username);
+            }
           }
-        }
-      });
-    }
+        });
+      }
 
-    return result;
-  };
+      return result;
+    },
+    [stepsCompleted],
+  );
 
   useEffect(() => {
     const ctx = chartRef?.current?.getContext("2d");
@@ -634,7 +635,7 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
 
       return () => chart.destroy();
     }
-  }, [stepsCompleted, title, stepDescriptions, mode]);
+  }, [stepsCompleted, title, stepDescriptions, mode, getUsernamesForStep]);
 
   return (
     <Card>

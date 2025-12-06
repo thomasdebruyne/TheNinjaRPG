@@ -55,11 +55,3 @@ toast.info = sonnerToast.info;
 toast.warning = sonnerToast.warning;
 toast.loading = sonnerToast.loading;
 toast.promise = sonnerToast.promise;
-
-/**
- * The old implementation exposed a `useToast` hook. We still provide a stub so
- * that any imports keep working, even though the internals have changed.
- */
-export const useToast = () => ({ toast });
-
-export { toast as default };

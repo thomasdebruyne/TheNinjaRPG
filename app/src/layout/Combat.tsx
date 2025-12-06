@@ -602,7 +602,8 @@ const Combat: React.FC<CombatProps> = (props) => {
             return true;
           });
       };
-      renderer.domElement.addEventListener("click", onClick, true);
+      const rendererElement = renderer.domElement;
+      rendererElement.addEventListener("click", onClick, true);
 
       // Sprite mixer for sprite animations
       const spriteMixer = new SpriteMixer();
@@ -769,6 +770,7 @@ const Combat: React.FC<CombatProps> = (props) => {
         sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
         sceneRef.removeEventListener("mouseleave", onDocumentMouseLeave);
         controls.removeEventListener("change", onZoomChange);
+        rendererElement.removeEventListener("click", onClick, true);
         if (sceneRef.contains(renderer.domElement)) {
           sceneRef.removeChild(renderer.domElement);
         }

@@ -45,6 +45,7 @@ export function GoogleTagManager(props: GTMParams) {
     <>
       <script
         data-partytown-config
+        // eslint-disable-next-line @eslint-react/dom/no-dangerously-set-innerhtml
         dangerouslySetInnerHTML={{
           __html: `
             partytown = {
@@ -57,6 +58,7 @@ export function GoogleTagManager(props: GTMParams) {
       <Script
         id="_next-gtm-init"
         strategy="worker"
+        // eslint-disable-next-line @eslint-react/dom/no-dangerously-set-innerhtml
         dangerouslySetInnerHTML={{
           __html: `
       (function(w,l){
@@ -78,13 +80,10 @@ export function GoogleTagManager(props: GTMParams) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-wrapper-object-types
-export const sendGTMEvent = (data: Object, dataLayerName?: string) => {
+export const sendGTMEvent = (data: object, dataLayerName?: string) => {
   // special case if we are sending events before GTM init and we have custom dataLayerName
   const dataLayer = dataLayerName || currDataLayerName;
   // define dataLayer so we can still queue up events before GTM init
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   window[dataLayer] = window[dataLayer] || [];
-  // eslint-disable-next-line
   window[dataLayer].push(data);
 };

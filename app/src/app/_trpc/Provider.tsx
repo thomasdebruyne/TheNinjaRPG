@@ -102,7 +102,7 @@ export const onError = (err: unknown) => {
     Sentry.captureException(err, { extra: { message: "TRPC Client Error" } });
     toast({
       variant: "destructive",
-      title: err?.data?.code ?? "Unknown", // eslint-disable-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      title: err?.data?.code ?? "Unknown",
       description: err.message,
     });
   } else if (err instanceof Error) {

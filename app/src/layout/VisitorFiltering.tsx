@@ -4,7 +4,6 @@ import {
   buildFilter,
   defineFilteringSchema,
 } from "@/layout/ContentFiltering";
-import type { DeviceType } from "@/utils/hardware";
 
 // Helper: get date string (YYYY-MM-DD) for N days ago
 const dateStringDaysAgo = (days: number) => {
@@ -16,8 +15,6 @@ const dateStringDaysAgo = (days: number) => {
   const day = `${d.getDate()}`.padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
-
-const deviceTypes: DeviceType[] = ["mobile", "desktop", "unknown"];
 
 // Inline schema for visitor analytics filters
 const visitorFilteringSchema = defineFilteringSchema({

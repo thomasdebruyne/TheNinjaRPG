@@ -231,13 +231,14 @@ const RichInput: React.FC<RichInputProps> = (props) => {
         mentionForm.setValue("username", "");
 
         // Set focus back to textarea
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.focus();
             const newCursorPos = before.length + lastSelectedUser.username.length + 2; // +2 for @ and space
             textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
           }
         }, 0);
+        return () => clearTimeout(timeoutId);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

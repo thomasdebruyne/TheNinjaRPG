@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export const useLocalStorage = <T>(
   key: string,
@@ -44,7 +44,7 @@ export const useLocalStorage = <T>(
   // Set the initial value
   const [value, setValue] = useState<T>(getInitialValue);
 
-  // Check for URL anchor changes
+  // Listen for URL anchor changes (initial value already handled by lazy initialization)
   useEffect(() => {
     if (checkUrlAnchor) {
       const handleHashChange = () => {
@@ -54,10 +54,7 @@ export const useLocalStorage = <T>(
         }
       };
 
-      // Set initial value from anchor if present
-      handleHashChange();
-
-      // Listen for hash changes
+      // Listen for hash changes - event handlers are fine, initial value handled by getInitialValue
       window.addEventListener("hashchange", handleHashChange);
       return () => {
         window.removeEventListener("hashchange", handleHashChange);
@@ -73,13 +70,14 @@ export const useLocalStorage = <T>(
     }
   }, [key, value]);
 
-  // When calling the setValue function, remove the URL anchor and return a React d
-  const setValueWithoutAnchor = (newValue: T) => {
+  // When calling the setValue function, remove the URL anchor
+  // Memoized to prevent unnecessary re-renders when passed as prop
+  const setValueWithoutAnchor = useCallback((newValue: T) => {
     setValue(newValue);
     if (typeof window !== "undefined") {
       window.history.replaceState({}, "", window.location.pathname);
     }
-  };
+  }, []);
 
   // Return the value and the setValueWithoutAnchor function
   return [value, setValueWithoutAnchor];

@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "src/libs/shadui";
-import React from "react";
+import React, { Fragment } from "react";
 import type { UserWithRelations } from "@/routers/profile";
 
 interface MissionHallProps {
@@ -259,8 +259,8 @@ export default function MissionHall({ userData }: MissionHallProps) {
               );
             } else {
               return (
-                <>
-                  <AlertDialog key={i}>
+                <Fragment key={i}>
+                  <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <div
                         className={cn(
@@ -384,7 +384,7 @@ export default function MissionHall({ userData }: MissionHallProps) {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </>
+                </Fragment>
               );
             }
           })}

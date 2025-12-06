@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
-import { showMutationToast } from "@/libs/toast";
 import type { UserWithRelations } from "../server/api/routers/profile";
 
 export const useAwake = (userData: UserWithRelations) => {

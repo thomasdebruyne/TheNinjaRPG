@@ -65,7 +65,7 @@ const StatusBar: React.FC<StatusBarProps> = (props) => {
   const isAwake = props.status === "AWAKE";
 
   // Calculate initial state
-  const [state, setState] = useState(
+  const [state, setState] = useState(() =>
     calcCurrent(current, total, status, regen, lastRegenAt, timeDiff),
   );
 
@@ -77,22 +77,40 @@ const StatusBar: React.FC<StatusBarProps> = (props) => {
 
   // Updating the bars based on regen
   useEffect(() => {
-    const foo = () => {
+    const updateState = () => {
       if (regen !== undefined && current !== undefined && total !== undefined) {
-        if (
-          (state.current < total || current < total) &&
-          (state.current >= 0 || current >= 0)
-        ) {
-          setState(calcCurrent(current, total, status, regen, lastRegenAt, timeDiff));
-        }
+        // Use functional setState to avoid reading state in effect body
+        // This prevents React Compiler from adding state as a dependency
+        setState((prevState) => {
+          if (
+            (prevState.current < total || current < total) &&
+            (prevState.current >= 0 || current >= 0)
+          ) {
+            const newState = calcCurrent(
+              current,
+              total,
+              status,
+              regen,
+              lastRegenAt,
+              timeDiff,
+            );
+            // Only update if values actually changed to prevent unnecessary re-renders
+            if (
+              prevState.current !== newState.current ||
+              prevState.width !== newState.width
+            ) {
+              return newState;
+            }
+          }
+          return prevState;
+        });
       }
     };
-    foo();
-    const interval = setInterval(foo, 250);
+    updateState();
+    const interval = setInterval(updateState, 250);
     return () => {
       clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAwake, regen, lastRegenAt, current, total, status, timeDiff]);
 
   return (

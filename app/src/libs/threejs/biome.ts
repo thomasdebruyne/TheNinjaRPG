@@ -114,7 +114,7 @@ interface TileInfo {
   asset: HEXTILE_TYPE;
 }
 
-export const getDirtMaterial = (tileType: HEXTILE_TYPE) => {
+export const getDirtMaterial = (_tileType: HEXTILE_TYPE) => {
   return new MeshBasicMaterial({ color: 0x696969, side: DoubleSide });
 };
 

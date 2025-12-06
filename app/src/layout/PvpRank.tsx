@@ -258,9 +258,6 @@ export const RankedLoadoutSelector: React.FC = () => {
     "weapons",
   );
 
-  // Get items and loadout data – only fetch for the currently active tab
-  const { data: currentSeason } = api.pvpRank.getCurrentSeason.useQuery();
-
   const { data: weapons, isFetching: isLoadingWeapons } = api.item.getAll.useQuery(
     {
       itemType: "WEAPON",

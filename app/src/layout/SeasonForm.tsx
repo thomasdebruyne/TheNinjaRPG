@@ -38,6 +38,7 @@ import { rankedSeasonSchema, rewardSchema } from "@/validators/pvpRank";
 import { STARTER_VILLAGES, UserRanks } from "@/drizzle/constants";
 import { getRewardArray } from "@/libs/objectives";
 import { EditContent, type FormEntry } from "@/layout/EditContent";
+import type { UseFormReturn } from "react-hook-form";
 
 type FormValues = z.infer<typeof rankedSeasonSchema>;
 
@@ -180,54 +181,6 @@ export default function SeasonForm({
     }
 
     return data;
-  };
-
-  interface RewardDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    divisionIndex: number;
-  }
-
-  const RewardDialog = ({ open, onOpenChange, divisionIndex }: RewardDialogProps) => {
-    const parentReward = form.watch(`rewards.${divisionIndex}.rewards`);
-    const rewardForm = useForm<z.infer<typeof rewardSchema>>({
-      resolver: zodResolver(rewardSchema),
-      values: parentReward ?? rewardSchema.parse({}),
-      defaultValues: parentReward ?? rewardSchema.parse({}),
-      mode: "all",
-    });
-
-    const handleSave = rewardForm.handleSubmit((data) => {
-      const currentRewards = [...form.getValues("rewards")];
-      const prev = currentRewards[divisionIndex];
-      if (!prev) return;
-
-      currentRewards[divisionIndex] = {
-        ...prev,
-        rewards: data,
-      };
-
-      void form.setValue("rewards", currentRewards, { shouldDirty: true });
-      onOpenChange(false);
-    });
-
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl overflow-y-auto max-h-screen">
-          <DialogHeader>
-            <DialogTitle>Edit Rewards</DialogTitle>
-          </DialogHeader>
-          <EditContent
-            schema={rewardSchema}
-            form={rewardForm}
-            formData={buildRewardFormData()}
-            showSubmit={true}
-            buttonTxt="Save Rewards"
-            onAccept={handleSave}
-          />
-        </DialogContent>
-      </Dialog>
-    );
   };
 
   return (
@@ -409,6 +362,8 @@ export default function SeasonForm({
                     open={true}
                     onOpenChange={() => setEditingDivisionIndex(null)}
                     divisionIndex={divisionIndex}
+                    parentForm={form}
+                    buildRewardFormData={buildRewardFormData}
                   />
                 )}
               </CardContent>
@@ -423,3 +378,59 @@ export default function SeasonForm({
     </Form>
   );
 }
+
+interface RewardDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  divisionIndex: number;
+  parentForm: UseFormReturn<FormValues>;
+  buildRewardFormData: () => FormEntry<keyof z.infer<typeof rewardSchema>>[];
+}
+
+const RewardDialog: React.FC<RewardDialogProps> = ({
+  open,
+  onOpenChange,
+  divisionIndex,
+  parentForm,
+  buildRewardFormData,
+}) => {
+  const parentReward = parentForm.watch(`rewards.${divisionIndex}.rewards`);
+  const rewardForm = useForm<z.infer<typeof rewardSchema>>({
+    resolver: zodResolver(rewardSchema),
+    values: parentReward ?? rewardSchema.parse({}),
+    defaultValues: parentReward ?? rewardSchema.parse({}),
+    mode: "all",
+  });
+
+  const handleSave = rewardForm.handleSubmit((data) => {
+    const currentRewards = [...parentForm.getValues("rewards")];
+    const prev = currentRewards[divisionIndex];
+    if (!prev) return;
+
+    currentRewards[divisionIndex] = {
+      ...prev,
+      rewards: data,
+    };
+
+    void parentForm.setValue("rewards", currentRewards, { shouldDirty: true });
+    onOpenChange(false);
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl overflow-y-auto max-h-screen">
+        <DialogHeader>
+          <DialogTitle>Edit Rewards</DialogTitle>
+        </DialogHeader>
+        <EditContent
+          schema={rewardSchema}
+          form={rewardForm}
+          formData={buildRewardFormData()}
+          showSubmit={true}
+          buttonTxt="Save Rewards"
+          onAccept={handleSave}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};

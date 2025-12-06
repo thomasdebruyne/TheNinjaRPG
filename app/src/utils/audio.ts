@@ -129,8 +129,7 @@ export const createAudioContext = (): AudioContext | null => {
   if (typeof window === "undefined") return null;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     return new AudioContextClass();
   } catch (error) {
     console.warn("AudioContext not supported:", error);

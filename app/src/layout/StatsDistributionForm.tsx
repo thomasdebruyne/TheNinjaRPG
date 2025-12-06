@@ -1,7 +1,7 @@
 "use client";
 
 import { capUserStats } from "@/libs/profile";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import {
   Form,

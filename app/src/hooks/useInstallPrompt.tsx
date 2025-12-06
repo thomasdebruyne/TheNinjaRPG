@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, use, useState, useEffect, type ReactNode } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -58,7 +58,7 @@ export function InstallPromptProvider({ children }: { children: ReactNode }) {
 
       // Auto-show install prompt after delay if not already installed and on mobile
       if (!standalone && mobile) {
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           // Check for long-term dismissal (60 days)
           const dismissedLongTime = localStorage.getItem("pwa-install-dismissed-long");
           if (
@@ -79,6 +79,7 @@ export function InstallPromptProvider({ children }: { children: ReactNode }) {
 
           setIsVisible(true);
         }, 3000);
+        return () => clearTimeout(timeoutId);
       }
     };
 
@@ -116,7 +117,7 @@ export function InstallPromptProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <InstallPromptContext.Provider
+    <InstallPromptContext
       value={{
         showPrompt,
         hidePrompt,
@@ -130,12 +131,12 @@ export function InstallPromptProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </InstallPromptContext.Provider>
+    </InstallPromptContext>
   );
 }
 
 export function useInstallPrompt() {
-  const context = useContext(InstallPromptContext);
+  const context = use(InstallPromptContext);
   if (context === undefined) {
     throw new Error("useInstallPrompt must be used within InstallPromptProvider");
   }

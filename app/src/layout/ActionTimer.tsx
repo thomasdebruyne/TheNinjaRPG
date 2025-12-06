@@ -87,7 +87,7 @@ const ActionTimer: React.FC<ActionTimerProps> = (props) => {
       // Set action points
     }, 100);
     return () => clearInterval(interval);
-  }, [isPending, battle, user, timeDiff, state, setState, precomputedActions]);
+  }, [isPending, battle, user, timeDiff, precomputedActions]);
 
   return (
     <div className="pl-5">

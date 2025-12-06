@@ -148,7 +148,7 @@ test: # Push schema to db without creating migrations
 .PHONY: lint
 lint: # Push schema to db without creating migrations
 	@echo "${YELLOW}Running linting ${RESET}"
-	cd app && bun lint
+	cd app && bun run lint
 
 
 -------------DEPENDENCIES---------------: # -------------------------------------------------------

@@ -2,7 +2,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { baseServerResponse, errorResponse } from "@/server/api/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { eq, and, desc, inArray, like, isNull } from "drizzle-orm";
+import { eq, and, desc, inArray, like } from "drizzle-orm";
 import { userData, staffApplication, staffApplicationApproval } from "@/drizzle/schema";
 import { StaffApplicationTargetRoles } from "@/drizzle/constants";
 import type { StaffApprovalGroup } from "@/drizzle/constants";

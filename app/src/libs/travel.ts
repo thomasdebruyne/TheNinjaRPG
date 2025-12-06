@@ -62,7 +62,7 @@ export const calcGlobalTravelTime = (
 
 // Calculate if we are in village or not.
 // Not the nicest, but eventually we are merging towards
-export const calcIsInVillage = (position: SectorPoint) => {
+export const calcIsInVillage = (_position: SectorPoint) => {
   // if ([0, 19].includes(position.x)) return false;
   // if ([0, 14].includes(position.y)) return false;
   // if (position.y === 13) {

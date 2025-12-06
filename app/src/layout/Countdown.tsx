@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useEffect, useState } from "react";
 import { getDaysHoursMinutesSeconds, getTimeLeftStr } from "@/utils/time";
 
@@ -6,54 +6,79 @@ interface CountdownProps {
   targetDate: Date;
   className?: string;
   timeDiff?: number; // Only used if the targetDate is from the server, and has not been adjusted for timeDiff already
-  // NOTE: Careful with this one to avoid infinite loop on re-render
   onFinish?: () => void;
   onEndShow?: React.ReactNode | string;
 }
 
 const Countdown: React.FC<CountdownProps> = (props) => {
-  let targetTime = props.targetDate.getTime();
-  if (props.timeDiff) {
-    targetTime += props.timeDiff;
-  }
-  const [hasCalledOnFinish, setHasCalledOnFinish] = useState(false);
-  const [countDown, setCountDown] = useState(targetTime - new Date().getTime());
-  const [countString, setCountString] = useState<string | null>(null);
+  const { targetDate, timeDiff, onFinish, onEndShow, className } = props;
 
-  const updateString = (secondsLeft: number) => {
+  // Calculate target time once per prop change
+  const targetTime = targetDate.getTime() + (timeDiff ?? 0);
+
+  // Track whether we've called onFinish for this countdown
+  const hasCalledOnFinishRef = useRef(false);
+  // Track the target time to detect when countdown resets
+  const prevTargetTimeRef = useRef(targetTime);
+  // Store onFinish in a ref to avoid it being a dependency (inline functions change every render)
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
+
+  // Reset finish flag when target changes
+  if (prevTargetTimeRef.current !== targetTime) {
+    prevTargetTimeRef.current = targetTime;
+    hasCalledOnFinishRef.current = false;
+  }
+
+  const calcCountString = () => {
+    const secondsLeft = targetTime - Date.now();
     const [days, hours, minutes, seconds] = getDaysHoursMinutesSeconds(secondsLeft);
     if (days + hours + minutes + seconds <= 0) {
-      setCountString("Done");
-    } else {
-      setCountString(getTimeLeftStr(days, hours, minutes, seconds));
+      return "Done";
     }
+    return getTimeLeftStr(days, hours, minutes, seconds);
   };
 
+  const [countString, setCountString] = useState<string>(calcCountString);
+
   useEffect(() => {
-    const secondsLeft = targetTime - new Date().getTime();
-    if (!countString) {
-      updateString(secondsLeft);
-    }
-    if (secondsLeft > 0) {
+    const updateCountdown = () => {
+      const secondsLeft = targetTime - Date.now();
+      const [days, hours, minutes, seconds] = getDaysHoursMinutesSeconds(secondsLeft);
+
+      if (days + hours + minutes + seconds <= 0) {
+        setCountString("Done");
+        // Call onFinish only once per countdown
+        if (onFinishRef.current && !hasCalledOnFinishRef.current) {
+          hasCalledOnFinishRef.current = true;
+          onFinishRef.current();
+        }
+        return true; // Signal countdown is done
+      } else {
+        setCountString(getTimeLeftStr(days, hours, minutes, seconds));
+        return false;
+      }
+    };
+
+    // Initial update - check if already done
+    const isDone = updateCountdown();
+
+    // Only set up interval if not already done
+    if (!isDone) {
       const interval = setInterval(() => {
-        setCountDown(secondsLeft);
-        updateString(secondsLeft);
+        const nowDone = updateCountdown();
+        if (nowDone) {
+          clearInterval(interval);
+        }
       }, 500);
       return () => clearInterval(interval);
-    } else {
-      if (props.onFinish && !hasCalledOnFinish) {
-        setHasCalledOnFinish(true);
-        // NOTE: Careful with this one to avoid infinite loop on re-render
-        props.onFinish();
-      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countDown, countString, targetTime, props]);
+  }, [targetTime]);
 
-  if (countString === "Done" && props.onEndShow) {
-    return props.onEndShow;
+  if (countString === "Done" && onEndShow) {
+    return onEndShow;
   }
-  return <span className={props.className}>{countString}</span>;
+  return <span className={className}>{countString}</span>;
 };
 
 export default Countdown;

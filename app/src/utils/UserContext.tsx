@@ -1,8 +1,7 @@
 "use client";
 
-import React, { createContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState, use } from "react";
 import { parseHtml } from "@/utils/parse";
-import { useContext } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@/app/_trpc/client";
@@ -108,8 +107,6 @@ export function UserContextProvider(props: { children: React.ReactNode }) {
     });
   };
 
-
-
   // Time diff setting
   useEffect(() => {
     if (data?.serverTime) {
@@ -158,7 +155,7 @@ export function UserContextProvider(props: { children: React.ReactNode }) {
   }, [data?.userData, user?.primaryEmailAddress?.emailAddress]);
 
   return (
-    <UserContext.Provider
+    <UserContext
       value={{
         data: data?.userData,
         notifications: data?.notifications,
@@ -173,13 +170,13 @@ export function UserContextProvider(props: { children: React.ReactNode }) {
       }}
     >
       {props.children}
-    </UserContext.Provider>
+    </UserContext>
   );
 }
 
 // Easy hook for getting the current user data
 export const useUserData = () => {
-  return useContext(UserContext);
+  return use(UserContext);
 };
 
 // Require the user to be logged in

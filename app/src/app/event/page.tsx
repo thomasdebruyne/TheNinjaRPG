@@ -154,11 +154,11 @@ const RegenGainSystem: React.FC = () => {
             error={regenForm.formState.errors.days?.message}
           />
           <div className="flex flex-row gap-2">
-            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier, i) => (
+            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
                 className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
-                key={i}
+                key={`${multiplier}-multiplier-button`}
                 onClick={() =>
                   setEventGameSetting({
                     setting: "regenGainMultiplier",
@@ -246,11 +246,11 @@ const TrainingGainSystem: React.FC = () => {
             error={trainingForm.formState.errors.days?.message}
           />
           <div className="flex flex-row gap-2">
-            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier, i) => (
+            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
                 className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
-                key={i}
+                key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
                     setting: "trainingGainMultiplier",
@@ -338,11 +338,11 @@ const BattleArenaExpSystem: React.FC = () => {
             error={battleArenaForm.formState.errors.days?.message}
           />
           <div className="flex flex-row gap-2">
-            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier, i) => (
+            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
                 className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
-                key={i}
+                key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
                     setting: "battleExpMultiplier",
@@ -430,11 +430,11 @@ const MissionExpSystem: React.FC = () => {
             error={missionForm.formState.errors.days?.message}
           />
           <div className="flex flex-row gap-2">
-            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier, i) => (
+            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
                 className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
-                key={i}
+                key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
                     setting: "missionExpMultiplier",
@@ -522,11 +522,11 @@ const JutsuExpSystem: React.FC = () => {
             error={jutsuForm.formState.errors.days?.message}
           />
           <div className="flex flex-row gap-2">
-            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier, i) => (
+            {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
                 className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
-                key={i}
+                key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
                     setting: "jutsuExpMultiplier",
@@ -673,11 +673,11 @@ const NotificationSystem: React.FC = () => {
         {l1 && <Loader explanation="Submitting notification" />}
         {!l1 && (
           <div className="grid grid-cols-1">
-            {notifications?.map((entry, i) => {
+            {notifications?.map((entry, idx) => {
               return (
                 <div
-                  key={i}
-                  ref={i === notifications.length - 1 ? setLastElement : null}
+                  key={entry.id}
+                  ref={idx === notifications.length - 1 ? setLastElement : null}
                 >
                   <Post align_middle={true}>
                     <div className="flex flex-row">

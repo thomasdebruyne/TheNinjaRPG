@@ -1,10 +1,6 @@
-import { TextureLoader, Texture, SRGBColorSpace } from "three";
-import { type RefObject } from "react";
-import { Scene, WebGLRenderer, Raycaster } from "three";
-import { Vector2, Vector3 } from "three";
-import type { OrthographicCamera, PerspectiveCamera } from "three";
-import { type Material } from "three";
-import { BufferGeometry } from "three";
+import { TextureLoader, Texture, SRGBColorSpace, Scene, WebGLRenderer, Raycaster, Vector2 } from "three";
+import type { RefObject } from "react";
+import type { Vector3, OrthographicCamera, PerspectiveCamera, Material, BufferGeometry } from "three";
 
 // Simple in-memory cache for textures to avoid re-fetching
 let textureLoaderInstance: TextureLoader | null = null;

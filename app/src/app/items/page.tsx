@@ -37,16 +37,12 @@ import { ActionSelector } from "@/layout/CombatActions";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast, showRewardToast } from "@/libs/toast";
-import {
-  calcMaxItems,
-  calcMaxEventItems,
-  calcMaxMaterials,
-} from "@/libs/item";
+import { calcMaxItems, calcMaxEventItems, calcMaxMaterials } from "@/libs/item";
 import { CircleFadingArrowUp, Shirt } from "lucide-react";
 import { COST_EXTRA_ITEM_SLOT, IMG_EQUIP_SILHOUETTE } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
 import type { Item, UserItemWithRelations, UserItem, ItemSlot } from "@/drizzle/schema";
-import { calculateKitsToUse, getRepairKits, type RepairKit } from "@/libs/repair";
+import { calculateKitsToUse, getRepairKits } from "@/libs/repair";
 
 export default function MyItems() {
   // State
@@ -278,7 +274,7 @@ export default function MyItems() {
                       You have {itemsNeedingRepair.length} damaged item
                       {itemsNeedingRepair.length !== 1 ? "s" : ""} that need{" "}
                       {repairAllInfo.totalDurabilityNeeded} total durability, but you
-                      don't have enough repair kits to repair all of them.
+                      don&apos;t have enough repair kits to repair all of them.
                     </p>
                   </div>
                 )}
@@ -300,8 +296,8 @@ export default function MyItems() {
             }}
           >
             <p>
-              You are about to auto-equip your items. This will equip unequipped items in
-              the best possible way. Are you sure?
+              You are about to auto-equip your items. This will equip unequipped items
+              in the best possible way. Are you sure?
             </p>
           </Confirm2>
         </div>
@@ -334,7 +330,6 @@ function RepairItemSelectionModal({
 }: RepairItemModalProps) {
   if (!isOpen || !targetItem) return null;
 
-
   return (
     <Modal2
       title="Select Repair Item"
@@ -353,12 +348,14 @@ function RepairItemSelectionModal({
         </div>
         {repairItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            You don't have any repair items in your inventory.
+            You don&apos;t have any repair items in your inventory.
           </p>
         ) : (
           <div className="space-y-3">
             {repairItems.map((repairItem) => {
-              const repairEffect = repairItem.item.effects.find((e) => e.type === "repair");
+              const repairEffect = repairItem.item.effects.find(
+                (e) => e.type === "repair",
+              );
               const repairAmount = Math.floor(repairEffect?.power || 0);
               const newDurability = Math.min(
                 targetItem.durability + repairAmount,
@@ -402,7 +399,8 @@ function RepairItemSelectionModal({
                             +{actualRepair} Durability
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {targetItem.durability} → {newDurability} / {targetItem.item.maxDurability}
+                            {targetItem.durability} → {newDurability} /{" "}
+                            {targetItem.item.maxDurability}
                           </p>
                         </>
                       )}
@@ -542,18 +540,18 @@ const Backpack: React.FC<BackpackProps> = (props) => {
     onSettled,
   });
 
-
-  const { mutate: splitStack, isPending: isSplitting } = api.item.splitStack.useMutation({
-    onSuccess: async (data) => {
-      showMutationToast(data);
-      if (data.success) {
-        await utils.item.getUserItems.invalidate();
-        setIsSplitDialogOpen(false);
-        setQuantityToKeep("");
-      }
-    },
-    onSettled,
-  });
+  const { mutate: splitStack, isPending: isSplitting } =
+    api.item.splitStack.useMutation({
+      onSuccess: async (data) => {
+        showMutationToast(data);
+        if (data.success) {
+          await utils.item.getUserItems.invalidate();
+          setIsSplitDialogOpen(false);
+          setQuantityToKeep("");
+        }
+      },
+      onSettled,
+    });
 
   const { mutate: mutateRepairItem, isPending: isUsingRepairItem } =
     api.item.useRepairItem.useMutation({
@@ -570,7 +568,12 @@ const Backpack: React.FC<BackpackProps> = (props) => {
   // Derived
   const structures = userData?.village?.structures;
   const isLoading =
-    isMerging || isConsuming || isSelling || isEquipping || isSplitting || isUsingRepairItem;
+    isMerging ||
+    isConsuming ||
+    isSelling ||
+    isEquipping ||
+    isSplitting ||
+    isUsingRepairItem;
   const items = useritems?.map((useritem) => ({ ...useritem.item, ...useritem }));
   const sellPrice = calcItemSellingPrice(userData, useritem, structures);
   const repairItems = (useritems || []).filter(
@@ -719,8 +722,8 @@ const Backpack: React.FC<BackpackProps> = (props) => {
             <DialogHeader>
               <DialogTitle>Split Stack</DialogTitle>
               <DialogDescription>
-                How many items do you want to keep in this stack? The rest will be moved to a
-                new stack.
+                How many items do you want to keep in this stack? The rest will be moved
+                to a new stack.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -856,7 +859,6 @@ const Character: React.FC<CharacterProps> = (props) => {
         }
       },
     });
-
 
   // Placement of equip boxes
   const l = "left-[10%] ";

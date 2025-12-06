@@ -808,7 +808,8 @@ const Sector: React.FC<SectorProps> = (props) => {
             return true;
           });
       };
-      renderer.domElement.addEventListener("click", onClick, true);
+      const rendererElement = renderer.domElement;
+      rendererElement.addEventListener("click", onClick, true);
 
       // Render the image
       let lastTime = Date.now();
@@ -903,6 +904,7 @@ const Sector: React.FC<SectorProps> = (props) => {
         document.removeEventListener("keydown", onDocumentKeyDown, false);
         sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
         controls.removeEventListener("change", onZoomChange);
+        rendererElement.removeEventListener("click", onClick, true);
         cleanUp(scene, renderer);
         performanceMonitor.cancelFrame(animationId);
         if (sceneRef.contains(renderer.domElement)) {

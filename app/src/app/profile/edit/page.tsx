@@ -58,7 +58,6 @@ import { useUserSearch } from "@/utils/search";
 import { showMutationToast } from "@/libs/toast";
 import Countdown from "@/layout/Countdown";
 import { secondsFromNow, secondsFromDate, DAY_S } from "@/utils/time";
-import { getTimeLeftStr, getDaysHoursMinutesSeconds } from "@/utils/time";
 import { COST_CHANGE_USERNAME } from "@/drizzle/constants";
 import { COST_CUSTOM_TITLE } from "@/drizzle/constants";
 import { COST_RESET_STATS } from "@/drizzle/constants";
@@ -1041,7 +1040,12 @@ const SwapBloodline: React.FC = () => {
 
   // Calculate when free swap resets (30 days from oldest free swap)
   const getFreeSwapResetTime = () => {
-    if (!swapInfo?.recentSwaps || swapInfo.recentSwaps.length === 0 || !hasFreeSwapEligibility) return null;
+    if (
+      !swapInfo?.recentSwaps ||
+      swapInfo.recentSwaps.length === 0 ||
+      !hasFreeSwapEligibility
+    )
+      return null;
 
     const oldestFreeSwap = swapInfo.recentSwaps.sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -1064,7 +1068,8 @@ const SwapBloodline: React.FC = () => {
   const hasAvailableSwaps = bloodlines && bloodlines.length > 0;
   const isDisabled = !hasAvailableSwaps;
   const isFreeSwap = hasFreeSwapAvailable;
-  const canAfford = isFreeSwap || (userData && userData.reputationPoints >= COST_SWAP_BLOODLINE);
+  const canAfford =
+    isFreeSwap || (userData && userData.reputationPoints >= COST_SWAP_BLOODLINE);
 
   // Show component
   return (
@@ -1074,10 +1079,12 @@ const SwapBloodline: React.FC = () => {
         <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 mb-4">
           <div className="text-center space-y-2">
             <p className="text-sm text-muted-foreground">
-              You have used your free bloodline swap. You must wait for the {BLOODLINE_SWAP_FREE_DAYS}-day reset or pay reputation points.
+              You have used your free bloodline swap. You must wait for the{" "}
+              {BLOODLINE_SWAP_FREE_DAYS}-day reset or pay reputation points.
             </p>
             <p className="text-lg font-semibold">
-              Next free bloodline swap available: <Countdown targetDate={freeSwapResetTime} />
+              Next free bloodline swap available:{" "}
+              <Countdown targetDate={freeSwapResetTime} />
             </p>
           </div>
         </div>
@@ -2101,8 +2108,12 @@ const ResetSkills: React.FC = () => {
 
   // Calculate when skill resets reset (monthly - 1st of next month)
   const now = new Date();
-  const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
-  const secondsUntilNextMonth = Math.floor((nextMonth.getTime() - now.getTime()) / 1000);
+  const nextMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
+  );
+  const secondsUntilNextMonth = Math.floor(
+    (nextMonth.getTime() - now.getTime()) / 1000,
+  );
   const skillResetResetTime = secondsFromNow(secondsUntilNextMonth);
 
   return (
@@ -2113,10 +2124,12 @@ const ResetSkills: React.FC = () => {
           <div className="text-center space-y-2">
             <p className="text-sm text-muted-foreground">
               You have used {resetInfo.freeResetsUsed} free skill resets this month.
-              {resetInfo.freeResetsRemaining === 0 && " You must wait for monthly reset or pay reputation points."}
+              {resetInfo.freeResetsRemaining === 0 &&
+                " You must wait for monthly reset or pay reputation points."}
             </p>
             <p className="text-lg font-semibold">
-              Next free skill reset available: <Countdown targetDate={skillResetResetTime} />
+              Next free skill reset available:{" "}
+              <Countdown targetDate={skillResetResetTime} />
             </p>
           </div>
         </div>

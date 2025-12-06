@@ -126,7 +126,10 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
                   setIsOpen={() => setModalOpen(false)}
                   isOpen={modalOpen}
                 >
-                  <div dangerouslySetInnerHTML={{ __html: objective.description }} />
+                  <div
+                    // eslint-disable-next-line @eslint-react/dom/no-dangerously-set-innerhtml
+                    dangerouslySetInnerHTML={{ __html: objective.description }}
+                  />
                 </Modal2>
               )}
             </>

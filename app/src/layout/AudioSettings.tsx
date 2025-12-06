@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, createContext, useContext, type ReactNode } from "react";
+import { useEffect, useState, createContext, use, type ReactNode } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
@@ -104,14 +104,14 @@ export const GlobalAudioProvider: React.FC<{
     requiresInteraction,
   };
 
-  return <AudioContext.Provider value={contextValue}>{children}</AudioContext.Provider>;
+  return <AudioContext value={contextValue}>{children}</AudioContext>;
 };
 
 /**
  * Hook to access the global audio instance
  */
 const useGlobalAudio = () => {
-  const context = useContext(AudioContext);
+  const context = use(AudioContext);
   if (!context) {
     throw new Error("useGlobalAudio must be used within GlobalAudioProvider");
   }

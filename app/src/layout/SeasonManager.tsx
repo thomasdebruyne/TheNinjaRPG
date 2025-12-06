@@ -84,44 +84,6 @@ export function SeasonManager() {
 
   const selectedSeason = seasons?.find((s) => s.id === selectedSeasonId);
 
-  // Helper to determine season status badge
-  const SeasonStatusBadge = ({
-    season,
-  }: {
-    season: NonNullable<typeof seasons>[number];
-  }) => {
-    const now = new Date();
-    const start = new Date(season.startDate);
-    const end = new Date(season.endDate);
-
-    if (season.paused) {
-      return (
-        <Badge className="shrink-0" variant="destructive">
-          Paused
-        </Badge>
-      );
-    }
-
-    if (start <= now && now <= end) {
-      return (
-        <Badge className="shrink-0" variant="default">
-          Active
-        </Badge>
-      );
-    }
-
-    if (end < now) {
-      return (
-        <Badge className="shrink-0" variant="secondary">
-          Completed
-        </Badge>
-      );
-    }
-
-    // Upcoming seasons – no badge for now
-    return null;
-  };
-
   const now = new Date();
 
   const isSeasonActive = selectedSeason
@@ -307,3 +269,44 @@ export function SeasonManager() {
     </div>
   );
 }
+
+interface SeasonStatusBadgeProps {
+  season: {
+    paused: boolean;
+    startDate: Date;
+    endDate: Date;
+  };
+}
+
+const SeasonStatusBadge: React.FC<SeasonStatusBadgeProps> = ({ season }) => {
+  const now = new Date();
+  const start = new Date(season.startDate);
+  const end = new Date(season.endDate);
+
+  if (season.paused) {
+    return (
+      <Badge className="shrink-0" variant="destructive">
+        Paused
+      </Badge>
+    );
+  }
+
+  if (start <= now && now <= end) {
+    return (
+      <Badge className="shrink-0" variant="default">
+        Active
+      </Badge>
+    );
+  }
+
+  if (end < now) {
+    return (
+      <Badge className="shrink-0" variant="secondary">
+        Completed
+      </Badge>
+    );
+  }
+
+  // Upcoming seasons – no badge for now
+  return null;
+};

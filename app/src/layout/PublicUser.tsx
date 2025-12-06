@@ -900,7 +900,10 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                       <Waypoints className="h-5 w-5 mr-2" /> Show Battle Graph
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="min-w-[99%] min-h-[99%]">
+                  <DialogContent
+                    className="min-w-[99%] min-h-[99%]"
+                    aria-describedby="pvp-overview"
+                  >
                     <DialogHeader>
                       <DialogTitle>
                         PvP Overview (Top Sampled Fights, Not all included)

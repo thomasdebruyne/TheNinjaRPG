@@ -224,20 +224,13 @@ export const updateWindAnimation = (group: Group, time: number) => {
 export const updateWaveAnimation = (group: Group, time: number) => {
   if (!WAVE_CONFIG.enabled) return;
 
-  let updatedCount = 0;
-  let totalMeshes = 0;
-  let oceanMeshes = 0;
-
   group.traverse((object) => {
     if (object instanceof Mesh) {
-      totalMeshes++;
       if (object.userData?.tile?.asset === "ocean") {
-        oceanMeshes++;
         const material = object.material as MeshBasicMaterial;
         const shader = material.userData?.shader;
         if (shader?.uniforms?.time) {
           shader.uniforms.time.value = time;
-          updatedCount++;
         } else if (time < 0.1) {
           console.log("Ocean mesh found but no shader:", object.userData.tile);
         }

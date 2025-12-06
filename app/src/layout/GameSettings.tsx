@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, createContext, useContext, type ReactNode } from "react";
+import { useEffect, useState, createContext, use, type ReactNode } from "react";
 import { Volume2, VolumeX, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
@@ -105,14 +105,14 @@ export const GlobalAudioProvider: React.FC<{
     requiresInteraction,
   };
 
-  return <AudioContext.Provider value={contextValue}>{children}</AudioContext.Provider>;
+  return <AudioContext value={contextValue}>{children}</AudioContext>;
 };
 
 /**
  * Hook to access the global audio instance
  */
 const useGlobalAudio = () => {
-  const context = useContext(AudioContext);
+  const context = use(AudioContext);
   if (!context) {
     throw new Error("useGlobalAudio must be used within GlobalAudioProvider");
   }
@@ -228,7 +228,7 @@ const GameSettingsContent: React.FC<GameSettingsContentProps> = ({
   } = useGameSettings(userData);
 
   // Track initial lightLayout value to detect changes
-  const [initialLightLayout, setInitialLightLayout] = useState<boolean>(lightLayout);
+  const [initialLightLayout] = useState<boolean>(lightLayout);
   const [lightLayoutChanged, setLightLayoutChanged] = useState(false);
 
   // Update tracking when lightLayout changes

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Loader from "@/layout/Loader";
 import ContentBox from "@/layout/ContentBox";
@@ -15,6 +15,7 @@ export const CookieConsentSkeleton: React.FC = () => {
 
 export default function CookieConsent() {
   const [isLoading, setIsLoading] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Create container div
@@ -44,7 +45,7 @@ export default function CookieConsent() {
     const observer = new MutationObserver((mutationList, observer) => {
       if (hasMeaningfulContent()) {
         // Add a small delay to ensure content is fully rendered
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           containerDiv.style.opacity = "1";
           setIsLoading(false);
           observer.disconnect();
@@ -66,6 +67,9 @@ export default function CookieConsent() {
     // Cleanup
     return () => {
       observer.disconnect();
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 

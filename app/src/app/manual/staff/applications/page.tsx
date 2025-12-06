@@ -36,7 +36,7 @@ export default function ApplicationsPage() {
   );
   const apps = appsPages?.pages.map((p) => p.data).flat();
   useInfinitePagination({ fetchNextPage, hasNextPage, lastElement });
-  const utils = api.useContext();
+  const utils = api.useUtils();
   const deleteMutation = api.applications.delete.useMutation({
     onSuccess: async () => {
       // Invalidate the exact list query with current filters for precision
@@ -79,14 +79,26 @@ export default function ApplicationsPage() {
         ? `${a.motivation?.slice(0, 140)}…`
         : a.motivation || "",
     // Human-friendly vote text for table
-    myVote: a.myVote ? (a.myVote === "APPROVED" ? "Approved" : "Rejected") : "Not voted",
+    myVote: a.myVote
+      ? a.myVote === "APPROVED"
+        ? "Approved"
+        : "Rejected"
+      : "Not voted",
     // Actions: delete button for CODING_ADMIN
     actions: (
       <div>
         {me && canDeleteStaffApplication(me.role) && (
           <Confirm2
             title="Confirm delete"
-            button={<Button variant="destructive" size="sm" loading={deleteMutation.isPending}>Delete</Button>}
+            button={
+              <Button
+                variant="destructive"
+                size="sm"
+                loading={deleteMutation.isPending}
+              >
+                Delete
+              </Button>
+            }
             confirmClassName="bg-red-600 text-white hover:bg-red-700"
             disabled={deleteMutation.isPending}
             onAccept={async (e) => {
@@ -95,7 +107,6 @@ export default function ApplicationsPage() {
               try {
                 await deleteMutation.mutateAsync({ id: a.id });
               } catch (err) {
-                // eslint-disable-next-line no-console
                 console.error(err);
                 alert("Failed to delete application");
               }

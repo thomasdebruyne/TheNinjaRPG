@@ -2,7 +2,7 @@ import { z } from "zod";
 import { calculateContentDiff } from "@/utils/diff";
 import { useForm, useWatch } from "react-hook-form";
 import Image from "next/image";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { Fragment, useEffect, useState, useMemo } from "react";
 import ContentImageSelector from "@/layout/ContentImageSelector";
 import RichInput from "@/layout/RichInput";
 import { Label } from "@/components/ui/label";
@@ -509,10 +509,9 @@ export const EditContent = <
 
             // Render
             return (
-              <>
+              <Fragment key={`formEntry-${id}`}>
                 {includeSpacer && <div key={`spacer-${id}`} />}
                 <div
-                  key={`formEntry-${id}`}
                   className={cn(
                     "p-2",
                     ["avatar", "avatar3d"].includes(type) ? "row-span-5" : "",
@@ -1346,7 +1345,7 @@ export const EditContent = <
                     />
                   ) : null}
                 </div>
-              </>
+              </Fragment>
             );
           })}
         {showSubmit && props.onAccept && (

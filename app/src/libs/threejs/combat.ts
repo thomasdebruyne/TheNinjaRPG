@@ -7,9 +7,9 @@ import {
   Mesh,
   SpriteMaterial,
   Sprite,
-  Texture,
   Line,
   type BufferGeometry,
+  type Texture,
 } from "three";
 import { loadTexture, createTexture } from "@/libs/threejs/util";
 import { playPreloadedAudio } from "@/utils/audio";
@@ -39,7 +39,8 @@ import {
   mergeBufferGeometries,
 } from "@/libs/threejs/hexgrid";
 import { createNoise2D } from "simplex-noise";
-import { Grid, ring } from "honeycomb-grid";
+import { ring } from "honeycomb-grid";
+import type { Grid } from "honeycomb-grid";
 import {
   IMG_SECTOR_USER_MARKER,
   IMG_SECTOR_USER_SPRITE_MASK,
@@ -163,8 +164,8 @@ export const drawCombatBackground = (
         tile.row >= COMBAT_BORDER_BOTTOM &&
         tile.row < battle.height - COMBAT_BORDER_TOP;
 
-      // Get tile info (material, dirt, sprites)
-      const { material, dirt, sprites, asset } = getTileInfo(
+      // Get tile info (material, sprites)
+      const { material, sprites, asset } = getTileInfo(
         prng,
         tile,
         battle.background,
@@ -1515,7 +1516,7 @@ export const highlightTileTooltips = (info: {
   mouseY?: number;
 }) => {
   // Definitions
-  const { group_tiles, battle, currentTileTooltips } = info;
+  const { battle, currentTileTooltips } = info;
   const battleTileIntersects = info.cachedIntersections.battleTiles;
   const newTooltips = new Set<string>();
 

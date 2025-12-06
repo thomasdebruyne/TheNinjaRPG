@@ -9,10 +9,10 @@ import { checkFriendlyFire } from "./process";
 import {
   KAGE_PRESTIGE_COST,
   FRIENDLY_PRESTIGE_COST,
-  BattleType,
   MAP_WAR_TORN_BATTLEGROUND_SECTOR,
   WAR_TORN_SECTOR_BASE_MONEY,
 } from "@/drizzle/constants";
+import type { BattleType } from "@/drizzle/constants";
 import { KAGE_CHALLENGE_WIN_PRESTIGE } from "@/drizzle/constants";
 import { CLAN_BATTLE_REWARD_POINTS } from "@/drizzle/constants";
 import { USER_CAPS } from "@/drizzle/constants";

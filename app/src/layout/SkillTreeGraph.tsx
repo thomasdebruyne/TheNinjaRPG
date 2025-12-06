@@ -682,6 +682,7 @@ export default function SkillTreeGraph({
 
               <div
                 className="text-sm text-gray-600"
+                // eslint-disable-next-line @eslint-react/dom/no-dangerously-set-innerhtml
                 dangerouslySetInnerHTML={{ __html: selectedSkill.description }}
               />
 

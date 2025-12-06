@@ -1,9 +1,9 @@
 "use client";
 
-import { forwardRef, useMemo, useState } from "react";
+import * as React from "react";
+import { useMemo, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { cn } from "src/libs/shadui";
-import { useForwardedRef } from "@/hooks/use-forwarded-ref";
 import type { ButtonProps } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,13 +13,19 @@ interface ColorPickerProps {
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
+  ref?: React.Ref<HTMLInputElement>;
 }
 
-const ColorPicker = forwardRef<
-  HTMLInputElement,
-  Omit<ButtonProps, "value" | "onChange" | "onBlur"> & ColorPickerProps
->(({ disabled, value, onChange, onBlur, name, className, ...props }, forwardedRef) => {
-  const ref = useForwardedRef(forwardedRef);
+const ColorPicker = ({
+  ref,
+  disabled,
+  value,
+  onChange,
+  onBlur,
+  name,
+  className,
+  ...props
+}: Omit<ButtonProps, "value" | "onChange" | "onBlur"> & ColorPickerProps) => {
   const [open, setOpen] = useState(false);
 
   const parsedValue = useMemo(() => {
@@ -58,7 +64,7 @@ const ColorPicker = forwardRef<
       </PopoverContent>
     </Popover>
   );
-});
+};
 ColorPicker.displayName = "ColorPicker";
 
 export { ColorPicker };

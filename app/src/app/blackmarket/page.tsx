@@ -171,8 +171,8 @@ const PityBloodlineRoll: React.FC<{ userData: NonNullable<UserWithRelations> }> 
       ...entry,
       currentPool: (
         <div>
-          {bloodlinePool.map((b, i) => (
-            <div key={`${entry.goal}-${i}-pool`}>{b.name}</div>
+          {bloodlinePool.map((b) => (
+            <div key={`${entry.goal}-${b.id}-pool`}>{b.name}</div>
           ))}
         </div>
       ),

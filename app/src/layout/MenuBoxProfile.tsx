@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import StatusBar from "@/layout/StatusBar";
@@ -90,7 +90,7 @@ const MenuBoxProfile: React.FC = () => {
   // State
   const { data: userData, timeDiff } = useUserData();
   const [, setState] = useState<number>(0);
-  const [gameTime, setGameTime] = useState<string>(getGameTime());
+  const [gameTime, setGameTime] = useState<string>(() => getGameTime());
   const battle = useAtomValue(userBattleAtom);
   const utils = api.useUtils();
   const state = useFiltering();
@@ -114,11 +114,16 @@ const MenuBoxProfile: React.FC = () => {
   // Get location of user
   const { location } = useGameMenu(userData);
 
-  // Derived data
-  const immunitySecsLeft =
-    (userData?.immunityUntil &&
-      (userData.immunityUntil.getTime() - Date.now()) / 1000) ||
-    0;
+  // Derived data - memoize to avoid creating new Date.now() on every render
+  const immunityData = useMemo(() => {
+    const now = Date.now();
+    const secsLeft =
+      (userData?.immunityUntil && (userData.immunityUntil.getTime() - now) / 1000) || 0;
+    return { createdAt: now, secsLeft };
+    // Only recalculate when immunityUntil changes
+  }, [userData?.immunityUntil]);
+
+  const immunitySecsLeft = immunityData.secsLeft;
 
   // Battle user state
   const battleUser = battle?.usersState.find((u) => u.userId === userData?.userId);
@@ -288,7 +293,7 @@ const MenuBoxProfile: React.FC = () => {
                   <div className="flex flex-row items-center">
                     <ShieldCheck className="h-6 w-6 mr-2" />
                     <Cooldown
-                      createdAt={Date.now()}
+                      createdAt={immunityData.createdAt}
                       totalSeconds={immunitySecsLeft}
                       initialSecondsLeft={immunitySecsLeft}
                       setState={setState}
@@ -428,7 +433,16 @@ interface CooldownProps {
  */
 const Cooldown: React.FC<CooldownProps> = (props) => {
   const { createdAt, totalSeconds, initialSecondsLeft, setState } = props;
-  const [counter, setCounter] = useState<string>(getTimeStr(initialSecondsLeft * 1000));
+  const [counter, setCounter] = useState<string>(() =>
+    getTimeStr(initialSecondsLeft * 1000),
+  );
+  // Track if we've already notified parent that countdown finished
+  const hasNotifiedRef = React.useRef(false);
+
+  useEffect(() => {
+    // Reset notification flag when countdown restarts
+    hasNotifiedRef.current = false;
+  }, [createdAt, totalSeconds]);
 
   useEffect(() => {
     if (totalSeconds) {
@@ -440,7 +454,9 @@ const Cooldown: React.FC<CooldownProps> = (props) => {
         }, 1000);
         return () => clearInterval(interval);
       } else {
-        if (initialSecondsLeft > 0) {
+        // Only notify parent once to prevent infinite loop
+        if (initialSecondsLeft > 0 && !hasNotifiedRef.current) {
+          hasNotifiedRef.current = true;
           setState((prev) => prev + 1);
         }
         setCounter(`Done`);
@@ -684,7 +700,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
       e.calculation === "percentage" &&
       e.targetId === userId &&
       isEffectActive(e) &&
-      !sealCheck(e, sealEffects)
+      !sealCheck(e, sealEffects),
   );
   const increaseHealEffects = filteredEffects.filter(
     (e) =>
@@ -692,7 +708,7 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
       e.calculation === "percentage" &&
       e.targetId === userId &&
       isEffectActive(e) &&
-      !sealCheck(e, sealEffects)
+      !sealCheck(e, sealEffects),
   );
 
   let healGivenEffects: CollapsedEffect[] = [];

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback } from "react";
+import React, { useMemo, useRef, useCallback, useEffect } from "react";
 import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,10 @@ import CytoscapeComponent from "react-cytoscapejs";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import edgehandles from "cytoscape-edgehandles";
 import type { z } from "zod";
+
+// Register edgehandles extension once globally
+// eslint-disable-next-line react-hooks/rules-of-hooks
+Cytoscape.use(edgehandles);
 
 interface GraphUsersGenericProps {
   hideDefault?: boolean;
@@ -23,10 +27,32 @@ const GraphUsersGeneric: React.FC<GraphUsersGenericProps> = (props) => {
   // State
   const localTheme = localStorage.getItem("theme");
   const cy = useRef<Cytoscape.Core | null>(null);
+  const isMounted = useRef(true);
   const color = localTheme === "dark" ? "white" : "black";
 
+  // Cleanup cytoscape instance on unmount to prevent touch event race conditions
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (cy.current) {
+        // Remove all listeners and destroy to prevent events firing on unmounted component
+        cy.current.removeAllListeners();
+        cy.current.destroy();
+        cy.current = null;
+      }
+    };
+  }, []);
+
   // Set Cytoscape
-  const setCytoscape = useCallback((ref: cytoscape.Core) => (cy.current = ref), [cy]);
+  const setCytoscape = useCallback(
+    (ref: cytoscape.Core) => {
+      if (isMounted.current && ref) {
+        cy.current = ref;
+      }
+    },
+    [cy],
+  );
 
   // User Searching
   const userSearchSchema = getSearchValidator({ max: 10 });
@@ -73,9 +99,6 @@ const GraphUsersGeneric: React.FC<GraphUsersGenericProps> = (props) => {
       })),
   ];
 
-  // register controller in chart.js and ensure the defaults are set
-  Cytoscape.use(edgehandles);
-
   // Memo
   const graph = useMemo(() => {
     return (
@@ -85,10 +108,7 @@ const GraphUsersGeneric: React.FC<GraphUsersGenericProps> = (props) => {
           cy={setCytoscape}
           layout={{
             name: "cose",
-            idealEdgeLength: (edge) => {
-              // eslint-disable-next-line
-              return edge.data().weight;
-            },
+            idealEdgeLength: (edge) => edge.data().weight as number,
             nodeOverlap: 20,
             refresh: 20,
             fit: true,
@@ -96,10 +116,7 @@ const GraphUsersGeneric: React.FC<GraphUsersGenericProps> = (props) => {
             randomize: true,
             componentSpacing: 100,
             nodeRepulsion: () => 400000,
-            edgeElasticity: (edge) => {
-              // eslint-disable-next-line
-              return edge.data().weight;
-            },
+            edgeElasticity: (edge) => edge.data().weight as number,
             nestingFactor: 5,
             gravity: 80,
             numIter: 1000,
@@ -126,21 +143,19 @@ const GraphUsersGeneric: React.FC<GraphUsersGenericProps> = (props) => {
             },
             {
               selector: "edge[label]",
-              // eslint-disable-next-line
               style: {
                 label: "data(label)",
                 width: 3,
-                edgeTextRotation: "autorotate",
-                fontSize: 8,
+                "edge-text-rotation": "autorotate",
+                "font-size": 8,
                 color: color,
-              } as any,
+              },
             },
             {
               selector: "node[label]",
-              // eslint-disable-next-line
               style: {
                 label: "data(label)",
-                fontSize: 8,
+                "font-size": 8,
                 color: color,
               } as any,
             },

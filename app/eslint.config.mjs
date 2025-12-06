@@ -1,47 +1,45 @@
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import nextVitals from "eslint-config-next/core-web-vitals";
 import drizzle from "eslint-plugin-drizzle";
+import eslintReact from "@eslint-react/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
 
 const config = [
   {
-    ignores: ["**/*.js", "**/*.jsx"],
+    ignores: [
+      "**/*.js",
+      "**/*.jsx",
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+      "node_modules/**",
+    ],
   },
-  ...compat.extends(
-    "next/core-web-vitals",
-    "plugin:@typescript-eslint/recommended-type-checked",
-    "plugin:@typescript-eslint/stylistic-type-checked",
-  ),
+  ...nextVitals,
   {
+    files: ["**/*.ts", "**/*.tsx"],
+    ...eslintReact.configs["recommended-typescript"],
     plugins: {
-      "@typescript-eslint": typescriptEslint,
+      ...eslintReact.configs["recommended-typescript"].plugins,
       drizzle,
     },
-
     languageOptions: {
       parser: tsParser,
-      ecmaVersion: 5,
-      sourceType: "script",
-
       parserOptions: {
         project: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
-
     rules: {
+      ...eslintReact.configs["recommended-typescript"].rules,
+
+      // React hooks rules
+      "@eslint-react/hooks-extra/no-direct-set-state-in-use-effect": "off",
+      "@eslint-react/naming-convention/use-state": "off",
+      "@eslint-react/no-array-index-key": "off",
+
+      // TypeScript rules - these extend the nextVitals config which includes typescript-eslint
       "@typescript-eslint/array-type": "off",
-      "@typescript-eslint/no-var": "off",
       "@typescript-eslint/prefer-nullish-coalescing": "off",
       "@typescript-eslint/only-throw-error": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
@@ -74,6 +72,7 @@ const config = [
         },
       ],
 
+      // Drizzle rules
       "drizzle/enforce-delete-with-where": [
         "error",
         {

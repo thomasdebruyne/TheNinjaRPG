@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { nanoid } from "nanoid";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -76,7 +76,7 @@ const Conversation: React.FC<ConversationProps> = (props) => {
   const [lastElement, setLastElement] = useState<HTMLDivElement | null>(null);
   const [editorKey, setEditorKey] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [quietTime, setQuietTime] = useState<Date>(
+  const [quietTime, setQuietTime] = useState<Date>(() =>
     secondsFromNow(CONVERSATION_QUIET_MINS * 60),
   );
   const silence = new Date() > quietTime;
@@ -119,86 +119,92 @@ const Conversation: React.FC<ConversationProps> = (props) => {
     defaultValues: { searchTerm: "" },
   });
 
-  const onSearchSubmit = (values: z.infer<typeof searchFormSchema>) => {
-    setSearchQuery(values.searchTerm);
-    void refetch();
-  };
+  const onSearchSubmit = useCallback(
+    (values: z.infer<typeof searchFormSchema>) => {
+      setSearchQuery(values.searchTerm);
+      void refetch();
+    },
+    [refetch],
+  );
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchQuery("");
     searchForm.reset({ searchTerm: "" });
     void refetch();
-  };
+  }, [searchForm, refetch]);
 
-  // Create search button component
-  const SearchButton = () => (
-    <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="ml-2"
-          aria-label="Search messages"
-        >
-          <Search className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <Form {...searchForm}>
-          <form
-            onSubmit={searchForm.handleSubmit(onSearchSubmit)}
-            className="flex flex-col gap-2"
+  // Create search button element
+  const searchButtonElement = useMemo(
+    () => (
+      <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="ml-2"
+            aria-label="Search messages"
           >
-            <div className="text-sm font-medium">Search in conversation</div>
-            <FormField
-              control={searchForm.control}
-              name="searchTerm"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <FormControl>
-                      <Input
-                        placeholder="Search for messages..."
-                        {...field}
-                        className="flex-1"
-                        autoComplete="off"
-                        onFocus={(e) => {
-                          // Prevent automatic selection of text on focus
-                          const target = e.target;
-                          const length = target.value.length;
-                          setTimeout(() => {
-                            target.setSelectionRange(length, length);
-                          }, 0);
-                        }}
-                      />
-                    </FormControl>
-                    {searchQuery && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={clearSearch}
-                        className="h-8 w-8"
-                      >
-                        <X className="h-4 w-4" />
+            <Search className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <Form {...searchForm}>
+            <form
+              onSubmit={searchForm.handleSubmit(onSearchSubmit)}
+              className="flex flex-col gap-2"
+            >
+              <div className="text-sm font-medium">Search in conversation</div>
+              <FormField
+                control={searchForm.control}
+                name="searchTerm"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input
+                          placeholder="Search for messages..."
+                          {...field}
+                          className="flex-1"
+                          autoComplete="off"
+                          onFocus={(e) => {
+                            // Prevent automatic selection of text on focus
+                            const target = e.target;
+                            const length = target.value.length;
+                            setTimeout(() => {
+                              target.setSelectionRange(length, length);
+                            }, 0);
+                          }}
+                        />
+                      </FormControl>
+                      {searchQuery && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={clearSearch}
+                          className="h-8 w-8"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button type="submit" size="sm">
+                        Search
                       </Button>
-                    )}
-                    <Button type="submit" size="sm">
-                      Search
-                    </Button>
-                  </div>
-                </FormItem>
-              )}
-            />
-          </form>
-        </Form>
-        {searchQuery && (
-          <div className="text-xs text-muted-foreground mt-1">
-            Showing results for: <span className="font-medium">{searchQuery}</span>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+          {searchQuery && (
+            <div className="text-xs text-muted-foreground mt-1">
+              Showing results for: <span className="font-medium">{searchQuery}</span>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+    ),
+    [isSearchOpen, searchForm, searchQuery, clearSearch, onSearchSubmit],
   );
 
   /**
@@ -543,7 +549,7 @@ const Conversation: React.FC<ConversationProps> = (props) => {
           initialBreak={props.initialBreak}
           topRightContent={
             <div className="flex items-center gap-1">
-              <SearchButton />
+              {searchButtonElement}
               {props.topRightContent}
             </div>
           }

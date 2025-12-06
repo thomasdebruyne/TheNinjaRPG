@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocalStorage } from "@/hooks/localstorage";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import UserSearchSelect from "@/layout/UserSearchSelect";
@@ -146,11 +146,11 @@ export default function Arena() {
           </div>
         }
       >
-        {tab === "Arena" && <ChallengeAI aiId={aiId} />}
-        {tab === "Sparring" && <ChallengeUser />}
-        {tab === "PVP Rank" && <RankedArenaMain />}
+        {tab === "Arena" && <ChallengeAI key="challenge-ai" aiId={aiId} />}
+        {tab === "Sparring" && <ChallengeUser key="challenge-user" />}
+        {tab === "PVP Rank" && <RankedArenaMain key="ranked-arena" />}
         {tab === "Training" && (
-          <div className="flex flex-col items-center">
+          <div key="training-info" className="flex flex-col items-center">
             <p className="m-2">
               The arena is a fairly basic circular and raw battleground, where you can
               train your skills as a ninja. Opponent is an invicible training dummy who
@@ -158,19 +158,21 @@ export default function Arena() {
             </p>
           </div>
         )}
-        {tab === "Battle Pyramid" && <BattlePyramid />}
+        {tab === "Battle Pyramid" && <BattlePyramid key="battle-pyramid" />}
       </ContentBox>
-      {tab === "Arena" && <SelectAI aiId={aiId} setAiId={setAiId} />}
-      {tab === "Sparring" && <ActiveChallenges />}
+      {tab === "Arena" && <SelectAI key="select-ai" aiId={aiId} setAiId={setAiId} />}
+      {tab === "Sparring" && <ActiveChallenges key="active-challenges" />}
       {tab === "Training" && (
         <AssignTrainingDummyStats
+          key="training-stats"
           statDistribution={statDistribution}
           setStatDistribution={setStatDistribution}
         />
       )}
-      {tab === "PVP Rank" && <RankedLoadoutSelector />}
+      {tab === "PVP Rank" && <RankedLoadoutSelector key="ranked-loadout" />}
       {tab === "Battle Pyramid" && (
         <QuestPicker
+          key="quest-picker"
           questType="battlepyramid"
           title="Battle Pyramids"
           subtitle="Select a tower to start"
@@ -200,14 +202,20 @@ const SelectAI: React.FC<SelectAIProps> = (props) => {
     { enabled: !!aiId },
   );
 
-  const sortedAis = aiData
-    ?.filter((ai) => !ai.isSummon && ai.inArena)
-    .sort((a, b) => {
-      if (userData?.level) {
-        return Math.abs(a.level - userData.level) - Math.abs(b.level - userData.level);
-      }
-      return 1;
-    });
+  const sortedAis = useMemo(
+    () =>
+      aiData
+        ?.filter((ai) => !ai.isSummon && ai.inArena)
+        .sort((a, b) => {
+          if (userData?.level) {
+            return (
+              Math.abs(a.level - userData.level) - Math.abs(b.level - userData.level)
+            );
+          }
+          return 1;
+        }),
+    [aiData, userData?.level],
+  );
 
   // Set initially selected AI
   useEffect(() => {
@@ -217,7 +225,8 @@ const SelectAI: React.FC<SelectAIProps> = (props) => {
         setAiId(selectedAI.userId);
       }
     }
-  }, [userData, sortedAis, aiId, setAiId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData, sortedAis, aiId]);
 
   // Loaders
   if (!userData) return <Loader explanation="Loading userdata" />;
@@ -600,7 +609,7 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
               if (maxValue && maxValue > 0) {
                 return (
                   <FormField
-                    key={i}
+                    key={`${stat}-${i}`}
                     control={form.control}
                     name={stat}
                     render={({ field }) => (
@@ -616,7 +625,7 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
                 );
               } else {
                 return (
-                  <FormItem className="pt-1" key={i}>
+                  <FormItem className="pt-1" key={`${stat}-${i}`}>
                     <FormLabel>{stat}</FormLabel>
                     <FormControl>
                       <div>- Max</div>

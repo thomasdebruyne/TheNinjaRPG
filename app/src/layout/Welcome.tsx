@@ -16,12 +16,8 @@ import { IMG_FRONTPAGE_SCREENSHOT_VILLAGE } from "@/drizzle/constants";
 import { api } from "@/app/_trpc/client";
 import { useUser } from "@clerk/nextjs";
 import { cn } from "src/libs/shadui";
-import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 const Welcome: React.FC = () => {
-  // Install prompt control
-  const { showPrompt } = useInstallPrompt();
-
   // Snap container for full-height sections
   const backgroundClass = cn(
     "flex flex-col gap-4 snap-start snap-always flex justify-center",

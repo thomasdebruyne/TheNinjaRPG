@@ -104,7 +104,7 @@ export default function AdministrationBuilding() {
             const active = currentQuest && currentTracker;
 
             return (
-              <div key={i}>
+              <div key={`${quest.id}-${i}`}>
                 <Accordion
                   title={quest.name}
                   selectedTitle={activeElement}

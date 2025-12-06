@@ -294,11 +294,12 @@ export const useContentFiltering = <
   // Debounce per field (one timer per key)
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   useEffect(() => {
+    const timers = timersRef.current;
     for (const field of schema.fields) {
       const key = field.id as keyof ValuesFromSchema<F> & string;
-      const timer = timersRef.current[key];
+      const timer = timers[key];
       if (timer) clearTimeout(timer);
-      timersRef.current[key] = setTimeout(() => {
+      timers[key] = setTimeout(() => {
         setDebounced((prev) =>
           prev[key] === values[key]
             ? prev
@@ -306,6 +307,11 @@ export const useContentFiltering = <
         );
       }, DEBOUNCE_MS);
     }
+    return () => {
+      for (const key of Object.keys(timers)) {
+        clearTimeout(timers[key]);
+      }
+    };
   }, [schema.fields, values]);
 
   // Generate typed setters (stable across renders for the same schema)
@@ -354,11 +360,12 @@ export const useContentFiltering = <
   const excludedTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   useEffect(() => {
     if (!schema.exclusions) return;
+    const timers = excludedTimersRef.current;
     for (const cat of schema.exclusions) {
       const key = cat.key as keyof ExcludedFromSchema<E> & string;
-      const timer = excludedTimersRef.current[key];
+      const timer = timers[key];
       if (timer) clearTimeout(timer);
-      excludedTimersRef.current[key] = setTimeout(() => {
+      timers[key] = setTimeout(() => {
         setDebouncedExcluded((prev) => {
           const prevArr = (prev as Record<string, string[]>)[key] ?? [];
           const nextArr = (excluded as Record<string, string[]>)[key] ?? [];
@@ -367,6 +374,11 @@ export const useContentFiltering = <
         });
       }, DEBOUNCE_MS);
     }
+    return () => {
+      for (const key of Object.keys(timers)) {
+        clearTimeout(timers[key]);
+      }
+    };
   }, [schema.exclusions, excluded]);
 
   const setExcluded = useMemo(() => {
@@ -724,7 +736,7 @@ export const ContentFiltering = <
                 );
               case "single-select":
                 return (
-                  <div className={field.doubleWidth ? "col-span-2" : ""}>
+                  <div key={field.id} className={field.doubleWidth ? "col-span-2" : ""}>
                     <FilterSelect
                       key={field.id}
                       label={field.label}
