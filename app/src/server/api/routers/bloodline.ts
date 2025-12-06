@@ -37,7 +37,10 @@ import { validateUserUpdateReason } from "@/libs/moderator";
 import { filterRollableBloodlines, getPityRolls } from "@/libs/bloodline";
 import { LetterRanks, PITY_SYSTEM_ENABLED } from "@/drizzle/constants";
 import { COST_SWAP_BLOODLINE } from "@/drizzle/constants";
-import { BLOODLINE_SWAP_COOLDOWN_HOURS, BLOODLINE_SWAP_FREE_DAYS } from "@/drizzle/constants";
+import {
+  BLOODLINE_SWAP_COOLDOWN_HOURS,
+  BLOODLINE_SWAP_FREE_DAYS,
+} from "@/drizzle/constants";
 import { getUnique } from "@/utils/grouping";
 import { canSwapBloodline } from "@/utils/permissions";
 import { getUserFederalStatus } from "@/utils/paypal";
@@ -129,7 +132,13 @@ export const bloodlineRouter = createTRPCRouter({
       fetchMonthlyBloodlineSwaps(ctx.drizzle, ctx.userId),
     ]);
     // Guard
-    if (!user) return { isFree: false, freeSwapsUsed: 0, freeSwapsRemaining: 0, recentSwaps: [] };
+    if (!user)
+      return {
+        isFree: false,
+        freeSwapsUsed: 0,
+        freeSwapsRemaining: 0,
+        recentSwaps: [],
+      };
     // Derived
     const federalStatus = getUserFederalStatus(user);
     const freeSwaps = getFreeBloodlineSwaps(federalStatus);
@@ -204,12 +213,7 @@ export const bloodlineRouter = createTRPCRouter({
       // Update bloodline (this creates the "Bloodline Changed" log entry)
       const swapCost = isFreeSwap ? 0 : COST_SWAP_BLOODLINE;
       const swapMessage = `Bloodline Swapped from ${user.bloodline?.name} to ${line.name}`;
-      await updateBloodline(
-        ctx.drizzle,
-        user,
-        line,
-        swapCost,
-        swapMessage);
+      await updateBloodline(ctx.drizzle, user, line, swapCost, swapMessage);
 
       // Log the swap for monthly tracking (separate from the "Bloodline Changed" log)
       if (isFreeSwap) {
@@ -715,7 +719,7 @@ export const bloodlineRouter = createTRPCRouter({
         return { success: true, message: "Bloodline removed for free" };
       } else {
         if (user.reputationPoints < REMOVAL_COST) {
-          throw serverError("FORBIDDEN", "You do not have enough reputation points");
+          return errorResponse("You do not have enough reputation points");
         }
         await updateBloodline(
           ctx.drizzle,
@@ -743,7 +747,7 @@ export const bloodlineRouter = createTRPCRouter({
         return errorResponse("Already have bloodline, please remove first");
       }
       if (BLOODLINE_COST[line.rank] > user.reputationPoints) {
-        throw serverError("FORBIDDEN", "You do not have enough reputation points");
+        return errorResponse("You do not have enough reputation points");
       }
       if (line.villageId && line.villageId !== user.villageId) {
         return errorResponse("Bloodline does not belong to your village");
@@ -907,7 +911,10 @@ export const fetchUserHistoricBloodlines = async (
  * @param bloodlineId Bloodline ID
  * @returns Bloodline
  */
-export const fetchMonthlyBloodlineSwaps = async (client: DrizzleClient, userId: string) => {
+export const fetchMonthlyBloodlineSwaps = async (
+  client: DrizzleClient,
+  userId: string,
+) => {
   const results = await client.query.actionLog.findMany({
     where: and(
       eq(actionLog.userId, userId),
