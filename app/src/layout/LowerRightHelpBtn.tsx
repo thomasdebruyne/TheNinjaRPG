@@ -198,6 +198,7 @@ const LowerRightHelpBtn: React.FC<LowerRightHelpProps> = (props) => {
                   showCloseButton={false}
                   showHeader={false}
                   showFeedback={true}
+                  autoFocus={false}
                   className="h-full"
                 />
               </div>

@@ -34,6 +34,7 @@ export interface ChatBoxProps {
   showCloseButton?: boolean;
   showHeader?: boolean;
   showFeedback?: boolean;
+  autoFocus?: boolean;
   aiProps: {
     apiEndpoint: string;
     systemMessage?: string;
@@ -48,6 +49,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
   showCloseButton = true,
   showHeader = true,
   showFeedback = true,
+  autoFocus = true,
   aiProps,
   onToolCall,
 }) => {
@@ -234,6 +236,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                       disabled={isLoading}
                       onSubmit={handleSubmit}
                       error={form.formState.errors.message?.message}
+                      autoFocus={autoFocus}
                     />
                   </FormControl>
                   <FormMessage />

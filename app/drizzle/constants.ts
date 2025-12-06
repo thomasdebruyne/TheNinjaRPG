@@ -506,15 +506,14 @@ export const RetryQuestDelays = ["daily", "weekly", "monthly", "none"] as const;
 export type RetryQuestDelay = (typeof RetryQuestDelays)[number];
 
 export const QuestTypes = [
-  "mission",
-  "crime",
-  "event",
-  "exam",
   "starter",
-  "errand",
   "tier",
   "daily",
-  "achievement",
+  "mission",
+  "errand",
+  "crime",
+  "exam",
+  "event",
   "story",
   "anbu",
   "medical",
@@ -522,9 +521,23 @@ export const QuestTypes = [
   "gathering",
   "battlepyramid",
   "pvp",
+  "achievement",
 ] as const;
 export type QuestType = (typeof QuestTypes)[number];
 export const QUESTS_CONCURRENT_LIMIT = 4;
+
+// Ordering here represents the default ordering for tutorial component
+export const OrderedQuestTypesInTutorial: QuestType[] = [
+  "starter",
+  "tier",
+  "daily",
+  "mission",
+  "errand",
+  "crime",
+  "exam",
+  "event",
+  "story",
+] as const;
 
 // Quest reward metrics used in balance statistics and filters
 export const QuestRewardMetrics = [

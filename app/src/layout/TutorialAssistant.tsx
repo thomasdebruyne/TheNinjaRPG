@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { ArrowRight, Loader2, X, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, X, Sparkles, Settings2 } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   IMG_URL_ASSISTANT,
   IMG_URL_HANDPOINTER,
   IMG_URL_ASSISTANT_2,
+  OrderedQuestTypesInTutorial,
 } from "@/drizzle/constants";
 import {
   TUTORIAL_STEPS,
@@ -36,6 +37,11 @@ import type { UserQuest } from "@/drizzle/schema";
 import type { QuestTrackerType } from "@/validators/objectives";
 import { isQuestComplete } from "@/libs/objectives";
 import { Objective } from "@/layout/Objective";
+import { useLocalStorage } from "@/hooks/localstorage";
+import { SortableList } from "@/components/ui/sortable-list";
+import type { SortableItem } from "@/components/ui/sortable-list";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
+import type { QuestType } from "@/drizzle/constants";
 
 /**
  * Reusable assistant portrait with correct styling
@@ -71,6 +77,8 @@ const AssistantPortrait: React.FC<{ characterImage?: string }> = ({
  * @param children - The content of the dialog
  * @param onOpenDisableModal - Optional callback when close button is clicked
  * @param characterImage - Optional custom character image for the portrait
+ * @param onOpenOrderingDialog - Optional callback to open quest type ordering dialog
+ * @param showOrderingButton - Whether to show the ordering button
  * @returns
  */
 const AssistantDialog: React.FC<{
@@ -78,7 +86,16 @@ const AssistantDialog: React.FC<{
   children: React.ReactNode;
   onOpenDisableModal?: () => void;
   characterImage?: string;
-}> = ({ title, children, onOpenDisableModal, characterImage }) => (
+  onOpenOrderingDialog?: () => void;
+  showOrderingButton?: boolean;
+}> = ({
+  title,
+  children,
+  onOpenDisableModal,
+  characterImage,
+  onOpenOrderingDialog,
+  showOrderingButton,
+}) => (
   <div className="fixed bottom-24 right-4 md:bottom-4 md:right-4 z-[60] pointer-events-auto">
     <div className="relative">
       {/* Assistant portrait positioned behind and above the dialog (top-right) */}
@@ -107,6 +124,24 @@ const AssistantDialog: React.FC<{
             </Button>
           )}
           {children}
+          {showOrderingButton && onOpenOrderingDialog && (
+            <div className="mt-3 flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenOrderingDialog();
+                }}
+                className="opacity-50 hover:opacity-100"
+                title="Sort quest priorities"
+              >
+                <Settings2 className="h-4 w-4 mr-1" />
+                <span className="text-xs">Priority</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -575,21 +610,45 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   // Post tutorial state - whether to show the quest
   const [showPostTutorialQuest, setShowPostTutorialQuest] = useState(false);
 
-  // Post-tutorial quest guidance: Find starter/tier quest when userData updates
+  // Quest type priority ordering (persisted in localStorage)
+  const [questTypePriority, setQuestTypePriority] = useLocalStorage<QuestType[]>(
+    "tutorial-quest-type-priority",
+    [...OrderedQuestTypesInTutorial],
+  );
+
+  // Dialog state for quest type ordering
+  const [showOrderingDialog, setShowOrderingDialog] = useState(false);
+
+  // Post-tutorial quest guidance: Find quest based on priority ordering
   useEffect(() => {
     if (userData?.tutorialOn !== false && currentStepNumber >= TUTORIAL_STEPS.length) {
-      // Find the first starter or tier quest
-      const quest = userData?.userQuests?.find((uq) =>
-        ["starter", "tier"].includes(uq.quest.questType),
+      // Find the first quest based on priority ordering
+      const activeUserQuests = userData?.userQuests?.filter(
+        (uq) => OrderedQuestTypesInTutorial.includes(uq.quest.questType) && !uq.endAt,
       );
 
-      if (quest) {
-        // Get the tracker for this quest
-        const tracker = userData?.questData?.find((q) => q.id === quest.questId);
+      if (activeUserQuests && activeUserQuests.length > 0) {
+        // Sort by priority order (lower index = higher priority)
+        const sortedQuests = [...activeUserQuests].sort((a, b) => {
+          const aPriority = questTypePriority.indexOf(a.quest.questType);
+          const bPriority = questTypePriority.indexOf(b.quest.questType);
+          // If not found in priority list, put at end
+          const aIdx = aPriority === -1 ? questTypePriority.length : aPriority;
+          const bIdx = bPriority === -1 ? questTypePriority.length : bPriority;
+          return aIdx - bIdx;
+        });
 
-        // Set quest if not complete
-        if (tracker && !quest.endAt) {
-          setPostTutorialQuest({ userQuest: quest, tracker });
+        const quest = sortedQuests[0];
+        if (quest) {
+          // Get the tracker for this quest
+          const tracker = userData?.questData?.find((q) => q.id === quest.questId);
+
+          // Set quest if tracker exists
+          if (tracker) {
+            setPostTutorialQuest({ userQuest: quest, tracker });
+          } else {
+            setPostTutorialQuest(null);
+          }
         } else {
           setPostTutorialQuest(null);
         }
@@ -599,7 +658,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
     } else {
       setPostTutorialQuest(null);
     }
-  }, [userData, currentStepNumber]);
+  }, [userData, currentStepNumber, questTypePriority]);
 
   // Check if logbook entry exists on the page to determine whether to show the quest
   useEffect(() => {
@@ -907,6 +966,8 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           title={currentTutorialStep.title}
           onOpenDisableModal={handleDisableTutorial}
           characterImage={characterImage}
+          onOpenOrderingDialog={() => setShowOrderingDialog(true)}
+          showOrderingButton={showPostTutorialQuest}
         >
           {typeof currentTutorialStep.description === "string" ? (
             <p className="text-sm md:text-base leading-relaxed">
@@ -1045,6 +1106,39 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           )}
         </AssistantDialog>
       )}
+
+      {/* Quest Type Ordering Dialog */}
+      <Dialog open={showOrderingDialog} onOpenChange={setShowOrderingDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Quest Priority Order</DialogTitle>
+            <DialogDescription>
+              Drag to reorder which quest types should be shown first in the assistant.
+            </DialogDescription>
+          </DialogHeader>
+          <SortableList
+            items={questTypePriority.map((type) => ({
+              id: type,
+              label: capitalizeFirstLetter(type),
+            }))}
+            onReorder={(items: SortableItem[]) => {
+              setQuestTypePriority(items.map((item) => item.id as QuestType));
+            }}
+            className="max-h-[60vh] overflow-y-auto"
+          />
+          <div className="flex justify-between mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setQuestTypePriority([...OrderedQuestTypesInTutorial]);
+              }}
+            >
+              Reset to Default
+            </Button>
+            <Button onClick={() => setShowOrderingDialog(false)}>Done</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

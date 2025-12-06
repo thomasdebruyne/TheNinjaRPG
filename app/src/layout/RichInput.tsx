@@ -27,6 +27,7 @@ interface RichInputProps {
   isDirty?: boolean;
   enableMentions?: boolean;
   allowClipboardPaste?: boolean;
+  autoFocus?: boolean;
 }
 
 const RichInput: React.FC<RichInputProps> = (props) => {
@@ -261,7 +262,7 @@ const RichInput: React.FC<RichInputProps> = (props) => {
                   textareaRef.current = e;
                 }}
                 id={props.id}
-                autoFocus
+                autoFocus={props.autoFocus ?? true}
                 isDirty={props.isDirty}
                 placeholder={props.placeholder}
                 className="w-full"
