@@ -961,7 +961,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       )}
 
       {/* Assistant panel bottom-right - large, game-like dialog */}
-      {!currentTutorialStep.hideDialog && (
+      {!currentTutorialStep.hideDialog && !showOrderingDialog && (
         <AssistantDialog
           title={currentTutorialStep.title}
           onOpenDisableModal={handleDisableTutorial}
@@ -1109,7 +1109,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
       {/* Quest Type Ordering Dialog */}
       <Dialog open={showOrderingDialog} onOpenChange={setShowOrderingDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md z-[70]">
           <DialogHeader>
             <DialogTitle>Quest Priority Order</DialogTitle>
             <DialogDescription>
