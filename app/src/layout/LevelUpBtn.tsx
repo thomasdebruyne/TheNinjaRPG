@@ -105,8 +105,8 @@ const LevelUpBtn: React.FC<LevelUpBtnProps> = ({ id }) => {
           proceed_label="Awesome!"
           isValid={false}
           onAccept={() => {
-            levelUp();
             setShowModal(false);
+            levelUp();
           }}
         >
           <div className="basis-1/2 absolute top-0 right-0 opacity-20">

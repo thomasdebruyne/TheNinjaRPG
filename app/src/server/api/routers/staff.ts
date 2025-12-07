@@ -508,6 +508,8 @@ export const staffRouter = createTRPCRouter({
             longitude: target.longitude,
             location: target.location,
             tutorialStep: target.tutorialStep,
+            tutorialOn: target.tutorialOn,
+            battleId: target.battleId,
             clanId: target.clanId,
             anbuId: target.anbuId,
           })
