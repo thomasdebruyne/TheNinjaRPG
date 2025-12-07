@@ -50,8 +50,19 @@ export default function ManualBloodlineEdit(props: {
   }, [userData]);
 
   // Prevent unauthorized access
-  if (isPending || !userData || !canChangeContent(userData.role) || !data) {
+  if (isPending || !userData || !canChangeContent(userData.role)) {
     return <Loader explanation="Loading data" />;
+  }
+  if (!data) {
+    return (
+      <ContentBox
+        title="Quest Not Found"
+        subtitle="Could not find this quest"
+        defaultBackHref="/manual/quest"
+      >
+        <p>Could not find this quest</p>
+      </ContentBox>
+    );
   }
 
   return <SingleEditQuest quest={data} refetch={refetch} />;

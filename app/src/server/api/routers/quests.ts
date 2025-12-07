@@ -151,7 +151,7 @@ export const questsRouter = createTRPCRouter({
         }),
       ]);
       if (!result) {
-        throw serverError("NOT_FOUND", "Quest not found");
+        return null;
       }
       controlShownQuestLocationInformation(result, user);
       return result;
@@ -228,7 +228,13 @@ export const questsRouter = createTRPCRouter({
           )
           .where(
             and(
-              inArray(quest.questType, ["mission", "errand", "crime", "medical", "pvp"]),
+              inArray(quest.questType, [
+                "mission",
+                "errand",
+                "crime",
+                "medical",
+                "pvp",
+              ]),
               ...(input.villageId
                 ? [
                     or(
@@ -444,8 +450,9 @@ export const questsRouter = createTRPCRouter({
       // Confirm user does not have any current active missions/crimes/errands/medical/pvp
       const current = user?.userQuests?.find(
         (q) =>
-          ["mission", "crime", "errand", "medical", "pvp"].includes(q.quest.questType) &&
-          !q.endAt,
+          ["mission", "crime", "errand", "medical", "pvp"].includes(
+            q.quest.questType,
+          ) && !q.endAt,
       );
       if (current) {
         return errorResponse(`Already active ${current.questType}`);
@@ -650,8 +657,9 @@ export const questsRouter = createTRPCRouter({
         }
         const current = user?.userQuests?.find(
           (q) =>
-            ["mission", "crime", "errand", "medical", "pvp"].includes(q.quest.questType) &&
-            !q.endAt,
+            ["mission", "crime", "errand", "medical", "pvp"].includes(
+              q.quest.questType,
+            ) && !q.endAt,
         );
         if (current) {
           return errorResponse(`Already active ${current.questType}`);
