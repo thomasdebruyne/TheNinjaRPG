@@ -11,6 +11,27 @@ import type { UserRank } from "@/drizzle/constants";
 
 const ENDPOINT_NAME = "daily-quest";
 
+/**
+TO VALIDATE USERS WITH DAILIES RUN: 
+
+SELECT 
+    u.userId,
+    u.username,
+    u.`rank`,
+    u.`level`,
+    u.villageId
+FROM `UserData` u
+WHERE u.isAi = 0 AND u.level > 6
+AND u.userId NOT IN (
+    SELECT qh.userId 
+    FROM `QuestHistory` qh 
+    WHERE qh.questType = 'daily' 
+        AND qh.completed = 0 
+        AND qh.endedAt IS NULL
+)
+ORDER BY u.`rank`, u.`level`;
+*/
+
 export async function GET() {
   // disable cache for this server action (https://github.com/vercel/next.js/discussions/50045)
   await cookies();
@@ -21,7 +42,7 @@ export async function GET() {
 
   try {
     // Reset all current dailies
-    const [dailies, villages, userRankPerVillage] = await Promise.all([
+    const [dailies, villages, userRankPerVillageLevel] = await Promise.all([
       drizzleDB.query.quest.findMany({
         where: and(
           eq(quest.questType, "daily"),
@@ -36,12 +57,12 @@ export async function GET() {
         .select({
           rank: userData.rank,
           villageId: userData.villageId,
-          minLevel: sql`min(${userData.level})`.mapWith(Number),
+          level: userData.level,
           count: sql`count(${userData.userId})`.mapWith(Number),
         })
         .from(userData)
         .where(eq(userData.isAi, false))
-        .groupBy(userData.rank, userData.villageId),
+        .groupBy(userData.rank, userData.villageId, userData.level),
       drizzleDB
         .update(questHistory)
         .set({ completed: 0, endAt: new Date() })
@@ -51,12 +72,12 @@ export async function GET() {
     // Book-keeping to do upsert afterwards more efficiently
     const memory: {
       questId: string;
-      combos: { rank: UserRank; villageId: string }[];
+      combos: { rank: UserRank; villageId: string; level: number }[];
     }[] = [];
 
-    // For each user rank, get a random daily quest
-    for (const config of userRankPerVillage) {
-      const { rank, villageId, minLevel } = config;
+    // For each user rank+village+level combo, get a random daily quest
+    for (const config of userRankPerVillageLevel) {
+      const { rank, villageId, level } = config;
       const village = villages?.find((v) => v.id === villageId);
       const questRanks = availableQuestLetterRanks(rank);
       if (village && questRanks.length > 0) {
@@ -68,19 +89,19 @@ export async function GET() {
             (q) =>
               questRanks.includes(q.questRank) &&
               (!q.requiredVillage || q.requiredVillage === requiredVillage) &&
-              q.requiredLevel <= minLevel &&
-              q.maxLevel >= minLevel,
+              q.requiredLevel <= level &&
+              q.maxLevel >= level,
           );
         if (newDaily) {
           if (!memory.find((m) => m.questId === newDaily.id)) {
             memory.push({
               questId: newDaily.id,
-              combos: [{ rank, villageId: village.id }],
+              combos: [{ rank, villageId: village.id, level }],
             });
           } else {
             memory
               .find((m) => m.questId === newDaily.id)
-              ?.combos.push({ rank, villageId: village.id });
+              ?.combos.push({ rank, villageId: village.id, level });
           }
         }
       }
