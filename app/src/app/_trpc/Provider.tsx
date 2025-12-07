@@ -8,6 +8,7 @@ import { TRPCClientError, httpBatchLink, retryLink, loggerLink } from "@trpc/cli
 import { toast } from "@/components/ui/use-toast";
 import { QueryCache, MutationCache } from "@tanstack/react-query";
 import { api, useGlobalOnMutateProtect } from "./client";
+import { showMutationToast } from "@/libs/toast";
 
 const getBaseUrl = () => {
   if (typeof window !== "undefined") return "";
@@ -99,6 +100,12 @@ export const onError = (err: unknown) => {
   }
   console.error("onerror", err);
   if (err instanceof TRPCClientError) {
+    const errorCode = (err.data as { code?: string })?.code;
+    // Handle rate limiting errors with a softer toast (not logged to Sentry, not destructive)
+    if (errorCode === "TOO_MANY_REQUESTS") {
+      showMutationToast({ success: false, message: err.message });
+      return;
+    }
     Sentry.captureException(err, { extra: { message: "TRPC Client Error" } });
     toast({
       variant: "destructive",

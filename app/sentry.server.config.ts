@@ -17,7 +17,7 @@ Sentry.init({
   sampleRate: 1.0,
 
   // Which errors to ignore from frontend
-  ignoreErrors: ["Unauthorized for tRPC endpoint"],
+  ignoreErrors: ["Unauthorized for tRPC endpoint", "You are acting too fast"],
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
