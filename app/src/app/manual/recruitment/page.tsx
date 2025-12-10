@@ -529,7 +529,7 @@ export default function ManualRecruitment() {
                 <div className="text-xs text-foreground-muted">
                   Total revenue / Paid Signup (Goal: $
                   {RECRUITMENT_GOALS.SIGNUP_VALUE_USD.toFixed(2)})<br />
-                  Ignores time filter!
+                  All-time (ignores time & device filters)
                 </div>
               </CardContent>
             </Card>
@@ -548,7 +548,7 @@ export default function ManualRecruitment() {
                 <div className="text-xs text-foreground-muted">
                   Total revenue from all transactions
                   <br />
-                  Ignores time filter!
+                  All-time (ignores time & device filters)
                 </div>
               </CardContent>
             </Card>

@@ -64,6 +64,9 @@ export interface ItemWithEffectsProps {
   show3d?: boolean;
   hideTitle?: boolean;
   hideImage?: boolean;
+  hideEffects?: boolean;
+  hideDates?: boolean;
+  hideData?: boolean;
   onDelete?: (id: string) => void;
 }
 
@@ -77,6 +80,9 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
     hideTitle,
     hideDetails,
     hideImage,
+    hideEffects,
+    hideDates,
+    hideData,
     onDelete,
   } = props;
   const { data: userData } = useUserData();
@@ -165,13 +171,9 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
   const rewards = "content" in item ? getRewardArray(item.content.reward) : [];
   return (
     <div className="mb-3 flex flex-row items-center rounded-lg border bg-popover p-2 align-middle shadow-sm ">
-      {!hideDetails && !hideImage && (
-        <div className="mx-3 hidden basis-1/3 md:block">{image}</div>
-      )}
+      {!hideImage && <div className="mx-3 hidden basis-1/3 md:block">{image}</div>}
 
-      <div
-        className={cn("basis-full text-sm", hideDetails || hideImage || "md:basis-2/3")}
-      >
+      <div className={cn("basis-full text-sm", hideImage || "md:basis-2/3")}>
         <div className="flex flex-row">
           {!hideImage && (
             <div className="relative block md:hidden md:basis-1/3">{image}</div>
@@ -185,7 +187,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
             ) : (
               <br />
             )}
-            {!hideDetails && (
+            {!hideDetails && !hideDates && (
               <div className="flex flex-row gap-2">
                 {item.createdAt && (
                   <div>
@@ -329,294 +331,298 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
           </div>
         </div>
         <div>
-          <div className="my-2 grid grid-cols-2 rounded-lg bg-poppopover p-2 text-xs md:text-base">
-            {"bloodline" in item && item.bloodline !== null && (
-              <p className="col-span-2">
-                <b>Bloodline</b>: {(item?.bloodline as Bloodline)?.name}
-              </p>
-            )}
-            {"attacks" in item && item.attacks && (
-              <p className="col-span-2">
-                <b>Attacks</b>: {item.attacks.join(", ")}
-              </p>
-            )}
-            {"sector" in item && item.sector !== undefined && item.sector > 0 && (
-              <p className="col-span-2">
-                <b>Sector</b>: {item.sector}
-              </p>
-            )}
-            {"jutsuType" in item && (
-              <p>
-                <b>Jutsu Type</b>: {capitalizeFirstLetter(item?.jutsuType)}
-              </p>
-            )}
-            {"jutsuWeapon" in item && item.jutsuWeapon !== "NONE" && (
-              <p>
-                <b>Jutsu Weapon</b>: {capitalizeFirstLetter(item?.jutsuWeapon)}
-              </p>
-            )}
-            {"rarity" in item && item.rarity && (
-              <p>
-                <b>Rarity</b>: {capitalizeFirstLetter(item.rarity)}
-              </p>
-            )}
-            {"maxImbueNumber" in item && item.maxImbueNumber > 0 && (
-              <p>
-                <b>Max Imbue Number</b>: {item.maxImbueNumber}
-              </p>
-            )}
-            {"canBeImbued" in item && item.canBeImbued && (
-              <p>
-                <b>Can be Imbued</b>: {item.canBeImbued ? "yes" : "no"}
-              </p>
-            )}
-            {"canBeHunted" in item && item.canBeHunted && (
-              <p>
-                <b>Can be Hunted</b>: {item.canBeHunted ? "yes" : "no"}
-              </p>
-            )}
-            {"canBeGathered" in item && item.canBeGathered && (
-              <p>
-                <b>Can be Gathered</b>: {item.canBeGathered ? "yes" : "no"}
-              </p>
-            )}
-            {"canBeTraded" in item && item.canBeTraded && (
-              <p>
-                <b>Can be Traded</b>: {item.canBeTraded ? "yes" : "no"}
-              </p>
-            )}
-            {"canBeCrafted" in item && item.canBeCrafted && (
-              <p>
-                <b>Can be Crafted</b>: {item.canBeCrafted ? "yes" : "no"}
-              </p>
-            )}
-            {"statClassification" in item && item.statClassification && (
-              <p>
-                <b>Class</b>: {capitalizeFirstLetter(item.statClassification)}
-              </p>
-            )}
-            {"difficulty" in item && item.difficulty && (
-              <p>
-                <b>Difficulty</b>: {item.difficulty}
-              </p>
-            )}
+          {!hideData && (
+            <div className="my-2 grid grid-cols-2 rounded-lg bg-poppopover p-2 text-xs md:text-base">
+              {"bloodline" in item && item.bloodline !== null && (
+                <p className="col-span-2">
+                  <b>Bloodline</b>: {(item?.bloodline as Bloodline)?.name}
+                </p>
+              )}
+              {"attacks" in item && item.attacks && (
+                <p className="col-span-2">
+                  <b>Attacks</b>: {item.attacks.join(", ")}
+                </p>
+              )}
+              {"sector" in item && item.sector !== undefined && item.sector > 0 && (
+                <p className="col-span-2">
+                  <b>Sector</b>: {item.sector}
+                </p>
+              )}
+              {"jutsuType" in item && (
+                <p>
+                  <b>Jutsu Type</b>: {capitalizeFirstLetter(item?.jutsuType)}
+                </p>
+              )}
+              {"jutsuWeapon" in item && item.jutsuWeapon !== "NONE" && (
+                <p>
+                  <b>Jutsu Weapon</b>: {capitalizeFirstLetter(item?.jutsuWeapon)}
+                </p>
+              )}
+              {"rarity" in item && item.rarity && (
+                <p>
+                  <b>Rarity</b>: {capitalizeFirstLetter(item.rarity)}
+                </p>
+              )}
+              {"maxImbueNumber" in item && item.maxImbueNumber > 0 && (
+                <p>
+                  <b>Max Imbue Number</b>: {item.maxImbueNumber}
+                </p>
+              )}
+              {"canBeImbued" in item && item.canBeImbued && (
+                <p>
+                  <b>Can be Imbued</b>: {item.canBeImbued ? "yes" : "no"}
+                </p>
+              )}
+              {"canBeHunted" in item && item.canBeHunted && (
+                <p>
+                  <b>Can be Hunted</b>: {item.canBeHunted ? "yes" : "no"}
+                </p>
+              )}
+              {"canBeGathered" in item && item.canBeGathered && (
+                <p>
+                  <b>Can be Gathered</b>: {item.canBeGathered ? "yes" : "no"}
+                </p>
+              )}
+              {"canBeTraded" in item && item.canBeTraded && (
+                <p>
+                  <b>Can be Traded</b>: {item.canBeTraded ? "yes" : "no"}
+                </p>
+              )}
+              {"canBeCrafted" in item && item.canBeCrafted && (
+                <p>
+                  <b>Can be Crafted</b>: {item.canBeCrafted ? "yes" : "no"}
+                </p>
+              )}
+              {"statClassification" in item && item.statClassification && (
+                <p>
+                  <b>Class</b>: {capitalizeFirstLetter(item.statClassification)}
+                </p>
+              )}
+              {"difficulty" in item && item.difficulty && (
+                <p>
+                  <b>Difficulty</b>: {item.difficulty}
+                </p>
+              )}
 
-            {"level" in item && item.level !== undefined && item.level > 0 && (
-              <p>
-                <b>Level</b>: {item.level}
-              </p>
-            )}
-            {"regenIncrease" in item && item.regenIncrease > 0 && (
-              <p>
-                <b>Regen</b>: +{item.regenIncrease}
-              </p>
-            )}
-            {"rank" in item && item.rank && (
-              <p>
-                <b>Rank</b>: {item.rank}
-              </p>
-            )}
-            {"frames" in item && item.frames && (
-              <p>
-                <b>Frames</b>: {item.frames}
-              </p>
-            )}
-            {"speed" in item && item.speed && (
-              <p>
-                <b>Speed</b>: {item.speed}
-              </p>
-            )}
-            {"type" in item && item.type && (
-              <p>
-                <b>Type</b>: {item.type.toLowerCase()}
-              </p>
-            )}
-            {"onInitialBattleField" in item && item.onInitialBattleField && (
-              <p>
-                <b>On battlefield</b>: {item.onInitialBattleField ? "yes" : "no"}
-              </p>
-            )}
-            {"licenseDetails" in item && item.licenseDetails && (
-              <p className="col-span-2">
-                <b>License</b>: {item.licenseDetails}
-              </p>
-            )}
-            {"village" in item &&
-              item.village &&
-              typeof item.village === "object" &&
-              item.village?.name && (
+              {"level" in item && item.level !== undefined && item.level > 0 && (
                 <p>
-                  <b>Village</b>: {item.village.name}
+                  <b>Level</b>: {item.level}
                 </p>
               )}
-            {"inArena" in item &&
-              "isSummon" in item &&
-              "isEvent" in item &&
-              "inShrines" in item && (
+              {"regenIncrease" in item && item.regenIncrease > 0 && (
                 <p>
-                  <b>Classification:</b>
-                  {[
-                    item.inArena && "Arena",
-                    item.isSummon && "Summon",
-                    item.isEvent && "Event",
-                    item.inShrines && "Shrine",
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}
+                  <b>Regen</b>: +{item.regenIncrease}
                 </p>
               )}
-            {"stackSize" in item && item.stackSize > 0 && (
-              <p>
-                <b>Stackable</b>: {item.stackSize}
-              </p>
-            )}
-            {"itemType" in item && (
-              <p>
-                <b>Item type</b>: {item.itemType.toLowerCase()}
-              </p>
-            )}
-            {"hidden" in item && (
-              <p>
-                <b>Hidden</b>: {item.hidden ? "yes" : "no"}
-              </p>
-            )}
-            {"isEventItem" in item && item.isEventItem && (
-              <p>
-                <b>Event Item</b>: yes
-              </p>
-            )}
-            {"cooldown" in item && item.cooldown > 0 && (
-              <p>
-                <b>Cooldown</b>: {item.cooldown}
-              </p>
-            )}
-            {"range" in item && item.target !== "CHARACTER" && (
-              <p>
-                <b>Range</b>: {item.range}
-              </p>
-            )}
-            {"destroyOnUse" in item && (
-              <p>
-                <b>Destroy on use</b>: {item.destroyOnUse ? "yes" : "no"}
-              </p>
-            )}
-            {"chakraCost" in item && item.chakraCost > 0 && (
-              <p>
-                <b>Chakra Usage</b>: {item.chakraCost}
-              </p>
-            )}
-            {"staminaCost" in item && item.staminaCost > 0 && (
-              <p>
-                <b>Stamina Usage</b>: {item.staminaCost}
-              </p>
-            )}
-            {"healthCost" in item && item.healthCost > 0 && (
-              <p>
-                <b>Health Usage</b>: {item.healthCost}
-              </p>
-            )}
-            {"actionCostPerc" in item && item.actionCostPerc > 0 && (
-              <p>
-                <b>Action Usage</b>: {item.actionCostPerc}%
-              </p>
-            )}
-            {"target" in item && (
-              <p>
-                <b>Target</b>: {item.target.toLowerCase()}
-              </p>
-            )}
-            {"method" in item && (
-              <p>
-                <b>Method</b>: {item.method.toLowerCase()}
-              </p>
-            )}
-            {"weaponType" in item && item.weaponType && (
-              <p>
-                <b>Weapon</b>: {item.weaponType.toLowerCase()}
-              </p>
-            )}
-            {"maxDurability" in item && item.maxDurability !== undefined && (
-              <p>
-                <b>Durability</b>:{" "}
-                {"curDurability" in item && item.curDurability !== undefined
-                  ? item.curDurability
-                  : item.maxDurability}{" "}
-                / {item.maxDurability}
-              </p>
-            )}
-            {"slot" in item && item.slot && (
-              <p>
-                <b>Equip</b>: {item.slot.toLowerCase()}
-              </p>
-            )}
-            {"requiredRank" in item && item.requiredRank && (
-              <p>
-                <b>Required Rank</b>: {item.requiredRank}
-              </p>
-            )}
-            {"questRank" in item && item.questRank && (
-              <p>
-                <b>Minimum Rank</b>: {item.questRank}
-              </p>
-            )}
-            {"requiredLevel" in item && item.requiredLevel && (
-              <p>
-                <b>Required Level</b>: {item.requiredLevel}
-              </p>
-            )}
-            {"bloodlineId" in item && item.bloodlineId && (
-              <p>
-                <b>Required Bloodline</b>:{" "}
-                {bloodlinesData?.find((b) => b.id === item.bloodlineId)?.name ||
-                  item.bloodlineId}
-              </p>
-            )}
-            {"maxLevel" in item && item.maxLevel && (
-              <p>
-                <b>Max Level</b>: {item.maxLevel}
-              </p>
-            )}
-            {"questType" in item && item.questType && (
-              <p>
-                <b>Quest Type</b>: {item.questType}
-              </p>
-            )}
-            {"content" in item && item.content && (
-              <div className="col-span-2">
-                <b>Reward:</b> {rewards.join(", ")}
-              </div>
-            )}
-            {"cost" in item && item.cost > 0 && (
-              <div className="col-span-2">
-                <b>Shop Price:</b> {item.cost} ryo
-              </div>
-            )}
-            {"repsCost" in item && item.repsCost > 0 && (
-              <div className="col-span-2">
-                <b>Shop Price:</b> {item.repsCost} reputation points
-              </div>
-            )}
-            {"chakraCostReducePerLvl" in item && item.chakraCostReducePerLvl > 0 && (
-              <p className="col-span-2">
-                <b>Chakra Usage Reduction Per Lvl</b>: {item.chakraCostReducePerLvl}
-              </p>
-            )}
-            {"staminaCostReducePerLvl" in item && item.staminaCostReducePerLvl > 0 && (
-              <p className="col-span-2">
-                <b>Stamina Usage Reduction Per Lvl</b>: {item.staminaCostReducePerLvl}
-              </p>
-            )}
-            {"healthCostReducePerLvl" in item && item.healthCostReducePerLvl > 0 && (
-              <p className="col-span-2">
-                <b>Health Usage Reduction Per Lvl</b>: {item.healthCostReducePerLvl}
-              </p>
-            )}
-            {"traits" in item && item.traits && (
-              <p className="col-span-2">
-                <b>Traits</b>: {item.traits}
-              </p>
-            )}
-          </div>
+              {"rank" in item && item.rank && (
+                <p>
+                  <b>Rank</b>: {item.rank}
+                </p>
+              )}
+              {"frames" in item && item.frames && (
+                <p>
+                  <b>Frames</b>: {item.frames}
+                </p>
+              )}
+              {"speed" in item && item.speed && (
+                <p>
+                  <b>Speed</b>: {item.speed}
+                </p>
+              )}
+              {"type" in item && item.type && (
+                <p>
+                  <b>Type</b>: {item.type.toLowerCase()}
+                </p>
+              )}
+              {"onInitialBattleField" in item && item.onInitialBattleField && (
+                <p>
+                  <b>On battlefield</b>: {item.onInitialBattleField ? "yes" : "no"}
+                </p>
+              )}
+              {"licenseDetails" in item && item.licenseDetails && (
+                <p className="col-span-2">
+                  <b>License</b>: {item.licenseDetails}
+                </p>
+              )}
+              {"village" in item &&
+                item.village &&
+                typeof item.village === "object" &&
+                item.village?.name && (
+                  <p>
+                    <b>Village</b>: {item.village.name}
+                  </p>
+                )}
+              {"inArena" in item &&
+                "isSummon" in item &&
+                "isEvent" in item &&
+                "inShrines" in item && (
+                  <p>
+                    <b>Classification:</b>
+                    {[
+                      item.inArena && "Arena",
+                      item.isSummon && "Summon",
+                      item.isEvent && "Event",
+                      item.inShrines && "Shrine",
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                )}
+              {"stackSize" in item && item.stackSize > 0 && (
+                <p>
+                  <b>Stackable</b>: {item.stackSize}
+                </p>
+              )}
+              {"itemType" in item && (
+                <p>
+                  <b>Item type</b>: {item.itemType.toLowerCase()}
+                </p>
+              )}
+              {"hidden" in item && (
+                <p>
+                  <b>Hidden</b>: {item.hidden ? "yes" : "no"}
+                </p>
+              )}
+              {"isEventItem" in item && item.isEventItem && (
+                <p>
+                  <b>Event Item</b>: yes
+                </p>
+              )}
+              {"cooldown" in item && item.cooldown > 0 && (
+                <p>
+                  <b>Cooldown</b>: {item.cooldown}
+                </p>
+              )}
+              {"range" in item && item.target !== "CHARACTER" && (
+                <p>
+                  <b>Range</b>: {item.range}
+                </p>
+              )}
+              {"destroyOnUse" in item && (
+                <p>
+                  <b>Destroy on use</b>: {item.destroyOnUse ? "yes" : "no"}
+                </p>
+              )}
+              {"chakraCost" in item && item.chakraCost > 0 && (
+                <p>
+                  <b>Chakra Usage</b>: {item.chakraCost}
+                </p>
+              )}
+              {"staminaCost" in item && item.staminaCost > 0 && (
+                <p>
+                  <b>Stamina Usage</b>: {item.staminaCost}
+                </p>
+              )}
+              {"healthCost" in item && item.healthCost > 0 && (
+                <p>
+                  <b>Health Usage</b>: {item.healthCost}
+                </p>
+              )}
+              {"actionCostPerc" in item && item.actionCostPerc > 0 && (
+                <p>
+                  <b>Action Usage</b>: {item.actionCostPerc}%
+                </p>
+              )}
+              {"target" in item && (
+                <p>
+                  <b>Target</b>: {item.target.toLowerCase()}
+                </p>
+              )}
+              {"method" in item && (
+                <p>
+                  <b>Method</b>: {item.method.toLowerCase()}
+                </p>
+              )}
+              {"weaponType" in item && item.weaponType && (
+                <p>
+                  <b>Weapon</b>: {item.weaponType.toLowerCase()}
+                </p>
+              )}
+              {"maxDurability" in item && item.maxDurability !== undefined && (
+                <p>
+                  <b>Durability</b>:{" "}
+                  {"curDurability" in item && item.curDurability !== undefined
+                    ? item.curDurability
+                    : item.maxDurability}{" "}
+                  / {item.maxDurability}
+                </p>
+              )}
+              {"slot" in item && item.slot && (
+                <p>
+                  <b>Equip</b>: {item.slot.toLowerCase()}
+                </p>
+              )}
+              {"requiredRank" in item && item.requiredRank && (
+                <p>
+                  <b>Required Rank</b>: {item.requiredRank}
+                </p>
+              )}
+              {"questRank" in item && item.questRank && (
+                <p>
+                  <b>Minimum Rank</b>: {item.questRank}
+                </p>
+              )}
+              {"requiredLevel" in item && item.requiredLevel && (
+                <p>
+                  <b>Required Level</b>: {item.requiredLevel}
+                </p>
+              )}
+              {"bloodlineId" in item && item.bloodlineId && (
+                <p>
+                  <b>Required Bloodline</b>:{" "}
+                  {bloodlinesData?.find((b) => b.id === item.bloodlineId)?.name ||
+                    item.bloodlineId}
+                </p>
+              )}
+              {"maxLevel" in item && item.maxLevel && (
+                <p>
+                  <b>Max Level</b>: {item.maxLevel}
+                </p>
+              )}
+              {"questType" in item && item.questType && (
+                <p>
+                  <b>Quest Type</b>: {item.questType}
+                </p>
+              )}
+              {"content" in item && item.content && (
+                <div className="col-span-2">
+                  <b>Reward:</b> {rewards.join(", ")}
+                </div>
+              )}
+              {"cost" in item && item.cost > 0 && (
+                <div className="col-span-2">
+                  <b>Shop Price:</b> {item.cost} ryo
+                </div>
+              )}
+              {"repsCost" in item && item.repsCost > 0 && (
+                <div className="col-span-2">
+                  <b>Shop Price:</b> {item.repsCost} reputation points
+                </div>
+              )}
+              {"chakraCostReducePerLvl" in item && item.chakraCostReducePerLvl > 0 && (
+                <p className="col-span-2">
+                  <b>Chakra Usage Reduction Per Lvl</b>: {item.chakraCostReducePerLvl}
+                </p>
+              )}
+              {"staminaCostReducePerLvl" in item &&
+                item.staminaCostReducePerLvl > 0 && (
+                  <p className="col-span-2">
+                    <b>Stamina Usage Reduction Per Lvl</b>:{" "}
+                    {item.staminaCostReducePerLvl}
+                  </p>
+                )}
+              {"healthCostReducePerLvl" in item && item.healthCostReducePerLvl > 0 && (
+                <p className="col-span-2">
+                  <b>Health Usage Reduction Per Lvl</b>: {item.healthCostReducePerLvl}
+                </p>
+              )}
+              {"traits" in item && item.traits && (
+                <p className="col-span-2">
+                  <b>Traits</b>: {item.traits}
+                </p>
+              )}
+            </div>
+          )}
           {/* Show quest timing specific details for story and event quests */}
           {"questType" in item && ["story", "event"].includes(item.questType) && (
             <div className="my-2 grid grid-cols-2 rounded-lg bg-poppopover p-2">
@@ -703,249 +709,251 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
             </div>
           )} */}
 
-          {effects?.map((effect, i) => {
-            // Get schema for parsing effect
-            const schema = getTagSchema(effect.type);
-            // Delete description, so that we get the default one
-            if ("description" in effect) delete effect.description;
-            const result = schema.safeParse(effect);
-            const parsedEffect = result.success ? result.data : undefined;
+          {!hideEffects &&
+            effects?.map((effect, i) => {
+              // Get schema for parsing effect
+              const schema = getTagSchema(effect.type);
+              // Delete description, so that we get the default one
+              if ("description" in effect) delete effect.description;
+              const result = schema.safeParse(effect);
+              const parsedEffect = result.success ? result.data : undefined;
 
-            return (
-              <div
-                key={effect.type + i.toString()}
-                className={`my-2 rounded-lg ${
-                  parsedEffect ? effect.color : "bg-red-100"
-                } p-2`}
-              >
-                {!parsedEffect && (
-                  <div className="pb-1">
-                    <b>Effect {i + 1}: </b> <i>{effect.type}</i> -{" "}
-                    {JSON.stringify(result)} - PLEASE REPORT!
-                  </div>
-                )}
-                {parsedEffect && (
-                  <>
+              return (
+                <div
+                  key={effect.type + i.toString()}
+                  className={`my-2 rounded-lg ${
+                    parsedEffect ? effect.color : "bg-red-100"
+                  } p-2`}
+                >
+                  {!parsedEffect && (
                     <div className="pb-1">
-                      <b>Effect {i + 1}: </b> <i>{parsedEffect.description}</i>
+                      <b>Effect {i + 1}: </b> <i>{effect.type}</i> -{" "}
+                      {JSON.stringify(result)} - PLEASE REPORT!
                     </div>
-                    <div className="grid grid-cols-2">
-                      {"rounds" in parsedEffect &&
-                        parsedEffect.rounds !== undefined && (
+                  )}
+                  {parsedEffect && (
+                    <>
+                      <div className="pb-1">
+                        <b>Effect {i + 1}: </b> <i>{parsedEffect.description}</i>
+                      </div>
+                      <div className="grid grid-cols-2">
+                        {"rounds" in parsedEffect &&
+                          parsedEffect.rounds !== undefined && (
+                            <span>
+                              <b>Rounds: </b> {parsedEffect.rounds}
+                            </span>
+                          )}
+                        {"calculation" in parsedEffect && (
                           <span>
-                            <b>Rounds: </b> {parsedEffect.rounds}
+                            <b>Calculation: </b>
+                            {parsedEffect.calculation}
                           </span>
                         )}
-                      {"calculation" in parsedEffect && (
-                        <span>
-                          <b>Calculation: </b>
-                          {parsedEffect.calculation}
-                        </span>
-                      )}
-                      {"power" in parsedEffect && (
-                        <span>
-                          <b>Effect Power: </b>
-                          {parsedEffect.power}
-                        </span>
-                      )}
-                      {"rank" in parsedEffect && (
-                        <span>
-                          <b>Rank: </b>
-                          {capitalizeFirstLetter(parsedEffect.rank)}
-                        </span>
-                      )}
-                      {"aiHp" in parsedEffect && (
-                        <span>
-                          <b>Health Points: </b>
-                          {parsedEffect.aiHp}
-                        </span>
-                      )}
-                      {"target" in parsedEffect &&
-                        parsedEffect.target &&
-                        (!("target" in item) ||
-                          parsedEffect.target !== item?.target) && (
+                        {"power" in parsedEffect && (
                           <span>
-                            <b>Target: </b>
-                            {parsedEffect.target.toLowerCase()}
+                            <b>Effect Power: </b>
+                            {parsedEffect.power}
                           </span>
                         )}
-                      {"powerPerLevel" in parsedEffect && (
-                        <span>
-                          <b>Effect Power / Lvl: </b>
-                          {parsedEffect.powerPerLevel}
-                        </span>
-                      )}
-                      {"residualModifier" in parsedEffect && (
-                        <span>
-                          <b>Residual Modifier: </b>
-                          {parsedEffect.residualModifier}
-                        </span>
-                      )}
-                      {"generalTypes" in parsedEffect &&
-                        parsedEffect.generalTypes &&
-                        parsedEffect.generalTypes.length > 0 && (
+                        {"rank" in parsedEffect && (
                           <span>
-                            <b>Generals: </b>
-                            {parsedEffect.generalTypes.join(", ")}
+                            <b>Rank: </b>
+                            {capitalizeFirstLetter(parsedEffect.rank)}
                           </span>
                         )}
-                      {"statTypes" in parsedEffect &&
-                        parsedEffect.statTypes &&
-                        parsedEffect.statTypes.length > 0 && (
+                        {"aiHp" in parsedEffect && (
                           <span>
-                            <b>Stats: </b>
-                            {parsedEffect.statTypes.join(", ")}
+                            <b>Health Points: </b>
+                            {parsedEffect.aiHp}
                           </span>
                         )}
-                      {"elements" in parsedEffect &&
-                        parsedEffect.elements &&
-                        parsedEffect.elements.length > 0 && (
-                          <span className="row-span-2">
-                            <b>Elements: </b>
-                            <div className="flex flex-row items-center">
-                              {parsedEffect.elements.map((element, i) => (
-                                <ElementImage
-                                  key={`${element}-${i}`}
-                                  element={element}
-                                  className="w-8"
-                                />
-                              ))}
-                            </div>
-                          </span>
-                        )}
-                      {"reward_items" in parsedEffect &&
-                        parsedEffect.reward_items &&
-                        parsedEffect.reward_items.length > 0 && (
-                          <p>
-                            <b>Reward Items</b>: {parsedEffect.reward_items.length}
-                          </p>
-                        )}
-                      {"reward_jutsus" in parsedEffect &&
-                        parsedEffect.reward_jutsus &&
-                        parsedEffect.reward_jutsus.length > 0 && (
-                          <p>
-                            <b>Reward Jutsus</b>: {parsedEffect.reward_jutsus.length}
-                          </p>
-                        )}
-                      {"reward_bloodlines" in parsedEffect &&
-                        parsedEffect.reward_bloodlines &&
-                        parsedEffect.reward_bloodlines.length > 0 && (
-                          <p>
-                            <b>Reward Bloodlines</b>:{" "}
-                            {parsedEffect.reward_bloodlines.length}
-                          </p>
-                        )}
-                      {"reward_badges" in parsedEffect &&
-                        parsedEffect.reward_badges &&
-                        parsedEffect.reward_badges.length > 0 && (
-                          <p>
-                            <b>Reward Badges</b>: {parsedEffect.reward_badges.length}
-                          </p>
-                        )}
-                      {"reward_money" in parsedEffect &&
-                        parsedEffect.reward_money &&
-                        parsedEffect.reward_money > 0 && (
-                          <p>
-                            <b>Reward Money</b>: {parsedEffect.reward_money}
-                          </p>
-                        )}
-                      {"reward_reputation" in parsedEffect &&
-                        parsedEffect.reward_reputation &&
-                        parsedEffect.reward_reputation > 0 && (
-                          <p>
-                            <b>Reward Reputation</b>: {parsedEffect.reward_reputation}
-                          </p>
-                        )}
-                      {"reward_rank" in parsedEffect &&
-                        parsedEffect.reward_rank &&
-                        parsedEffect.reward_rank !== "NONE" && (
-                          <p>
-                            <b>Reward Rank</b>: {parsedEffect.reward_rank}
-                          </p>
-                        )}
-                      {"reward_village_membership" in parsedEffect &&
-                        parsedEffect.reward_village_membership &&
-                        parsedEffect.reward_village_membership !== "NONE" && (
-                          <p>
-                            <b>Reward Village Membership</b>:{" "}
-                            {capitalizeFirstLetter(
-                              parsedEffect.reward_village_membership,
-                            )}
-                          </p>
-                        )}
-                      {"reward_tokens" in parsedEffect &&
-                        parsedEffect.reward_tokens &&
-                        parsedEffect.reward_tokens > 0 && (
-                          <p>
-                            <b>Reward Tokens</b>: {parsedEffect.reward_tokens}
-                          </p>
-                        )}
-                      {"reward_prestige" in parsedEffect &&
-                        parsedEffect.reward_prestige &&
-                        parsedEffect.reward_prestige > 0 && (
-                          <p>
-                            <b>Reward Prestige</b>: {parsedEffect.reward_prestige}
-                          </p>
-                        )}
-                      {"reward_clanpoints" in parsedEffect &&
-                        parsedEffect.reward_clanpoints &&
-                        parsedEffect.reward_clanpoints > 0 && (
-                          <p>
-                            <b>Reward Clanpoints</b>: {parsedEffect.reward_clanpoints}
-                          </p>
-                        )}
-                      {"reward_anbupoints" in parsedEffect &&
-                        parsedEffect.reward_anbupoints &&
-                        parsedEffect.reward_anbupoints > 0 && (
-                          <p>
-                            <b>Reward Anbu Points</b>: {parsedEffect.reward_anbupoints}
-                          </p>
-                        )}
-                      {"reward_exp" in parsedEffect &&
-                        parsedEffect.reward_exp &&
-                        parsedEffect.reward_exp > 0 && (
-                          <p>
-                            <b>Reward Exp</b>: {parsedEffect.reward_exp}
-                          </p>
-                        )}
-                      {"reward_seichi_silver" in parsedEffect &&
-                        parsedEffect.reward_seichi_silver &&
-                        parsedEffect.reward_seichi_silver > 0 && (
-                          <p>
-                            <b>Reward Seichi Silver</b>:{" "}
-                            {parsedEffect.reward_seichi_silver}
-                          </p>
-                        )}
-                      {"reward_hunter_items" in parsedEffect &&
-                        parsedEffect.reward_hunter_items && (
-                          <p>
-                            <b>Reward Hunter Items</b>:{" "}
-                            {parsedEffect.reward_hunter_items ? "yes" : "no"}
-                          </p>
-                        )}
-                      {"reward_gathering_items" in parsedEffect &&
-                        parsedEffect.reward_gathering_items && (
-                          <p>
-                            <b>Reward Gathering Items</b>:{" "}
-                            {parsedEffect.reward_gathering_items ? "yes" : "no"}
-                          </p>
-                        )}
-                      {"direction" in parsedEffect &&
-                        parsedEffect.direction &&
-                        (effect.type === "increasestat" ||
-                          effect.type === "decreasestat" ||
-                          effect.type === "redirection") && (
+                        {"target" in parsedEffect &&
+                          parsedEffect.target &&
+                          (!("target" in item) ||
+                            parsedEffect.target !== item?.target) && (
+                            <span>
+                              <b>Target: </b>
+                              {parsedEffect.target.toLowerCase()}
+                            </span>
+                          )}
+                        {"powerPerLevel" in parsedEffect && (
                           <span>
-                            <b>Direction: </b>
-                            {parsedEffect.direction.toLowerCase()}
+                            <b>Effect Power / Lvl: </b>
+                            {parsedEffect.powerPerLevel}
                           </span>
                         )}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
+                        {"residualModifier" in parsedEffect && (
+                          <span>
+                            <b>Residual Modifier: </b>
+                            {parsedEffect.residualModifier}
+                          </span>
+                        )}
+                        {"generalTypes" in parsedEffect &&
+                          parsedEffect.generalTypes &&
+                          parsedEffect.generalTypes.length > 0 && (
+                            <span>
+                              <b>Generals: </b>
+                              {parsedEffect.generalTypes.join(", ")}
+                            </span>
+                          )}
+                        {"statTypes" in parsedEffect &&
+                          parsedEffect.statTypes &&
+                          parsedEffect.statTypes.length > 0 && (
+                            <span>
+                              <b>Stats: </b>
+                              {parsedEffect.statTypes.join(", ")}
+                            </span>
+                          )}
+                        {"elements" in parsedEffect &&
+                          parsedEffect.elements &&
+                          parsedEffect.elements.length > 0 && (
+                            <span className="row-span-2">
+                              <b>Elements: </b>
+                              <div className="flex flex-row items-center">
+                                {parsedEffect.elements.map((element, i) => (
+                                  <ElementImage
+                                    key={`${element}-${i}`}
+                                    element={element}
+                                    className="w-8"
+                                  />
+                                ))}
+                              </div>
+                            </span>
+                          )}
+                        {"reward_items" in parsedEffect &&
+                          parsedEffect.reward_items &&
+                          parsedEffect.reward_items.length > 0 && (
+                            <p>
+                              <b>Reward Items</b>: {parsedEffect.reward_items.length}
+                            </p>
+                          )}
+                        {"reward_jutsus" in parsedEffect &&
+                          parsedEffect.reward_jutsus &&
+                          parsedEffect.reward_jutsus.length > 0 && (
+                            <p>
+                              <b>Reward Jutsus</b>: {parsedEffect.reward_jutsus.length}
+                            </p>
+                          )}
+                        {"reward_bloodlines" in parsedEffect &&
+                          parsedEffect.reward_bloodlines &&
+                          parsedEffect.reward_bloodlines.length > 0 && (
+                            <p>
+                              <b>Reward Bloodlines</b>:{" "}
+                              {parsedEffect.reward_bloodlines.length}
+                            </p>
+                          )}
+                        {"reward_badges" in parsedEffect &&
+                          parsedEffect.reward_badges &&
+                          parsedEffect.reward_badges.length > 0 && (
+                            <p>
+                              <b>Reward Badges</b>: {parsedEffect.reward_badges.length}
+                            </p>
+                          )}
+                        {"reward_money" in parsedEffect &&
+                          parsedEffect.reward_money &&
+                          parsedEffect.reward_money > 0 && (
+                            <p>
+                              <b>Reward Money</b>: {parsedEffect.reward_money}
+                            </p>
+                          )}
+                        {"reward_reputation" in parsedEffect &&
+                          parsedEffect.reward_reputation &&
+                          parsedEffect.reward_reputation > 0 && (
+                            <p>
+                              <b>Reward Reputation</b>: {parsedEffect.reward_reputation}
+                            </p>
+                          )}
+                        {"reward_rank" in parsedEffect &&
+                          parsedEffect.reward_rank &&
+                          parsedEffect.reward_rank !== "NONE" && (
+                            <p>
+                              <b>Reward Rank</b>: {parsedEffect.reward_rank}
+                            </p>
+                          )}
+                        {"reward_village_membership" in parsedEffect &&
+                          parsedEffect.reward_village_membership &&
+                          parsedEffect.reward_village_membership !== "NONE" && (
+                            <p>
+                              <b>Reward Village Membership</b>:{" "}
+                              {capitalizeFirstLetter(
+                                parsedEffect.reward_village_membership,
+                              )}
+                            </p>
+                          )}
+                        {"reward_tokens" in parsedEffect &&
+                          parsedEffect.reward_tokens &&
+                          parsedEffect.reward_tokens > 0 && (
+                            <p>
+                              <b>Reward Tokens</b>: {parsedEffect.reward_tokens}
+                            </p>
+                          )}
+                        {"reward_prestige" in parsedEffect &&
+                          parsedEffect.reward_prestige &&
+                          parsedEffect.reward_prestige > 0 && (
+                            <p>
+                              <b>Reward Prestige</b>: {parsedEffect.reward_prestige}
+                            </p>
+                          )}
+                        {"reward_clanpoints" in parsedEffect &&
+                          parsedEffect.reward_clanpoints &&
+                          parsedEffect.reward_clanpoints > 0 && (
+                            <p>
+                              <b>Reward Clanpoints</b>: {parsedEffect.reward_clanpoints}
+                            </p>
+                          )}
+                        {"reward_anbupoints" in parsedEffect &&
+                          parsedEffect.reward_anbupoints &&
+                          parsedEffect.reward_anbupoints > 0 && (
+                            <p>
+                              <b>Reward Anbu Points</b>:{" "}
+                              {parsedEffect.reward_anbupoints}
+                            </p>
+                          )}
+                        {"reward_exp" in parsedEffect &&
+                          parsedEffect.reward_exp &&
+                          parsedEffect.reward_exp > 0 && (
+                            <p>
+                              <b>Reward Exp</b>: {parsedEffect.reward_exp}
+                            </p>
+                          )}
+                        {"reward_seichi_silver" in parsedEffect &&
+                          parsedEffect.reward_seichi_silver &&
+                          parsedEffect.reward_seichi_silver > 0 && (
+                            <p>
+                              <b>Reward Seichi Silver</b>:{" "}
+                              {parsedEffect.reward_seichi_silver}
+                            </p>
+                          )}
+                        {"reward_hunter_items" in parsedEffect &&
+                          parsedEffect.reward_hunter_items && (
+                            <p>
+                              <b>Reward Hunter Items</b>:{" "}
+                              {parsedEffect.reward_hunter_items ? "yes" : "no"}
+                            </p>
+                          )}
+                        {"reward_gathering_items" in parsedEffect &&
+                          parsedEffect.reward_gathering_items && (
+                            <p>
+                              <b>Reward Gathering Items</b>:{" "}
+                              {parsedEffect.reward_gathering_items ? "yes" : "no"}
+                            </p>
+                          )}
+                        {"direction" in parsedEffect &&
+                          parsedEffect.direction &&
+                          (effect.type === "increasestat" ||
+                            effect.type === "decreasestat" ||
+                            effect.type === "redirection") && (
+                            <span>
+                              <b>Direction: </b>
+                              {parsedEffect.direction.toLowerCase()}
+                            </span>
+                          )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
         </div>
       </div>
     </div>

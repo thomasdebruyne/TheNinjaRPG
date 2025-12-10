@@ -214,6 +214,7 @@ export const dataRouter = createTRPCRouter({
         pvpSignupsRowRaw,
         tutorialFinishedSignupsRowRaw,
         totalRevenueRowRaw,
+        allTimeSignupsForValueRaw,
         quests,
         completedQuests,
       ] = await Promise.all([
@@ -343,6 +344,28 @@ export const dataRouter = createTRPCRouter({
               gte(userData.createdAt, visitorLog.createdAt),
             ),
           ),
+        // allTimeSignupsForValue: all-time signups count for signupValueUsd (no time filter, only utmSource)
+        ctx.drizzle
+          .select({
+            userId: userData.userId,
+          })
+          .from(visitorLog)
+          .innerJoin(historicalIp, eq(historicalIp.ip, visitorLog.ip))
+          .leftJoin(userData, eq(userData.userId, historicalIp.userId))
+          .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
+          .where(
+            and(
+              input.utmSource && input.utmSource.length > 0
+                ? eq(visitorLog.utmSource, input.utmSource)
+                : ne(visitorLog.utmSource, ""),
+              eq(userData.isAi, false),
+              lt(userData.tutorialStep, 100),
+              gte(userData.createdAt, visitorLog.createdAt),
+              ...(input.utmSource && input.utmSource.length > 0
+                ? [eq(referralSource.source, input.utmSource)]
+                : []),
+            ),
+          ),
         // quests: Fetch quest data to get objective descriptions
         input.questFunnels && input.questFunnels.length > 0
           ? ctx.drizzle
@@ -389,7 +412,6 @@ export const dataRouter = createTRPCRouter({
       let nonStudentGeninSignupsRow = nonStudentGeninSignupsRowRaw;
       let pvpSignupsRow = pvpSignupsRowRaw;
       let tutorialFinishedSignupsRow = tutorialFinishedSignupsRowRaw;
-      let totalRevenueRow = totalRevenueRowRaw;
 
       // Filter the different rows by device type if specified
       if (input.deviceType && input.deviceType.length > 0) {
@@ -429,14 +451,6 @@ export const dataRouter = createTRPCRouter({
             return input.deviceType!.includes(deviceType);
           },
         );
-        totalRevenueRow = totalRevenueRow
-          .filter((totalRevenue) => {
-            const deviceType = getDeviceType(totalRevenue.userAgent ?? undefined);
-            return input.deviceType!.includes(deviceType);
-          })
-          .filter((totalRevenue) =>
-            signupsRow.find((signup) => signup.userId === totalRevenue.userId),
-          );
       }
 
       // Calculate visitors by device
@@ -498,11 +512,16 @@ export const dataRouter = createTRPCRouter({
       const characterCreationRate = clicks > 0 ? characterCreations / clicks : 0;
       const pvpSignups = pvpSignupsRow.length;
       const tutorialFinishedSignups = tutorialFinishedSignupsRow.length;
-      const totalRevenueUsd = totalRevenueRow.reduce(
+      // Calculate all-time revenue and signup value (no time/device filters, only utmSource)
+      const totalRevenueUsd = totalRevenueRowRaw.reduce(
         (acc, row) => acc + (row.amount ?? 0),
         0,
       );
-      const signupValueUsd = signups > 0 ? totalRevenueUsd / signups : 0;
+      const allTimeSignupsForValue = new Set(
+        allTimeSignupsForValueRaw.map((r) => r.userId),
+      ).size;
+      const signupValueUsd =
+        allTimeSignupsForValue > 0 ? totalRevenueUsd / allTimeSignupsForValue : 0;
 
       // Extract quest funnels for each requested quest
       const questFunnels: Record<
@@ -646,80 +665,38 @@ export const dataRouter = createTRPCRouter({
           "Insufficient permissions to get revenue by referral source",
         );
       }
-      // Filtering
-      const baseWhere: QueryCondition[] = [ne(referralSource.source, "")];
-      const dateWhere: QueryCondition[] = [];
+      // Filtering - uses visitorLog approach to match totalRevenueUsd logic
+      const whereConditions: QueryCondition[] = [
+        isNotNull(visitorLog.utmSource),
+        ne(visitorLog.utmSource, ""),
+        eq(userData.isAi, false),
+        gte(userData.createdAt, visitorLog.createdAt),
+      ];
       if (input.startDate)
-        dateWhere.push(gte(paypalTransaction.createdAt, new Date(input.startDate)));
+        whereConditions.push(
+          gte(paypalTransaction.createdAt, new Date(input.startDate)),
+        );
       if (input.endDate)
-        dateWhere.push(lte(paypalTransaction.createdAt, new Date(input.endDate)));
+        whereConditions.push(lte(paypalTransaction.createdAt, new Date(input.endDate)));
 
-      // Avoid OR on large paypalTransaction by running two index-friendly joins in parallel
-      // and subtracting the double-counted self-purchases (createdById === affectedUserId).
-      const [byCreator, byAffected, bySelf] = await Promise.all([
-        ctx.drizzle
-          .select({
-            source: referralSource.source,
-            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
-          })
-          .from(referralSource)
-          .innerJoin(
-            paypalTransaction,
-            eq(paypalTransaction.createdById, referralSource.userId),
-          )
-          .where(and(...baseWhere, ...(dateWhere.length > 0 ? dateWhere : [])))
-          .groupBy(referralSource.source),
-        ctx.drizzle
-          .select({
-            source: referralSource.source,
-            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
-          })
-          .from(referralSource)
-          .innerJoin(
-            paypalTransaction,
-            eq(paypalTransaction.affectedUserId, referralSource.userId),
-          )
-          .where(and(...baseWhere, ...(dateWhere.length > 0 ? dateWhere : [])))
-          .groupBy(referralSource.source),
-        ctx.drizzle
-          .select({
-            source: referralSource.source,
-            totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
-          })
-          .from(referralSource)
-          .innerJoin(
-            paypalTransaction,
-            and(
-              eq(paypalTransaction.createdById, referralSource.userId),
-              eq(paypalTransaction.affectedUserId, referralSource.userId),
-            ),
-          )
-          .where(and(...baseWhere, ...(dateWhere.length > 0 ? dateWhere : [])))
-          .groupBy(referralSource.source),
-      ]);
+      // Query revenue grouped by utmSource using visitorLog tracking
+      const rows = await ctx.drizzle
+        .select({
+          source: visitorLog.utmSource,
+          totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
+        })
+        .from(paypalTransaction)
+        .innerJoin(userData, eq(paypalTransaction.createdById, userData.userId))
+        .innerJoin(historicalIp, eq(historicalIp.userId, userData.userId))
+        .innerJoin(visitorLog, eq(visitorLog.ip, historicalIp.ip))
+        .where(and(...whereConditions))
+        .groupBy(visitorLog.utmSource)
+        .orderBy(asc(visitorLog.utmSource));
 
-      const totalsBySource = new Map<string, number>();
-      const add = (rows: { source: string | null; totalUsd: number | null }[]) => {
-        rows.forEach((r) => {
-          const src = r.source ?? "";
-          const prev = totalsBySource.get(src) ?? 0;
-          totalsBySource.set(src, prev + Number(r.totalUsd ?? 0));
-        });
-      };
-      add(byCreator);
-      add(byAffected);
-      // subtract self-purchases counted in both creator and affected queries
-      bySelf.forEach((r) => {
-        const src = r.source ?? "";
-        const prev = totalsBySource.get(src) ?? 0;
-        totalsBySource.set(src, prev - Number(r.totalUsd ?? 0));
-      });
-
-      const rows = Array.from(totalsBySource.entries())
-        .map(([source, totalUsd]) => ({ source, totalUsd }))
-        .sort((a, b) => a.source.localeCompare(b.source));
-
-      return rows;
+      return rows.map((r) => ({
+        source: r.source ?? "",
+        totalUsd: r.totalUsd ?? 0,
+      }));
     }),
   getRecruitmentLevelDistribution: protectedProcedure
     .input(

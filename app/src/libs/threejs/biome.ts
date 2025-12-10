@@ -7,7 +7,12 @@ import {
   AddOperation,
   Texture,
 } from "three";
-import { IMG_BG_OCEAN, IMG_BG_ICE, IMG_BG_SNOW, ASSETS_LAYER } from "@/drizzle/constants";
+import {
+  IMG_BG_OCEAN,
+  IMG_BG_ICE,
+  IMG_BG_SNOW,
+  ASSETS_LAYER,
+} from "@/drizzle/constants";
 import { loadTexture, createSpriteMaterial } from "@/libs/threejs/util";
 import { applyWindShader } from "@/libs/threejs/shaders";
 import { COMBAT_BIOMES } from "@/drizzle/constants";

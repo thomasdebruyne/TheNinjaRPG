@@ -13,10 +13,11 @@ import {
 import ContentImage from "@/layout/ContentImage";
 import ItemWithEffects, { type GenericObject } from "@/layout/ItemWithEffects";
 import Loader from "@/layout/Loader";
+import { parseHtml } from "@/utils/parse";
 import { availableUserActions } from "@/libs/combat/actions";
 import type { ActionEffect, ReturnedBattle } from "@/libs/combat/types";
 import { cn } from "src/libs/shadui";
-import type { Item, BattleAction } from "@/drizzle/schema";
+import type { BattleAction } from "@/drizzle/schema";
 
 type CombatTimelineProps = {
   battleId: string;
@@ -232,7 +233,7 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
                     Round {selected.battleRound}
                   </span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    {selected.description}
+                    {parseHtml(selected.description ?? "")}
                   </span>
                 </DialogTitle>
               </DialogHeader>
@@ -244,7 +245,13 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
                 const effects = (selected.appliedEffects ?? []) as ActionEffect[];
                 return (
                   <div className="space-y-4">
-                    <ItemWithEffects item={actionItem} hideDetails={false} />
+                    <ItemWithEffects
+                      item={actionItem}
+                      hideDetails={false}
+                      hideDates={true}
+                      hideData={true}
+                      hideEffects={true}
+                    />
                     {effects.length ? (
                       <div className="space-y-2 rounded-md border p-3">
                         <p className="text-sm font-semibold">Applied effects</p>
