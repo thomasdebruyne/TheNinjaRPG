@@ -2,14 +2,13 @@ import {
   Vector3,
   MeshBasicMaterial,
   Sprite,
-  SpriteMaterial,
   RepeatWrapping,
   DoubleSide,
   AddOperation,
   Texture,
 } from "three";
-import { IMG_BG_OCEAN, IMG_BG_ICE, IMG_BG_SNOW } from "@/drizzle/constants";
-import { loadTexture } from "@/libs/threejs/util";
+import { IMG_BG_OCEAN, IMG_BG_ICE, IMG_BG_SNOW, ASSETS_LAYER } from "@/drizzle/constants";
+import { loadTexture, createSpriteMaterial } from "@/libs/threejs/util";
 import { applyWindShader } from "@/libs/threejs/shaders";
 import { COMBAT_BIOMES } from "@/drizzle/constants";
 import { getBiomeFromGlobalTile } from "@/libs/travel";
@@ -183,7 +182,8 @@ export const getMapSprites = (
       selectedAsset.randomRotation,
     );
     Object.assign(sprite.scale, new Vector3(size * h, size * h, 1));
-    Object.assign(sprite.position, new Vector3(posX, posY, -8));
+    Object.assign(sprite.position, new Vector3(posX, posY, ASSETS_LAYER));
+
     // Mark sprite as small if asset is small
     sprite.userData.small = selectedAsset.small === true;
     sprites.push(sprite);
@@ -202,7 +202,7 @@ const loadSectorAsset = (
   randomRotation?: boolean,
 ) => {
   const texture = loadTexture(filepath);
-  const material = new SpriteMaterial({ map: texture });
+  const material = createSpriteMaterial(texture);
 
   // Add wind effect via shader modification
   if (windAffected) {

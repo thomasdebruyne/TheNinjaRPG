@@ -51,6 +51,11 @@ import {
   IMG_SECTOR_WALL_STONE_TOWER,
   IMG_ICON_HEAL,
   STRUCTURE_ADJACENTS,
+  TILES_LAYER,
+  USER_LAYER,
+  DIRT_LAYER,
+  ASSETS_LAYER,
+  STATUS_LAYER,
 } from "@/drizzle/constants";
 import { hasRequiredRank } from "@/libs/train";
 import type { ComplexObjectiveFields } from "@/validators/objectives";
@@ -59,13 +64,6 @@ import type { TerrainHex, PathCalculator, HexagonalFaceMesh } from "../hexgrid";
 import type { SectorUser, GlobalTile } from "@/libs/threejs/types";
 import type { SectorVillage } from "@/routers/travel";
 import type { VillageStructure } from "@/drizzle/schema";
-
-// Drawing layers on the sector
-const ASSETS_LAYER = -8;
-const TILES_LAYER = -9;
-const DIRT_LAYER = -10;
-const USER_LAYER = -6;
-const USER_HUD_LAYER = -5;
 
 export const drawQuest = (info: {
   group_quest: Group;
@@ -406,7 +404,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
     attackSprite.userData.userId = userData.userId;
     attackSprite.userData.type = "attack";
     Object.assign(attackSprite.scale, new Vector3(h * 0.8, h * 0.8, 1));
-    Object.assign(attackSprite.position, new Vector3(w * 0.9, h * 1.4, USER_HUD_LAYER));
+    Object.assign(attackSprite.position, new Vector3(w * 0.9, h * 1.4, STATUS_LAYER));
     attackSprite.name = `${userData.userId}-attack`;
     group.add(attackSprite);
   }
@@ -419,7 +417,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
   healSprite.userData.userId = userData.userId;
   healSprite.userData.type = "heal";
   Object.assign(healSprite.scale, new Vector3(h * 0.7, h * 0.7, 1));
-  Object.assign(healSprite.position, new Vector3(w, h * 0.5, USER_HUD_LAYER));
+  Object.assign(healSprite.position, new Vector3(w, h * 0.5, STATUS_LAYER));
   healSprite.name = `${userData.userId}-heal`;
   group.add(healSprite);
 
@@ -431,7 +429,7 @@ export const createUserSprite = (userData: SectorUser, hex: TerrainHex) => {
   infoSprite.userData.userId = userData.userId;
   infoSprite.userData.type = "info";
   Object.assign(infoSprite.scale, new Vector3(h * 0.7, h * 0.7, 1));
-  Object.assign(infoSprite.position, new Vector3(w * 0.1, h * 1.4, USER_HUD_LAYER));
+  Object.assign(infoSprite.position, new Vector3(w * 0.1, h * 1.4, STATUS_LAYER));
   infoSprite.name = `${userData.userId}-info`;
   group.add(infoSprite);
 
@@ -570,7 +568,7 @@ export const createMultipleUserSprite = (
   texture.needsUpdate = true;
   const material = new SpriteMaterial({ map: texture });
   const sprite = new Sprite(material);
-  sprite.position.set(w * 0.8, h * 1.3, USER_LAYER);
+  sprite.position.set(w * 0.8, h * 1.3, STATUS_LAYER);
   sprite.scale.set(h * 0.5, h * 0.5, 0.00000001);
   group.add(sprite);
 

@@ -41,7 +41,8 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Filter } from "lucide-react";
 import type { GeneralType, StatType, ElementName } from "@/drizzle/constants";
 import type { UserStatuses } from "@/drizzle/constants";
-import type { UserEffect } from "@/libs/combat/types";
+import type { UserEffect, GroundEffect } from "@/libs/combat/types";
+import { isPositiveUserEffect, isNegativeUserEffect } from "@/libs/combat/types";
 import { api } from "@/app/_trpc/client";
 import { useFiltering, getFilter } from "@/layout/JutsuFiltering";
 
@@ -909,6 +910,132 @@ export const VisualizeEffects: React.FC<VisualizeEffectsProps> = ({
           <div className="grid grid-cols-2 gap-1">
             {damageEffects.map(renderCompact)}
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Shared effect row component for rendering individual effects
+ */
+interface EffectRowProps {
+  type: string;
+  power: number;
+  calculation?: string;
+  roundsLeft: number;
+  isPositive: boolean;
+  isNegative: boolean;
+}
+
+const EffectRow: React.FC<EffectRowProps> = ({
+  type,
+  power,
+  calculation,
+  roundsLeft,
+  isPositive,
+  isNegative,
+}) => {
+  const colorClass = isPositive
+    ? "text-green-500"
+    : isNegative
+      ? "text-red-500"
+      : "text-gray-400";
+  return (
+    <div
+      className={cn(
+        "flex flex-row items-center justify-between gap-2 text-xs",
+        colorClass,
+      )}
+    >
+      <span className="capitalize">{type.replace(/([A-Z])/g, " $1").trim()}</span>
+      <span className="flex gap-2">
+        {power > 0 && (
+          <span>
+            {isNegative ? "-" : "+"}
+            {power}
+            {calculation === "percentage" ? "%" : ""}
+          </span>
+        )}
+        {roundsLeft > 0 && <span className="text-gray-400">↻{roundsLeft}</span>}
+      </span>
+    </div>
+  );
+};
+
+/**
+ * Simplified effect visualization for ground effects
+ * Shares logic with VisualizeEffects but without user-specific filtering
+ */
+interface VisualizeGroundEffectsProps {
+  effects: GroundEffect[];
+}
+
+export const VisualizeGroundEffects: React.FC<VisualizeGroundEffectsProps> = ({
+  effects,
+}) => {
+  if (effects.length === 0) return null;
+
+  // Group effects by type and classify as positive/negative
+  const groupedEffects = effects.reduce(
+    (acc, effect) => {
+      const isPositive = isPositiveUserEffect(effect);
+      const isNegative = isNegativeUserEffect(effect);
+      const category = isPositive ? "positive" : isNegative ? "negative" : "neutral";
+
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(effect);
+      return acc;
+    },
+    {} as Record<string, GroundEffect[]>,
+  );
+
+  const renderEffect = (effect: GroundEffect, index: number) => {
+    const power = effect.power ?? 0;
+    const level = effect.level ?? 0;
+    const powerPerLevel = effect.powerPerLevel ?? 0;
+    const totalPower = Math.abs(power + level * powerPerLevel);
+
+    return (
+      <EffectRow
+        key={`${effect.id}-${index}`}
+        type={effect.type}
+        power={totalPower}
+        calculation={effect.calculation}
+        roundsLeft={effect.rounds ?? 0}
+        isPositive={isPositiveUserEffect(effect)}
+        isNegative={isNegativeUserEffect(effect)}
+      />
+    );
+  };
+
+  const positiveEffects = groupedEffects["positive"] || [];
+  const negativeEffects = groupedEffects["negative"] || [];
+  const neutralEffects = groupedEffects["neutral"] || [];
+
+  return (
+    <div className="flex flex-col gap-2 text-sm">
+      <div className="font-semibold text-xs text-gray-500 uppercase">
+        Ground Effects
+      </div>
+      {positiveEffects.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <div className="text-green-600 font-medium text-xs">Buffs</div>
+          {positiveEffects.map(renderEffect)}
+        </div>
+      )}
+      {negativeEffects.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <div className="text-red-600 font-medium text-xs">Debuffs</div>
+          {negativeEffects.map(renderEffect)}
+        </div>
+      )}
+      {neutralEffects.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <div className="text-gray-500 font-medium text-xs">Other</div>
+          {neutralEffects.map(renderEffect)}
         </div>
       )}
     </div>

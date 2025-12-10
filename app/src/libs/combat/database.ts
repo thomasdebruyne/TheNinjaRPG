@@ -195,6 +195,8 @@ export const createAction = async (
     appliedEffects: ActionEffect[];
     description: string;
     battleVersion: number;
+    actionId?: string;
+    userId?: string;
   }[],
 ) => {
   if (history.length > 0) {
@@ -208,6 +210,8 @@ export const createAction = async (
           battleRound: entry.battleRound,
           createdAt: new Date(),
           updatedAt: new Date(),
+          actionId: entry.actionId ?? "unknown",
+          userId: entry.userId ?? "unknown",
           description: entry.description,
           appliedEffects: entry.appliedEffects,
         };

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import ActionTimer from "@/layout/ActionTimer";
 import CombatHistory from "@/layout/CombatHistory";
+import CombatTimeline from "@/layout/CombatTimeline";
 import { availableUserActions } from "@/libs/combat/actions";
 import { ActionSelector } from "@/layout/CombatActions";
 import { api } from "@/app/_trpc/client";
@@ -14,25 +14,16 @@ import { useSetAtom, useAtom } from "jotai";
 import { userBattleAtom, combatActionIdAtom } from "@/utils/UserContext";
 import type { BattleState } from "@/libs/combat/types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { capitalizeFirstLetter } from "@/utils/sanitize";
-import { Button } from "@/components/ui/button";
-import { LayoutGrid } from "lucide-react";
 import { useTutorialStep } from "@/hooks/tutorial";
-import { useLocalStorage } from "@/hooks/localstorage";
+import { UserCombatSettings } from "@/layout/UserCombatSettings";
+import { useCombatPreferences, type CombatLayoutComponentId } from "@/hooks/combat";
 
 const Combat = dynamic(() => import("@/layout/Combat"));
 
 export default function CombatPage() {
-  // Add media query hook
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
   // State
   const [actionId, setActionId] = useAtom(combatActionIdAtom);
-  const [showGridNumbers, setShowGridNumbers] = useLocalStorage<boolean>(
-    "showGridNumbers",
-    false,
-  );
+  const config = useCombatPreferences();
   const [battleState, setBattleState] = useState<BattleState | undefined>(undefined);
   const [lastViewedVersion, setLastViewedVersion] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>("actions");
@@ -51,6 +42,12 @@ export default function CombatPage() {
   const battle = battleState?.battle;
   const versionId = battle?.version;
   const user = battle?.usersState.find((u) => u.userId === userId);
+  const actionGridClass = config.useSmallActions
+    ? "grid grid-cols-7 md:grid-cols-9 gap-1"
+    : undefined;
+  const actionAspect = config.useSmallActions ? "aspect-square" : undefined;
+  const showActionLabels = !config.useSmallActions;
+  const isInBattle = userData?.status === "BATTLE";
 
   // Calculate number of unread actions
   const unreadActions = battle?.version
@@ -63,6 +60,16 @@ export default function CombatPage() {
       setLastViewedVersion(battle.version);
     }
   }, [activeTab, battle?.version]);
+
+  // Force actions tab when timeline or battle log is hidden
+  useEffect(() => {
+    if (!config.showBattleLog && activeTab === "history") {
+      setActiveTab("actions");
+    }
+    if (!config.showTimeline && activeTab === "timeline") {
+      setActiveTab("actions");
+    }
+  }, [config.showBattleLog, config.showTimeline, activeTab]);
 
   // Tutorial step
   const { currentStep, handleNextStep } = useTutorialStep();
@@ -100,12 +107,12 @@ export default function CombatPage() {
           action={actions.find((a) => a.id === actionId)}
           userId={userId}
           setBattleState={setBattleState}
-          showGridNumbers={showGridNumbers}
+          config={config}
         />
       )
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versionId, actionId, userId, results, showGridNumbers]);
+  }, [versionId, actionId, userId, results, config.showGridNumbers]);
 
   // Handle key-presses
   useEffect(() => {
@@ -127,145 +134,226 @@ export default function CombatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionId]);
 
-  if (!userData) return <Loader explanation="Loading userdata" />;
+  // Action click handler
+  const handleActionClick = useCallback(
+    (id: string) => {
+      if (id === actionId) {
+        setActionId(undefined);
+      } else {
+        setActionId(id);
+      }
+    },
+    [actionId, setActionId],
+  );
 
-  return (
-    <div className="sm:container">
-      <ContentBox
-        title="Combat"
-        subtitle={
-          battle?.battleType ? capitalizeFirstLetter(battle?.battleType) : "Sparring"
-        }
-        padding={false}
-        topRightContent={
-          battle &&
-          user &&
-          userData?.status === "BATTLE" && (
-            <div
-              className="flex flex-row items-center gap-2"
-              id="tutorial-combat-action-timer"
-            >
-              <ActionTimer
-                action={actions.find((a) => a.id === actionId)}
-                user={{ userId: userId, actionPoints: user?.actionPoints ?? 0 }}
-                battle={battle}
-                isPending={battleState.isPending}
-              />
-              <Button
-                variant={showGridNumbers ? "default" : "outline"}
-                size="icon"
-                onClick={() => setShowGridNumbers(!showGridNumbers)}
-                className="h-8 w-8 min-w-8 min-h-8"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
-          )
-        }
+  // Component renderers
+  const renderTimer = useCallback(() => {
+    if (!battle || !user || !isInBattle || !battleState) return null;
+    return (
+      <div
+        className="flex flex-row items-center gap-2"
+        id="tutorial-combat-action-timer"
       >
+        <ActionTimer
+          action={actions.find((a) => a.id === actionId)}
+          user={{ userId: userId, actionPoints: user?.actionPoints ?? 0 }}
+          battle={battle}
+          isPending={battleState.isPending}
+          options={<UserCombatSettings config={config} userData={userData} />}
+        />
+      </div>
+    );
+  }, [
+    battle,
+    user,
+    isInBattle,
+    battleState,
+    actions,
+    actionId,
+    userId,
+    config,
+    userData,
+  ]);
+
+  const renderBattlefield = useCallback(() => {
+    return (
+      <div className="relative rounded-lg border bg-card shadow-lg text-card-foreground overflow-hidden">
         {!isLoading && combat}
         {!userData && <Loader explanation="Loading User Data" />}
         {isLoading && <Loader explanation="Loading Battle Data" />}
         {userData && !results && !userData.battleId && (
           <p className="p-3">You are not in any battle</p>
         )}
-      </ContentBox>
+      </div>
+    );
+  }, [isLoading, combat, userData, results]);
 
-      {battle && (
-        <>
-          {isDesktop ? (
-            // Desktop view stacked
-            <>
-              {userData?.status === "BATTLE" && (
-                <ActionSelector
-                  showInfoIcon={true}
-                  items={actions}
-                  currentRound={battle.round}
-                  showBgColor={true}
-                  showLabels={true}
-                  selectedId={actionId}
-                  combatMode={true}
-                  onClick={(id) => {
-                    if (id === actionId) {
-                      setActionId(undefined);
-                    } else {
-                      setActionId(id);
-                    }
-                  }}
-                />
-              )}
-              <CombatHistory
-                battleId={battle.id}
-                battleVersion={battle.version}
-                battleRound={battle.round}
-                results={results}
-              />
-            </>
-          ) : (
-            // Mobile view with tabs
-            <Tabs
-              defaultValue="actions"
-              className="w-full"
-              value={activeTab}
-              onValueChange={setActiveTab}
-            >
-              <TabsList className="w-full mt-2 border-2 rounded-none">
-                <TabsTrigger value="actions" className="flex-1">
-                  Actions
-                </TabsTrigger>
-                <TabsTrigger value="history" className="flex-1 relative">
-                  History
-                  {unreadActions > 0 && activeTab !== "history" && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
-                      {unreadActions}
-                    </span>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="actions" className="mt-0 p-0">
-                {userData?.status === "BATTLE" && (
-                  <ActionSelector
-                    showInfoIcon={true}
-                    items={actions}
-                    className="p-1"
-                    currentRound={battle.round}
-                    showBgColor={true}
-                    showLabels={true}
-                    selectedId={actionId}
-                    combatMode={true}
-                    onClick={(id) => {
-                      if (id === actionId) {
-                        setActionId(undefined);
-                      } else {
-                        setActionId(id);
-                      }
-                    }}
-                  />
-                )}
-              </TabsContent>
-              <TabsContent value="history" className="mt-0 pt-0">
-                <CombatHistory
-                  battleId={battle.id}
-                  battleVersion={battle.version}
-                  battleRound={battle.round}
-                  results={results}
-                />
-              </TabsContent>
-            </Tabs>
+  const renderActions = useCallback(() => {
+    if (!isInBattle || !battle) return null;
+    return (
+      <ActionSelector
+        showInfoIcon={true}
+        items={actions}
+        currentRound={battle.round}
+        className="p-1"
+        showBgColor={true}
+        showLabels={showActionLabels}
+        selectedId={actionId}
+        combatMode={true}
+        gridClassNameOverwrite={actionGridClass}
+        aspectRatioClass={actionAspect}
+        onClick={handleActionClick}
+      />
+    );
+  }, [
+    isInBattle,
+    battle,
+    actions,
+    showActionLabels,
+    actionId,
+    actionGridClass,
+    actionAspect,
+    handleActionClick,
+  ]);
+
+  const renderTimeline = useCallback(() => {
+    if (!config.showTimeline || !battle) return null;
+    return (
+      <CombatTimeline
+        battleId={battle.id}
+        battle={battle}
+        battleVersion={battle.version}
+        showBasicActions={config.showBasicActions}
+      />
+    );
+  }, [config.showTimeline, config.showBasicActions, battle]);
+
+  const renderBattleLog = useCallback(() => {
+    if (!config.showBattleLog || !battle) return null;
+    return (
+      <CombatHistory
+        battleId={battle.id}
+        battleVersion={battle.version}
+        battleRound={battle.round}
+        results={results}
+      />
+    );
+  }, [config.showBattleLog, battle, results]);
+
+  // Component renderer based on ID
+  const renderComponent = useCallback(
+    (id: CombatLayoutComponentId) => {
+      switch (id) {
+        case "timer":
+          return renderTimer();
+        case "battlefield":
+          return renderBattlefield();
+        case "actions":
+          return renderActions();
+        case "timeline":
+          return renderTimeline();
+        case "battlelog":
+          return renderBattleLog();
+        default:
+          return null;
+      }
+    },
+    [renderTimer, renderBattlefield, renderActions, renderTimeline, renderBattleLog],
+  );
+
+  // Tabs content - groups actions, timeline, and battlelog
+  const renderTabbedContent = useCallback(() => {
+    if (!battle) return null;
+
+    return (
+      <Tabs
+        defaultValue="actions"
+        className="w-full"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
+        <TabsList className="w-full rounded-lg border">
+          <TabsTrigger value="actions" className="flex-1">
+            Actions
+          </TabsTrigger>
+          {config.showTimeline && (
+            <TabsTrigger value="timeline" className="flex-1">
+              Timeline
+            </TabsTrigger>
           )}
+          {config.showBattleLog && (
+            <TabsTrigger value="history" className="flex-1 relative">
+              History
+              {unreadActions > 0 && activeTab !== "history" && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
+                  {unreadActions}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
+        </TabsList>
+        <TabsContent value="actions" className="mt-0 p-1">
+          {renderActions()}
+        </TabsContent>
+        {config.showTimeline && (
+          <TabsContent value="timeline" className="mt-0 p-2">
+            {renderTimeline()}
+          </TabsContent>
+        )}
+        {config.showBattleLog && (
+          <TabsContent value="history" className="mt-0 pt-0">
+            {renderBattleLog()}
+          </TabsContent>
+        )}
+      </Tabs>
+    );
+  }, [
+    battle,
+    config.showTimeline,
+    config.showBattleLog,
+    activeTab,
+    unreadActions,
+    renderActions,
+    renderTimeline,
+    renderBattleLog,
+  ]);
+
+  if (!userData) return <Loader explanation="Loading userdata" />;
+
+  // Determine which components are tabbed vs standalone
+  const tabbedIds: CombatLayoutComponentId[] = ["actions", "timeline", "battlelog"];
+
+  return (
+    <div className="sm:container flex flex-col gap-1">
+      {config.useTabs ? (
+        // Tabs mode: render non-tabbed components in order, then tabs
+        <>
+          {config.layoutOrder
+            .filter((id) => !tabbedIds.includes(id))
+            .map((id) => (
+              <div key={id}>{renderComponent(id)}</div>
+            ))}
+          {battle && renderTabbedContent()}
+        </>
+      ) : (
+        // Non-tabs mode: render all components in order
+        <>
+          {config.layoutOrder.map((id) => (
+            <div key={id}>{renderComponent(id)}</div>
+          ))}
         </>
       )}
 
       <div className="flex flex-row">
         {battle && !results && actionId && (
-          <div className="pt-2 text-xs">
+          <div className="text-xs">
             <p className="text-red-500">Red: tile not affected</p>
             <p className="text-green-700">Green: tile affected by attack</p>
             <p className="text-blue-500">Blue: move character</p>
           </div>
         )}
         <div className="grow"></div>
-        <div className="pt-2 text-xs">
+        <div className="text-xs">
           <p className="text-orange-700">Hotkey &quot;W&quot;: End turn</p>
           <p className="text-orange-700">Hotkey &quot;M&quot;: Move</p>
         </div>

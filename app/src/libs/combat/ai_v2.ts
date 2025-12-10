@@ -44,6 +44,9 @@ export const performAIaction = (
   // Find AI users who are in control of themselves (i.e. not controlled by a player)
   const aiUsers = nextBattle.usersState.filter((user) => user.isAi);
 
+  // Next action bookkeeping
+  let nextAction: ActionWithTarget | undefined = undefined;
+
   // Path finder on grid in path lines
   let astar = new PathCalculator(updateGridWithObstacles(grid, nextBattle));
 
@@ -197,7 +200,6 @@ export const performAIaction = (
     };
 
     // Go through rules
-    let nextAction: ActionWithTarget | undefined = undefined;
     for (const rule of user.aiProfile.rules) {
       // if (debug) console.log("Rule: ", rule);
 
@@ -229,22 +231,30 @@ export const performAIaction = (
               (e) => e.targetId === user.userId && e.type === condition.effectType,
             );
             if (userEffects.length === 0) return false;
-            const totalUserPower = userEffects.reduce((sum, effect) => sum + effect.power, 0);
+            const totalUserPower = userEffects.reduce(
+              (sum, effect) => sum + effect.power,
+              0,
+            );
             return totalUserPower >= condition.threshold;
           }
           case "target_has_effect": {
             if (condition.threshold === 0) return true;
             const targetUser = target
               ? nextBattle.usersState.find(
-                  (u) => u.longitude === target.longitude && u.latitude === target.latitude,
+                  (u) =>
+                    u.longitude === target.longitude && u.latitude === target.latitude,
                 )
               : null;
             if (!targetUser) return false;
             const targetEffects = nextBattle.usersEffects.filter(
-              (e) => e.targetId === targetUser.userId && e.type === condition.effectType,
+              (e) =>
+                e.targetId === targetUser.userId && e.type === condition.effectType,
             );
             if (targetEffects.length === 0) return false;
-            const totalTargetPower = targetEffects.reduce((sum, effect) => sum + effect.power, 0);
+            const totalTargetPower = targetEffects.reduce(
+              (sum, effect) => sum + effect.power,
+              0,
+            );
             return totalTargetPower >= condition.threshold;
           }
         }
@@ -393,7 +403,8 @@ export const performAIaction = (
   }
 
   // Return the new state
-  return { nextBattle, nextActionEffects, aiDescriptions };
+  const nextActionId = nextAction?.action?.id ?? undefined;
+  return { nextBattle, nextActionEffects, aiDescriptions, nextActionId };
 };
 
 /**

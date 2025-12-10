@@ -1,6 +1,21 @@
-import { TextureLoader, Texture, SRGBColorSpace, Scene, WebGLRenderer, Raycaster, Vector2 } from "three";
+import {
+  TextureLoader,
+  Texture,
+  SRGBColorSpace,
+  Scene,
+  WebGLRenderer,
+  Raycaster,
+  Vector2,
+  SpriteMaterial,
+} from "three";
 import type { RefObject } from "react";
-import type { Vector3, OrthographicCamera, PerspectiveCamera, Material, BufferGeometry } from "three";
+import type {
+  Vector3,
+  OrthographicCamera,
+  PerspectiveCamera,
+  Material,
+  BufferGeometry,
+} from "three";
 
 // Simple in-memory cache for textures to avoid re-fetching
 let textureLoaderInstance: TextureLoader | null = null;
@@ -33,6 +48,19 @@ export const loadTexture = (path: string) => {
   texture.colorSpace = SRGBColorSpace;
   textureCache.set(path, texture);
   return texture;
+};
+
+/**
+ * Create a sprite material
+ * @param texture - The texture to create a sprite material for
+ * @returns The sprite material
+ */
+export const createSpriteMaterial = (map: Texture, alphaMap?: Texture) => {
+  return new SpriteMaterial({
+    map: map,
+    alphaMap: alphaMap,
+    alphaTest: 0.5,
+  });
 };
 
 /**

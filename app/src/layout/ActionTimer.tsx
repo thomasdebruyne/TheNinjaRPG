@@ -1,16 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import { Progress } from "@/components/ui/progress";
 import Loader from "./Loader";
 import { useUserData } from "@/utils/UserContext";
 import { calcActiveUser, availableUserActions } from "@/libs/combat/actions";
 import { calcApReduction } from "@/libs/combat/util";
-import {
-  IMG_ACTIONTIMER_BG,
-  IMG_ACTIONTIMER_YELLOW,
-  IMG_ACTIONTIMER_RED,
-  IMG_ACTIONTIMER_BLUE,
-  IMG_ACTIONTIMER_OVERLAY,
-} from "@/drizzle/constants";
 import type { CombatAction } from "@/libs/combat/types";
 import type { ReturnedBattle } from "@/libs/combat/types";
 
@@ -19,6 +12,7 @@ interface ActionTimerProps {
   user: { userId: string | undefined; actionPoints: number };
   battle: ReturnedBattle;
   isPending: boolean;
+  options?: React.ReactNode;
 }
 
 const ActionTimer: React.FC<ActionTimerProps> = (props) => {
@@ -44,17 +38,17 @@ const ActionTimer: React.FC<ActionTimerProps> = (props) => {
   const cost = action?.actionCostPerc ?? 0;
   const actionNow = user.actionPoints - stunReduction;
   const actionAfter = actionNow - cost;
+  const clampedActionNow = Math.max(0, Math.min(100, actionNow));
+  const clampedActionAfter = Math.max(0, Math.min(100, actionAfter));
+  const isProjectedNegative = actionAfter < 0;
+  const spentStart = Math.max(0, Math.min(clampedActionAfter, clampedActionNow));
+  const spentWidth = Math.max(0, clampedActionNow - Math.max(0, clampedActionAfter));
 
   // Precompute actions for this user, recompute only when battle version changes
   const precomputedActions = useMemo(() => {
     return availableUserActions(battle, user.userId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [battle?.version, user.userId]);
-
-  // Calculate label and color
-  const yellow = IMG_ACTIONTIMER_YELLOW;
-  const red = IMG_ACTIONTIMER_RED;
-  const blue = IMG_ACTIONTIMER_BLUE;
 
   // Active updating of this component
   useEffect(() => {
@@ -78,11 +72,11 @@ const ActionTimer: React.FC<ActionTimerProps> = (props) => {
       const waiting = user.userId !== actor.userId;
       // Update state
       if (mseconds >= 0) {
-        const inform = !waiting ? "Your turn" : `${actor.username}'s turn`;
+        const inform = !waiting ? "You" : `Opponent`;
         const info = left > 0 ? `${inform}: ${left.toFixed(1)}s` : "Finished!";
-        setState({ label: `Round: ${battle.round} - ${info}`, canAct, waiting });
+        setState({ label: info, canAct, waiting });
       } else {
-        setState({ label: `Waiting in Lobby`, canAct, waiting });
+        setState({ label: `Lobby`, canAct, waiting });
       }
       // Set action points
     }, 100);
@@ -90,69 +84,100 @@ const ActionTimer: React.FC<ActionTimerProps> = (props) => {
   }, [isPending, battle, user, timeDiff, precomputedActions]);
 
   return (
-    <div className="pl-5">
-      <div className="relative flex flex-row justify-center pt-2">
-        <Image
-          className="relative"
-          src={IMG_ACTIONTIMER_BG}
-          alt="Action Timer"
-          width={768}
-          height={62}
-          priority={true}
-        />
-        {actionNow > 0 && (
-          <>
-            <Image
-              className={`absolute ${!state.canAct ? "grayscale" : ""}`}
-              style={{
-                clipPath: `polygon(0 0%, ${actionNow}% 0%, ${actionNow}% 100%, 0% 100%)`,
-              }}
-              src={actionAfter >= 0 ? yellow : red}
-              alt="Action Timer"
-              width={768}
-              height={62}
-            />
-            <Image
-              className={`absolute ${!state.canAct ? "grayscale" : ""}`}
-              style={{
-                clipPath: `polygon(0 0%, ${actionAfter}% 0%, ${actionAfter}% 100%, 0% 100%)`,
-              }}
-              src={blue}
-              alt="Action Timer"
-              width={768}
-              height={62}
-            />
-          </>
-        )}
-        <Image
-          className="absolute"
-          src={IMG_ACTIONTIMER_OVERLAY}
-          alt="Action Timer"
-          width={768}
-          height={62}
-        />
-        {actionNow > 0 && !isPending && (
-          <p
-            className={`absolute bottom-0 left-0 right-0 top-3 flex items-center justify-center text-sm font-bold text-white drop-shadow-lg ${
-              !state.canAct ? "opacity-50" : ""
-            }`}
-          >
-            {actionNow.toFixed(1)}%
-          </p>
-        )}
+    <div className="grow pb-1">
+      <div className="relative w-full overflow-hidden rounded-lg border bg-slate-700/70 shadow-lg backdrop-blur-sm">
+        <div className="flex flex-row">
+          {/* Round & action bar */}
+          <div className="flex flex-col py-1 px-4 grow">
+            <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-slate-200">
+              <div className="flex items-center gap-3 w-full whitespace-nowrap">
+                <span>Round {battle.round}</span>
+                <div className="grow"></div>
+                <div
+                  className={`flex items-center gap-2 rounded-full px-3 pt-1 text-[11px] ${
+                    state.waiting
+                      ? "bg-amber-500/10 text-amber-200"
+                      : "bg-emerald-500/10 text-emerald-200"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      state.waiting ? "bg-amber-300" : "bg-emerald-300"
+                    }`}
+                  />
+                  <span className="font-semibold">{state.label || "..."}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative min-w-0 flex-1">
+                <Progress
+                  value={clampedActionNow}
+                  className={`h-6 rounded-full border border-slate-700/60 bg-slate-900/60 shadow-inner ring-1 ring-black/10 ${state.canAct ? "" : "opacity-60"}`}
+                  indicatorClassName={
+                    state.canAct
+                      ? "bg-gradient-to-r from-emerald-400/80 via-emerald-500/90 to-emerald-600/80"
+                      : "bg-gradient-to-r from-slate-600/70 via-slate-500/70 to-slate-600/80"
+                  }
+                />
+                {spentWidth > 0 && !isPending && (
+                  <div
+                    className={`
+                      pointer-events-none absolute inset-y-0 right-0 z-10 bg-white/35
+                      ${
+                        spentStart <= 0 && spentWidth >= 100
+                          ? "rounded-l-full rounded-r-full"
+                          : spentStart <= 0
+                            ? "rounded-l-full"
+                            : spentStart + spentWidth >= 100
+                              ? "rounded-r-full"
+                              : ""
+                      }
+                    `}
+                    style={{ left: `${spentStart}%`, width: `${spentWidth}%` }}
+                  />
+                )}
+                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center text-xs font-bold text-white drop-shadow-sm">
+                  {!isPending && `${Math.max(actionNow, 0).toFixed(1)}% AP`}
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Cost before & after */}
+          <div className="flex flex-col items-center gap-1 pt-1 pr-2">
+            <span className="flex items-center gap-1 rounded-full bg-slate-800/70 px-2.5 font-semibold w-full">
+              <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                Cost
+              </span>
+              <div className="grow"></div>
+              <span className={isProjectedNegative ? "text-red-300" : "text-sky-200"}>
+                {cost ? `${cost.toFixed(1)}%` : "N/A"}
+              </span>
+            </span>
+            <span className="flex items-center gap-1 rounded-full bg-slate-800/70 px-2.5 font-semibold w-full">
+              <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                After
+              </span>
+              <div className="grow"></div>
+              <span
+                className={isProjectedNegative ? "text-red-300" : "text-emerald-200"}
+              >
+                {cost ? `${Math.max(actionAfter, 0).toFixed(1)}%` : "N/A"}
+              </span>
+            </span>
+          </div>
+          {props?.options && (
+            <div className="flex flex-col items-center justify-center gap-1 pt-1 pr-2">
+              {props.options}
+            </div>
+          )}
+        </div>
+
         {(isPending || !user) && (
-          <div className="absolute">
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/10 backdrop-blur-sm">
             <Loader noPadding={true} />
           </div>
-        )}
-        {state.label && !isPending && (
-          <p
-            className={`absolute bottom-0 left-0 right-0 top-0 flex justify-center text-sm font-bold ${
-              state.waiting ? "text-red-800" : "text-green-800 "
-            }`}
-          >
-            {state.label}
-          </p>
         )}
       </div>
     </div>

@@ -46,24 +46,27 @@ import type { CombatAction } from "@/libs/combat/types";
 import type { BattleState } from "@/libs/combat/types";
 import type { TerrainHex } from "@/libs/hexgrid";
 import { useLocalStorage } from "@/hooks/localstorage";
+import { useBattleMaps } from "@/hooks/combat";
+import type { CombatPreferences } from "@/hooks/combat";
 import { usePerformanceMonitor } from "@/hooks/performance-monitor";
 import Modal2 from "@/layout/Modal2";
 import { useTutorialStep } from "@/hooks/tutorial";
 import { LogbookEntry } from "@/layout/Logbook";
 import { preloadTextures } from "@/libs/threejs/util";
 import { preloadAudioBuffers } from "@/utils/audio";
+import { VisualizeEffects, VisualizeGroundEffects } from "@/layout/MenuBoxProfile";
 
 interface CombatProps {
   action?: CombatAction | undefined;
   battleState: BattleState;
   userId: string;
   setBattleState: React.Dispatch<React.SetStateAction<BattleState | undefined>>;
-  showGridNumbers: boolean;
+  config: CombatPreferences;
 }
 
 const Combat: React.FC<CombatProps> = (props) => {
   // Destructure props
-  const { battleState, setBattleState, showGridNumbers } = props;
+  const { battleState, setBattleState, config } = props;
   const result = battleState.result;
   const utils = api.useUtils();
 
@@ -71,6 +74,13 @@ const Combat: React.FC<CombatProps> = (props) => {
   const [isInLobby, setIsInLobby] = useState<boolean>(true);
   const [logbookModalOpen, setLogbookModalOpen] = useState<boolean>(false);
   const [logbookModalQuestId, setLogbookModalQuestId] = useState<string | null>(null);
+
+  // Hover tooltip state for effects (can include both user and ground effects)
+  const [hoveredEffect, setHoveredEffect] = useState<{
+    tileKey: string;
+    userId?: string;
+    position: { x: number; y: number };
+  } | null>(null);
 
   // Light layout preference state
   const [lightLayout] = useLocalStorage<boolean>("lightLayout", false);
@@ -123,6 +133,20 @@ const Combat: React.FC<CombatProps> = (props) => {
     return [] as CombatAction[];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [battle.current?.version, suid]);
+
+  // Precompute maps for ground effects, user effects, and user positions
+  const battleMaps = useBattleMaps(battle.current ?? null);
+
+  // Store precomputed maps in refs for use in render loop
+  const battleMapsRef = useRef(battleMaps);
+  const setHoveredEffectRef = useRef(setHoveredEffect);
+  const lastHoverKeyRef = useRef<string | null>(null);
+
+  // Update refs when memos change
+  useEffect(() => {
+    battleMapsRef.current = battleMaps;
+    setHoveredEffectRef.current = setHoveredEffect;
+  }, [battleMaps, setHoveredEffect]);
 
   // Session battle user state
   const battleSessionUser = battle.current?.usersState.find(
@@ -525,15 +549,13 @@ const Combat: React.FC<CombatProps> = (props) => {
       grid.current = honeycombGrid;
 
       // Set initial visibility based on prop and store reference
-      group_names.visible = showGridNumbers;
+      group_names.visible = config.showGridNumbers;
       groupNamesRef.current = group_names;
 
       // Intersections & highlights from interactions
       let highlights = new Set<string>();
       let tooltips = new Set<string>();
       let userHighlights = new Set<string>();
-      let tileTooltips = new Set<string>();
-      // let currentTooltips = new Set<string>();
 
       // js groups for organization
       const group_users = new Group();
@@ -641,7 +663,7 @@ const Combat: React.FC<CombatProps> = (props) => {
             (u) => u.userId === userId.current,
           );
 
-          // Draw all users on the map + indicators for positions with multiple users
+          // Draw all users on the map
           const isAnyUserMoving = drawCombatUsers({
             group_users: group_users,
             users: battle.current.usersState,
@@ -719,14 +741,25 @@ const Combat: React.FC<CombatProps> = (props) => {
             currentTooltips: tooltips,
           });
 
-          // Highlight tile tooltips when hovering on tiles with ground effects
-          tileTooltips = highlightTileTooltips({
+          // Highlight tile tooltips when hovering on tiles with ground effects or users
+          highlightTileTooltips({
             group_tiles,
             cachedIntersections,
-            battle: battle.current,
-            currentTileTooltips: tileTooltips,
+            battleMaps: battleMapsRef.current,
             mouseX: mouseScreen.current.x,
             mouseY: mouseScreen.current.y,
+            onHoverChange: (hover) => {
+              // Only update state if hover target actually changed
+              const newKey = hover
+                ? hover.userId
+                  ? `${hover.tileKey}-${hover.userId}`
+                  : hover.tileKey
+                : null;
+              if (newKey !== lastHoverKeyRef.current) {
+                lastHoverKeyRef.current = newKey;
+                setHoveredEffectRef.current(hover);
+              }
+            },
           });
         }
 
@@ -784,9 +817,24 @@ const Combat: React.FC<CombatProps> = (props) => {
   // Update visibility when showGridNumbers flag changes
   useEffect(() => {
     if (groupNamesRef.current) {
-      groupNamesRef.current.visible = showGridNumbers;
+      groupNamesRef.current.visible = config.showGridNumbers;
     }
-  }, [showGridNumbers]);
+  }, [config.showGridNumbers]);
+
+  // Clear hover state on mouse leave from combat area
+  useEffect(() => {
+    const sceneRef = mountRef.current;
+    if (!sceneRef) return;
+
+    const handleMouseLeave = () => {
+      setHoveredEffect(null);
+    };
+
+    sceneRef.addEventListener("mouseleave", handleMouseLeave);
+    return () => {
+      sceneRef.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, []);
 
   // Derived variables
   const showNextMatch =
@@ -808,9 +856,51 @@ const Combat: React.FC<CombatProps> = (props) => {
     result &&
     result.curHealth <= 0 &&
     !["SPARRING", "RANKED_PVP"].includes(battleType);
+  // Get effects for hovered element (can include both user and ground effects)
+  const hoveredEffects = useMemo(() => {
+    if (!hoveredEffect) return null;
+
+    const groundEffects =
+      battleMaps.groundEffectsByTile.get(hoveredEffect.tileKey) || [];
+    const userEffects = hoveredEffect.userId
+      ? battleMaps.userEffectsByUserId.get(hoveredEffect.userId) || []
+      : [];
+
+    if (groundEffects.length === 0 && userEffects.length === 0) return null;
+
+    return {
+      groundEffects,
+      userEffects,
+      userId: hoveredEffect.userId,
+    };
+  }, [hoveredEffect, battleMaps]);
+
   return (
     <>
       <div id="tutorial-combat-field" ref={mountRef}></div>
+
+      {/* Effect hover tooltip (can show both user and ground effects) */}
+      {hoveredEffect && hoveredEffects && (
+        <div
+          className="fixed z-50 bg-black/90 text-white p-3 rounded-lg shadow-xl pointer-events-none max-w-xs flex flex-col gap-3"
+          style={{
+            left: `${hoveredEffect.position.x + 15}px`,
+            top: `${hoveredEffect.position.y - 10}px`,
+            transform: "translateY(-100%)",
+          }}
+        >
+          {hoveredEffects.userId && hoveredEffects.userEffects.length > 0 && (
+            <VisualizeEffects
+              effects={hoveredEffects.userEffects}
+              userId={hoveredEffects.userId}
+            />
+          )}
+          {hoveredEffects.groundEffects.length > 0 && (
+            <VisualizeGroundEffects effects={hoveredEffects.groundEffects} />
+          )}
+        </div>
+      )}
+
       {webglError && <WebGlError />}
       {/* BATTLE LOBBY SCREEN */}
       {isInLobby &&
@@ -1026,33 +1116,35 @@ const Combat: React.FC<CombatProps> = (props) => {
                   </Button>
                 </Link>
               )}
-              {showNextMatch && arenaOpponentId && !currentStep && (
-                <div>
-                  <Button
-                    id="return"
-                    className="basis-1/2 w-full"
-                    onClick={() =>
-                      startArenaBattle({
-                        aiId: arenaOpponentId,
-                        stats:
-                          battle.current?.battleType === "TRAINING"
-                            ? statDistribution
-                            : undefined,
-                      })
-                    }
-                  >
-                    Go Again
-                  </Button>
+              {showNextMatch &&
+                arenaOpponentId &&
+                (!currentStep || !userData?.tutorialOn) && (
+                  <div>
+                    <Button
+                      id="return"
+                      className="basis-1/2 w-full"
+                      onClick={() =>
+                        startArenaBattle({
+                          aiId: arenaOpponentId,
+                          stats:
+                            battle.current?.battleType === "TRAINING"
+                              ? statDistribution
+                              : undefined,
+                        })
+                      }
+                    >
+                      Go Again
+                    </Button>
 
-                  <Button
-                    id="heal-return"
-                    className="basis-1/2 w-full mt-1"
-                    onClick={() => battleArenaHealAndGo()}
-                  >
-                    Heal and Go Again (-500 Ryo)
-                  </Button>
-                </div>
-              )}
+                    <Button
+                      id="heal-return"
+                      className="basis-1/2 w-full mt-1"
+                      onClick={() => battleArenaHealAndGo()}
+                    >
+                      Heal and Go Again (-500 Ryo)
+                    </Button>
+                  </div>
+                )}
               {battleType === "RANKED_PVP" && (
                 <Link href="/battlearena#PVP%20Rank" className="w-full">
                   <Button id="toPvpRank" className="w-full">

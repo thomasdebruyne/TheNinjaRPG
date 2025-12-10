@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronsLeft } from "lucide-react";
 
 export interface ContentBoxProps {
   children: React.ReactNode;
-  title: string;
+  title?: string;
   defaultBackHref?: string;
   subtitle?: string | React.ReactNode;
   topRightCorntentBreakpoint?: "sm" | "md" | "lg" | "xl" | "2xl";
@@ -24,12 +24,11 @@ export interface ContentBoxProps {
 const ContentBox: React.FC<ContentBoxProps> = (props) => {
   // State for browser-based back functionality
   const router = useRouter();
-  const [canGoBack, setCanGoBack] = useState(false);
-
-  // If we have browser history, we can go back
-  useEffect(() => {
-    setCanGoBack(history.length > 1);
-  }, []);
+  // Use lazy initialization for browser history check
+  const [canGoBack] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return history.length > 1;
+  });
 
   // Handle back navigation
   const handleBack = useCallback(() => {
@@ -62,32 +61,38 @@ const ContentBox: React.FC<ContentBoxProps> = (props) => {
       {props.initialBreak && <div className="h-4"></div>}
       <div className="sm:container" id={props.id}>
         <div
-          className={`flex  ${
+          className={`flex ${
             props.topRightCorntentBreakpoint
               ? `flex-col ${props.topRightCorntentBreakpoint}:flex-row ${props.topRightCorntentBreakpoint}:items-center`
               : "flex-row items-center"
           }`}
         >
-          <div className="self-start">
-            {props.initialBreak || props.alreadyHasH1 ? (
-              <h2 className="text-2xl font-bold text-background-foreground">{title}</h2>
-            ) : (
-              <h1 className="text-2xl font-bold text-background-foreground">{title}</h1>
-            )}
-            {props.subtitle && !props.initialBreak && !props.alreadyHasH1 && (
-              <h2 className=" text-background-foreground" suppressHydrationWarning>
-                {props.subtitle}
-              </h2>
-            )}
-            {props.subtitle && (props.initialBreak || props.alreadyHasH1) && (
-              <h3 className=" text-background-foreground" suppressHydrationWarning>
-                {props.subtitle}
-              </h3>
-            )}
-          </div>
+          {props.title && (
+            <div className="self-start">
+              {props.initialBreak || props.alreadyHasH1 ? (
+                <h2 className="text-2xl font-bold text-background-foreground">
+                  {title}
+                </h2>
+              ) : (
+                <h1 className="text-2xl font-bold text-background-foreground">
+                  {title}
+                </h1>
+              )}
+              {props.subtitle && !props.initialBreak && !props.alreadyHasH1 && (
+                <h2 className=" text-background-foreground" suppressHydrationWarning>
+                  {props.subtitle}
+                </h2>
+              )}
+              {props.subtitle && (props.initialBreak || props.alreadyHasH1) && (
+                <h3 className=" text-background-foreground" suppressHydrationWarning>
+                  {props.subtitle}
+                </h3>
+              )}
+            </div>
+          )}
           <div className="flex flex-row grow">
-            {!props.noRightAlign && <div className="grow "></div>}
-            <div className={props.noRightAlign ? "grow " : ""}>
+            {!props.noRightAlign && <div className="grow"></div>}
+            <div className={props.noRightAlign ? "grow" : ""}>
               {props.topRightContent}
             </div>
           </div>

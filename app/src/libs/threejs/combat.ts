@@ -11,7 +11,7 @@ import {
   type BufferGeometry,
   type Texture,
 } from "three";
-import { loadTexture, createTexture } from "@/libs/threejs/util";
+import { loadTexture, createTexture, createSpriteMaterial } from "@/libs/threejs/util";
 import { playPreloadedAudio } from "@/utils/audio";
 import { getPossibleActionTiles, findHex, PathCalculator } from "../hexgrid";
 import {
@@ -49,19 +49,23 @@ import {
   IMG_BATTLEFIELD_STAR,
   HEX_STACKING_DISPLACEMENT,
 } from "@/drizzle/constants";
-import { ID_SFX_MOVE } from "@/drizzle/constants";
+import {
+  ID_SFX_MOVE,
+  STATUS_LAYER,
+  USER_LAYER,
+  ASSETS_LAYER,
+  EFFECTS_LAYER,
+  TILES_LAYER,
+  DIRT_LAYER,
+} from "@/drizzle/constants";
 import type { GameAsset, UserData } from "@/drizzle/schema";
 import type { Object3D } from "three";
 import type { TerrainHex, HexagonalFaceMesh } from "../hexgrid";
 import type { GroundEffect, UserEffect, BarrierTagType } from "@/libs/combat/types";
 import type { ReturnedUserState, CombatAction } from "@/libs/combat/types";
 import type { ReturnedBattle, CachedIntersections } from "@/libs/combat/types";
+import type { BattleMaps } from "@/hooks/combat";
 import type { SpriteMixer } from "@/libs/threejs/SpriteMixer";
-
-// Drawing layers on the battlefield
-const ASSETS_LAYER = -8;
-const TILES_LAYER = -9;
-const DIRT_LAYER = -10;
 
 // Performance optimization: Cache status bar textures to avoid recreating canvases
 // Key format: "width-height-color-stroke"
@@ -185,6 +189,7 @@ export const drawCombatBackground = (
               sprite.material.transparent = true;
               sprite.material.opacity = 1.0;
             }
+            sprite.position.set(sprite.position.x, sprite.position.y, ASSETS_LAYER);
             sprite.matrixAutoUpdate = false;
             sprite.updateMatrix();
             group_assets.add(sprite);
@@ -441,6 +446,9 @@ export const drawCombatEffects = (info: {
   });
 };
 
+/**
+ * Draw a combat effect on the map
+ */
 export const drawCombatEffect = (info: {
   groupEffects: Group;
   effect: GroundEffect | UserEffect;
@@ -490,7 +498,7 @@ export const drawCombatEffect = (info: {
           const obj = gameAssets.find((a) => a.id === effect.staticAssetPath);
           if (obj) {
             const texture = loadTexture(obj.image);
-            const material = new SpriteMaterial({ map: texture });
+            const material = createSpriteMaterial(texture);
             const sprite = new Sprite(material);
             sprite.scale.set(w, h, 1);
             sprite.position.set(w / 2, h / 2, 0);
@@ -526,8 +534,8 @@ export const drawCombatEffect = (info: {
         }
         // Status bar
         if (effect.type === "barrier") {
-          const hp_back = drawStatusBar(w, h, "gray", true, "hp_background", 1, 1);
-          const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", h, 1);
+          const hp_back = drawStatusBar(w, h, "gray", true, "hp_background", 1);
+          const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", h);
           asset.add(hp_back);
           asset.add(hp_bar);
           hp_bar.position.set(hp_bar.position.x, h, 0);
@@ -557,7 +565,7 @@ export const drawCombatEffect = (info: {
           asset.visible = true;
           asset.userData.tile = hex;
           const { x, y } = hex.center;
-          asset.position.set(-x, -y, -8);
+          asset.position.set(-x, -y, EFFECTS_LAYER);
           drawnIds.add(asset.name);
         }
       }
@@ -576,7 +584,6 @@ export const drawStatusBar = (
   stroke: boolean,
   name: string,
   yOffset: number,
-  zLayer: number,
 ) => {
   const r = 3;
   const L = w / 2;
@@ -625,7 +632,11 @@ export const drawStatusBar = (
 
   const bar_material = new SpriteMaterial({ map: texture });
   const bar_sprite = new Sprite(bar_material);
-  bar_sprite.position.set(L, h * 1.58 - (yOffset * (canvasHeight - 2)) / r, zLayer);
+  bar_sprite.position.set(
+    L,
+    h * 1.58 - (yOffset * (canvasHeight - 2)) / r,
+    STATUS_LAYER,
+  );
   bar_sprite.scale.set(L, canvasHeight / r, 1);
   bar_sprite.name = name;
   bar_sprite.userData.full_width = L;
@@ -680,10 +691,10 @@ export const createUserSprite = (
   const texture = loadTexture(IMG_SECTOR_SHADOW);
   texture.generateMipmaps = false;
   texture.minFilter = LinearFilter;
-  const shadow_material = new SpriteMaterial({ map: texture });
+  const shadow_material = createSpriteMaterial(texture);
   const shadow_sprite = new Sprite(shadow_material);
   shadow_sprite.scale.set(w * 0.8, h * 0.5, 1);
-  shadow_sprite.position.set(w / 2, h * 0.3, -6);
+  shadow_sprite.position.set(w / 2, h * 0.3, USER_LAYER);
   group.add(shadow_sprite);
 
   // User marker background or raw image
@@ -696,28 +707,25 @@ export const createUserSprite = (
       map.repeat.set(-1, 1);
       map.offset.set(1, 0);
     }
-    const material = new SpriteMaterial({ map: map });
+    const material = createSpriteMaterial(map);
     material.side = DoubleSide;
     const sprite = new Sprite(material);
     sprite.scale.set(-2 * h * 0.8, 2 * h * 0.8, 1);
-    sprite.position.set(w / 2, h * 0.9, -6);
+    sprite.position.set(w / 2, h * 0.9, USER_LAYER);
     group.add(sprite);
     // Star on summons
     if (userData.isSummon && userData.controllerId === playerId) {
       const marker = loadTexture(IMG_BATTLEFIELD_STAR);
-      const markerMat = new SpriteMaterial({ map: marker });
+      const markerMat = createSpriteMaterial(marker);
       const markerSprite = new Sprite(markerMat);
       markerSprite.scale.set(h / 2.5, h / 2.5, 1);
-      markerSprite.position.set(w / 2, h * 0.2, -6);
+      markerSprite.position.set(w / 2, h * 0.2, USER_LAYER);
       group.add(markerSprite);
     }
   } else {
     // Highlight background in village color
     const highlightTexture = loadTexture(IMG_SECTOR_USER_MARKER);
-    const highlightMaterial = new SpriteMaterial({
-      map: highlightTexture,
-      alphaMap: highlightTexture,
-    });
+    const highlightMaterial = createSpriteMaterial(highlightTexture, highlightTexture);
 
     // Highlight sprite
     const highlightColor = userData.village
@@ -726,7 +734,7 @@ export const createUserSprite = (
     const highlightSprite = new Sprite(highlightMaterial);
     highlightSprite.userData.type = "marker";
     highlightSprite.scale.set(h, h * 1.2, 1);
-    highlightSprite.position.set(w / 2, h * 0.9, -6);
+    highlightSprite.position.set(w / 2, h * 0.9, USER_LAYER);
     highlightSprite.userData.type = "userMarker";
     highlightSprite.userData.userId = userData.userId;
     highlightSprite.material.color.setHex(highlightColor);
@@ -734,11 +742,11 @@ export const createUserSprite = (
 
     // Marker background in white
     const marker = loadTexture(IMG_SECTOR_USER_MARKER);
-    const markerMat = new SpriteMaterial({ map: marker, alphaMap: marker });
+    const markerMat = createSpriteMaterial(marker, marker);
     const markerSprite = new Sprite(markerMat);
     markerSprite.userData.type = "marker";
     markerSprite.scale.set(0.9 * h, h * 1.1, 1);
-    markerSprite.position.set(w / 2, h * 0.9, -6);
+    markerSprite.position.set(w / 2, h * 0.9, USER_LAYER);
     group.add(markerSprite);
 
     // Avatar Sprite
@@ -746,10 +754,10 @@ export const createUserSprite = (
     const map = loadTexture(userData.avatar ? `${userData.avatar}?1=1` : "");
     map.generateMipmaps = false;
     map.minFilter = LinearFilter;
-    const material = new SpriteMaterial({ map: map, alphaMap: alphaMap });
+    const material = createSpriteMaterial(map, alphaMap);
     const sprite = new Sprite(material);
     sprite.scale.set(h * 0.8, h * 0.8, 1);
-    sprite.position.set(w / 2, h * 1.0, -6);
+    sprite.position.set(w / 2, h * 1.0, USER_LAYER);
     group.add(sprite);
 
     // Clan if it is there
@@ -762,12 +770,12 @@ export const createUserSprite = (
       const clanBorderSprite = new Sprite(clanBorderMaterial);
       clanBorderSprite.material.color.setHex(parseInt("FFD700", 16));
       clanBorderSprite.scale.set(-1 * h * 0.3 - 2, h * 0.3 + 2, 1);
-      clanBorderSprite.position.set(0.9 * w, h * 1.4, -6);
+      clanBorderSprite.position.set(0.9 * w, h * 1.4, USER_LAYER);
       group.add(clanBorderSprite);
-      const clanMaterial = new SpriteMaterial({ map: clanTexture, alphaMap: alphaMap });
+      const clanMaterial = createSpriteMaterial(clanTexture, alphaMap);
       const clanSprite = new Sprite(clanMaterial);
       clanSprite.scale.set(-1 * h * 0.3, h * 0.3, 1);
-      clanSprite.position.set(0.9 * w, h * 1.4, -6);
+      clanSprite.position.set(0.9 * w, h * 1.4, USER_LAYER);
       group.add(clanSprite);
     }
   }
@@ -775,43 +783,43 @@ export const createUserSprite = (
   // If this is the original and our user (we have SP/CP), then show a star
   if ("curStamina" in userData && userData.isOriginal && !userData.isAi) {
     const marker = loadTexture(IMG_BATTLEFIELD_STAR);
-    const markerMat = new SpriteMaterial({ map: marker });
+    const markerMat = createSpriteMaterial(marker);
     const markerSprite = new Sprite(markerMat);
     markerSprite.scale.set(h / 2.5, h / 2.5, 1);
-    markerSprite.position.set(w / 2, h * 0.4, -6);
+    markerSprite.position.set(w / 2, h * 0.4, USER_LAYER);
     group.add(markerSprite);
   }
 
   // Health bar is shown on all
   const t = noMarker ? h / 8 : 0;
-  const hp_background = drawStatusBar(w, h, "gray", true, "hp_background", t, -5);
-  const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", t, -5);
+  const hp_background = drawStatusBar(w, h, "gray", true, "hp_background", t);
+  const hp_bar = drawStatusBar(w, h, "firebrick", true, "hp_current", t);
   group.add(hp_background);
   group.add(hp_bar);
 
   // Stamina Bar if available
   if ("curStamina" in userData && "maxStamina" in userData) {
-    const sp_background = drawStatusBar(w, h, "gray", true, "sp_background", t + 1, -5);
-    const sp_bar = drawStatusBar(w, h, "green", true, "sp_current", t + 1, -5);
+    const sp_background = drawStatusBar(w, h, "gray", true, "sp_background", t + 1);
+    const sp_bar = drawStatusBar(w, h, "green", true, "sp_current", t + 1);
     group.add(sp_background);
     group.add(sp_bar);
   }
 
   // Chakra Bar if available
   if ("curChakra" in userData && "maxChakra" in userData) {
-    const cp_background = drawStatusBar(w, h, "gray", true, "cp_background", t + 2, -5);
-    const cp_bar = drawStatusBar(w, h, "blue", true, "cp_current", t + 2, -5);
+    const cp_background = drawStatusBar(w, h, "gray", true, "cp_background", t + 2);
+    const cp_bar = drawStatusBar(w, h, "blue", true, "cp_current", t + 2);
     group.add(cp_background);
     group.add(cp_bar);
   }
 
   // Create tombstone but hide it for now
   const tomb_texture = loadTexture(IMG_BATTLEFIELD_TOMBSTONE);
-  const tomb_material = new SpriteMaterial({ map: tomb_texture });
+  const tomb_material = createSpriteMaterial(tomb_texture);
   const tomb_sprite = new Sprite(tomb_material);
   tomb_sprite.name = "tombstone";
   tomb_sprite.scale.set(h * 0.5, h * 0.5, 1);
-  tomb_sprite.position.set(w / 2, h * 0.6, -7);
+  tomb_sprite.position.set(w / 2, h * 0.6, USER_LAYER);
   tomb_sprite.visible = false;
   group.add(tomb_sprite);
 
@@ -1300,10 +1308,10 @@ export const highlightTiles = (info: {
           const tintedColor = originalColor.clone();
           if (hasMove && tile === targetTile) {
             // Tint with blue for move destination
-            tintedColor.lerp(new Color("rgb(0, 150, 255)"), 0.2);
+            tintedColor.lerp(new Color("rgb(0, 150, 255)"), 0.8);
           } else {
             // Tint with green for valid targets
-            tintedColor.lerp(new Color("rgb(0, 255, 100)"), 0.2);
+            tintedColor.lerp(new Color("rgb(0, 255, 100)"), 0.8);
           }
           mesh.material.color.copy(tintedColor);
         }
@@ -1504,72 +1512,61 @@ export const highlightTooltips = (info: {
 };
 
 /**
- * Highlight ground effects on tiles when hovering
- * Uses cached intersections to avoid redundant raycasting
+ * Hover data for combat tooltips - can include user effects, ground effects, or both
+ */
+export type CombatHoverData = {
+  tileKey: string;
+  userId?: string;
+  position: { x: number; y: number };
+};
+
+/**
+ * Detect hover on tiles and collect both user and ground effects
+ * Uses cached intersections and precomputed maps for performance
  */
 export const highlightTileTooltips = (info: {
   group_tiles: Group;
   cachedIntersections: CachedIntersections;
-  battle: ReturnedBattle;
-  currentTileTooltips: Set<string>;
+  battleMaps: BattleMaps;
   mouseX?: number;
   mouseY?: number;
+  onHoverChange?: (hover: CombatHoverData | null) => void;
 }) => {
-  // Definitions
-  const { battle, currentTileTooltips } = info;
+  const { groundEffectsByTile, usersByTile, userEffectsByUserId } = info.battleMaps;
+  const { onHoverChange } = info;
   const battleTileIntersects = info.cachedIntersections.battleTiles;
-  const newTooltips = new Set<string>();
 
   // Check if we're hovering over a battle tile (not border tiles)
   const tileHit = battleTileIntersects.length > 0 ? battleTileIntersects[0] : undefined;
+  let currentHover: CombatHoverData | null = null;
+
   if (tileHit) {
     const tile = tileHit.object.userData.tile as TerrainHex;
-    const tileName = `${tile.row},${tile.col}`;
+    const tileKey = `${tile.col},${tile.row}`;
 
-    // Find ground effects on this tile
-    const groundEffectsOnTile = battle.groundEffects.filter(
-      (effect) => effect.longitude === tile.col && effect.latitude === tile.row,
-    );
+    // Check for user at this tile
+    const userIdAtTile = usersByTile.get(tileKey);
+    const userEffects = userIdAtTile
+      ? userEffectsByUserId.get(userIdAtTile)
+      : undefined;
+    const hasUserEffects = userEffects && userEffects.length > 0;
 
-    if (groundEffectsOnTile.length > 0) {
-      // Show tooltip for this tile
-      newTooltips.add(tileName);
+    // Check for ground effects
+    const groundEffectsOnTile = groundEffectsByTile.get(tileKey);
+    const hasGroundEffects = groundEffectsOnTile && groundEffectsOnTile.length > 0;
 
-      // Create or update tooltip element
-      let tooltipElement = document.getElementById(`tile-tooltip-${tileName}`);
-      if (!tooltipElement) {
-        tooltipElement = document.createElement("div");
-        tooltipElement.id = `tile-tooltip-${tileName}`;
-        tooltipElement.className =
-          "fixed z-50 bg-black bg-opacity-80 text-white text-xs p-2 rounded pointer-events-none";
-        document.body.appendChild(tooltipElement);
-      }
-
-      // Update tooltip content
-      const effectTexts = groundEffectsOnTile.map((effect) => {
-        const roundsLeft = effect.rounds || 0;
-        return `${effect.type} (${roundsLeft} rounds)`;
-      });
-      tooltipElement.textContent = `Ground Effects: ${effectTexts.join(", ")}`;
-
-      // Position tooltip near mouse cursor
-      const mouseX = info.mouseX || 0;
-      const mouseY = info.mouseY || 0;
-      tooltipElement.style.left = `${mouseX + 10}px`;
-      tooltipElement.style.top = `${mouseY - 30}px`;
-      tooltipElement.style.display = "block";
+    // If there's anything to show, create hover data
+    if (hasUserEffects || hasGroundEffects) {
+      currentHover = {
+        tileKey,
+        userId: hasUserEffects ? userIdAtTile : undefined,
+        position: { x: info.mouseX || 0, y: info.mouseY || 0 },
+      };
     }
   }
 
-  // Remove tooltips for tiles that are no longer hovered
-  currentTileTooltips.forEach((tileName) => {
-    if (!newTooltips.has(tileName)) {
-      const tooltipElement = document.getElementById(`tile-tooltip-${tileName}`);
-      if (tooltipElement) {
-        tooltipElement.style.display = "none";
-      }
-    }
-  });
-
-  return newTooltips;
+  // Notify React of hover changes
+  if (onHoverChange) {
+    onHoverChange(currentHover);
+  }
 };

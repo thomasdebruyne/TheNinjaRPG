@@ -215,6 +215,8 @@ export const combatRouter = createTRPCRouter({
                     appliedEffects: actionEffects,
                     description: `${activeUser.username} stands and does nothing. `,
                     battleVersion: fetchedVersion,
+                    actionId: "wait",
+                    userId: activeUser.userId,
                   },
                 ]),
               ]);
@@ -264,12 +266,14 @@ export const combatRouter = createTRPCRouter({
         refreshKey: z.number().optional(),
         checkBattle: z.boolean().optional(),
         limit: z.number().optional(),
+        offset: z.number().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const limit = input.limit ?? 30;
       const entries = await ctx.drizzle.query.battleAction.findMany({
         limit: limit,
+        offset: input.offset ?? 0,
         where: eq(battleAction.battleId, input.battleId),
         orderBy: [desc(battleAction.createdAt)],
       });
@@ -441,6 +445,8 @@ export const combatRouter = createTRPCRouter({
           appliedEffects: ActionEffect[];
           description: string;
           battleVersion: number;
+          actionId?: string;
+          userId?: string;
         }[] = [];
 
         // Remember original values for round & activeUserId
@@ -477,6 +483,8 @@ export const combatRouter = createTRPCRouter({
           // If userId, actionID, and position specified, perform user action
           const battleDescriptions: string[] = [];
           const actionEffects: ActionEffect[] = [];
+          let performedActionId: string | undefined = undefined;
+          let performedByUserId: string | undefined = undefined;
           if (
             !isAITurn &&
             isUserTurn &&
@@ -489,6 +497,8 @@ export const combatRouter = createTRPCRouter({
             const action = actions.find((a) => a.id === input.actionId);
             if (!action)
               return { notification: `Action not valid anymore. Try something else` };
+            performedActionId = action.id;
+            performedByUserId = actor.userId;
             if (AutoBattleTypes.includes(battle.battleType)) {
               throw serverError("FORBIDDEN", `Cheater`);
             }
@@ -519,6 +529,8 @@ export const combatRouter = createTRPCRouter({
               actionPerformed = true;
               actionEffects.push(...aiState.nextActionEffects);
               battleDescriptions.push(...aiState.aiDescriptions);
+              performedActionId = aiState.nextActionId ?? performedActionId;
+              performedByUserId = actor.userId;
               // console.log("STATE SPACE: ", aiState.searchSize);
             } catch (error) {
               let notification = "Unknown Error";
@@ -551,6 +563,8 @@ export const combatRouter = createTRPCRouter({
               appliedEffects: actionEffects,
               description: description,
               battleVersion: newBattle.version + nActions,
+              actionId: performedActionId ?? "unknown",
+              userId: performedByUserId ?? actor.userId,
             });
             nActions += 1;
           }

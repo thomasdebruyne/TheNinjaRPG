@@ -82,9 +82,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
   );
   const base = "gap-1 text-xs";
   const grid = props.gridClassNameOverwrite || "grid grid-cols-6 md:grid-cols-7";
-  const bgColor = props.showBgColor
-    ? "border-b-2 border-l-2 border-r-2 bg-slate-50 text-black"
-    : "";
+  const bgColor = props.showBgColor ? "rounded-lg border bg-slate-50 text-black" : "";
   return (
     <>
       <div className={cn(base, grid, bgColor, props.className)}>

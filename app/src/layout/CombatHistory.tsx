@@ -30,8 +30,7 @@ const CombatHistory: React.FC<CombatHistoryProps> = (props) => {
 
   // Check if user can view full battle log (staff role or gold federal status)
   const canViewFull = userData
-    ? canViewFullBattleLog(userData.role) ||
-      getUserFederalStatus(userData) === "GOLD"
+    ? canViewFullBattleLog(userData.role) || getUserFederalStatus(userData) === "GOLD"
     : false;
 
   // From database
@@ -59,6 +58,8 @@ const CombatHistory: React.FC<CombatHistoryProps> = (props) => {
       groups?.set(i, [
         {
           id: "0",
+          userId: "unknown",
+          actionId: "unknown",
           description: "No information on what happened during this round.",
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -231,7 +232,7 @@ const CombatHistory: React.FC<CombatHistoryProps> = (props) => {
 
   // Show component
   return (
-    <div className="relative flex flex-col border-b-2 border-l-2 pt-2 border-r-2 bg-slate-100 overflow-auto">
+    <div className="relative flex flex-col rounded-lg border bg-slate-100 pt-2 overflow-auto">
       {isFetching && (
         <div className="absolute right-2 top-2">
           <Loader />

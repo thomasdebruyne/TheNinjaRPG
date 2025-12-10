@@ -32,6 +32,7 @@ import type {
   BattleUserState,
   UserEffect,
   GroundEffect,
+  ActionEffect,
 } from "@/libs/combat/types";
 import type { QuestContentType } from "@/validators/objectives";
 import type { QuestTrackerType } from "@/validators/objectives";
@@ -267,8 +268,10 @@ export const battleAction = mysqlTable(
     battleId: varchar("battleId", { length: 191 }).notNull(),
     battleVersion: int("battleVersion").notNull(),
     battleRound: int("battleRound").default(0).notNull(),
+    actionId: varchar("actionId", { length: 191 }).default("unknown").notNull(),
+    userId: varchar("userId", { length: 191 }).default("unknown").notNull(),
     description: text("description").notNull(),
-    appliedEffects: json("appliedEffects").notNull(),
+    appliedEffects: json("appliedEffects").$type<ActionEffect[]>().notNull(),
   },
   (table) => {
     return {
@@ -282,6 +285,7 @@ export const battleAction = mysqlTable(
     };
   },
 );
+export type BattleAction = InferSelectModel<typeof battleAction>;
 
 export const battleActionRelations = relations(battleAction, ({ one }) => ({
   battle: one(battle, {
