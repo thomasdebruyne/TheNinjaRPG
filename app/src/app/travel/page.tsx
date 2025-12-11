@@ -58,9 +58,10 @@ import { Input } from "@/components/ui/input";
 import { HIDEOUT_COST } from "@/drizzle/constants";
 import { VILLAGE_REDUCED_GAINS_DAYS } from "@/drizzle/constants";
 import { VILLAGE_LEAVE_REQUIRED_RANK } from "@/drizzle/constants";
-import type { GlobalTile, SectorPoint, GlobalMapData } from "@/libs/threejs/types";
+import type { GlobalTile, SectorPoint } from "@/libs/threejs/types";
 import { Button } from "@/components/ui/button";
 import type { UserItemWithItem } from "@/drizzle/schema";
+import MapError from "@/layout/MapError";
 
 const Map = dynamic(() => import("@/layout/Map"), { ssr: false });
 const Sector = dynamic(() => import("@/layout/Sector"), { ssr: false });
@@ -86,7 +87,7 @@ export default function Travel() {
   const [activeTab, setActiveTab] = useState<string>("");
 
   // Globe data
-  const [globe, setGlobe] = useState<GlobalMapData | null>(null);
+  const { globe, mapError } = useMap();
 
   // tRPC utility
   const utils = api.useUtils();
@@ -138,8 +139,6 @@ export default function Travel() {
       : `Sector ${currentSector}`
     : "";
   const globalLink = `Global`;
-
-  useMap(setGlobe);
 
   // Selecting sector to highlight form
   const sectorSelect = z.object({
@@ -490,6 +489,7 @@ export default function Travel() {
             hexasphere={globe}
           />
         )}
+        {mapError && <MapError />}
         {showSector && SectorComponent}
         {!villages && <Loader explanation="Loading data" />}
         {showModal && globe && userData && targetSector && (

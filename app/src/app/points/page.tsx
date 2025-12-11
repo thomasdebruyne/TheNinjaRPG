@@ -110,7 +110,7 @@ const PaypalShopContent = ({
   userData: NonNullable<ReturnType<typeof useRequiredUserData>["data"]>;
 }) => {
   const [activeTab, setActiveTab] = useState<string>("Reputation");
-  const [{ isPending }, dispatch] = usePayPalScriptReducer();
+  const [, dispatch] = usePayPalScriptReducer();
   const currency = "USD";
 
   const { data: purchasedReps } = api.paypal.getRecentRepsCount.useQuery(

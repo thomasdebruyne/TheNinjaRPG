@@ -1,18 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { GlobalMapData } from "@/libs/threejs/types";
 import { fetchMap } from "@/libs/threejs/globe";
 
-export const useMap = (
-  setGlobe: React.Dispatch<React.SetStateAction<GlobalMapData | null>>,
-) => {
+export const useMap = () => {
+  const [globe, setGlobe] = useState<GlobalMapData | null>(null);
+  const [mapError, setMapError] = useState<boolean>(false);
+
   useEffect(() => {
     let cancelled = false;
-    void fetchMap().then((data) => {
-      if (!cancelled) setGlobe(data);
-    });
+    void fetchMap()
+      .then((data) => {
+        if (!cancelled) setGlobe(data);
+      })
+      .catch(() => {
+        if (!cancelled) setMapError(true);
+      });
     return () => {
       cancelled = true; // guard against state‑update after unmount
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  return { globe, mapError };
 };

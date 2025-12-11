@@ -45,7 +45,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { FetchActiveWarsReturnType } from "@/server/api/routers/war";
-import type { GlobalMapData } from "@/libs/threejs/types";
 import { useMap } from "@/hooks/map";
 import StatusBar from "@/layout/StatusBar";
 import {
@@ -58,6 +57,7 @@ import {
 import type { ColumnDefinitionType } from "@/layout/Table";
 import type { ArrayElement } from "@/utils/typeutils";
 import Confirm2 from "@/layout/Confirm2";
+import MapError from "@/layout/MapError";
 
 const GlobalMap = dynamic(() => import("@/layout/Map"), { ssr: false });
 
@@ -265,7 +265,7 @@ export const WarMap: React.FC<{
   relationships: VillageAlliance[];
 }> = ({ user, isKage, villages, relationships }) => {
   // Globe data
-  const [globe, setGlobe] = useState<GlobalMapData | null>(null);
+  const { globe, mapError } = useMap();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [targetSector, setTargetSector] = useState<number | null>(null);
   const [structureRoute, setStructureRoute] = useState("/townhall");
@@ -370,9 +370,6 @@ export const WarMap: React.FC<{
         }
       },
     });
-
-  // Set globe data
-  useMap(setGlobe);
 
   // Derived
   const isLoading =
@@ -485,6 +482,7 @@ export const WarMap: React.FC<{
           hexasphere={globe}
         />
       )}
+      {mapError && <MapError />}
       {showModal && globe && userData && targetSector && (
         <Modal2
           title={modalTitle}

@@ -1,20 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import dynamic from "next/dynamic";
 import ContentBox from "@/layout/ContentBox";
 import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
 import { api } from "@/app/_trpc/client";
 import { useMap } from "@/hooks/map";
-import type { GlobalMapData } from "@/libs/threejs/types";
+import MapError from "@/layout/MapError";
 
 const GlobalMap = dynamic(() => import("@/layout/Map"), {
   ssr: false,
 });
 
 export default function ManualTravel() {
-  const [globe, setGlobe] = useState<GlobalMapData | null>(null);
-  useMap(setGlobe);
+  const { globe, mapError } = useMap();
   const { data: villages } = api.village.getAll.useQuery(undefined);
 
   return (
@@ -34,6 +32,7 @@ export default function ManualTravel() {
         {villages && globe && (
           <GlobalMap intersection={false} highlights={villages} hexasphere={globe} />
         )}
+        {mapError && <MapError />}
       </ContentBox>
     </>
   );
