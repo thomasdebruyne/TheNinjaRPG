@@ -20,6 +20,7 @@ import {
   IMG_URL_HANDPOINTER,
   IMG_URL_ASSISTANT_2,
   OrderedQuestTypesInTutorial,
+  TUTORIAL_STEPS_COUNT,
 } from "@/drizzle/constants";
 import {
   TUTORIAL_STEPS,
@@ -826,7 +827,14 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           />
 
           {/* Assistant panel bottom-right - large, game-like dialog */}
-          <AssistantDialog title="Game Menu" onOpenDisableModal={handleDisableTutorial}>
+          <AssistantDialog
+            title="Game Menu"
+            onOpenDisableModal={
+              currentStepNumber >= TUTORIAL_STEPS_COUNT
+                ? handleDisableTutorial
+                : undefined
+            }
+          >
             <p className="text-sm md:text-base leading-relaxed">
               Click the highlighted button to open the game menu and continue the
               tutorial.
@@ -964,7 +972,11 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       {!currentTutorialStep.hideDialog && !showOrderingDialog && (
         <AssistantDialog
           title={currentTutorialStep.title}
-          onOpenDisableModal={handleDisableTutorial}
+          onOpenDisableModal={
+            currentStepNumber >= TUTORIAL_STEPS_COUNT
+              ? handleDisableTutorial
+              : undefined
+          }
           characterImage={characterImage}
           onOpenOrderingDialog={() => setShowOrderingDialog(true)}
           showOrderingButton={showPostTutorialQuest}

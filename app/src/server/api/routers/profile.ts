@@ -108,6 +108,7 @@ import { SHRINE_BOOST_TYPES } from "@/drizzle/constants";
 import { KAGE_MIN_PRESTIGE } from "@/drizzle/constants";
 import { KAGE_PRESTIGE_REQUIREMENT } from "@/drizzle/constants";
 import { ALLIANCEHALL_LONG, ALLIANCEHALL_LAT } from "@/drizzle/constants";
+import { TUTORIAL_STEPS_COUNT } from "@/drizzle/constants";
 import { controlShownQuestLocationInformation } from "@/libs/quest";
 import { getPublicUsersSchema } from "@/validators/user";
 import { createThumbnail } from "@/libs/replicate";
@@ -206,6 +207,19 @@ export const profileRouter = createTRPCRouter({
     .input(updateUserPreferencesSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
+      // Guard: Prevent disabling tutorial before completing all standard steps
+      if (input.tutorialOn === false) {
+        const user = await ctx.drizzle.query.userData.findFirst({
+          where: eq(userData.userId, ctx.userId),
+          columns: { tutorialStep: true },
+        });
+        if (user && user.tutorialStep < TUTORIAL_STEPS_COUNT) {
+          return errorResponse(
+            "Cannot disable tutorial until all standard steps are completed",
+          );
+        }
+      }
+
       const result = await ctx.drizzle
         .update(userData)
         .set({

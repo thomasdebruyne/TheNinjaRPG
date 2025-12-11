@@ -584,27 +584,9 @@ export const dataRouter = createTRPCRouter({
         username: r.username ?? "",
       }));
 
-      // Tutorial on metrics (filtered from existing data)
-      const tutorialOnSignups = filteredSignupsRow.filter(
-        (r) => r.tutorialOn === true,
-      ).length;
-      const tutorialOnNonStudentSignups = nonStudentSignupsRow.filter(
-        (r) => r.tutorialOn === true,
-      ).length;
-      const tutorialOnNonStudentGeninSignups = nonStudentGeninSignupsRow.filter(
-        (r) => r.tutorialOn === true,
-      ).length;
-
-      // Tutorial disabled metrics (filtered from existing data)
-      const tutorialDisabledSignups = filteredSignupsRow.filter(
-        (r) => r.tutorialOn === false,
-      ).length;
-      const tutorialDisabledNonStudentSignups = nonStudentSignupsRow.filter(
-        (r) => r.tutorialOn === false,
-      ).length;
-      const tutorialDisabledNonStudentGeninSignups = nonStudentGeninSignupsRow.filter(
-        (r) => r.tutorialOn === false,
-      ).length;
+      // Rank progression metrics
+      const nonStudentSignups = nonStudentSignupsRow.length;
+      const nonStudentGeninSignups = nonStudentGeninSignupsRow.length;
 
       return {
         signupRate,
@@ -623,12 +605,8 @@ export const dataRouter = createTRPCRouter({
         questFunnels,
         questObjectiveDescriptions,
         tutorialSteps,
-        tutorialOnSignups,
-        tutorialOnNonStudentSignups,
-        tutorialOnNonStudentGeninSignups,
-        tutorialDisabledSignups,
-        tutorialDisabledNonStudentSignups,
-        tutorialDisabledNonStudentGeninSignups,
+        nonStudentSignups,
+        nonStudentGeninSignups,
       };
     }),
   // Recruitment analytics

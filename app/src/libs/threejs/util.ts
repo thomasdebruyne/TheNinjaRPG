@@ -58,7 +58,7 @@ export const loadTexture = (path: string) => {
 export const createSpriteMaterial = (map: Texture, alphaMap?: Texture) => {
   return new SpriteMaterial({
     map: map,
-    alphaMap: alphaMap,
+    alphaMap: alphaMap ?? null,
     alphaTest: 0.5,
   });
 };

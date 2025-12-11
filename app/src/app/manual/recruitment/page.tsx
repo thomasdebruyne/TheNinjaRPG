@@ -339,9 +339,7 @@ export default function ManualRecruitment() {
             </Card>
             <Card>
               <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">
-                  Tutorial On → Student+
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Student+</CardTitle>
               </CardHeader>
               <CardContent className="py-1">
                 {isFetchingMain ? (
@@ -350,17 +348,17 @@ export default function ManualRecruitment() {
                   <>
                     <div
                       className={`text-xl font-bold ${getColorClass(
-                        (mainMetrics?.tutorialOnSignups ?? 0) > 0
-                          ? ((mainMetrics?.tutorialOnNonStudentSignups ?? 0) /
-                              (mainMetrics?.tutorialOnSignups ?? 1)) *
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
                               100
                           : 0,
                         goals.rankRate,
                       )}`}
                     >
-                      {((mainMetrics?.tutorialOnSignups ?? 0) > 0
-                        ? ((mainMetrics?.tutorialOnNonStudentSignups ?? 0) /
-                            (mainMetrics?.tutorialOnSignups ?? 1)) *
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.nonStudentSignups ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
                           100
                         : 0
                       ).toFixed(1)}
@@ -373,17 +371,14 @@ export default function ManualRecruitment() {
                 )}
                 {!isFetchingMain && mainMetrics && (
                   <div className="text-xs text-foreground-muted">
-                    {mainMetrics.tutorialOnNonStudentSignups} /{" "}
-                    {mainMetrics.tutorialOnSignups} tutorial on
+                    {mainMetrics.nonStudentSignups} / {mainMetrics.signups} signups
                   </div>
                 )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">
-                  Tutorial On → Genin+
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Genin+</CardTitle>
               </CardHeader>
               <CardContent className="py-1">
                 {isFetchingMain ? (
@@ -392,17 +387,17 @@ export default function ManualRecruitment() {
                   <>
                     <div
                       className={`text-xl font-bold ${getColorClass(
-                        (mainMetrics?.tutorialOnSignups ?? 0) > 0
-                          ? ((mainMetrics?.tutorialOnNonStudentGeninSignups ?? 0) /
-                              (mainMetrics?.tutorialOnSignups ?? 1)) *
+                        (mainMetrics?.signups ?? 0) > 0
+                          ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
+                              (mainMetrics?.signups ?? 1)) *
                               100
                           : 0,
                         goals.rankRate,
                       )}`}
                     >
-                      {((mainMetrics?.tutorialOnSignups ?? 0) > 0
-                        ? ((mainMetrics?.tutorialOnNonStudentGeninSignups ?? 0) /
-                            (mainMetrics?.tutorialOnSignups ?? 1)) *
+                      {((mainMetrics?.signups ?? 0) > 0
+                        ? ((mainMetrics?.nonStudentGeninSignups ?? 0) /
+                            (mainMetrics?.signups ?? 1)) *
                           100
                         : 0
                       ).toFixed(1)}
@@ -415,94 +410,7 @@ export default function ManualRecruitment() {
                 )}
                 {!isFetchingMain && mainMetrics && (
                   <div className="text-xs text-foreground-muted">
-                    {mainMetrics.tutorialOnNonStudentGeninSignups} /{" "}
-                    {mainMetrics.tutorialOnSignups} tutorial on
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">
-                  Tutorial Off → Student+
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="py-1">
-                {isFetchingMain ? (
-                  <Loader explanation="Loading tutorial disabled metrics" />
-                ) : (
-                  <>
-                    <div
-                      className={`text-xl font-bold ${getColorClass(
-                        (mainMetrics?.tutorialDisabledSignups ?? 0) > 0
-                          ? ((mainMetrics?.tutorialDisabledNonStudentSignups ?? 0) /
-                              (mainMetrics?.tutorialDisabledSignups ?? 1)) *
-                              100
-                          : 0,
-                        goals.rankRate,
-                      )}`}
-                    >
-                      {((mainMetrics?.tutorialDisabledSignups ?? 0) > 0
-                        ? ((mainMetrics?.tutorialDisabledNonStudentSignups ?? 0) /
-                            (mainMetrics?.tutorialDisabledSignups ?? 1)) *
-                          100
-                        : 0
-                      ).toFixed(1)}
-                      %
-                    </div>
-                    <div className="text-xs text-foreground-muted">
-                      Goal: {goals.rankRate}%
-                    </div>
-                  </>
-                )}
-                {!isFetchingMain && mainMetrics && (
-                  <div className="text-xs text-foreground-muted">
-                    {mainMetrics.tutorialDisabledNonStudentSignups} /{" "}
-                    {mainMetrics.tutorialDisabledSignups} disabled tutorial
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-0 pt-2">
-                <CardTitle className="text-sm font-medium">
-                  Tutorial Off → Genin+
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="py-1">
-                {isFetchingMain ? (
-                  <Loader explanation="Loading tutorial disabled metrics" />
-                ) : (
-                  <>
-                    <div
-                      className={`text-xl font-bold ${getColorClass(
-                        (mainMetrics?.tutorialDisabledSignups ?? 0) > 0
-                          ? ((mainMetrics?.tutorialDisabledNonStudentGeninSignups ??
-                              0) /
-                              (mainMetrics?.tutorialDisabledSignups ?? 1)) *
-                              100
-                          : 0,
-                        goals.rankRate,
-                      )}`}
-                    >
-                      {((mainMetrics?.tutorialDisabledSignups ?? 0) > 0
-                        ? ((mainMetrics?.tutorialDisabledNonStudentGeninSignups ?? 0) /
-                            (mainMetrics?.tutorialDisabledSignups ?? 1)) *
-                          100
-                        : 0
-                      ).toFixed(1)}
-                      %
-                    </div>
-                    <div className="text-xs text-foreground-muted">
-                      Goal: {goals.rankRate}%
-                    </div>
-                  </>
-                )}
-                {!isFetchingMain && mainMetrics && (
-                  <div className="text-xs text-foreground-muted">
-                    {mainMetrics.tutorialDisabledNonStudentGeninSignups} /{" "}
-                    {mainMetrics.tutorialDisabledSignups} disabled tutorial
+                    {mainMetrics.nonStudentGeninSignups} / {mainMetrics.signups} signups
                   </div>
                 )}
               </CardContent>
