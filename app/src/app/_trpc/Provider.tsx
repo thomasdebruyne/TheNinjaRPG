@@ -112,6 +112,14 @@ export const onError = (err: unknown) => {
   ) {
     return;
   }
+  // Handle "not signed in" errors gracefully (from useGlobalOnMutateProtect)
+  if (
+    err instanceof Error &&
+    err.message.includes("You need to be signed in to perform this action")
+  ) {
+    showMutationToast({ success: false, message: err.message });
+    return;
+  }
   console.error("onerror", err);
   if (err instanceof TRPCClientError) {
     const errorCode = (err.data as { code?: string })?.code;

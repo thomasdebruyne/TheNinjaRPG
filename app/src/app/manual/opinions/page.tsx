@@ -56,6 +56,11 @@ export default function ManualTravel() {
           staff members. Abuse of this system will be punished severely and is analyzed
           carefully. Only share your honest opinions, both positive and negative.
         </p>
+        {!userData && (
+          <p className="pb-2 text-orange-500">
+            You need to be signed in to leave reviews.
+          </p>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5">
           {users.map((user, i) => {
             const review = userReviews?.find((r) => r.targetUserId === user.userId);
@@ -65,6 +70,7 @@ export default function ManualTravel() {
                 user={user}
                 positive={review?.positive}
                 review={review?.review}
+                isLoggedIn={!!userData}
               />
             );
           })}
@@ -85,11 +91,12 @@ interface ReportimageProps {
   };
   positive?: boolean;
   review?: string;
+  isLoggedIn: boolean;
 }
 
 const ReportImage: React.FC<ReportimageProps> = (props) => {
   // Destructure information
-  const { user } = props;
+  const { user, isLoggedIn } = props;
 
   // Utils
   const utils = api.useUtils();
@@ -126,38 +133,42 @@ const ReportImage: React.FC<ReportimageProps> = (props) => {
 
   if (isCreating) return <Loader explanation="Creating review" />;
 
+  // Base staff display content
+  const staffDisplay = (
+    <div className="text-center relative">
+      <AvatarImage
+        href={user.avatar}
+        alt={user.username}
+        userId={user.userId}
+        hover_effect={isLoggedIn}
+        priority={true}
+        size={100}
+      />
+      <div>
+        <div className="font-bold">{user.username}</div>
+        <div>
+          Lvl. {user.level} {capitalizeFirstLetter(user.role)}
+        </div>
+      </div>
+      {props.positive === true && (
+        <ThumbsUp className={cn("w-6 h-6 fill-orange-500 absolute top-2 right-4")} />
+      )}
+      {props.positive === false && (
+        <ThumbsDown className={cn("w-6 h-6 fill-orange-500 absolute top-2 right-4")} />
+      )}
+    </div>
+  );
+
+  // If not logged in, just show the staff display without the review popover
+  if (!isLoggedIn) {
+    return staffDisplay;
+  }
+
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <div className="text-center relative">
-          <AvatarImage
-            href={user.avatar}
-            alt={user.username}
-            userId={user.userId}
-            hover_effect={true}
-            priority={true}
-            size={100}
-          />
-          <div>
-            <div className="font-bold">{user.username}</div>
-            <div>
-              Lvl. {user.level} {capitalizeFirstLetter(user.role)}
-            </div>
-          </div>
-          {props.positive === true && (
-            <ThumbsUp
-              className={cn("w-6 h-6 fill-orange-500 absolute top-2 right-4")}
-            />
-          )}
-          {props.positive === false && (
-            <ThumbsDown
-              className={cn("w-6 h-6 fill-orange-500 absolute top-2 right-4")}
-            />
-          )}
-        </div>
-      </PopoverTrigger>
+      <PopoverTrigger asChild>{staffDisplay}</PopoverTrigger>
       <PopoverContent>
-        <div className="max-w-[320px] min-w-[320px] relative">
+        <div className="max-w-[320px] relative">
           <div className="flex flex-row gap-2">
             <ThumbsDown
               className={cn(
