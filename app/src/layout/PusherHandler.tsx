@@ -86,7 +86,7 @@ export const usePusherHandler = (
               } as typeof old;
             });
             router.push("/combat");
-            void utils.combat.getBattle.invalidate({ cancelRefetch: false });
+            void utils.combat.getBattle.invalidate();
           }
         } else if (data.type === "newInbox") {
           if (!pathname.includes("/inbox")) {

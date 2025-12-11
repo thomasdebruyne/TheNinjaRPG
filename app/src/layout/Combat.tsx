@@ -110,7 +110,7 @@ const Combat: React.FC<CombatProps> = (props) => {
   const cameraRef = useRef<OrthographicCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const cameraTargetPosition = useRef<{ x: number; y: number } | null>(null);
-  
+
   // Track if component is mounted to prevent stale render callbacks
   const isMounted = useRef<boolean>(false);
 
@@ -262,7 +262,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           battleId: result.battleId,
           updatedAt: new Date(),
         });
-        await utils.combat.getBattle.invalidate({ cancelRefetch: false });
+        await utils.combat.getBattle.invalidate();
       } else {
         showMutationToast(result);
       }
@@ -457,7 +457,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           const check2 = createPassed > (COMBAT_LOBBY_SECONDS + COMBAT_SECONDS) * 1000;
           if ((check1 && check2) || changedActor) {
             battle.current.roundStartAt = new Date();
-            void utils.combat.getBattle.invalidate({ cancelRefetch: false });
+            void utils.combat.getBattle.invalidate();
           }
         }
       }
@@ -484,7 +484,7 @@ const Combat: React.FC<CombatProps> = (props) => {
       const channel = pusher.subscribe(battleId);
       channel.bind("event", (data: { version: number }) => {
         if (battle.current?.version !== data.version && !result) {
-          void utils.combat.getBattle.invalidate({ cancelRefetch: false });
+          void utils.combat.getBattle.invalidate();
         }
       });
       return () => {
@@ -670,7 +670,7 @@ const Combat: React.FC<CombatProps> = (props) => {
       function render() {
         // Guard against stale render callbacks after unmount
         if (!isMounted.current) return;
-        
+
         // Performance monitor
         performanceMonitor.begin();
 
@@ -823,13 +823,13 @@ const Combat: React.FC<CombatProps> = (props) => {
       return () => {
         // Mark component as unmounted FIRST to prevent stale render callbacks
         isMounted.current = false;
-        
+
         // Cancel animation frame before cleanup
         performanceMonitor.cancelFrame(animationId);
-        
+
         if (zoomTimeout) clearTimeout(zoomTimeout);
         void setBattleAtom(undefined);
-        
+
         // Remove event listeners safely
         try {
           window.removeEventListener("resize", handleResize);
@@ -840,7 +840,7 @@ const Combat: React.FC<CombatProps> = (props) => {
         } catch (e) {
           // Ignore errors if elements are already removed
         }
-        
+
         // Safely remove renderer DOM element
         try {
           if (renderer.domElement && renderer.domElement.parentNode === sceneRef) {
@@ -849,7 +849,7 @@ const Combat: React.FC<CombatProps> = (props) => {
         } catch (e) {
           // Ignore errors if element is already removed
         }
-        
+
         cleanUp(scene, renderer);
       };
     }

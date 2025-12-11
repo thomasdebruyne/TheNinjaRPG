@@ -12,8 +12,12 @@ import BanInfo from "@/layout/BanInfo";
 import { Button } from "@/components/ui/button";
 import { useForm, useWatch } from "react-hook-form";
 import { useState, useEffect } from "react";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-import { usePayPalScriptReducer } from "@paypal/react-paypal-js";
+import {
+  PayPalScriptProvider,
+  PayPalButtons,
+  usePayPalScriptReducer,
+  DISPATCH_ACTION,
+} from "@paypal/react-paypal-js";
 import { api, onError } from "@/app/_trpc/client";
 import { useInfinitePagination } from "@/libs/pagination";
 import { useRequiredUserData } from "@/utils/UserContext";
@@ -121,7 +125,7 @@ const PaypalShopContent = ({
   // Properly update SDK options when tab changes
   useEffect(() => {
     dispatch({
-      type: "resetOptions",
+      type: DISPATCH_ACTION.RESET_OPTIONS,
       value: {
         ...OPTIONS,
         vault: true,
