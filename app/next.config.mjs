@@ -53,6 +53,14 @@ const config = {
         protocol: "https",
         hostname: "utfs.io",
       },
+      {
+        protocol: "https",
+        hostname: "uploadthing.b-cdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "ui0arpl8sm.ufs.sh",
+      },
     ],
   },
   async headers() {
