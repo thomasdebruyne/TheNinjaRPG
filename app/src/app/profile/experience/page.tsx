@@ -23,7 +23,7 @@ export default function AssignExperience() {
         await updateUser(result.data);
         if (result.data.earnedExperience <= 0) {
           await updateNotifications(
-            notifications?.filter((n) => !n.name.includes("Unassigned Stats")),
+            notifications?.filter((n) => !n.name.includes("Assign XP")),
           );
         }
       }

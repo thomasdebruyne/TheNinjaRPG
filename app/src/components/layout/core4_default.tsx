@@ -769,10 +769,9 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
 
                         const isInteractive =
                           isTabElement || isOtherInteractive || hasPointerCursor;
-
                         const isButtonOrLink =
-                          target.tagName.toLowerCase() === "button" ||
-                          target.tagName.toLowerCase() === "a";
+                          target.closest("button") !== null ||
+                          target.closest("a") !== null;
 
                         if (!isInteractive || isButtonOrLink) {
                           setRightSideBarOpen(false);

@@ -596,7 +596,7 @@ export const profileRouter = createTRPCRouter({
         if (adminAppCount > 0) {
           notifications.push({
             href: "/manual/staff/applications",
-            name: `Staff applications (${adminAppCount})`,
+            name: `Applications (${adminAppCount})`,
             color: "blue",
             notificationCount: adminAppCount,
           });
@@ -623,7 +623,7 @@ export const profileRouter = createTRPCRouter({
         notifications.push({
           id: "tutorial-unassigned-stats",
           href: "/profile/experience",
-          name: "Unassigned Stats",
+          name: "Assign XP",
           color: "blue",
         });
       }
