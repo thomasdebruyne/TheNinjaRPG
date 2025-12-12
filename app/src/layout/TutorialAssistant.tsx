@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { ArrowRight, Loader2, X, Sparkles, Settings2 } from "lucide-react";
 import { useUserData } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";

@@ -2,7 +2,7 @@
 
 import Loader from "@/layout/Loader";
 import { LogbookEntry } from "@/layout/Logbook";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { showMutationToast } from "@/libs/toast";
 import { api } from "@/app/_trpc/client";
 import { availableQuestLetterRanks } from "@/libs/train";

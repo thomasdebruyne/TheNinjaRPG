@@ -49,7 +49,7 @@ export default async function Image({
           <img
             width={width}
             height={height}
-            src="https://utfs.io/f/10b0df72-5e27-4785-92ad-a63996127c85-hzez4j.png"
+            src="https://uploadthing.b-cdn.net/f/10b0df72-5e27-4785-92ad-a63996127c85-hzez4j.png"
             alt="Concept Art"
           />
         )}

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import BanInfo from "@/layout/BanInfo";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import Accordion from "@/layout/Accordion";
 import { LogbookEntry } from "@/layout/Logbook";

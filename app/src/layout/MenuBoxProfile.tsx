@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import StatusBar from "@/layout/StatusBar";
 import AvatarImage from "@/layout/Avatar";
 import Countdown from "@/layout/Countdown";

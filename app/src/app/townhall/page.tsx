@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import Link from "next/link";
 import ContentBox from "@/layout/ContentBox";
 import BanInfo from "@/layout/BanInfo";

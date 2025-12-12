@@ -3,7 +3,7 @@
 import React from "react";
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import alea from "alea";
 import AvatarImage from "@/layout/Avatar";
 import Modal2 from "@/layout/Modal2";

@@ -10,7 +10,7 @@ import {
   Split,
   Wrench,
 } from "lucide-react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import NavTabs from "@/layout/NavTabs";

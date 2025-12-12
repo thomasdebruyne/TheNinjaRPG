@@ -1,5 +1,5 @@
 import React from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import type { UserReport } from "../../drizzle/schema";
 import { parseHtml } from "@/utils/parse";
 import { canSeeSecretData } from "@/utils/permissions";

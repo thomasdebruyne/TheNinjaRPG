@@ -2,7 +2,7 @@
 
 import ReactDOM from "react-dom";
 import { Suspense } from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import MenuBoxProfile from "@/layout/MenuBoxProfile";

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import BanInfo from "@/layout/BanInfo";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import UserSearchSelect from "@/layout/UserSearchSelect";

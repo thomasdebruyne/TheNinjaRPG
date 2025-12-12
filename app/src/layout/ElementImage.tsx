@@ -1,5 +1,5 @@
 import React from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { isInArray } from "@/utils/array";
 import { Grab, Swords, HeartPulse, Eraser, Sparkles, Rabbit } from "lucide-react";
 import { Zap } from "lucide-react";

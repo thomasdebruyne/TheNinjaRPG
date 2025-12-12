@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Post from "./Post";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import NavTabs from "@/layout/NavTabs";
 import Loader from "@/layout/Loader";
 import ContentBox from "@/layout/ContentBox";

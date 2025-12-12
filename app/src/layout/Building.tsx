@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import StatusBar from "@/layout/StatusBar";
 import Confirm2 from "@/layout/Confirm2";
 import {

@@ -2,7 +2,7 @@
 
 import { capUserStats } from "@/libs/profile";
 import React, { useState } from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import {
   Form,
   FormControl,

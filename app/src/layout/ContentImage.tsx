@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import NextImage from "next/image";
+import NextImage from "@/layout/Image";
 import Loader from "@/layout/Loader";
 import { cn } from "src/libs/shadui";
 import {

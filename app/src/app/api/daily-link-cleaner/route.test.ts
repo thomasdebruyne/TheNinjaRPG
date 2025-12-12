@@ -3,7 +3,8 @@ import { isUrlAccessible } from "./route";
 
 describe("daily-link-cleaner", () => {
   it("should correctly identify accessible utfs.io URLs", async () => {
-    const url = "https://utfs.io/f/Hzww9EQvYURJUvE8xxILCIhwPniJ69VxpvAbTDWkOyGzS8rM";
+    const url =
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJUvE8xxILCIhwPniJ69VxpvAbTDWkOyGzS8rM";
     const isAccessible = await isUrlAccessible(url);
     expect(isAccessible).toBe(true);
   }, 10000); // Increase timeout to 10s for real network requests

@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { Atom, Bug, User, Globe2, BookOpenText } from "lucide-react";
 import { Paintbrush, MessagesSquare, Newspaper, Scale, Receipt } from "lucide-react";
 import { Inbox, Flag, ShieldHalf, Briefcase, LifeBuoy, Gavel } from "lucide-react";

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { api } from "@/app/_trpc/client";
 import Loader from "@/layout/Loader";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import Table from "@/layout/Table";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import { Button } from "@/components/ui/button";

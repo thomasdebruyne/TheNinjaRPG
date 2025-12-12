@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/layout/Image";
 import Table from "@/layout/Table";
 import SliderField from "@/layout/SliderField";
 import Confirm2 from "@/layout/Confirm2";

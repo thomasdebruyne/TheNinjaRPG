@@ -7,7 +7,7 @@ import type { ToastActionElement } from "src/components/ui/toast";
 import type { PostProcessedRewards } from "@/libs/quest";
 import type { Quest } from "@/drizzle/schema";
 import { parseHtml } from "@/utils/parse";
-import Image from "next/image";
+import Image from "@/layout/Image";
 
 /**
  * Trigger a confetti animation

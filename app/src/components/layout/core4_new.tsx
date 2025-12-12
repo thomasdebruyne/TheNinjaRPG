@@ -6,7 +6,7 @@
 "use client";
 
 import ReactDOM from "react-dom";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import Link from "next/link";
 import React from "react";
 import { getImageSet } from "@/components/layout/core4_default";

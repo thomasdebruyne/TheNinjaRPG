@@ -34,7 +34,7 @@ import { parseHtml } from "@/utils/parse";
 import { awardSchema } from "@/validators/reputation";
 import { publicUserText } from "@/layout/seoTexts";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import StatusBar from "@/layout/StatusBar";
 import AvatarImage from "@/layout/Avatar";
 import ContentBox from "@/layout/ContentBox";

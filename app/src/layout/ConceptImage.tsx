@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { Trash2, Flag, Info } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import { useUserData } from "@/utils/UserContext";

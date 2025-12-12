@@ -9,7 +9,7 @@ import { showMutationToast } from "@/libs/toast";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import { Swords } from "lucide-react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import StatusBar from "@/layout/StatusBar";
 import { WAR_SHRINE_IMAGE, VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
 import RamenShop from "@/layout/RamenShop";

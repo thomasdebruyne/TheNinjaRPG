@@ -365,7 +365,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
   // Small assets
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJa55Vc5YYfKMcJ2B5EmWt6VsNgqxpG8OSXAQk",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJa55Vc5YYfKMcJ2B5EmWt6VsNgqxpG8OSXAQk",
     chance: 0.5,
     scale: 1,
     scaleVariation: 0.2,
@@ -375,7 +375,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJlvcZlIrWYxAsuC7ofQn9pM45OD0ERqkdBXJU",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJlvcZlIrWYxAsuC7ofQn9pM45OD0ERqkdBXJU",
     chance: 0.3,
     scale: 1,
     scaleVariation: 0.2,
@@ -385,7 +385,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJcpFFdRSnxBpQqGNDcTHbLmYz8uXAl3oa54ti",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJcpFFdRSnxBpQqGNDcTHbLmYz8uXAl3oa54ti",
     chance: 0.1,
     scale: 0.7,
     scaleVariation: 0.2,
@@ -395,7 +395,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJxfrF3oWZsq9k0Von5rUfP6OgQ2TyptCKHS4u",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJxfrF3oWZsq9k0Von5rUfP6OgQ2TyptCKHS4u",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -406,7 +406,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
   // Green Trees
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJndYwvrmojJ0EqeDCvBrNmZaXVdY97gSpOWiA",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJndYwvrmojJ0EqeDCvBrNmZaXVdY97gSpOWiA",
     chance: 0.7,
     scale: 2,
     scaleVariation: 0.7,
@@ -415,7 +415,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJvFn4sIEmSnXwslYEpV1yOeNL8gMtqhjPdf36",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJvFn4sIEmSnXwslYEpV1yOeNL8gMtqhjPdf36",
     chance: 0.7,
     scale: 2,
     scaleVariation: 0.7,
@@ -424,7 +424,7 @@ export const GROUND_ASSETS_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJHl8NCiQvYURJhgs76VZtf9wxpMa13Cq0iOnr",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJHl8NCiQvYURJhgs76VZtf9wxpMa13Cq0iOnr",
     chance: 0.5,
     scale: 2,
     scaleVariation: 0.7,
@@ -438,7 +438,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
   // Cactus
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJe0aIBjyV3OvUJQExAi0bGoIZDF74LqSnHRdp",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJe0aIBjyV3OvUJQExAi0bGoIZDF74LqSnHRdp",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -447,7 +447,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJ7vgcu3XKPBOUWGyFuM4DlL1v5HNTZhkte0z6",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJ7vgcu3XKPBOUWGyFuM4DlL1v5HNTZhkte0z6",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -456,7 +456,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJvmatJJEmSnXwslYEpV1yOeNL8gMtqhjPdf36",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJvmatJJEmSnXwslYEpV1yOeNL8gMtqhjPdf36",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -466,7 +466,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
   // Stones
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJQlUKaJVjhzBPya1rwfCIqOTU0cV5xgsMeo3u",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJQlUKaJVjhzBPya1rwfCIqOTU0cV5xgsMeo3u",
     chance: 0.2,
     scale: 1,
     scaleVariation: 0.2,
@@ -475,7 +475,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJzLLsgkemvaQu94EYJs8HpxVzofny6iPtbgCZ",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJzLLsgkemvaQu94EYJs8HpxVzofny6iPtbgCZ",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -484,7 +484,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJylERmDukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJylERmDukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -497,7 +497,7 @@ export const DESSERT_ASSET_PROPS: AssetType[] = [
 export const ICE_ASSET_PROPS: AssetType[] = [
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJzJ76QEemvaQu94EYJs8HpxVzofny6iPtbgCZ",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJzJ76QEemvaQu94EYJs8HpxVzofny6iPtbgCZ",
     chance: 0.1,
     scale: 0.9,
     scaleVariation: 0.2,
@@ -512,7 +512,7 @@ export const SNOW_ASSET_PROPS: AssetType[] = [
   // Stones
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJzLLsgkemvaQu94EYJs8HpxVzofny6iPtbgCZ",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJzLLsgkemvaQu94EYJs8HpxVzofny6iPtbgCZ",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -521,7 +521,7 @@ export const SNOW_ASSET_PROPS: AssetType[] = [
   },
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJylERmDukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJylERmDukVH2MI5Lo4ehEfAXvZdcmtWqPg7rp",
     chance: 0.1,
     scale: 1,
     scaleVariation: 0.2,
@@ -531,7 +531,7 @@ export const SNOW_ASSET_PROPS: AssetType[] = [
   // Green Trees
   {
     filepath:
-      "https://ui0arpl8sm.ufs.sh/f/Hzww9EQvYURJrtEwSR2huJPmdY8zI2ptZXAoEj1c6BMKvrQO",
+      "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJrtEwSR2huJPmdY8zI2ptZXAoEj1c6BMKvrQO",
     chance: 0.4,
     scale: 2,
     scaleVariation: 0.7,

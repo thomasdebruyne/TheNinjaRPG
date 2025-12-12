@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import StatusBar from "@/layout/StatusBar";
 import Countdown from "@/layout/Countdown";
 import Modal2 from "@/layout/Modal2";

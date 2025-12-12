@@ -3,7 +3,7 @@
 import { useState } from "react";
 import QuestPicker from "@/layout/QuestPicker";
 import ContentBox from "@/layout/ContentBox";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { IMG_BUILDING_ACADEMY } from "@/drizzle/constants";
 
 export default function Academy() {

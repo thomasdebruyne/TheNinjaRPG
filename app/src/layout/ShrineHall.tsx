@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import StatusBar from "@/layout/StatusBar";

@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import Loader from "@/layout/Loader";
 import ContentBox from "@/layout/ContentBox";
 import RichInput from "@/layout/RichInput";

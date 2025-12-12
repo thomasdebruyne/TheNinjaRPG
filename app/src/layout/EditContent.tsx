@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { calculateContentDiff } from "@/utils/diff";
 import { useForm, useWatch } from "react-hook-form";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import React, { Fragment, useEffect, useState, useMemo } from "react";
 import ContentImageSelector from "@/layout/ContentImageSelector";
 import RichInput from "@/layout/RichInput";

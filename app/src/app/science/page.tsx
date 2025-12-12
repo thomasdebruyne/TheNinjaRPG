@@ -1,7 +1,7 @@
 "use client";
 
 import Loader from "@/layout/Loader";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { Button } from "@/components/ui/button";
 import ContentBox from "@/layout/ContentBox";
 import { RollBloodline, CurrentBloodline, PurchaseBloodline } from "@/layout/Bloodline";

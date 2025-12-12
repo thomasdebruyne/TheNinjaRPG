@@ -1,5 +1,5 @@
 import * as React from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import Loader from "@/layout/Loader";
 import {
   Tooltip,

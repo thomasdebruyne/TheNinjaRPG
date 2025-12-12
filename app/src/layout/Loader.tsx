@@ -1,5 +1,5 @@
 import React from "react";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { IMG_LOADER } from "@/drizzle/constants";
 
 interface LoaderProps {

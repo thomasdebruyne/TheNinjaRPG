@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import alea from "alea";
 import { Vector2, OrthographicCamera, Group, Clock } from "three";
 import Countdown from "./Countdown";

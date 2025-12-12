@@ -18,7 +18,7 @@ import { showMutationToast } from "@/libs/toast";
 import OccupationGathering from "@/layout/OccupationGathering";
 import OccupationHunter from "@/layout/OccupationHunter";
 import OccupationCrafting from "@/layout/OccupationCrafting";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { Settings } from "lucide-react";
 import type { OccupationType } from "@/drizzle/constants";
 import {

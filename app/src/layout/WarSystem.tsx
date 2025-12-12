@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import ContentBox from "@/layout/ContentBox";
 import Modal2 from "@/layout/Modal2";
 import Loader from "@/layout/Loader";

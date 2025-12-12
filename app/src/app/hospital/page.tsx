@@ -6,7 +6,7 @@ import Countdown from "@/layout/Countdown";
 import Loader from "@/layout/Loader";
 import ContentBox from "@/layout/ContentBox";
 import StatusBar, { calcCurrent } from "@/layout/StatusBar";
-import Image from "next/image";
+import Image from "@/layout/Image";
 import { hasRequiredRank } from "@/libs/train";
 import { Button } from "@/components/ui/button";
 import { getStrucBoost } from "@/utils/village";
