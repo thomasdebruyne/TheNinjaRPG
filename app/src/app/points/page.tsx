@@ -11,7 +11,7 @@ import NavTabs from "@/layout/NavTabs";
 import BanInfo from "@/layout/BanInfo";
 import { Button } from "@/components/ui/button";
 import { useForm, useWatch } from "react-hook-form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   PayPalScriptProvider,
   PayPalButtons,
@@ -82,6 +82,20 @@ const OPTIONS = {
 };
 
 /**
+ * Helper to check if an error is a PayPal cleanup error that should be suppressed.
+ * These occur when users navigate away while PayPal buttons are initializing.
+ */
+const isPayPalCleanupError = (err: unknown): boolean => {
+  const errorMessage = err?.toString() ?? "";
+  return (
+    errorMessage.includes("zoid destroyed") ||
+    errorMessage.includes("popup close") ||
+    errorMessage.includes("Window closed") ||
+    errorMessage.includes("Component closed")
+  );
+};
+
+/**
  * Main component for doing paypal transactions
  */
 export default function PaypalShop() {
@@ -114,6 +128,7 @@ const PaypalShopContent = ({
   userData: NonNullable<ReturnType<typeof useRequiredUserData>["data"]>;
 }) => {
   const [activeTab, setActiveTab] = useState<string>("Reputation");
+  const [isReady, setIsReady] = useState(true);
   const [, dispatch] = usePayPalScriptReducer();
   const currency = "USD";
 
@@ -134,6 +149,14 @@ const PaypalShopContent = ({
     });
   }, [activeTab, dispatch]);
 
+  // Prevent PayPal components from rendering during unmount
+  useEffect(() => {
+    setIsReady(true);
+    return () => {
+      setIsReady(false);
+    };
+  }, []);
+
   return (
     <>
       <ContentBox
@@ -151,8 +174,11 @@ const PaypalShopContent = ({
           </>
         }
       >
-        {activeTab === "Reputation" && <ReputationStore currency={currency} />}
-        {activeTab === "Federal" && <FederalStore />}
+        {isReady && activeTab === "Reputation" && (
+          <ReputationStore currency={currency} />
+        )}
+        {isReady && activeTab === "Federal" && <FederalStore />}
+        {!isReady && <Loader explanation="Loading..." />}
       </ContentBox>
       {activeTab === "Reputation" && <TransactionHistory userId={userData.userId} />}
       {activeTab === "Reputation" && <LookupTransaction />}
@@ -169,7 +195,16 @@ const ReputationStore = (props: { currency: string }) => {
   const [{ isResolved }] = usePayPalScriptReducer();
   const [amount, setAmount] = useState(0);
   const maxUsers = 1;
-  let invoiceId = nanoid();
+  const invoiceIdRef = useRef(nanoid());
+  const isMountedRef = useRef(true);
+
+  // Track mount state to prevent operations after unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const utils = api.useUtils();
 
@@ -274,16 +309,18 @@ const ReputationStore = (props: { currency: string }) => {
                       currency_code: props.currency,
                       value: amount.toString(),
                     },
-                    invoice_id: invoiceId,
+                    invoice_id: invoiceIdRef.current,
                     custom_id: `${userData.userId}-${selectedUser.userId}`,
                   },
                 ],
               });
             }}
             onApprove={(data, actions) => {
-              invoiceId = nanoid();
+              invoiceIdRef.current = nanoid();
               if (actions.order) {
                 return actions.order.capture().then((details) => {
+                  // Only proceed if component is still mounted
+                  if (!isMountedRef.current) return;
                   buyReps({ orderId: details.id ?? nanoid() });
                   // Send GTM event with conversion data
                   const purchaseUnit = details?.purchase_units?.[0];
@@ -311,16 +348,29 @@ const ReputationStore = (props: { currency: string }) => {
                   }
                 });
               } else {
+                if (!isMountedRef.current) return Promise.resolve();
                 showMutationToast({
                   success: false,
                   message:
                     "Order not fully completed yet. Please wait for the order to clear, or when you know your transaction ID, contact support through our paypal email",
                   title: "No order",
                 });
-                return new Promise(() => {
-                  return null;
-                });
+                return Promise.resolve();
               }
+            }}
+            onCancel={() => {
+              // User closed the popup without completing payment - this is expected behavior
+            }}
+            onError={(err) => {
+              // Suppress PayPal cleanup errors (occur during navigation)
+              if (isPayPalCleanupError(err)) return;
+              // Only show toast if component is still mounted
+              if (!isMountedRef.current) return;
+              showMutationToast({
+                success: false,
+                message: "Payment could not be processed. Please try again.",
+                title: "Payment Error",
+              });
             }}
           />
         ) : (
@@ -346,6 +396,15 @@ const PayPalSubscriptionButton = (props: {
 }) => {
   // User state
   const { data: userData } = useRequiredUserData();
+
+  // Track mount state to prevent operations after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // tRPC utility
   const utils = api.useUtils();
@@ -521,6 +580,8 @@ const PayPalSubscriptionButton = (props: {
             });
           }}
           onApprove={(data, actions) => {
+            // Only proceed if component is still mounted
+            if (!isMountedRef.current) return Promise.resolve();
             if (data.subscriptionID) {
               subscribe({
                 subscriptionId: data.subscriptionID,
@@ -537,6 +598,7 @@ const PayPalSubscriptionButton = (props: {
             // Send GTM event with conversion data
             if (actions.order) {
               return actions.order.capture().then((details) => {
+                if (!isMountedRef.current) return;
                 const purchaseUnit = details?.purchase_units?.[0];
                 const transaction_id = purchaseUnit?.invoice_id;
                 const currency = purchaseUnit?.amount?.currency_code;
@@ -558,10 +620,22 @@ const PayPalSubscriptionButton = (props: {
                 }
               });
             } else {
-              return new Promise(() => {
-                return null;
-              });
+              return Promise.resolve();
             }
+          }}
+          onCancel={() => {
+            // User closed the popup without completing subscription - this is expected behavior
+          }}
+          onError={(err) => {
+            // Suppress PayPal cleanup errors (occur during navigation)
+            if (isPayPalCleanupError(err)) return;
+            // Only show toast if component is still mounted
+            if (!isMountedRef.current) return;
+            showMutationToast({
+              success: false,
+              message: "Subscription could not be processed. Please try again.",
+              title: "Subscription Error",
+            });
           }}
         />
         {props.buttonStatus === "NORMAL" && (
