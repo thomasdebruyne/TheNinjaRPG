@@ -21,6 +21,16 @@ import type {
 let textureLoaderInstance: TextureLoader | null = null;
 
 /**
+ * Transforms image URLs to use the CDN endpoint.
+ * Replaces "utfs.io" or "ui0arpl8sm.ufs.sh" with "uploadthing.b-cdn.net"
+ */
+const transformImageUrl = (url: string): string => {
+  return url
+    .replace(/utfs\.io/g, "uploadthing.b-cdn.net")
+    .replace(/ui0arpl8sm\.ufs\.sh/g, "uploadthing.b-cdn.net");
+};
+
+/**
  * Lazily get a module-scoped TextureLoader instance.
  * Throws on SSR to avoid accessing window during server rendering.
  */
@@ -39,14 +49,16 @@ const pendingLoads = new Map<string, Promise<Texture>>();
  * Load texture from file
  */
 export const loadTexture = (path: string) => {
+  const transformedPath = transformImageUrl(path);
+
   // Return cached texture if available
-  const cached = textureCache.get(path);
+  const cached = textureCache.get(transformedPath);
   if (cached) return cached;
 
   // Start load immediately and cache the Texture instance
-  const texture = getTextureLoader().load(path);
+  const texture = getTextureLoader().load(transformedPath);
   texture.colorSpace = SRGBColorSpace;
-  textureCache.set(path, texture);
+  textureCache.set(transformedPath, texture);
   return texture;
 };
 
@@ -67,7 +79,9 @@ export const createSpriteMaterial = (map: Texture, alphaMap?: Texture) => {
  * Preload a set of texture URLs into memory so they are instantly available.
  */
 export const preloadTextures = async (paths: string[]) => {
-  const uniquePaths = [...new Set(paths.filter((p) => Boolean(p)))];
+  const uniquePaths = [
+    ...new Set(paths.filter((p) => Boolean(p)).map(transformImageUrl)),
+  ];
   const results = await Promise.allSettled(
     uniquePaths.map((path) => {
       // Already cached → nothing to do
