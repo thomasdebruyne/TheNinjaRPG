@@ -44,6 +44,7 @@ Sentry.init({
     "Failed to read the 'localStorage' property from 'Window': Access is denied for this document.", // LocalStorage error
     "Can't find variable: __firefox__", // Firefox error
     "Failed to load chunk", // New deployment
+    "Invalid call to runtime.sendMessage()", // Browser extension error, not from our app
   ],
 
   // Only enable Sentry in production
