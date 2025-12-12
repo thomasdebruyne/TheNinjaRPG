@@ -56,13 +56,16 @@ export const miscRouter = createTRPCRouter({
 
       // Insert new visitor and log AB test loaded event (if applicable) in parallel
       const [visitorResult] = await Promise.all([
-        ctx.drizzle.insert(visitorLog).values({
-          id: nanoid(),
-          ip,
-          ref: input.ref,
-          utmSource: input.utmSource,
-          userAgent: String(ctx.userAgent).slice(0, 180),
-        }),
+        ctx.drizzle
+          .insert(visitorLog)
+          .values({
+            id: nanoid(),
+            ip,
+            ref: input.ref,
+            utmSource: input.utmSource,
+            userAgent: String(ctx.userAgent).slice(0, 180),
+          })
+          .onDuplicateKeyUpdate({ set: { id: sql`id` } }),
         ctx.abLemuReplacementVariant
           ? ctx.drizzle
               .insert(abEvent)
