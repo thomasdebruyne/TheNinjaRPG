@@ -150,6 +150,62 @@ const AssistantDialog: React.FC<{
 );
 
 /**
+ * Confirmation dialog for cancelling the tutorial
+ * Shows the assistant character and warns the user
+ */
+const CancelTutorialConfirmDialog: React.FC<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}> = ({ open, onOpenChange, onConfirm }) => {
+  const { variant } = useAbVariant("ab_lemu_replacement_2");
+  const assistantImage =
+    variant === "treatment" ? IMG_URL_ASSISTANT_2 : IMG_URL_ASSISTANT;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md z-[70] overflow-hidden pb-0">
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <DialogHeader>
+              <DialogTitle>Skip Tutorial?</DialogTitle>
+              <DialogDescription className="pt-2">
+                For new players, we <strong>highly recommend</strong> following the
+                tutorial to learn how the game works. Are you sure you want to skip it?
+                <br />
+                <br />
+                Remember, if you get stuck, click the support button and then you can
+                re-enable the tutorial.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-start gap-2 mt-4 pb-4">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Keep Tutorial
+              </Button>
+              <Button variant="destructive" onClick={onConfirm}>
+                Skip Tutorial
+              </Button>
+            </div>
+          </div>
+          <div className="flex-shrink-0 self-end">
+            <Image
+              src={assistantImage}
+              width={100}
+              height={100}
+              alt="Assistant"
+              className={cn(
+                "object-contain drop-shadow-lg",
+                variant === "treatment" && "scale-x-[-1]",
+              )}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/**
  * Tutorial assistant component props
  * @param rightSideBarOpen - Whether the right side bar is open
  * @param setRightSideBarOpen - Function to set the right side bar open
@@ -620,6 +676,9 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   // Dialog state for quest type ordering
   const [showOrderingDialog, setShowOrderingDialog] = useState(false);
 
+  // Dialog state for confirming tutorial cancellation
+  const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
+
   // Post-tutorial quest guidance: Find quest based on priority ordering
   useEffect(() => {
     if (userData?.tutorialOn !== false && currentStepNumber >= TUTORIAL_STEPS.length) {
@@ -829,11 +888,13 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           {/* Assistant panel bottom-right - large, game-like dialog */}
           <AssistantDialog
             title="Game Menu"
-            onOpenDisableModal={
-              currentStepNumber >= TUTORIAL_STEPS_COUNT
-                ? handleDisableTutorial
-                : undefined
-            }
+            onOpenDisableModal={() => {
+              if (currentStepNumber >= TUTORIAL_STEPS_COUNT) {
+                handleDisableTutorial();
+              } else {
+                setShowCancelConfirmDialog(true);
+              }
+            }}
           >
             <p className="text-sm md:text-base leading-relaxed">
               Click the highlighted button to open the game menu and continue the
@@ -901,7 +962,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   // Render the tutorial overlay with highlight and assistant panel
   return (
     <>
-      {highlight && (
+      {highlight && !showCancelConfirmDialog && (
         <div className={cn("fixed inset-0 z-[60]", pointerEvents)}>
           <div className="absolute inset-0 bg-black/30 min-h-[2000px]" />
 
@@ -969,155 +1030,163 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       )}
 
       {/* Assistant panel bottom-right - large, game-like dialog */}
-      {!currentTutorialStep.hideDialog && !showOrderingDialog && (
-        <AssistantDialog
-          title={currentTutorialStep.title}
-          onOpenDisableModal={
-            currentStepNumber >= TUTORIAL_STEPS_COUNT
-              ? handleDisableTutorial
-              : undefined
-          }
-          characterImage={characterImage}
-          onOpenOrderingDialog={() => setShowOrderingDialog(true)}
-          showOrderingButton={showPostTutorialQuest}
-        >
-          {typeof currentTutorialStep.description === "string" ? (
-            <p className="text-sm md:text-base leading-relaxed">
-              {parseHtml(currentTutorialStep.description)}
-            </p>
-          ) : (
-            <div className="text-sm md:text-base leading-relaxed">
-              {currentTutorialStep.description}
-            </div>
-          )}
-          {currentTutorialStep.externalLink && (
-            <div className="mt-3">
-              <Button
-                className="w-full"
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(currentTutorialStep.externalLink, "_blank")}
-              >
-                Read Getting Started Guide
-              </Button>
-            </div>
-          )}
-          {dialogOptions && (
-            <div className="mt-3 md:mt-4">
-              <h3 className="text-sm font-semibold mb-2">Dialog Options</h3>
-              <div className="flex flex-wrap gap-2">
-                {dialogOptions.options.map((entry) => (
-                  <Button
-                    key={entry.nextObjectiveId}
-                    variant="outline"
-                    size="sm"
-                    disabled={isCheckingRewards}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isCheckingRewards) {
-                        checkRewards({
-                          questId: dialogOptions.questId,
-                          nextObjectiveId: entry.nextObjectiveId,
-                        });
-                      }
-                    }}
-                    className="flex-1 min-w-[120px]"
-                  >
-                    {isCheckingRewards ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      entry.text
-                    )}
-                  </Button>
-                ))}
+      {!currentTutorialStep.hideDialog &&
+        !showOrderingDialog &&
+        !showCancelConfirmDialog && (
+          <AssistantDialog
+            title={currentTutorialStep.title}
+            onOpenDisableModal={() => {
+              if (currentStepNumber >= TUTORIAL_STEPS_COUNT) {
+                handleDisableTutorial();
+              } else {
+                setShowCancelConfirmDialog(true);
+              }
+            }}
+            characterImage={characterImage}
+            onOpenOrderingDialog={() => setShowOrderingDialog(true)}
+            showOrderingButton={showPostTutorialQuest}
+          >
+            {typeof currentTutorialStep.description === "string" ? (
+              <p className="text-sm md:text-base leading-relaxed">
+                {parseHtml(currentTutorialStep.description)}
+              </p>
+            ) : (
+              <div className="text-sm md:text-base leading-relaxed">
+                {currentTutorialStep.description}
               </div>
-            </div>
-          )}
-          {postTutorialQuest?.userQuest.quest.content.objectives &&
-            postTutorialQuest && (
-              <>
-                <div className={cn("mt-3 md:mt-4 grid grid-cols-1 gap-4 grid-cols-2")}>
-                  {postTutorialQuest.userQuest.quest.content.objectives.map(
-                    (objective, i) => {
-                      if (!postTutorialQuest) return null;
-                      const quest = postTutorialQuest.userQuest.quest;
-                      const tracker = postTutorialQuest.tracker;
-                      const allDone = isQuestComplete(quest, tracker);
-                      const activeObjective = getActiveObjective(quest, tracker);
-                      const status = tracker.goals.find((g) => g.id === objective.id);
-                      const hideIfNoRewards =
-                        objective.task === "dialog" ||
-                        (activeObjective && objective.id !== activeObjective?.id) ||
-                        (allDone && !status?.done);
-                      return (
-                        <Objective
-                          objective={objective}
-                          tracker={tracker}
-                          checkRewards={() => checkRewards({ questId: quest.id })}
-                          key={i}
-                          titlePrefix={
-                            quest.consecutiveObjectives ? "Objective: " : `${i + 1}. `
-                          }
-                          grayedOut={!isQuestObjectiveAvailable(quest, tracker, i)}
-                          hideIfNoRewards={hideIfNoRewards}
-                        />
-                      );
-                    },
-                  )}
-                </div>
-                {isQuestComplete(
-                  postTutorialQuest.userQuest.quest,
-                  postTutorialQuest.tracker,
-                ) &&
-                  userData?.status === "AWAKE" && (
-                    <div className="mt-3 md:mt-4">
-                      <Button
-                        onClick={() => {
-                          if (!postTutorialQuest) return;
-                          checkRewards({
-                            questId: postTutorialQuest.userQuest.quest.id,
-                          });
-                        }}
-                        className="w-full"
-                      >
-                        <Sparkles className="h-5 w-5 mr-2" />
-                        Collect Reward
-                      </Button>
-                    </div>
-                  )}
-              </>
             )}
-          {currentTutorialStep?.showNextButton && (
-            <div className="mt-3 md:mt-4 flex justify-end gap-2">
-              <Button
-                size="lg"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (hardwarePlatform !== "mobile") {
-                    handleNextStep();
+            {currentTutorialStep.externalLink && (
+              <div className="mt-3">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    window.open(currentTutorialStep.externalLink, "_blank")
                   }
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (hardwarePlatform === "mobile") {
-                    handleNextStep();
-                  }
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                {currentStepNumber === TUTORIAL_STEPS.length - 1 ? "Finish" : "Next"}
-                <ArrowRight className="ml-2 h-4 md:h-5 w-4 md:w-5" />
-              </Button>
-            </div>
-          )}
-        </AssistantDialog>
-      )}
+                >
+                  Read Getting Started Guide
+                </Button>
+              </div>
+            )}
+            {dialogOptions && (
+              <div className="mt-3 md:mt-4">
+                <h3 className="text-sm font-semibold mb-2">Dialog Options</h3>
+                <div className="flex flex-wrap gap-2">
+                  {dialogOptions.options.map((entry) => (
+                    <Button
+                      key={entry.nextObjectiveId}
+                      variant="outline"
+                      size="sm"
+                      disabled={isCheckingRewards}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!isCheckingRewards) {
+                          checkRewards({
+                            questId: dialogOptions.questId,
+                            nextObjectiveId: entry.nextObjectiveId,
+                          });
+                        }
+                      }}
+                      className="flex-1 min-w-[120px]"
+                    >
+                      {isCheckingRewards ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        entry.text
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {postTutorialQuest?.userQuest.quest.content.objectives &&
+              postTutorialQuest && (
+                <>
+                  <div
+                    className={cn("mt-3 md:mt-4 grid grid-cols-1 gap-4 grid-cols-2")}
+                  >
+                    {postTutorialQuest.userQuest.quest.content.objectives.map(
+                      (objective, i) => {
+                        if (!postTutorialQuest) return null;
+                        const quest = postTutorialQuest.userQuest.quest;
+                        const tracker = postTutorialQuest.tracker;
+                        const allDone = isQuestComplete(quest, tracker);
+                        const activeObjective = getActiveObjective(quest, tracker);
+                        const status = tracker.goals.find((g) => g.id === objective.id);
+                        const hideIfNoRewards =
+                          objective.task === "dialog" ||
+                          (activeObjective && objective.id !== activeObjective?.id) ||
+                          (allDone && !status?.done);
+                        return (
+                          <Objective
+                            objective={objective}
+                            tracker={tracker}
+                            checkRewards={() => checkRewards({ questId: quest.id })}
+                            key={i}
+                            titlePrefix={
+                              quest.consecutiveObjectives ? "Objective: " : `${i + 1}. `
+                            }
+                            grayedOut={!isQuestObjectiveAvailable(quest, tracker, i)}
+                            hideIfNoRewards={hideIfNoRewards}
+                          />
+                        );
+                      },
+                    )}
+                  </div>
+                  {isQuestComplete(
+                    postTutorialQuest.userQuest.quest,
+                    postTutorialQuest.tracker,
+                  ) &&
+                    userData?.status === "AWAKE" && (
+                      <div className="mt-3 md:mt-4">
+                        <Button
+                          onClick={() => {
+                            if (!postTutorialQuest) return;
+                            checkRewards({
+                              questId: postTutorialQuest.userQuest.quest.id,
+                            });
+                          }}
+                          className="w-full"
+                        >
+                          <Sparkles className="h-5 w-5 mr-2" />
+                          Collect Reward
+                        </Button>
+                      </div>
+                    )}
+                </>
+              )}
+            {currentTutorialStep?.showNextButton && (
+              <div className="mt-3 md:mt-4 flex justify-end gap-2">
+                <Button
+                  size="lg"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (hardwarePlatform !== "mobile") {
+                      handleNextStep();
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (hardwarePlatform === "mobile") {
+                      handleNextStep();
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  {currentStepNumber === TUTORIAL_STEPS.length - 1 ? "Finish" : "Next"}
+                  <ArrowRight className="ml-2 h-4 md:h-5 w-4 md:w-5" />
+                </Button>
+              </div>
+            )}
+          </AssistantDialog>
+        )}
 
       {/* Quest Type Ordering Dialog */}
       <Dialog open={showOrderingDialog} onOpenChange={setShowOrderingDialog}>
@@ -1151,6 +1220,16 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Tutorial Confirmation Dialog */}
+      <CancelTutorialConfirmDialog
+        open={showCancelConfirmDialog}
+        onOpenChange={setShowCancelConfirmDialog}
+        onConfirm={() => {
+          setShowCancelConfirmDialog(false);
+          handleDisableTutorial();
+        }}
+      />
     </>
   );
 };
