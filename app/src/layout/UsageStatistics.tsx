@@ -365,12 +365,14 @@ interface QuestFunnelBarProps {
     | Array<{ objectives: number; deviceType: DeviceType; username?: string }>;
   title: string;
   stepDescriptions?: string[];
+  extraControls?: React.ReactNode;
 }
 
 export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
   stepsCompleted,
   title,
   stepDescriptions,
+  extraControls,
 }) => {
   const [mode, setMode] = useState<"count" | "dropoff">("count");
   const [selectedStep, setSelectedStep] = useState<{
@@ -642,15 +644,18 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
       <CardHeader className="pb-0 pt-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <div className="flex items-center gap-2">
-            <Switch
-              id="quest-funnel-mode"
-              checked={mode === "dropoff"}
-              onCheckedChange={(checked) => setMode(checked ? "dropoff" : "count")}
-            />
-            <Label htmlFor="quest-funnel-mode" className="cursor-pointer text-xs">
-              Show drop-off
-            </Label>
+          <div className="flex items-center gap-4">
+            {extraControls}
+            <div className="flex items-center gap-2">
+              <Switch
+                id="quest-funnel-mode"
+                checked={mode === "dropoff"}
+                onCheckedChange={(checked) => setMode(checked ? "dropoff" : "count")}
+              />
+              <Label htmlFor="quest-funnel-mode" className="cursor-pointer text-xs">
+                Show drop-off
+              </Label>
+            </div>
           </div>
         </div>
       </CardHeader>

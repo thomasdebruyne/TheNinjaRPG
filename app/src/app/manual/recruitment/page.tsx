@@ -40,6 +40,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AbTestResults from "@/layout/AbTestResults";
 import { QuestFunnelBar } from "@/layout/UsageStatistics";
 import { TUTORIAL_STEPS } from "@/hooks/tutorial";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function ManualRecruitment() {
   const { data: currentUser } = useUserData();
@@ -53,11 +55,13 @@ export default function ManualRecruitment() {
   };
 
   const visitorFilterState = useVisitorFiltering();
+  const [includeTutorialDisabled, setIncludeTutorialDisabled] = React.useState(false);
 
   const { data: mainMetrics, isFetching: isFetchingMain } =
     api.data.getRecruitmentMainMetrics.useQuery(
       {
         ...getVisitorFilter(visitorFilterState),
+        includeTutorialDisabled,
       },
       {
         staleTime: 1000 * 60,
@@ -471,6 +475,21 @@ export default function ManualRecruitment() {
                       ? step.description
                       : step.title,
                   )}
+                  extraControls={
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="include-tutorial-disabled"
+                        checked={includeTutorialDisabled}
+                        onCheckedChange={setIncludeTutorialDisabled}
+                      />
+                      <Label
+                        htmlFor="include-tutorial-disabled"
+                        className="cursor-pointer text-xs"
+                      >
+                        Include disabled
+                      </Label>
+                    </div>
+                  }
                 />
               </div>
             )}

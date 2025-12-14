@@ -182,6 +182,7 @@ export const dataRouter = createTRPCRouter({
         utmSource: z.string().optional(),
         deviceType: z.array(z.enum(["mobile", "desktop", "unknown"])).optional(),
         questFunnels: z.array(z.string()).optional(),
+        includeTutorialDisabled: z.boolean().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -578,7 +579,11 @@ export const dataRouter = createTRPCRouter({
       }
 
       // Extract tutorial steps for each signup with device type and username
-      const tutorialSteps = filteredSignupsRow.map((r) => ({
+      // By default, exclude users who have disabled the tutorial (tutorialOn = false)
+      const tutorialFilteredSignups = input.includeTutorialDisabled
+        ? filteredSignupsRow
+        : filteredSignupsRow.filter((r) => r.tutorialOn !== false);
+      const tutorialSteps = tutorialFilteredSignups.map((r) => ({
         steps: r.tutorialStep ?? 0,
         deviceType: getDeviceType(r.userAgent ?? undefined),
         username: r.username ?? "",
