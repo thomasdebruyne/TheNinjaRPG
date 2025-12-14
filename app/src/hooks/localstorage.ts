@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 /**
- * Safe localStorage utility functions
- * These handle cases where localStorage might be null (e.g., in Android WebView without domStorageEnabled)
- * or in SSR environments where window is not defined.
+ * Safe localStorage and sessionStorage utility functions
+ * These handle cases where storage might be null (e.g., in Android WebView without domStorageEnabled),
+ * in SSR environments where window is not defined, or when browser privacy settings block storage access.
+ * Note: Accessing window.localStorage or window.sessionStorage itself can throw a SecurityError
+ * in some browsers with strict privacy settings, so all property accesses must be inside try-catch.
  */
 
 /**
@@ -54,14 +56,44 @@ export const safeLocalStorageSetItem = (key: string, value: string): boolean => 
  * @returns true if successful, false otherwise
  */
 export const safeLocalStorageRemoveItem = (key: string): boolean => {
+  if (typeof window === "undefined") return false;
   try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.removeItem(key);
-      return true;
-    }
+    window.localStorage.removeItem(key);
+    return true;
+  } catch {
+    // SecurityError or other storage access errors
     return false;
-  } catch (error) {
-    console.warn(`Failed to remove item from localStorage: ${key}`, error);
+  }
+};
+
+/**
+ * Safely gets an item from sessionStorage
+ * @param key - The key to retrieve
+ * @returns The value from sessionStorage, or null if sessionStorage is unavailable or key doesn't exist
+ */
+export const safeSessionStorageGetItem = (key: string): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    // SecurityError or other storage access errors
+    return null;
+  }
+};
+
+/**
+ * Safely sets an item in sessionStorage
+ * @param key - The key to set
+ * @param value - The value to store
+ * @returns true if successful, false otherwise
+ */
+export const safeSessionStorageSetItem = (key: string, value: string): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    window.sessionStorage.setItem(key, value);
+    return true;
+  } catch {
+    // SecurityError or other storage access errors
     return false;
   }
 };

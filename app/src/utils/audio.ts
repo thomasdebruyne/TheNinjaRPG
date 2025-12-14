@@ -2,6 +2,11 @@
  * Audio utility functions for handling browser compatibility and user interactions
  */
 
+import {
+  safeSessionStorageGetItem,
+  safeSessionStorageSetItem,
+} from "@/hooks/localstorage";
+
 /**
  * Detect if the current browser is Safari or iOS
  */
@@ -50,19 +55,15 @@ export const testAutoplaySupport = async (): Promise<boolean> => {
  * Check if user interaction has occurred (needed for audio playback on some browsers)
  */
 export const hasUserInteracted = (): boolean => {
-  if (typeof window === "undefined") return false;
-
-  // Check if we've stored user interaction flag
-  return sessionStorage.getItem("userInteracted") === "true";
+  // Check if we've stored user interaction flag using safe accessor
+  return safeSessionStorageGetItem("userInteracted") === "true";
 };
 
 /**
  * Mark that user interaction has occurred
  */
 export const markUserInteraction = (): void => {
-  if (typeof window === "undefined") return;
-
-  sessionStorage.setItem("userInteracted", "true");
+  safeSessionStorageSetItem("userInteracted", "true");
 };
 
 /**
@@ -129,7 +130,10 @@ export const createAudioContext = (): AudioContext | null => {
   if (typeof window === "undefined") return null;
 
   try {
-    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     return new AudioContextClass();
   } catch (error) {
     console.warn("AudioContext not supported:", error);

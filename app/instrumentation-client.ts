@@ -45,6 +45,8 @@ Sentry.init({
     "Can't find variable: __firefox__", // Firefox error
     "Failed to load chunk", // New deployment
     "Invalid call to runtime.sendMessage()", // Browser extension error, not from our app
+    "zoid destroyed", // PayPal SDK cleanup errors - occur when users navigate away while PayPal buttons are initializing
+    "Cannot set properties of undefined (setting 'iframeReady')", // Usercentrics (uc.js) consent management error - third-party script timing issue
   ],
 
   // Only enable Sentry in production
@@ -71,6 +73,21 @@ declare global {
   }
 }
 
+/**
+ * Check if an error is a PayPal cleanup error that should be suppressed.
+ * These occur when users navigate away while PayPal buttons are initializing.
+ */
+function isPayPalCleanupError(err: unknown): boolean {
+  const errorMessage = err?.toString() ?? "";
+  return (
+    errorMessage.includes("zoid destroyed") ||
+    errorMessage.includes("popup close") ||
+    errorMessage.includes("Window closed") ||
+    errorMessage.includes("Component closed") ||
+    errorMessage.includes("paypal_js_sdk")
+  );
+}
+
 function ensureBrowserErrorHandler() {
   if (typeof window === "undefined") return;
   if (window.__TNR_GLOBAL_REJECTION_HANDLER__) return;
@@ -78,6 +95,12 @@ function ensureBrowserErrorHandler() {
 
   // Capture unhandled promise rejections
   window.addEventListener("unhandledrejection", (event) => {
+    // Skip PayPal cleanup errors - these are expected when users navigate away
+    if (isPayPalCleanupError(event.reason)) {
+      event.preventDefault();
+      return;
+    }
+
     if (event.reason instanceof Error) {
       Sentry.captureException(event.reason);
     } else {
@@ -90,7 +113,9 @@ function ensureBrowserErrorHandler() {
         reasonStr = String(event.reason);
       }
       // Create a completely new Error object without any reference to the original reason
-      Sentry.captureException(new Error(`UnhandledRejection: ${reasonStr}`));
+      if (reasonStr !== "{}") {
+        Sentry.captureException(new Error(`UnhandledRejection: ${reasonStr}`));
+      }
     }
   });
 }

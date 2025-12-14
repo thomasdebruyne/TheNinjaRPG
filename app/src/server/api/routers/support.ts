@@ -233,6 +233,15 @@ export const supportRouter = createTRPCRouter({
             closedAt: updateData.status === "RESOLVED" ? new Date() : ticket.closedAt,
           })
           .where(eq(supportTicket.id, ticketId)),
+        // Sync conversation isPublic flag when ticket isPublic changes
+        ...(updateData.isPublic !== undefined && updateData.isPublic !== ticket.isPublic
+          ? [
+              ctx.drizzle
+                .update(conversation)
+                .set({ isPublic: updateData.isPublic })
+                .where(eq(conversation.id, ticket.conversationId)),
+            ]
+          : []),
         ...(activities.length > 0
           ? activities.map((activity) =>
               createSupportTicketActivity(

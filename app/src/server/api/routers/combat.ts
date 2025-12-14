@@ -351,7 +351,7 @@ export const combatRouter = createTRPCRouter({
   getBattleHistoryEntry: protectedProcedure
     .input(z.object({ battleId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return await ctx.drizzle.query.battleHistory.findFirst({
+      const result = await ctx.drizzle.query.battleHistory.findFirst({
         where: eq(battleHistory.battleId, input.battleId),
         with: {
           attacker: {
@@ -380,6 +380,7 @@ export const combatRouter = createTRPCRouter({
           },
         },
       });
+      return result ?? null;
     }),
   getBattleHistory: protectedProcedure
     .input(
