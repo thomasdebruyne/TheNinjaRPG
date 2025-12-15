@@ -554,18 +554,31 @@ const Map: React.FC<MapProps> = (props) => {
       // Remove the intersection listener
 
       return () => {
-        if (props.intersection) {
-          sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
-        }
-        if (onDblClick) {
-          renderer.domElement.removeEventListener("dblclick", onDblClick, true);
-        }
-        window.removeEventListener("resize", handleResize);
-        cleanUp(scene, renderer);
         cancelAnimationFrame(animationId);
-        if (sceneRef.contains(renderer.domElement)) {
-          sceneRef.removeChild(renderer.domElement);
+
+        // Remove event listeners safely
+        try {
+          if (props.intersection) {
+            sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
+          }
+          if (onDblClick) {
+            renderer.domElement.removeEventListener("dblclick", onDblClick, true);
+          }
+          window.removeEventListener("resize", handleResize);
+        } catch {
+          // Ignore errors if elements are already removed
         }
+
+        // Safely remove renderer DOM element
+        try {
+          if (sceneRef.contains(renderer.domElement)) {
+            sceneRef.removeChild(renderer.domElement);
+          }
+        } catch {
+          // Ignore errors if element is already removed
+        }
+
+        cleanUp(scene, renderer);
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

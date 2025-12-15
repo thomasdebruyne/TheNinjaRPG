@@ -62,7 +62,7 @@ TIMELINE = [
         "duration": 5,
         "text": "FIGHT STRATEGIC BATTLES\nUSING JUTSUS AND WEAPONS",
         "mobile_text": "FIGHT STRATEGIC BATTLES USING JUTSUS\n AND WEAPONS",
-        "clips": ["combat.mp4"],
+        "clips": ["combat.mov"],
         "mobile_clips": ["combat-mobile.mov"],
         "wallpaper": os.path.join(CLIPS_DIR, "wallpaper-glacier-animated.mp4"),
         "narration": os.path.join(CLIPS_DIR, "fight-strategic-battles.mp3"),

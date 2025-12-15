@@ -188,7 +188,6 @@ const CarouselPrevious = ({
   ...props
 }: CarouselButtonProps) => {
   const { scrollPrev, canScrollPrev } = useCarousel();
-  if (!canScrollPrev) return null;
   return (
     <Button
       ref={ref}
@@ -198,6 +197,7 @@ const CarouselPrevious = ({
       className={cn(
         "absolute  h-14 w-14 rounded-full",
         "left-2 top-12 -translate-y-1/2",
+        !canScrollPrev && "hidden",
         className,
       )}
       disabled={!canScrollPrev}
@@ -219,7 +219,6 @@ const CarouselNext = ({
   ...props
 }: CarouselButtonProps) => {
   const { scrollNext, canScrollNext } = useCarousel();
-  if (!canScrollNext) return null;
   return (
     <Button
       ref={ref}
@@ -229,6 +228,7 @@ const CarouselNext = ({
       className={cn(
         "absolute h-14 w-14 rounded-full",
         "right-2 top-12 -translate-y-1/2",
+        !canScrollNext && "hidden",
         className,
       )}
       disabled={!canScrollNext}

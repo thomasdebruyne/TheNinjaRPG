@@ -899,17 +899,30 @@ const Sector: React.FC<SectorProps> = (props) => {
 
       // Remove the mouseover listener
       return () => {
-        if (zoomTimeout) clearTimeout(zoomTimeout);
-        window.removeEventListener("resize", handleResize);
-        document.removeEventListener("keydown", onDocumentKeyDown, false);
-        sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
-        controls.removeEventListener("change", onZoomChange);
-        rendererElement.removeEventListener("click", onClick, true);
-        cleanUp(scene, renderer);
         performanceMonitor.cancelFrame(animationId);
-        if (sceneRef.contains(renderer.domElement)) {
-          sceneRef.removeChild(renderer.domElement);
+        if (zoomTimeout) clearTimeout(zoomTimeout);
+
+        // Remove event listeners safely
+        try {
+          window.removeEventListener("resize", handleResize);
+          document.removeEventListener("keydown", onDocumentKeyDown, false);
+          sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
+          controls.removeEventListener("change", onZoomChange);
+          rendererElement.removeEventListener("click", onClick, true);
+        } catch {
+          // Ignore errors if elements are already removed
         }
+
+        // Safely remove renderer DOM element
+        try {
+          if (sceneRef.contains(renderer.domElement)) {
+            sceneRef.removeChild(renderer.domElement);
+          }
+        } catch {
+          // Ignore errors if element is already removed
+        }
+
+        cleanUp(scene, renderer);
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

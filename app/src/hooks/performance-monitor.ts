@@ -53,14 +53,18 @@ export const usePerformanceMonitor = (unbounded = false) => {
 
     // Cleanup on unmount
     return () => {
-      if (statsRef.current.fps && document.body.contains(statsRef.current.fps.dom)) {
-        document.body.removeChild(statsRef.current.fps.dom);
-      }
-      if (statsRef.current.ms && document.body.contains(statsRef.current.ms.dom)) {
-        document.body.removeChild(statsRef.current.ms.dom);
-      }
-      if (statsRef.current.mb && document.body.contains(statsRef.current.mb.dom)) {
-        document.body.removeChild(statsRef.current.mb.dom);
+      try {
+        if (statsRef.current.fps && document.body.contains(statsRef.current.fps.dom)) {
+          document.body.removeChild(statsRef.current.fps.dom);
+        }
+        if (statsRef.current.ms && document.body.contains(statsRef.current.ms.dom)) {
+          document.body.removeChild(statsRef.current.ms.dom);
+        }
+        if (statsRef.current.mb && document.body.contains(statsRef.current.mb.dom)) {
+          document.body.removeChild(statsRef.current.mb.dom);
+        }
+      } catch {
+        // Ignore errors if elements are already removed
       }
       statsRef.current = { fps: null, ms: null, mb: null };
     };
