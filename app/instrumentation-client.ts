@@ -61,7 +61,7 @@ Sentry.init({
    * @description Captures Replay for 0% of all session, and 100% session with an Error
    */
   replaysSessionSampleRate: 0,
-  replaysOnErrorSampleRate: 1.0,
+  replaysOnErrorSampleRate: 0,
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
