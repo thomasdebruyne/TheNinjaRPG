@@ -32,6 +32,7 @@ Sentry.init({
     "Failed to read a named property 'Element' from 'Window': Blocked a frame with origin \"https://www.theninja-rpg.com\"", // Sentry iframe error?
     "Cannot read properties of undefined (reading 'bind')", // Cookiebot error on resize
     "Cannot read properties of null (reading 'parentNode')", // Cookiebot error in calcFadeState when clicking "More Details"
+    "null is not an object (evaluating 'element.parentNode')", // Cookiebot error in calcFadeState (Safari format)
     "UnrecognizedActionError", // New deployment
     "undefined is not an object (evaluating 'e[a].call')", // Somethign internal never seen by user.
     "Hydration Error", // Based on sentry inspection not seen by user
