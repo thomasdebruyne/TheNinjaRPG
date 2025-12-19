@@ -701,6 +701,7 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
     amount: z.coerce.number().int().positive().max(money),
   });
   const toBankForm = useForm<z.infer<typeof fromPocketSchema>>({
+    defaultValues: { amount: 0 },
     resolver: zodResolver(fromPocketSchema),
   });
 
@@ -1248,8 +1249,8 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
               }
               onAccept={() => clearLeadership({ clanId })}
             >
-              This will remove all co-leaders and assassins from their positions. 
-              They will become regular members. This action cannot be undone.
+              This will remove all co-leaders and assassins from their positions. They
+              will become regular members. This action cannot be undone.
             </Confirm2>
           )}
           {!isLeader && canEditClans(userData.role) && (

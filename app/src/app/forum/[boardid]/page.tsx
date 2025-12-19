@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, use } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -64,6 +64,12 @@ export default function Board(props: { params: Promise<{ boardid: string }> }) {
   });
 
   const form = useForm<ForumBoardSchema>({
+    defaultValues: {
+      board_id: board_id,
+      title: "",
+      content: "",
+      senderId: null,
+    },
     resolver: zodResolver(forumBoardSchema),
   });
 
@@ -110,12 +116,6 @@ export default function Board(props: { params: Promise<{ boardid: string }> }) {
       await refetch();
     },
   });
-
-  useEffect(() => {
-    if (board) {
-      form.setValue("board_id", board.id);
-    }
-  }, [board, form]);
 
   const onSubmit = form.handleSubmit((data) => {
     createThread({

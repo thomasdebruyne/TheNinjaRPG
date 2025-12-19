@@ -164,6 +164,8 @@ const BaseComment: React.FC<BaseCommentProps> = (props) => {
     defaultValues: {
       object_id: props.comment.id,
       comment: props.comment.content,
+      quoteIds: null,
+      senderId: null,
     },
     resolver: zodResolver(mutateCommentSchema),
   });

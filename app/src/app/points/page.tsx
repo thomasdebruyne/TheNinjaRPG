@@ -227,6 +227,7 @@ const ReputationStore = (props: { currency: string }) => {
 
   const userSearchSchema = getSearchValidator({ max: maxUsers });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
+    defaultValues: { username: "", users: [] },
     resolver: zodResolver(userSearchSchema),
   });
 
@@ -693,6 +694,7 @@ const FederalStore = () => {
   const maxUsers = 1;
   const userSearchSchema = getSearchValidator({ max: maxUsers });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
+    defaultValues: { username: "", users: [] },
     resolver: zodResolver(userSearchSchema),
   });
   const watchedUsers = useWatch({
@@ -929,6 +931,7 @@ const LookupTransaction = () => {
 
   // Form
   const searchForm = useForm<SearchPaypalTransactionSchema>({
+    defaultValues: { transactionId: "", transactionDate: new Date() },
     resolver: zodResolver(searchPaypalTransactionSchema),
   });
 

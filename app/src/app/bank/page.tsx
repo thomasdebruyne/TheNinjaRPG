@@ -75,12 +75,15 @@ export default function Bank() {
 
   // Forms
   const toBankForm = useForm<z.infer<typeof fromPocketSchema>>({
+    defaultValues: { amount: 0 },
     resolver: zodResolver(fromPocketSchema),
   });
   const toPocketForm = useForm<z.infer<typeof fromBankSchema>>({
+    defaultValues: { amount: 0 },
     resolver: zodResolver(fromBankSchema),
   });
   const toUserForm = useForm<z.infer<typeof fromBankSchema>>({
+    defaultValues: { amount: 0 },
     resolver: zodResolver(fromBankSchema),
   });
 

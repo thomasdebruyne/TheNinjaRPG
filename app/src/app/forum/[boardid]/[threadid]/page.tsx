@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, use } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parseHtml } from "@/utils/parse";
@@ -24,7 +24,11 @@ export default function Thread(props: { params: Promise<{ threadid: string }> })
   const [page, setPage] = useState(0);
   const thread_id = params.threadid;
 
-  const { data: comments, refetch } = api.comments.getForumComments.useQuery(
+  const {
+    data: comments,
+    isPending: isPendingComments,
+    refetch,
+  } = api.comments.getForumComments.useQuery(
     { thread_id: thread_id, limit: limit, cursor: page },
     {
       enabled: !!thread_id,
@@ -38,19 +42,18 @@ export default function Thread(props: { params: Promise<{ threadid: string }> })
 
   const {
     handleSubmit,
-    setValue,
     reset,
     control,
     formState: { errors },
   } = useForm<MutateCommentSchema>({
+    defaultValues: {
+      comment: "",
+      object_id: thread_id,
+      quoteIds: null,
+      senderId: null,
+    },
     resolver: zodResolver(mutateCommentSchema),
   });
-
-  useEffect(() => {
-    if (thread) {
-      setValue("object_id", thread.id);
-    }
-  }, [thread, setValue]);
 
   const { mutate: createComment, isPending } =
     api.comments.createForumComment.useMutation({
@@ -82,7 +85,7 @@ export default function Thread(props: { params: Promise<{ threadid: string }> })
           {forumText}
         </ContentBox>
       )}
-      {!thread && <NotFoundPage />}
+      {!thread && !isPendingComments && <NotFoundPage />}
       {thread && (
         <ContentBox
           title="Forum"

@@ -284,6 +284,12 @@ const Conversation: React.FC<ConversationProps> = (props) => {
     control,
     formState: { errors },
   } = useForm<MutateCommentSchema>({
+    defaultValues: {
+      object_id: props.convo_id ?? "",
+      comment: "",
+      quoteIds: null,
+      senderId: null,
+    },
     resolver: zodResolver(mutateCommentSchema),
   });
 
