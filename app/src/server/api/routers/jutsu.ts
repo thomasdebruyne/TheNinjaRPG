@@ -680,7 +680,8 @@ export const jutsuRouter = createTRPCRouter({
             jutsuId: input.jutsuId,
             finishTraining: new Date(Date.now() + trainTime),
             equipped:
-              curEquip < maxEquip && residualJutsus.length <= JUTSU_MAX_RESIDUAL_EQUIPPED
+              curEquip < maxEquip &&
+              residualJutsus.length <= JUTSU_MAX_RESIDUAL_EQUIPPED
                 ? true
                 : false,
           })

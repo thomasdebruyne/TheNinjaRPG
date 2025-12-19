@@ -6,12 +6,12 @@ import AvatarImage from "@/layout/Avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { api } from "@/app/_trpc/client";
-import { useRequiredUserData } from "@/utils/UserContext";
 import { showMutationToast } from "@/libs/toast";
 import { calcChakraToPools } from "@/libs/hospital";
 import { calcCurrent } from "@/layout/StatusBar";
 import { IMG_ICON_HEAL } from "@/drizzle/constants";
 import type { SectorUser } from "@/libs/threejs/types";
+import type { UserWithRelations } from "@/routers/profile";
 
 /**
  * A reusable healing popover component that allows medical ninja to heal other users.
@@ -21,6 +21,9 @@ import type { SectorUser } from "@/libs/threejs/types";
  * // Controlled mode (external state)
  * <HealingPopover
  *   targetUser={user}
+ *   userData={userData}
+ *   timeDiff={timeDiff}
+ *   updateUser={updateUser}
  *   open={isOpen}
  *   onOpenChange={setIsOpen}
  *   side="top"
@@ -30,20 +33,23 @@ import type { SectorUser } from "@/libs/threejs/types";
  * // Uncontrolled mode (internal state with trigger)
  * <HealingPopover
  *   targetUser={user}
+ *   userData={userData}
+ *   timeDiff={timeDiff}
+ *   updateUser={updateUser}
  *   side="top"
  *   onHealComplete={() => console.log('Healing completed!')}
- * />
- *
- * // With custom trigger
- * <HealingPopover
- *   targetUser={user}
- *   trigger={<Button>Heal User</Button>}
  * />
  * ```
  */
 interface HealingPopoverProps {
   /** The user to be healed */
   targetUser: SectorUser;
+  /** The current user's data */
+  userData: NonNullable<UserWithRelations>;
+  /** Time difference for regeneration calculations */
+  timeDiff: number;
+  /** Function to update the user's data */
+  updateUser: (data: Partial<NonNullable<UserWithRelations>>) => Promise<void>;
   /** Custom trigger element. If not provided, uses default heal icon */
   trigger?: React.ReactNode;
   /** Side where the popover should appear relative to the trigger */
@@ -60,6 +66,9 @@ interface HealingPopoverProps {
 
 const HealingPopover: React.FC<HealingPopoverProps> = ({
   targetUser,
+  userData,
+  timeDiff,
+  updateUser,
   trigger,
   side = "top",
   className = "",
@@ -68,13 +77,12 @@ const HealingPopover: React.FC<HealingPopoverProps> = ({
   onOpenChange,
 }) => {
   const utils = api.useUtils();
-  const { data: userData, timeDiff, updateUser } = useRequiredUserData();
 
   // Mutations
   const { mutate: userHeal, isPending: isHealing } = api.hospital.userHeal.useMutation({
     onSuccess: async (data) => {
       showMutationToast(data);
-      if (data.success && userData) {
+      if (data.success) {
         await Promise.all([
           updateUser({
             curChakra: userData.curChakra - (data.chakraCost || 0),
@@ -86,8 +94,6 @@ const HealingPopover: React.FC<HealingPopoverProps> = ({
       }
     },
   });
-
-  if (!userData) return null;
 
   // Helper function to calculate healing capacity
   const calcHealCapacity = (user: SectorUser) => {

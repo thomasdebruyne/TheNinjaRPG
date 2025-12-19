@@ -125,7 +125,7 @@ const Sector: React.FC<SectorProps> = (props) => {
   const utils = api.useUtils();
 
   // Data from db
-  const { data: userData, pusher, updateUser } = useRequiredUserData();
+  const { data: userData, pusher, timeDiff, updateUser } = useRequiredUserData();
   const { data } = api.travel.getSectorData.useQuery(
     { sector: sector },
     { enabled: sector !== undefined },
@@ -960,7 +960,9 @@ const Sector: React.FC<SectorProps> = (props) => {
         <SorroundingUsers
           setIsOpen={props.setShowSorrounding}
           users={sorrounding}
-          userId={userData.userId}
+          userData={userData}
+          timeDiff={timeDiff}
+          updateUser={updateUser}
           hex={origin.current}
           allyAttack={allyAttack}
           setAllyAttack={setAllyAttack}
@@ -1028,6 +1030,9 @@ const Sector: React.FC<SectorProps> = (props) => {
         <div className="pointer-events-auto absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <HealingPopover
             targetUser={healTargetUser}
+            userData={userData}
+            timeDiff={timeDiff}
+            updateUser={updateUser}
             side="top"
             open={!!healTargetUser}
             onOpenChange={(open) => {
@@ -1048,7 +1053,9 @@ export default Sector;
 
 interface SorroundingUsersProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  userId: string;
+  userData: NonNullable<UserWithRelations>;
+  timeDiff: number;
+  updateUser: (data: Partial<NonNullable<UserWithRelations>>) => Promise<void>;
   hex: TerrainHex;
   users: SectorUser[];
   allyAttack: boolean;
@@ -1061,9 +1068,8 @@ interface SorroundingUsersProps {
 }
 
 const SorroundingUsers: React.FC<SorroundingUsersProps> = (props) => {
-  // Min level to show
-  const { data: userData } = useRequiredUserData();
-  const { storedLvl, setStoredLvl } = props;
+  // Destructure props
+  const { userData, timeDiff, updateUser, storedLvl, setStoredLvl } = props;
 
   // Query
   const { data } = api.village.getAll.useQuery(undefined);
@@ -1088,7 +1094,7 @@ const SorroundingUsers: React.FC<SorroundingUsersProps> = (props) => {
 
   // Filter users
   const users = props.users
-    .filter((user) => user.userId !== props.userId)
+    .filter((user) => user.userId !== userData.userId)
     .filter((user) => user.status === "AWAKE")
     .filter((user) => user.level >= watchedLevel);
 
@@ -1097,8 +1103,6 @@ const SorroundingUsers: React.FC<SorroundingUsersProps> = (props) => {
     setStoredLvl(watchedLevel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedLevel]);
-
-  if (!userData) return null;
 
   return (
     <Modal2
@@ -1168,7 +1172,13 @@ const SorroundingUsers: React.FC<SorroundingUsersProps> = (props) => {
                 <div className="absolute left-0 bottom-0 z-50 hover:opacity-80  hover:cursor-pointer max-w-1/3">
                   {user.curHealth < user.maxHealth &&
                     hasRequiredRank(userData.rank, MEDNIN_MIN_RANK) && (
-                      <HealingPopover targetUser={user} side="top" />
+                      <HealingPopover
+                        targetUser={user}
+                        userData={userData}
+                        timeDiff={timeDiff}
+                        updateUser={updateUser}
+                        side="top"
+                      />
                     )}
                 </div>
                 <AvatarImage
