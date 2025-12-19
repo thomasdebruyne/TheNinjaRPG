@@ -49,6 +49,14 @@ const pendingLoads = new Map<string, Promise<Texture>>();
  * Load texture from file
  */
 export const loadTexture = (path: string) => {
+  // Guard against empty or invalid paths - callers should provide fallback URLs
+  if (!path || path.trim() === "") {
+    // Return a new empty texture to prevent crashes, but this shouldn't happen
+    const fallback = new Texture();
+    fallback.colorSpace = SRGBColorSpace;
+    return fallback;
+  }
+
   const transformedPath = transformImageUrl(path);
 
   // Return cached texture if available

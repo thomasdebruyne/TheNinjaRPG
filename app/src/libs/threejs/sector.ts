@@ -115,7 +115,9 @@ export const drawQuest = (info: {
         Object.assign(alphaSprite.position, new Vector3(w / 2, h * 1.0, USER_LAYER));
         mesh.add(alphaSprite);
         // Image Sprite
-        const map = loadTexture(objective.image ? `${objective.image}?1=1` : "");
+        const map = loadTexture(
+          objective.image ? `${objective.image}?1=1` : IMG_AVATAR_DEFAULT,
+        );
         map.generateMipmaps = false;
         map.minFilter = LinearFilter;
         const material = new SpriteMaterial({ map: map, alphaMap: alphaMap });
@@ -482,7 +484,9 @@ export const createCombatSprite = (
 
   // User 1: Avatar Sprite
   const alphaMap1 = loadTexture(IMG_SECTOR_USERSPRITE_LEFT);
-  const map1 = loadTexture(firstUser.avatar ? `${firstUser.avatar}?1=1` : "");
+  const map1 = loadTexture(
+    firstUser.avatar ? `${firstUser.avatar}?1=1` : IMG_AVATAR_DEFAULT,
+  );
   map1.generateMipmaps = false;
   map1.minFilter = LinearFilter;
   const material1 = new SpriteMaterial({ map: map1, alphaMap: alphaMap1 });
@@ -493,7 +497,9 @@ export const createCombatSprite = (
 
   // User 2: Avatar Sprite
   const alphaMap2 = loadTexture(IMG_SECTOR_USERSPRITE_RIGHT);
-  const map2 = loadTexture(secondUser.avatar ? `${secondUser.avatar}?1=1` : "");
+  const map2 = loadTexture(
+    secondUser.avatar ? `${secondUser.avatar}?1=1` : IMG_AVATAR_DEFAULT,
+  );
   map2.generateMipmaps = false;
   map2.minFilter = LinearFilter;
   const material2 = new SpriteMaterial({ map: map2, alphaMap: alphaMap2 });

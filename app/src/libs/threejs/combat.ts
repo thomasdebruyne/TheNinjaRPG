@@ -47,6 +47,7 @@ import {
   IMG_SECTOR_SHADOW,
   IMG_BATTLEFIELD_TOMBSTONE,
   IMG_BATTLEFIELD_STAR,
+  IMG_AVATAR_DEFAULT,
   HEX_STACKING_DISPLACEMENT,
 } from "@/drizzle/constants";
 import {
@@ -701,7 +702,9 @@ export const createUserSprite = (
   // User marker background or raw image
   const noMarker = userData.isAi && userData.isOriginal;
   if (noMarker) {
-    const map = loadTexture(userData.avatar ? `${userData.avatar}?1=1` : "");
+    const map = loadTexture(
+      userData.avatar ? `${userData.avatar}?1=1` : IMG_AVATAR_DEFAULT,
+    );
     map.generateMipmaps = false;
     map.minFilter = LinearFilter;
     if (userData.direction === "right") {
@@ -752,7 +755,9 @@ export const createUserSprite = (
 
     // Avatar Sprite
     const alphaMap = loadTexture(IMG_SECTOR_USER_SPRITE_MASK);
-    const map = loadTexture(userData.avatar ? `${userData.avatar}?1=1` : "");
+    const map = loadTexture(
+      userData.avatar ? `${userData.avatar}?1=1` : IMG_AVATAR_DEFAULT,
+    );
     map.generateMipmaps = false;
     map.minFilter = LinearFilter;
     const material = createSpriteMaterial(map, alphaMap);
