@@ -709,7 +709,7 @@ export const questsRouter = createTRPCRouter({
           "pvp",
         ].includes(current.questType)
       ) {
-        throw serverError("PRECONDITION_FAILED", `Cannot abandon ${current.questType}`);
+        return errorResponse(`Cannot abandon ${current.questType} quest type.`);
       }
       // Derived
       const questData = user.questData?.filter((q) => q.id !== input.id);
@@ -1464,16 +1464,19 @@ export const updateRewards = async (info: {
           .set({ points: sql`${anbuSquad.points} + ${rewards.reward_anbupoints}` })
           .where(eq(anbuSquad.id, user.anbuId))
       : undefined,
-    // Insert items & jutsus
+    // Insert items & jutsus - use onDuplicateKeyUpdate to handle race conditions
     ...[
       jutsus.length > 0 &&
-        client.insert(userJutsu).values(
-          jutsus.map(({ id }) => ({
-            id: nanoid(),
-            userId: user.userId,
-            jutsuId: id,
-          })),
-        ),
+        client
+          .insert(userJutsu)
+          .values(
+            jutsus.map(({ id }) => ({
+              id: nanoid(),
+              userId: user.userId,
+              jutsuId: id,
+            })),
+          )
+          .onDuplicateKeyUpdate({ set: { id: sql`id` } }),
     ],
     // Insert bloodlines as bloodlineRolls
     ...[

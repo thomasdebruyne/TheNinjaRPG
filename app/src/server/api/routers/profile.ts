@@ -635,7 +635,7 @@ export const profileRouter = createTRPCRouter({
           user.speed >= gens_cap &&
           user.intelligence >= gens_cap &&
           user.willpower >= gens_cap;
-        
+
         if (!allStatsCapped) {
           notifications.push({
             id: "tutorial-unassigned-stats",
@@ -1290,19 +1290,29 @@ export const profileRouter = createTRPCRouter({
     )
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
-      const attributes = await fetchAttributes(ctx.drizzle, ctx.userId);
-      if (attributes.length >= MAX_ATTRIBUTES) {
-        return { success: false, message: `Only ${MAX_ATTRIBUTES} attributes allowed` };
-      }
+      // Query
+      const existingAttributes = await fetchAttributes(ctx.drizzle, ctx.userId);
+      // Construct the attribute name
       const name =
         ["Hair", "Skin", "Eyes"].includes(input.attribute) && input.color
           ? `${input.color} ${input.attribute}`
           : input.attribute;
-      const result = await ctx.drizzle.insert(userAttribute).values({
-        id: nanoid(),
-        userId: ctx.userId,
-        attribute: name,
-      });
+      // Guards
+      if (existingAttributes.length >= MAX_ATTRIBUTES) {
+        return errorResponse(`Only ${MAX_ATTRIBUTES} attributes allowed`);
+      }
+      if (existingAttributes.some((attr) => attr.attribute === name)) {
+        return errorResponse(`You already have the attribute "${name}"`);
+      }
+      // Mutate - use onDuplicateKeyUpdate to handle race conditions
+      const result = await ctx.drizzle
+        .insert(userAttribute)
+        .values({
+          id: nanoid(),
+          userId: ctx.userId,
+          attribute: name,
+        })
+        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
       if (result.rowsAffected === 0) {
         return { success: false, message: "Failed to insert attribute" };
       } else {
@@ -1874,17 +1884,21 @@ export const updateUserContent = async (props: {
               ),
           ]
         : []),
+      // Use onDuplicateKeyUpdate to handle race conditions
       ...(insertedJ.length > 0
         ? [
-            client.insert(userJutsu).values(
-              insertedJ.map((jutsuId) => ({
-                id: nanoid(),
-                userId: userId,
-                jutsuId: jutsuId,
-                level: 1,
-                equipped: true,
-              })),
-            ),
+            client
+              .insert(userJutsu)
+              .values(
+                insertedJ.map((jutsuId) => ({
+                  id: nanoid(),
+                  userId: userId,
+                  jutsuId: jutsuId,
+                  level: 1,
+                  equipped: true,
+                })),
+              )
+              .onDuplicateKeyUpdate({ set: { id: sql`id` } }),
           ]
         : []),
       ...(insertedI.length > 0

@@ -143,13 +143,16 @@ export const registerRouter = createTRPCRouter({
             previousAttempts: 1,
           })
           .onDuplicateKeyUpdate({ set: { id: sql`id` } }),
-        ctx.drizzle.insert(userAttribute).values(
-          unique_attributes.map((attribute) => ({
-            id: nanoid(),
-            attribute: attribute,
-            userId: ctx.userId,
-          })),
-        ),
+        ctx.drizzle
+          .insert(userAttribute)
+          .values(
+            unique_attributes.map((attribute) => ({
+              id: nanoid(),
+              attribute: attribute,
+              userId: ctx.userId,
+            })),
+          )
+          .onDuplicateKeyUpdate({ set: { id: sql`id` } }),
         ctx.drizzle.insert(userData).values({
           userId: ctx.userId,
           lastIp: ctx.userIp,

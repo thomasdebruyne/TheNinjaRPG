@@ -671,16 +671,20 @@ export const jutsuRouter = createTRPCRouter({
             and(eq(userJutsu.id, userjutsuObj.id), eq(userJutsu.userId, ctx.userId)),
           );
       } else {
-        await ctx.drizzle.insert(userJutsu).values({
-          id: nanoid(),
-          userId: ctx.userId,
-          jutsuId: input.jutsuId,
-          finishTraining: new Date(Date.now() + trainTime),
-          equipped:
-            curEquip < maxEquip && residualJutsus.length <= JUTSU_MAX_RESIDUAL_EQUIPPED
-              ? true
-              : false,
-        });
+        // Use onDuplicateKeyUpdate to handle race conditions
+        await ctx.drizzle
+          .insert(userJutsu)
+          .values({
+            id: nanoid(),
+            userId: ctx.userId,
+            jutsuId: input.jutsuId,
+            finishTraining: new Date(Date.now() + trainTime),
+            equipped:
+              curEquip < maxEquip && residualJutsus.length <= JUTSU_MAX_RESIDUAL_EQUIPPED
+                ? true
+                : false,
+          })
+          .onDuplicateKeyUpdate({ set: { id: sql`id` } });
       }
 
       return {
