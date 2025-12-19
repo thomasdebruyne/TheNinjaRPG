@@ -8,7 +8,7 @@ import { DateTimeRegExp } from "@/utils/regex";
 import { StatTypes, GeneralTypes, PoolTypes } from "@/drizzle/constants";
 import { SkillTreeTargets, SkillTreeEntryTypes } from "@/drizzle/constants";
 import { AdjustableBasicActions } from "@/drizzle/constants";
-import { getUserCaps } from "@/libs/profile";
+import { getUserCaps } from "@/drizzle/constants";
 import { rewardFields } from "@/validators/objectives";
 import type { StatType, GeneralType, PoolType, ElementName } from "@/drizzle/constants";
 import type { publicState } from "@/libs/combat/constants";

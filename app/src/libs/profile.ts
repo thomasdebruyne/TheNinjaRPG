@@ -6,8 +6,8 @@ import type {
   GameSetting,
   Clan,
 } from "@/drizzle/schema";
-import { USER_CAPS, HP_PER_LVL, SP_PER_LVL, CP_PER_LVL } from "@/drizzle/constants";
-import { MAX_STATS_CAP, MAX_GENS_CAP, CLAN_MAX_REGEN_BOOST } from "@/drizzle/constants";
+import { HP_PER_LVL, SP_PER_LVL, CP_PER_LVL } from "@/drizzle/constants";
+import { CLAN_MAX_REGEN_BOOST, getUserCaps } from "@/drizzle/constants";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import { getStrucBoost } from "@/utils/village";
 import { getReducedGainsDays } from "@/libs/train";
@@ -15,22 +15,6 @@ import { getGameSettingBoost } from "@/libs/gamesettings";
 import { HomeTypeDetails } from "@/drizzle/constants";
 import type { UserRank } from "@/drizzle/constants";
 import type { StatSchemaType } from "./combat/types";
-
-/**
- * Safely get user caps based on rank, with fallback to max caps
- * @param rank - the user's rank
- * @returns caps object with stats_cap, gens_cap, and lvl_cap
- */
-export function getUserCaps(rank?: UserRank | null) {
-  const caps = rank ? USER_CAPS[rank] : undefined;
-  if (!caps)
-    return {
-      stats_cap: MAX_STATS_CAP,
-      gens_cap: MAX_GENS_CAP,
-      lvl_cap: 100,
-    };
-  return { stats_cap: caps.STATS_CAP, gens_cap: caps.GENS_CAP, lvl_cap: caps.LVL_CAP };
-}
 
 /**
  * Calculate the experience requirements for a given level

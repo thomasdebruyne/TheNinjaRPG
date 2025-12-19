@@ -98,7 +98,7 @@ import { calcActiveUserRegen } from "@/libs/profile";
 import { getServerPusher } from "@/libs/pusher";
 import { getShrineBoost } from "@/utils/village";
 import { RYO_CAP, MAX_EXTRA_RESKIN_SLOTS } from "@/drizzle/constants";
-import { getUserCaps } from "@/libs/profile";
+import { getUserCaps } from "@/drizzle/constants";
 import { getReducedGainsDays } from "@/libs/train";
 import { calculateContentDiff } from "@/utils/diff";
 import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";

@@ -2069,3 +2069,19 @@ export const MATERIALS_BASE_SLOTS = 25;
 export const FED_MATERIALS_NORMAL_SLOTS = 5;
 export const FED_MATERIALS_SILVER_SLOTS = 10;
 export const FED_MATERIALS_GOLD_SLOTS = 15;
+
+/**
+ * Safely get user caps based on rank, with fallback to max caps
+ * @param rank - the user's rank
+ * @returns caps object with stats_cap, gens_cap, and lvl_cap
+ */
+export function getUserCaps(rank?: UserRank | null) {
+  const caps = rank ? USER_CAPS[rank] : undefined;
+  if (!caps)
+    return {
+      stats_cap: MAX_STATS_CAP,
+      gens_cap: MAX_GENS_CAP,
+      lvl_cap: 100,
+    };
+  return { stats_cap: caps.STATS_CAP, gens_cap: caps.GENS_CAP, lvl_cap: caps.LVL_CAP };
+}

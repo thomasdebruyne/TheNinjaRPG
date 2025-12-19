@@ -66,7 +66,7 @@ import {
   IMG_TRAIN_NIN_OFF,
   IMG_TRAIN_NIN_DEF,
 } from "@/drizzle/constants";
-import { getUserCaps } from "@/libs/profile";
+import { getUserCaps } from "@/drizzle/constants";
 import { cn } from "src/libs/shadui";
 import { availableRanks } from "@/libs/train";
 import { captchaVerifySchema } from "@/validators/misc";
