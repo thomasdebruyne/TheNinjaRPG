@@ -7,8 +7,8 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-import { effectFilters } from "@/libs/train";
-import type { EffectType } from "@/libs/train";
+import { effectFilters } from "@/libs/combat/types";
+import type { EffectType } from "@/libs/combat/types";
 
 /**
  * STATE HOOK

@@ -14,7 +14,8 @@ import {
   AttackTargets,
   JutsuTypes,
 } from "@/drizzle/constants";
-import { statFilters, effectFilters, rarities } from "@/libs/train";
+import { statFilters, rarities } from "@/libs/train";
+import { effectFilters } from "@/libs/combat/types";
 
 // Single-source schema
 const makeJutsuFilteringSchema = () =>

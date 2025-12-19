@@ -14,7 +14,7 @@ import {
   AttackTargets,
   AttackMethods,
 } from "@/drizzle/constants";
-import { effectFilters } from "@/libs/train";
+import { effectFilters } from "@/libs/combat/types";
 
 // Inline schema (single source of truth)
 const itemFilteringSchema = defineFilteringSchema({

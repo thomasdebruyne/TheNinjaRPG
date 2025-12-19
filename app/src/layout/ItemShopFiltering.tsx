@@ -6,7 +6,7 @@ import {
   toOptions,
 } from "@/layout/ContentFiltering";
 import { ItemRarities, ItemSlotTypes, ItemTypes } from "@/drizzle/constants";
-import { effectFilters } from "@/libs/train";
+import { effectFilters } from "@/libs/combat/types";
 import type { ItemType } from "@/drizzle/schema";
 
 interface ItemShopFilteringProps {

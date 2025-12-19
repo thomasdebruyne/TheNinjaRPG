@@ -98,7 +98,7 @@ import { calcActiveUserRegen } from "@/libs/profile";
 import { getServerPusher } from "@/libs/pusher";
 import { getShrineBoost } from "@/utils/village";
 import { RYO_CAP, MAX_EXTRA_RESKIN_SLOTS } from "@/drizzle/constants";
-import { USER_CAPS } from "@/drizzle/constants";
+import { getUserCaps } from "@/libs/profile";
 import { getReducedGainsDays } from "@/libs/train";
 import { calculateContentDiff } from "@/utils/diff";
 import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
@@ -305,8 +305,8 @@ export const profileRouter = createTRPCRouter({
     // Guard
     if (!user) return errorResponse("User not found");
     const expRequired = calcLevelRequirements(user.level) - user.experience;
-    const lvlCap = USER_CAPS[user.rank].LVL_CAP;
-    if (user.level >= lvlCap) return errorResponse("User at max level for this rank!");
+    const { lvl_cap } = getUserCaps(user.rank);
+    if (user.level >= lvl_cap) return errorResponse("User at max level for this rank!");
     if (expRequired > 0) return errorResponse("No enough experience for level");
     if (user.village?.name === "Horizon" && user.level > 9) {
       return errorResponse(
@@ -620,8 +620,7 @@ export const profileRouter = createTRPCRouter({
       }
       // Unused experience points - only show if not all stats are capped
       if (user.earnedExperience > 0) {
-        const stats_cap = USER_CAPS[user.rank].STATS_CAP;
-        const gens_cap = USER_CAPS[user.rank].GENS_CAP;
+        const { stats_cap, gens_cap } = getUserCaps(user.rank);
         const allStatsCapped =
           user.ninjutsuOffence >= stats_cap &&
           user.ninjutsuDefence >= stats_cap &&

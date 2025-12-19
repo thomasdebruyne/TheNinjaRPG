@@ -66,7 +66,7 @@ import {
   IMG_TRAIN_NIN_OFF,
   IMG_TRAIN_NIN_DEF,
 } from "@/drizzle/constants";
-import { USER_CAPS } from "@/drizzle/constants";
+import { getUserCaps } from "@/libs/profile";
 import { cn } from "src/libs/shadui";
 import { availableRanks } from "@/libs/train";
 import { captchaVerifySchema } from "@/validators/misc";
@@ -467,10 +467,9 @@ const StatsTraining: React.FC<TrainingProps> = (props) => {
         {UserStatNames.map((stat, i) => {
           const part = stat.match(/[a-z]+/g)?.[0] ?? "";
           const label = part.charAt(0).toUpperCase() + part.slice(1);
+          const { stats_cap, gens_cap } = getUserCaps(userData.rank);
           const cap =
-            stat.includes("Offence") || stat.includes("Defence")
-              ? USER_CAPS[userData.rank].STATS_CAP
-              : USER_CAPS[userData.rank].GENS_CAP;
+            stat.includes("Offence") || stat.includes("Defence") ? stats_cap : gens_cap;
           const overCap = userData[stat] >= cap;
           const icon = stat.includes("Offence") ? (
             <Swords className={iconClassName} />

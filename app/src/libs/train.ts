@@ -1,4 +1,3 @@
-import { tagTypes } from "./combat/types";
 import { getUserFederalStatus } from "@/utils/paypal";
 import { ElementNames, LetterRanks } from "@/drizzle/constants";
 import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
@@ -207,10 +206,10 @@ export const calcJutsuTrainTime = (jutsu: Jutsu, level: number, userdata: UserDa
     lvlIncrement = 11;
   }
   const trainTime = (1 + level * lvlIncrement) * 60 * 1000;
-  
+
   // Cap training time at maximum allowed time (1 hour)
   const cappedTrainTime = Math.min(trainTime, MAX_JUTSU_TRAIN_TIME_MS);
-  
+
   if (userdata.senseiId && userdata.rank === "GENIN") {
     return cappedTrainTime * (1 - SENSEI_JUTSU_TRAINING_BOOST_PERC / 100);
   }
@@ -304,11 +303,9 @@ export const statFilters = [
   "Willpower",
   "Speed",
 ] as const;
-export const effectFilters = tagTypes;
 export const rarities = ["ALL", ...LetterRanks] as const;
 export type FilterType = (typeof mainFilters)[number];
 export type StatGenType = (typeof statFilters)[number];
-export type EffectType = (typeof effectFilters)[number];
 export type RarityType = (typeof rarities)[number];
 
 /**

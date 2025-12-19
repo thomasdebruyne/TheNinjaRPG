@@ -6,7 +6,7 @@ import {
   buildFilter,
   defineFilteringSchema,
 } from "@/layout/ContentFiltering";
-import { effectFilters } from "@/libs/train";
+import { effectFilters } from "@/libs/combat/types";
 
 interface SkillTreeFilteringProps {
   state: SkillTreeFilteringState;

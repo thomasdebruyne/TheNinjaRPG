@@ -65,6 +65,16 @@ install: # Install application dependencies with bun locally
 	@echo "${GREEN}install${RESET}"
 	bun install --cwd ./app --save-text-lockfile
 
+.PHONY: clean
+clean: # Clean all local application installation folders
+	@echo "${YELLOW}Cleaning local installation folders${RESET}"
+	rm -rf ./app/node_modules
+	rm -rf ./app/.next
+	rm -rf ./app/.turbo
+
+.PHONY: reset
+reset: clean install # Clean and reinstall all dependencies
+
 .PHONY: bun
 bun: install ## Execute bun command in local development.
 	@echo "${GREEN}bun${RESET}"

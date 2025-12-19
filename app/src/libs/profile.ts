@@ -7,7 +7,7 @@ import type {
   Clan,
 } from "@/drizzle/schema";
 import { USER_CAPS, HP_PER_LVL, SP_PER_LVL, CP_PER_LVL } from "@/drizzle/constants";
-import { CLAN_MAX_REGEN_BOOST } from "@/drizzle/constants";
+import { MAX_STATS_CAP, MAX_GENS_CAP, CLAN_MAX_REGEN_BOOST } from "@/drizzle/constants";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import { getStrucBoost } from "@/utils/village";
 import { getReducedGainsDays } from "@/libs/train";
@@ -16,6 +16,27 @@ import { HomeTypeDetails } from "@/drizzle/constants";
 import type { UserRank } from "@/drizzle/constants";
 import type { StatSchemaType } from "./combat/types";
 
+/**
+ * Safely get user caps based on rank, with fallback to max caps
+ * @param rank - the user's rank
+ * @returns caps object with stats_cap, gens_cap, and lvl_cap
+ */
+export function getUserCaps(rank?: UserRank | null) {
+  const caps = rank ? USER_CAPS[rank] : undefined;
+  if (!caps)
+    return {
+      stats_cap: MAX_STATS_CAP,
+      gens_cap: MAX_GENS_CAP,
+      lvl_cap: 100,
+    };
+  return { stats_cap: caps.STATS_CAP, gens_cap: caps.GENS_CAP, lvl_cap: caps.LVL_CAP };
+}
+
+/**
+ * Calculate the experience requirements for a given level
+ * @param level - the level to calculate the requirements for
+ * @returns the experience requirements for the given level
+ */
 export function calcLevelRequirements(level: number): number {
   const prevLvl = level - 1;
   const factor = level > 80 ? 950 : 500;
@@ -24,6 +45,11 @@ export function calcLevelRequirements(level: number): number {
   return cost + prevCost;
 }
 
+/**
+ * Calculate the level for a given experience
+ * @param experience - the experience to calculate the level for
+ * @returns the level for the given experience
+ */
 export const calcLevel = (experience: number) => {
   let level = 1;
   let exp = 0;
@@ -70,8 +96,7 @@ type StatDistribution = {
  * @returns void
  */
 export function capUserStats(user: UserData) {
-  const stats_cap = USER_CAPS[user.rank].STATS_CAP;
-  const gens_cap = USER_CAPS[user.rank].GENS_CAP;
+  const { stats_cap, gens_cap } = getUserCaps(user.rank);
   if (user.ninjutsuOffence > stats_cap) user.ninjutsuOffence = stats_cap;
   if (user.genjutsuOffence > stats_cap) user.genjutsuOffence = stats_cap;
   if (user.taijutsuOffence > stats_cap) user.taijutsuOffence = stats_cap;
@@ -93,8 +118,7 @@ export function capUserStats(user: UserData) {
  * @returns
  */
 export function getSoftCappedExperience(user: UserData) {
-  const stats_cap = USER_CAPS[user.rank].STATS_CAP;
-  const gens_cap = USER_CAPS[user.rank].GENS_CAP;
+  const { stats_cap, gens_cap } = getUserCaps(user.rank);
   return 5 * stats_cap + 4 * gens_cap;
 }
 
@@ -162,7 +186,12 @@ export function manuallyAssignUserStats(user: UserData, stats: StatSchemaType) {
 }
 
 export const activityStreakRewards = (streak: number) => {
-  const rewards = { money: streak * 100, reputationPoints: 0, jobExperience: 0, reskinSlot: 0 };
+  const rewards = {
+    money: streak * 100,
+    reputationPoints: 0,
+    jobExperience: 0,
+    reskinSlot: 0,
+  };
   if (streak % 10 === 0) {
     rewards.reputationPoints = Math.floor(streak / 10);
   }
