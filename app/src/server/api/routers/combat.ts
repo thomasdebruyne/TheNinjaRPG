@@ -2056,7 +2056,7 @@ export const processUsersForBattle = async (
       }
     }
 
-    // Hide ANBU members attacker
+    // Hide ANBU members who are being attacked (defenders)
     if (
       user.anbuId &&
       user.anbuSquad &&
@@ -2066,8 +2066,6 @@ export const processUsersForBattle = async (
       user.username = "ANBU Member";
       user.avatar = user.anbuSquad.image;
       user.avatarLight = user.anbuSquad.image;
-      user.longitude = 0;
-      user.latitude = 0;
     }
 
     // By default the ones inserted initially are original
