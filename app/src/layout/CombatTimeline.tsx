@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Users,
+  User,
+  UserX,
+  type LucideIcon,
+} from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,11 +21,14 @@ import {
 import ContentImage from "@/layout/ContentImage";
 import ItemWithEffects, { type GenericObject } from "@/layout/ItemWithEffects";
 import Loader from "@/layout/Loader";
+import { useLocalStorage } from "@/hooks/localstorage";
 import { parseHtml } from "@/utils/parse";
 import { availableUserActions } from "@/libs/combat/actions";
 import type { ActionEffect, ReturnedBattle } from "@/libs/combat/types";
 import { cn } from "src/libs/shadui";
 import type { BattleAction } from "@/drizzle/schema";
+
+type UserFilter = "all" | "user" | "opponents";
 
 type CombatTimelineProps = {
   battleId: string;
@@ -46,58 +57,77 @@ const placeholderObj: GenericObject = {
   updatedAt: new Date(),
 };
 
+const filterOptions: { value: UserFilter; icon: LucideIcon; label: string }[] = [
+  { value: "all", icon: Users, label: "All" },
+  { value: "user", icon: User, label: "You" },
+  { value: "opponents", icon: UserX, label: "Opponents" },
+];
+
 const CombatTimeline: React.FC<CombatTimelineProps> = ({
   battleId,
   battle,
   battleVersion,
-  pageSize = 6,
+  pageSize = 5,
   showBasicActions = true,
 }) => {
-  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<BattleAction | null>(null);
+  const [limit, setLimit] = useState(pageSize);
+  const [userFilter, setUserFilter] = useLocalStorage<UserFilter>(
+    "timeline-user-filter",
+    "all",
+  );
+  const [filterExpanded, setFilterExpanded] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(0);
+
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterExpanded(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Reset limit when battle version or filter changes
+  useEffect(() => setLimit(pageSize), [battleVersion, pageSize, userFilter]);
 
   const { data: entries, isFetching } = api.combat.getBattleEntries.useQuery(
-    {
-      battleId,
-      limit: pageSize,
-      offset: page * pageSize,
-      refreshKey: battleVersion ?? 0,
-    },
-    { enabled: !!battleId },
+    { battleId, limit, offset: 0, refreshKey: battleVersion ?? 0, userFilter },
+    { enabled: !!battleId, placeholderData: (prev) => prev },
   );
 
+  const hasMoreOlder = entries?.length === limit;
+
   const resolvedEntries = useMemo(() => {
-    if (!entries) return [];
-    return entries
+    if (!entries?.length) return [];
+    return [...entries]
+      .reverse() // Oldest on left, newest on right
       .map((entry) => {
         const user = battle?.usersState.find((u) => u.userId === entry.userId);
-
-        // Call availableUserActions once per entry
         const actions =
           battle && entry.userId
             ? availableUserActions(battle, entry.userId, true, false)
             : [];
         const action = actions.find((a) => a.id === entry.actionId);
 
-        let actionImage: string | undefined;
-        let actionItem: GenericObject;
-        let actionName: string;
-
-        // Try to resolve by user inventory (jutsu/item)
         const jutsu = user?.jutsus?.find((j) => j.jutsu.id === entry.actionId)?.jutsu;
         const userItem = user?.items?.find((i) => i.item.id === entry.actionId);
         const item = userItem?.item;
 
+        let actionImage: string | undefined;
+        let actionItem: GenericObject;
+
         if (jutsu) {
           actionImage = jutsu.image;
           actionItem = jutsu;
-          actionName = jutsu.name;
         } else if (userItem && item) {
           actionImage = item.image;
           actionItem = item;
-          actionName = item.name;
         } else {
-          // Fallback: use action for name/description/etc
           actionImage = action?.image ?? user?.avatar ?? undefined;
           actionItem =
             action?.data ??
@@ -111,53 +141,102 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
                   effects: action.effects,
                 }
               : placeholderObj);
-          actionName = action?.name ?? "Unknown";
         }
 
-        return { entry, user, action, actionItem, actionImage, actionName };
+        return { entry, user, action, actionItem, actionImage };
       })
-      .filter((resolved) => showBasicActions || resolved.action?.type !== "basic");
+      .filter((r) => showBasicActions || r.action?.type !== "basic");
   }, [entries, battle, showBasicActions]);
 
-  const canPrev = page > 0;
-  const canNext = (entries?.length ?? 0) === pageSize;
+  // Auto-scroll to right only when new entries appear (not when loading older)
+  useEffect(() => {
+    const grewAtEnd =
+      resolvedEntries.length > prevCountRef.current && limit === pageSize;
+    if (scrollContainerRef.current && grewAtEnd) {
+      scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+    }
+    prevCountRef.current = resolvedEntries.length;
+  }, [resolvedEntries.length, limit, pageSize]);
 
   return (
     <div className="relative space-y-3 rounded-lg border bg-slate-100 p-3">
-      {isFetching && <Loader explanation="Loading timeline" />}
+      {isFetching && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-950/10 backdrop-blur-sm">
+          <Loader noPadding />
+        </div>
+      )}
 
-      <div className="flex items-center gap-2 px-1">
-        <div className="w-2 h-2 rounded-full bg-gray-700" />
-        <Clock className="h-4 w-4 text-gray-700" />
-        <span className="text-sm font-semibold text-gray-800">Action Timeline</span>
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-gray-700" />
+          <Clock className="h-4 w-4 text-gray-700" />
+          <span className="text-sm font-semibold text-gray-800">Action Timeline</span>
+        </div>
+        <div
+          ref={filterRef}
+          className="relative flex rounded-md border bg-slate-200 p-0.5"
+          onMouseEnter={() => setFilterExpanded(true)}
+          onMouseLeave={() => setFilterExpanded(false)}
+        >
+          {filterOptions.map(({ value, icon: Icon, label }) => {
+            const isActive = userFilter === value;
+            const isVisible = isActive || filterExpanded;
+            return (
+              <button
+                key={value}
+                onClick={() => {
+                  if (!filterExpanded) {
+                    setFilterExpanded(true);
+                  } else {
+                    setUserFilter(value);
+                    setFilterExpanded(false);
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-1 overflow-hidden rounded text-xs font-medium transition-all duration-200 ease-out",
+                  isVisible
+                    ? "max-w-24 px-2 py-1 opacity-100"
+                    : "max-w-0 px-0 py-1 opacity-0",
+                  isActive
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900",
+                )}
+                title={label}
+              >
+                <Icon className="h-3 w-3 shrink-0" />
+                <span className="hidden whitespace-nowrap sm:inline">{label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="relative pb-4 overflow-x-auto">
-        <div className="relative flex items-center gap-2 px-3 min-w-max">
+      <div ref={scrollContainerRef} className="relative overflow-x-auto pb-4">
+        <div className="relative flex min-w-max items-center gap-2 px-3">
           <div className="pointer-events-none absolute inset-x-12 top-1/2 h-px -translate-y-1/2 bg-gray-400" />
 
           <Button
             size="icon"
             variant="ghost"
-            className="shrink-0 rounded-full border bg-slate-200 hover:bg-slate-300 shadow-sm"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={!canPrev}
-            aria-label="Show newer actions"
+            className="shrink-0 rounded-full border bg-slate-200 shadow-sm hover:bg-slate-300"
+            onClick={() => setLimit((l) => l + pageSize)}
+            disabled={!hasMoreOlder || isFetching}
+            aria-label="Load older actions"
           >
             <ChevronLeft className="h-4 w-4 text-gray-700" />
           </Button>
 
           {resolvedEntries.length === 0 && (
-            <p className="relative z-10 flex-1 text-center text-xs text-gray-600 mt-6">
+            <p className="relative z-10 mt-6 flex-1 text-center text-xs text-gray-600">
               No actions recorded yet.
             </p>
           )}
 
-          {resolvedEntries.map(({ entry, user, actionImage }, index) => (
+          {resolvedEntries.map(({ entry, user, actionImage }, idx) => (
             <React.Fragment key={entry.id}>
-              {index > 0 && (
+              {idx > 0 && (
                 <div className="relative w-4 flex-none">
-                  <ChevronLeft className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/70" />
+                  <ChevronRight className="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/70" />
                 </div>
               )}
               <button
@@ -203,26 +282,10 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
               </button>
             </React.Fragment>
           ))}
-
-          <Button
-            size="icon"
-            variant="ghost"
-            className="shrink-0 rounded-full border bg-slate-200 hover:bg-slate-300 shadow-sm"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={!canNext}
-            aria-label="Show older actions"
-          >
-            <ChevronRight className="h-4 w-4 text-gray-700" />
-          </Button>
         </div>
       </div>
 
-      <Dialog
-        open={!!selected}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
-        }}
-      >
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="max-w-3xl">
           {selected && (
             <>
@@ -252,13 +315,13 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
                       hideData={true}
                       hideEffects={true}
                     />
-                    {effects.length ? (
+                    {effects.length > 0 && (
                       <div className="space-y-2 rounded-md border p-3">
                         <p className="text-sm font-semibold">Applied effects</p>
                         <div className="flex flex-wrap gap-2">
-                          {effects.map((effect, idx) => (
+                          {effects.map((effect, i) => (
                             <span
-                              key={`${effect.txt}-${idx}`}
+                              key={`${effect.txt}-${i}`}
                               className={cn(
                                 "rounded-full px-2 py-1 text-[11px] font-medium",
                                 effectColors[effect.color],
@@ -269,7 +332,7 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
                           ))}
                         </div>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 );
               })()}

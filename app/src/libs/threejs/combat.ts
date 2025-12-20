@@ -707,7 +707,7 @@ export const createUserSprite = (
   texture.generateMipmaps = false;
   texture.minFilter = LinearFilter;
   const shadow_material = createSpriteMaterial(texture);
-  shadow_material.alphaTest = 0;
+  shadow_material.alphaTest = 0.5;
   const shadow_sprite = new Sprite(shadow_material);
   shadow_sprite.scale.set(w * 0.8, h * 0.5, 1);
   shadow_sprite.position.set(w / 2, h * 0.3, USER_LAYER);

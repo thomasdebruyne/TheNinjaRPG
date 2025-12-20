@@ -267,15 +267,28 @@ export const combatRouter = createTRPCRouter({
         checkBattle: z.boolean().optional(),
         limit: z.number().optional(),
         offset: z.number().optional(),
+        // Filter: "all" = no filter, "user" = only current user, "opponents" = exclude current user
+        userFilter: z.enum(["all", "user", "opponents"]).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const limit = input.limit ?? 30;
+      const filter = input.userFilter ?? "all";
+
+      // Build where conditions
+      const conditions = [eq(battleAction.battleId, input.battleId)];
+      if (filter === "user") {
+        conditions.push(eq(battleAction.userId, ctx.userId));
+      } else if (filter === "opponents") {
+        conditions.push(ne(battleAction.userId, ctx.userId));
+      }
+
       const entries = await ctx.drizzle.query.battleAction.findMany({
         limit: limit,
         offset: input.offset ?? 0,
-        where: eq(battleAction.battleId, input.battleId),
-        orderBy: [desc(battleAction.createdAt)],
+        where: and(...conditions),
+        // Sort by round desc, then version desc for consistent ordering within rounds
+        orderBy: [desc(battleAction.battleRound), desc(battleAction.battleVersion)],
       });
       return entries;
     }),
