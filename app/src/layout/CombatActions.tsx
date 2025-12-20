@@ -90,16 +90,20 @@ export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
   // Track previous round to detect round changes
   const prevRoundRef = useRef<number | undefined>(currentRound);
 
-  // Auto-deselect action in combat mode when round changes
+  // Auto-deselect action in combat mode when round changes (except basic actions)
   useEffect(() => {
     if (!combatMode || currentRound === undefined) return;
     if (prevRoundRef.current !== undefined && prevRoundRef.current !== currentRound) {
       if (selectedId) {
-        onClick(selectedId);
+        // Don't deselect basic actions
+        const selectedItem = filtered?.find((i) => i.id === selectedId);
+        if (selectedItem?.type !== "basic") {
+          onClick(selectedId);
+        }
       }
     }
     prevRoundRef.current = currentRound;
-  }, [combatMode, currentRound, selectedId, onClick]);
+  }, [combatMode, currentRound, selectedId, onClick, filtered]);
 
   // Auto-deselect action in combat mode if it can't be repeated
   useEffect(() => {
