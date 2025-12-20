@@ -7,7 +7,11 @@ import Countdown from "./Countdown";
 import WebGlError from "@/layout/WebGLError";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
-import { drawCombatBackground, drawCombatEffects } from "@/libs/threejs/combat";
+import {
+  drawCombatBackground,
+  drawCombatEffects,
+  validateActionTarget,
+} from "@/libs/threejs/combat";
 import { OrbitControls } from "@/libs/threejs/OrbitControls";
 import { COMBAT_SECONDS, COMBAT_LOBBY_SECONDS } from "@/libs/combat/constants";
 import { SpriteMixer } from "@/libs/threejs/SpriteMixer";
@@ -427,6 +431,22 @@ const Combat: React.FC<CombatProps> = (props) => {
       mouse.y = 9999999;
     }
   };
+  // Update mouse position on touch for mobile devices
+  // This ensures tile highlighting works correctly before tap/click
+  const onDocumentTouchStart = (event: TouchEvent) => {
+    if (mountRef.current && event.touches.length > 0) {
+      const touch = event.touches[0];
+      if (touch) {
+        const bounding_box = mountRef.current.getBoundingClientRect();
+        const offsetX = touch.clientX - bounding_box.left;
+        const offsetY = touch.clientY - bounding_box.top;
+        mouse.x = (offsetX / bounding_box.width) * 2 - 1;
+        mouse.y = -((offsetY / bounding_box.height) * 2 - 1);
+        mouseScreen.current.x = touch.clientX;
+        mouseScreen.current.y = touch.clientY;
+      }
+    }
+  };
 
   // If user has no actions left / round is over, propagate battle & potentially - perform AI actions
   useEffect(() => {
@@ -528,6 +548,7 @@ const Combat: React.FC<CombatProps> = (props) => {
       // Listeners
       sceneRef.addEventListener("mousemove", onDocumentMouseMove, false);
       sceneRef.addEventListener("mouseleave", onDocumentMouseLeave, false);
+      sceneRef.addEventListener("touchstart", onDocumentTouchStart, { passive: true });
 
       // Get background color based on battle background/biome
       const { color } = getBackgroundColor(battle.current.background);
@@ -617,6 +638,8 @@ const Combat: React.FC<CombatProps> = (props) => {
       scene.add(group_effects);
 
       // Capture clicks to update move direction
+      // On mobile, we validate tiles on-the-fly since canClick may be stale
+      // (touch events don't always update mouse position before click fires)
       const onClick = (e: MouseEvent) => {
         setRaycasterFromMouse(raycaster, sceneRef, e, camera);
         const intersects = raycaster.intersectObjects(scene.children);
@@ -627,28 +650,44 @@ const Combat: React.FC<CombatProps> = (props) => {
               i.object.userData.type === "tile" &&
               document.body.style.cursor !== "wait"
             ) {
-              // Only process clicks on tiles that are explicitly marked as clickable
-              // canClick is set to true only for valid action targets in highlightTiles
-              if (
-                i.object.userData.canClick === true &&
-                i.object.userData.isBattleTile === true &&
-                action.current &&
-                battle.current
-              ) {
-                const target = i.object.userData.tile as TerrainHex;
-                if (canPerformAction()) {
-                  document.body.style.cursor = "wait";
-                  performAction({
-                    battleId: battle.current.id,
-                    userId: userId.current,
-                    actionId: action.current.id,
-                    longitude: target.col,
-                    latitude: target.row,
-                    version: battle.current.version,
-                  });
-                }
-                return false;
+              // Check basic requirements
+              if (!action.current || !battle.current || !grid.current) {
+                return true;
               }
+
+              const target = i.object.userData.tile as TerrainHex;
+              const user = battle.current.usersState.find(
+                (u) => u.userId === userId.current,
+              );
+              if (!user) return true;
+
+              // Validate using shared function (same logic as highlightTiles)
+              const { isValid } = validateActionTarget({
+                user,
+                battle: battle.current,
+                action: action.current,
+                grid: grid.current,
+                target,
+                timeDiff,
+                precomputedUserId: suid,
+                precomputedActions,
+              });
+
+              if (!isValid) return true;
+
+              // All validation passed - perform the action
+              if (canPerformAction()) {
+                document.body.style.cursor = "wait";
+                performAction({
+                  battleId: battle.current.id,
+                  userId: userId.current,
+                  actionId: action.current.id,
+                  longitude: target.col,
+                  latitude: target.row,
+                  version: battle.current.version,
+                });
+              }
+              return false;
             }
             return true;
           });
@@ -841,6 +880,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           window.removeEventListener("resize", handleResize);
           sceneRef.removeEventListener("mousemove", onDocumentMouseMove);
           sceneRef.removeEventListener("mouseleave", onDocumentMouseLeave);
+          sceneRef.removeEventListener("touchstart", onDocumentTouchStart);
           controls.removeEventListener("change", onZoomChange);
           rendererElement.removeEventListener("click", onClick, true);
         } catch (e) {

@@ -13,7 +13,12 @@ import {
   type BufferGeometry,
   type Texture,
 } from "three";
-import { loadTexture, createTexture, createSpriteMaterial } from "@/libs/threejs/util";
+import {
+  loadTexture,
+  createTexture,
+  createSpriteMaterial,
+  createShadowTexture,
+} from "@/libs/threejs/util";
 import { playPreloadedAudio } from "@/utils/audio";
 import { getPossibleActionTiles, findHex, PathCalculator } from "../hexgrid";
 import {
@@ -45,7 +50,6 @@ import type { Grid } from "honeycomb-grid";
 import {
   IMG_SECTOR_USER_MARKER,
   IMG_SECTOR_USER_SPRITE_MASK,
-  IMG_SECTOR_SHADOW,
   IMG_BATTLEFIELD_TOMBSTONE,
   IMG_BATTLEFIELD_STAR,
   IMG_AVATAR_DEFAULT,
@@ -72,6 +76,80 @@ import type { SpriteMixer } from "@/libs/threejs/SpriteMixer";
 // Performance optimization: Cache status bar textures to avoid recreating canvases
 // Key format: "width-height-color-stroke"
 const statusBarTextureCache = new Map<string, Texture>();
+
+/**
+ * Validates whether an action can be performed on a target tile.
+ * Used by both click handlers (for mobile compatibility) and tile highlighting.
+ * Returns validation result along with computed data for reuse.
+ */
+export const validateActionTarget = (info: {
+  user: ReturnedUserState;
+  battle: ReturnedBattle;
+  action: CombatAction | undefined;
+  grid: Grid<TerrainHex>;
+  target: TerrainHex;
+  timeDiff: number;
+  precomputedUserId?: string;
+  precomputedActions?: CombatAction[];
+}): {
+  isValid: boolean;
+  origin?: TerrainHex;
+  possibleTiles?: Grid<TerrainHex>;
+  greenTiles?: Set<TerrainHex>;
+  redTiles?: Set<TerrainHex>;
+} => {
+  const { user, battle, action, grid, target, timeDiff } = info;
+
+  // No action selected
+  if (!action) return { isValid: false };
+
+  // Get user's current position
+  const origin = grid.getHex({ col: user.longitude, row: user.latitude });
+  if (!origin) return { isValid: false };
+
+  // Check if user is the active actor
+  const { actor } = calcActiveUser(battle, user.userId, timeDiff, {
+    precomputedUserId: info.precomputedUserId,
+    precomputedActions: info.precomputedActions,
+  });
+  if (actor.userId !== user.userId) return { isValid: false };
+
+  // Check if user has enough action points
+  const { canAct } = actionPointsAfterAction(user, battle, action);
+  if (!canAct) return { isValid: false };
+
+  // Check action cooldown
+  const isAvailable =
+    !action.cooldown ||
+    !action.lastUsedRound ||
+    battle.round - action.lastUsedRound >= action.cooldown;
+  if (!isAvailable) return { isValid: false };
+
+  // Get possible tiles for the action
+  const possibleTiles = getPossibleActionTiles(action, origin, grid);
+  if (!possibleTiles) return { isValid: false };
+
+  // Check if target is in possible tiles
+  const targetInPossible = possibleTiles.filter((t) => t === target).size > 0;
+  if (!targetInPossible) return { isValid: false };
+
+  // Get affected tiles (green = valid, red = invalid)
+  const { green: greenTiles, red: redTiles } = getAffectedTiles({
+    a: origin,
+    b: target,
+    action,
+    grid,
+    restrictGrid: possibleTiles,
+    ground: battle.groundEffects,
+    userId: user.userId,
+    users: battle.usersState,
+  });
+
+  // Target must be in green set and not in red set
+  const isValid = greenTiles.size > 0 && !redTiles.has(target);
+
+  return { isValid, origin, possibleTiles, greenTiles, redTiles };
+};
 
 /**
  * Show animation on the hex
@@ -702,12 +780,15 @@ export const createUserSprite = (
   const group = new Group();
   const { height: h, width: w } = hex;
 
-  // Shadow
-  const texture = loadTexture(IMG_SECTOR_SHADOW);
-  texture.generateMipmaps = false;
-  texture.minFilter = LinearFilter;
-  const shadow_material = createSpriteMaterial(texture);
-  shadow_material.alphaTest = 0.5;
+  // Shadow - procedural blurred ellipse for natural soft shadow
+  const shadowTexture = createShadowTexture(128, 64, 0.45);
+  shadowTexture.generateMipmaps = false;
+  shadowTexture.minFilter = LinearFilter;
+  const shadow_material = new SpriteMaterial({
+    map: shadowTexture,
+    transparent: true,
+    depthWrite: false,
+  });
   const shadow_sprite = new Sprite(shadow_material);
   shadow_sprite.scale.set(w * 0.8, h * 0.5, 1);
   shadow_sprite.position.set(w / 2, h * 0.3, USER_LAYER);
@@ -1351,18 +1432,6 @@ export const highlightTiles = (info: {
   } = info;
   const battleTileIntersects = info.cachedIntersections.battleTiles;
   const hit = battleTileIntersects.length > 0 && battleTileIntersects[0];
-  const users = battle.usersState;
-  const origin = user && grid.getHex({ col: user.longitude, row: user.latitude });
-
-  // Make sure the proper round & activeUser is shown when we draw combat
-  const { actor } = calcActiveUser(battle, user.userId, timeDiff, {
-    precomputedUserId: user.userId,
-    precomputedActions: info.precomputedActions,
-  });
-
-  // Check if we have enough action points to perform action
-  const { canAct } = actionPointsAfterAction(user, battle, action);
-  const canUseTile = actor.userId === user.userId && canAct;
 
   // Get or create the edge mesh pool (stored on group userData for persistence)
   let pool = group_highlight_edges.userData.edgePool as HighlightEdgePool | undefined;
@@ -1374,10 +1443,20 @@ export const highlightTiles = (info: {
   // Reset pool - hide all previously active meshes
   resetEdgePool(pool);
 
-  // Highlight fields on the map where action can be applied
-  const newHighlights = new Set<string>();
+  // Get user's origin and possible tiles for highlighting
+  const origin = user && grid.getHex({ col: user.longitude, row: user.latitude });
   const highlights = getPossibleActionTiles(action, origin, grid);
 
+  // Check if user can use tiles (actor check + action points)
+  const { actor } = calcActiveUser(battle, user.userId, timeDiff, {
+    precomputedUserId: user.userId,
+    precomputedActions: info.precomputedActions,
+  });
+  const { canAct } = actionPointsAfterAction(user, battle, action);
+  const canUseTile = actor.userId === user.userId && canAct;
+
+  // Highlight fields on the map where action can be applied
+  const newHighlights = new Set<string>();
   if (highlights && canUseTile) {
     highlights.forEach((tile) => {
       if (tile) {
@@ -1401,108 +1480,107 @@ export const highlightTiles = (info: {
     });
   }
 
-  // Check if cooldown for action has expired
-  const isAvailable =
-    !action?.cooldown ||
-    !action?.lastUsedRound ||
-    battle.round - action.lastUsedRound >= action.cooldown;
-
   // Is this a move action (if so, we color the selected green tile blue instead)
   const hasMove = action?.effects?.find((e) => e.type === "move");
 
-  // Highlight intersected tile
-  /* ************************** */
+  // Highlight intersected tile using shared validation
   const newSelection = new Set<string>();
-  if (action && origin && highlights && hit && canUseTile && isAvailable) {
+  if (hit && action && canUseTile) {
     const intersected = hit.object as HexagonalFaceMesh;
-    const targetTile = intersected.userData.tile;
-    // Based on the intersected tile, highlight the tiles which are affected.
-    const { green, red } = getAffectedTiles({
-      a: origin,
-      b: targetTile,
-      action,
-      grid: grid,
-      restrictGrid: highlights,
-      ground: battle.groundEffects,
-      userId: user.userId,
-      users,
-    });
-    // Is the target in the highlights?
-    const isAvailable =
-      highlights.filter((h) => h === targetTile).size > 0 && !red.has(targetTile);
+    const targetTile = intersected.userData.tile as TerrainHex;
 
-    // Highlight the tiles in different colors
-    green.forEach((tile) => {
-      const name = `${tile.row},${tile.col}`;
-      const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
-      if (mesh) {
-        mesh.userData.selected = true;
-        mesh.userData.canClick = true;
-        const originalColor = mesh.userData.originalColor;
-        if (originalColor) {
-          const tintedColor = originalColor.clone();
-          if (hasMove && tile === targetTile) {
-            // Tint with blue for move destination
-            tintedColor.lerp(new Color("rgb(0, 150, 255)"), 0.8);
-          } else {
-            // Tint with green for valid targets
-            tintedColor.lerp(new Color("rgb(0, 255, 100)"), 0.8);
+    // Use shared validation function for the actual target
+    const {
+      isValid,
+      greenTiles: green,
+      redTiles: red,
+    } = validateActionTarget({
+      user,
+      battle,
+      action,
+      grid,
+      target: targetTile,
+      timeDiff,
+      precomputedUserId: user.userId,
+      precomputedActions: info.precomputedActions,
+    });
+
+    // Only highlight if we have valid green/red tiles from validation
+    if (green && red) {
+      // Highlight the tiles in different colors
+      green.forEach((tile) => {
+        const name = `${tile.row},${tile.col}`;
+        const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
+        if (mesh) {
+          mesh.userData.selected = true;
+          mesh.userData.canClick = true;
+          const originalColor = mesh.userData.originalColor;
+          if (originalColor) {
+            const tintedColor = originalColor.clone();
+            if (hasMove && tile === targetTile) {
+              // Tint with blue for move destination
+              tintedColor.lerp(new Color("rgb(0, 150, 255)"), 0.8);
+            } else {
+              // Tint with green for valid targets
+              tintedColor.lerp(new Color("rgb(0, 255, 100)"), 0.8);
+            }
+            mesh.material.color.copy(tintedColor);
           }
-          mesh.material.color.copy(tintedColor);
+          // Get cached geometry and pooled mesh for selected edge
+          const geometry = getOrCreateEdgeGeometry(mesh, name);
+          const material =
+            hasMove && tile === targetTile
+              ? highlightEdgeMaterials.blue
+              : highlightEdgeMaterials.green;
+          const edgeMesh = getPooledEdgeMesh(
+            pool,
+            geometry,
+            material,
+            HIGHLIGHT_EDGE_Z_OFFSET_SELECTED,
+          );
+          if (!edgeMesh.parent) group_highlight_edges.add(edgeMesh);
+          newSelection.add(name);
         }
-        // Get cached geometry and pooled mesh for selected edge
-        const geometry = getOrCreateEdgeGeometry(mesh, name);
-        const material =
-          hasMove && tile === targetTile
-            ? highlightEdgeMaterials.blue
-            : highlightEdgeMaterials.green;
-        const edgeMesh = getPooledEdgeMesh(
-          pool,
-          geometry,
-          material,
-          HIGHLIGHT_EDGE_Z_OFFSET_SELECTED,
-        );
-        if (!edgeMesh.parent) group_highlight_edges.add(edgeMesh);
-        newSelection.add(name);
-      }
-    });
-    red.forEach((tile) => {
-      const name = `${tile.row},${tile.col}`;
-      const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
-      if (mesh) {
-        mesh.userData.selected = true;
-        mesh.userData.canClick = false;
-        const originalColor = mesh.userData.originalColor;
-        if (originalColor) {
-          // Tint with red for invalid targets
-          const tintedColor = originalColor.clone();
-          tintedColor.lerp(new Color("rgb(255, 50, 50)"), 0.2);
-          mesh.material.color.copy(tintedColor);
+      });
+      red.forEach((tile) => {
+        const name = `${tile.row},${tile.col}`;
+        const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
+        if (mesh) {
+          mesh.userData.selected = true;
+          mesh.userData.canClick = false;
+          const originalColor = mesh.userData.originalColor;
+          if (originalColor) {
+            // Tint with red for invalid targets
+            const tintedColor = originalColor.clone();
+            tintedColor.lerp(new Color("rgb(255, 50, 50)"), 0.2);
+            mesh.material.color.copy(tintedColor);
+          }
+          // Get cached geometry and pooled mesh for red edge
+          const geometry = getOrCreateEdgeGeometry(mesh, name);
+          const edgeMesh = getPooledEdgeMesh(
+            pool,
+            geometry,
+            highlightEdgeMaterials.red,
+            HIGHLIGHT_EDGE_Z_OFFSET_SELECTED,
+          );
+          if (!edgeMesh.parent) group_highlight_edges.add(edgeMesh);
+          newSelection.add(name);
         }
-        // Get cached geometry and pooled mesh for red edge
-        const geometry = getOrCreateEdgeGeometry(mesh, name);
-        const edgeMesh = getPooledEdgeMesh(
-          pool,
-          geometry,
-          highlightEdgeMaterials.red,
-          HIGHLIGHT_EDGE_Z_OFFSET_SELECTED,
-        );
-        if (!edgeMesh.parent) group_highlight_edges.add(edgeMesh);
-        newSelection.add(name);
+      });
+      // Set cursor type on highlight
+      if (
+        (document.body.style.cursor === "default" ||
+          document.body.style.cursor === "") &&
+        green.size > 0 &&
+        isValid
+      ) {
+        document.body.style.cursor = "pointer";
+      } else if (
+        document.body.style.cursor === "pointer" &&
+        (green.size === 0 || !isValid)
+      ) {
+        document.body.style.cursor = "default";
       }
-    });
-    // Set cursor type on highlight
-    if (
-      (document.body.style.cursor === "default" || document.body.style.cursor === "") &&
-      green.size > 0 &&
-      isAvailable
-    ) {
-      document.body.style.cursor = "pointer";
-    } else if (
-      document.body.style.cursor === "pointer" &&
-      (green.size === 0 || isAvailable === false)
-    ) {
-      document.body.style.cursor = "default";
     }
   }
 

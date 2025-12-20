@@ -139,6 +139,60 @@ export const createTexture = (canvas: HTMLCanvasElement) => {
 };
 
 /**
+ * Create a procedural shadow texture - an elongated blurred ellipse
+ * @param width - Canvas width (default 128)
+ * @param height - Canvas height (default 64)
+ * @param opacity - Maximum opacity at center (default 0.4)
+ * @returns A texture with the procedural shadow
+ */
+export const createShadowTexture = (
+  width = 128,
+  height = 64,
+  opacity = 0.4,
+): Texture => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+
+  if (ctx) {
+    // Create radial gradient for soft elliptical shadow
+    const centerX = width / 2;
+    const radiusX = width / 2;
+    const radiusY = height / 2;
+
+    // Use an elliptical gradient by scaling the context
+    ctx.save();
+    ctx.scale(1, radiusY / radiusX);
+
+    const gradient = ctx.createRadialGradient(
+      centerX,
+      centerX, // Use centerX for both since we're scaling
+      0,
+      centerX,
+      centerX,
+      radiusX,
+    );
+
+    // Soft falloff from center to edges
+    gradient.addColorStop(0, `rgba(0, 0, 0, ${opacity})`);
+    gradient.addColorStop(0.5, `rgba(0, 0, 0, ${opacity * 0.6})`);
+    gradient.addColorStop(0.8, `rgba(0, 0, 0, ${opacity * 0.2})`);
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, width); // Use width for both due to scaling
+
+    ctx.restore();
+  }
+
+  const texture = new Texture(canvas);
+  texture.needsUpdate = true;
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+};
+
+/**
  * Cleanup three.js scene and renderer, removing all objects, materials and geometries
  */
 export const cleanUp = (scene: Scene, renderer: WebGLRenderer) => {

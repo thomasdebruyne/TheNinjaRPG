@@ -97,6 +97,12 @@ const Map: React.FC<MapProps> = (props) => {
     }
   };
 
+  // Track touch state for double-tap detection on mobile
+  const lastTapRef = useRef<{ time: number; sector: number | null }>({
+    time: 0,
+    sector: null,
+  });
+
   // Tutorial step
   const { currentStep } = useTutorialStep();
   const isTravelStep = currentStep?.title === "Travel";
@@ -154,9 +160,12 @@ const Map: React.FC<MapProps> = (props) => {
       const group_tiles = new Group();
       const group_highlights = new Group();
 
-      // Add on double click tile handler
+      // Add on double click/tap tile handler
       let onDblClick: (() => void) | null = null;
+      let onTouchEnd: ((e: TouchEvent) => void) | null = null;
+
       if (props.intersection && props.onTileClick) {
+        // Desktop: double-click handler
         onDblClick = () => {
           const intersects = raycaster.intersectObjects(group_tiles.children);
           if (intersects.length > 0) {
@@ -168,6 +177,49 @@ const Map: React.FC<MapProps> = (props) => {
           }
         };
         renderer.domElement.addEventListener("dblclick", onDblClick, true);
+
+        // Mobile: double-tap detection via touchend
+        // We detect double-tap by checking if two taps happen within 300ms on the same sector
+        onTouchEnd = (e: TouchEvent) => {
+          if (e.changedTouches.length === 0) return;
+          const touch = e.changedTouches[0];
+          if (!touch) return;
+
+          // Get which sector was tapped
+          const bounding_box = sceneRef.getBoundingClientRect();
+          const mouseX = ((touch.clientX - bounding_box.left) / bounding_box.width) * 2 - 1;
+          const mouseY = -((touch.clientY - bounding_box.top) / bounding_box.height) * 2 + 1;
+          raycaster.setFromCamera(new Vector2(mouseX, mouseY), camera);
+
+          const intersects = raycaster.intersectObjects(group_tiles.children);
+          if (intersects.length === 0) {
+            lastTapRef.current = { time: 0, sector: null };
+            return;
+          }
+
+          const sector = intersects?.[0]?.object?.userData?.id as number;
+          const now = Date.now();
+          const timeSinceLastTap = now - lastTapRef.current.time;
+          const DOUBLE_TAP_DELAY = 300; // ms
+
+          // Check if this is a double-tap on the same sector
+          if (
+            timeSinceLastTap < DOUBLE_TAP_DELAY &&
+            lastTapRef.current.sector === sector
+          ) {
+            // Double-tap detected!
+            const tile = hexasphere?.tiles[sector];
+            if (tile !== undefined) {
+              props.onTileClick?.(sector, tile);
+            }
+            // Reset to prevent triple-tap
+            lastTapRef.current = { time: 0, sector: null };
+          } else {
+            // First tap - record it
+            lastTapRef.current = { time: now, sector };
+          }
+        };
+        renderer.domElement.addEventListener("touchend", onTouchEnd, { passive: true });
       }
 
       // Spheres from here: https://www.robscanlon.com/hexasphere/
@@ -563,6 +615,9 @@ const Map: React.FC<MapProps> = (props) => {
           }
           if (onDblClick) {
             renderer.domElement.removeEventListener("dblclick", onDblClick, true);
+          }
+          if (onTouchEnd) {
+            renderer.domElement.removeEventListener("touchend", onTouchEnd);
           }
           window.removeEventListener("resize", handleResize);
         } catch {
