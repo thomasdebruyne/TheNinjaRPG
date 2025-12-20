@@ -566,6 +566,7 @@ const Combat: React.FC<CombatProps> = (props) => {
         group_dirt,
         group_tiles,
         group_edges,
+        group_highlight_edges,
         group_names,
         group_assets,
         honeycombGrid,
@@ -608,6 +609,7 @@ const Combat: React.FC<CombatProps> = (props) => {
       scene.add(group_dirt);
       scene.add(group_tiles);
       scene.add(group_edges);
+      scene.add(group_highlight_edges);
       scene.add(group_names);
       scene.add(group_assets);
       scene.add(group_ground);
@@ -625,14 +627,17 @@ const Combat: React.FC<CombatProps> = (props) => {
               i.object.userData.type === "tile" &&
               document.body.style.cursor !== "wait"
             ) {
+              // Only process clicks on tiles that are explicitly marked as clickable
+              // canClick is set to true only for valid action targets in highlightTiles
               if (
                 i.object.userData.canClick === true &&
+                i.object.userData.isBattleTile === true &&
                 action.current &&
                 battle.current
               ) {
                 const target = i.object.userData.tile as TerrainHex;
-                document.body.style.cursor = "wait";
                 if (canPerformAction()) {
+                  document.body.style.cursor = "wait";
                   performAction({
                     battleId: battle.current.id,
                     userId: userId.current,
@@ -746,6 +751,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           if (user) {
             highlights = highlightTiles({
               group_tiles,
+              group_highlight_edges,
               cachedIntersections,
               user,
               timeDiff,

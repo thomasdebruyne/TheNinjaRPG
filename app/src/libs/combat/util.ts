@@ -1723,3 +1723,70 @@ export const getAffectedTiles = (info: {
 
   return { green, red };
 };
+
+/**
+ * Calculate the hex distance between two positions using axial/cube coordinates.
+ * For FLAT orientation hex grids with odd offset (-1) as used by honeycomb-grid.
+ *
+ * In honeycomb-grid with FLAT orientation:
+ * - q = col (axial q is just the column)
+ * - r = row - floor((col - (col & 1)) / 2) (offset applied to columns)
+ */
+export const calcHexDistance = (
+  aCol: number,
+  aRow: number,
+  bCol: number,
+  bRow: number,
+): number => {
+  // Convert FLAT orientation offset coordinates to axial (q, r)
+  // For FLAT with odd offset: q = col, r = row - floor((col - (col & 1)) / 2)
+  const aq = aCol;
+  const ar = aRow - Math.floor((aCol - (aCol & 1)) / 2);
+
+  const bq = bCol;
+  const br = bRow - Math.floor((bCol - (bCol & 1)) / 2);
+
+  // Calculate cube distance using axial coordinates
+  // Cube coords: x = q, z = r, y = -x - z
+  // Distance = max(|dx|, |dy|, |dz|) = max(|dq|, |dr|, |dq + dr|)
+  const dq = Math.abs(aq - bq);
+  const dr = Math.abs(ar - br);
+  const ds = Math.abs(aq + ar - (bq + br));
+
+  return Math.max(dq, dr, ds);
+};
+
+/**
+ * Get the distance to the closest enemy from a user's position.
+ * Returns null if no enemies found or user not found.
+ */
+export const getDistanceToClosestEnemy = (
+  battle: ReturnedBattle | undefined | null,
+  userId: string | undefined,
+): number | null => {
+  if (!battle || !userId) return null;
+
+  const user = battle.usersState.find((u) => u.userId === userId);
+  if (!user) return null;
+
+  // Get all enemy users (different village/controller)
+  const villageIds = [
+    ...new Set(battle.usersState.filter(stillInBattle).map((u) => u.villageId)),
+  ];
+  const enemies = battle.usersState.filter((u) => {
+    const isEnemy =
+      villageIds.length > 1
+        ? u.villageId !== user.villageId
+        : u.controllerId !== user.controllerId;
+    return isEnemy && stillInBattle(u);
+  });
+
+  if (enemies.length === 0) return null;
+
+  // Calculate distance to each enemy and return the minimum
+  const distances = enemies.map((enemy) =>
+    calcHexDistance(user.longitude, user.latitude, enemy.longitude, enemy.latitude),
+  );
+
+  return Math.min(...distances);
+};

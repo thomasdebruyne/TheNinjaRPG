@@ -8,6 +8,8 @@ import {
   Group,
   Mesh,
   Line,
+  LineSegments,
+  EdgesGeometry,
   type Raycaster,
   type BufferGeometry,
 } from "three";
@@ -27,7 +29,6 @@ import {
   calculateTileOffset,
   createGroundCorners,
   createTileGeometry,
-  createTileEdges,
   createGroundGeometry,
   createGroundEdges,
   createTileMesh,
@@ -233,6 +234,7 @@ export const drawSector = (
   // Arrays to collect geometries for merging (major performance optimization)
   const groundGeometries: BufferGeometry[] = [];
   const groundEdgeGeometries: BufferGeometry[] = [];
+  const tileEdgeGeometries: BufferGeometry[] = [];
 
   // Draw the tiles
   grid.forEach((tile) => {
@@ -289,10 +291,9 @@ export const drawSector = (
       });
       group_tiles.add(mesh);
 
-      // Edges on the top face
-      const edgeMesh = createTileEdges(geometry, lineMaterial);
-
-      group_edges.add(edgeMesh);
+      // Collect tile edge geometry for merging (performance optimization)
+      const edgeGeometry = new EdgesGeometry(geometry);
+      tileEdgeGeometries.push(edgeGeometry);
 
       // Ground part of the tile
       if (!lightLayout) {
@@ -342,6 +343,14 @@ export const drawSector = (
       mergedEdgeMesh.matrixAutoUpdate = false;
       group_dirt.add(mergedEdgeMesh);
     }
+  }
+
+  // Merge all tile edge geometries into a single mesh (performance optimization)
+  if (tileEdgeGeometries.length > 0) {
+    const mergedTileEdgeGeometry = mergeBufferGeometries(tileEdgeGeometries);
+    const mergedTileEdgeMesh = new LineSegments(mergedTileEdgeGeometry, lineMaterial);
+    mergedTileEdgeMesh.matrixAutoUpdate = false;
+    group_edges.add(mergedTileEdgeMesh);
   }
 
   return { group_dirt, group_tiles, group_edges, group_assets, honeycombGrid: grid };

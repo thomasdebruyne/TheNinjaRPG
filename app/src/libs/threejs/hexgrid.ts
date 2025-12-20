@@ -3,7 +3,6 @@ import {
   BufferAttribute,
   Mesh,
   Line,
-  EdgesGeometry,
   type LineBasicMaterial,
   type Material,
 } from "three";
@@ -177,20 +176,6 @@ export const createTileGeometry = (info: {
     geometry.setAttribute("uv", new BufferAttribute(tileUVArray, 2));
   }
   return geometry;
-};
-
-/**
- * Creates edges for a tile geometry
- */
-export const createTileEdges = (
-  geometry: BufferGeometry,
-  lineMaterial: LineBasicMaterial,
-) => {
-  const edges = new EdgesGeometry(geometry);
-  // edges.translate(0, 0, 1);
-  const edgeMesh = new Line(edges, lineMaterial);
-  edgeMesh.matrixAutoUpdate = false;
-  return edgeMesh;
 };
 
 /**

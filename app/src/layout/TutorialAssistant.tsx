@@ -439,9 +439,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
 
     // Determine which step to use - hospitalized overrides everything
     const isHospitalized = userData?.status === "HOSPITALIZED";
-    const step = isHospitalized
-      ? TUTORIAL_HOSPITALIZED_STEP
-      : TUTORIAL_STEPS[currentStepNumber];
+    const step = isHospitalized ? TUTORIAL_HOSPITALIZED_STEP : currentStep;
 
     // Guard against undefined step
     if (!step) {
@@ -505,7 +503,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
       observer.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStepNumber, isAssistantVisible, pathname, userData?.status]);
+  }, [currentStep, isAssistantVisible, pathname, userData?.status]);
 
   // Update game menu highlight position when showing game menu tutorial
   useEffect(() => {
@@ -770,8 +768,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
   }
 
   const currentTutorialStep =
-    dynamicQuestStep ||
-    (isHospitalized ? TUTORIAL_HOSPITALIZED_STEP : TUTORIAL_STEPS[currentStepNumber]);
+    dynamicQuestStep || (isHospitalized ? TUTORIAL_HOSPITALIZED_STEP : currentStep);
 
   // Find dialog options if the current step relates to a quest with a dialog task
   let dialogOptions = null;

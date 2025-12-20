@@ -317,7 +317,6 @@ const ChallengeAI: React.FC<ChallengeAIProps> = (props) => {
             updatedAt: new Date(),
           });
           router.push("/combat");
-          showMutationToast({ ...result, message: "Entering the Arena" });
           sendGTMEvent({ event: "enter_arena" });
           if (currentStep?.title === "Start Arena Match") {
             handleNextStep();

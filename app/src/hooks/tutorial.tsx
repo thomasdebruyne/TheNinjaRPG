@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUserData } from "@/utils/UserContext";
+import { useState, useEffect, useMemo } from "react";
+import { useUserData, userBattleAtom, combatActionIdAtom } from "@/utils/UserContext";
 import { usePathname, useRouter } from "next/navigation";
+import { useAtomValue } from "jotai";
 import { COMBAT_SECONDS } from "@/libs/combat/constants";
+import { getDistanceToClosestEnemy } from "@/libs/combat/util";
+import { availableUserActions } from "@/libs/combat/actions";
 import { MapPin } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import {
@@ -29,6 +32,10 @@ export interface TutorialStepConfig {
   onCombatLoss?: string;
 }
 
+// Dynamic combat tutorial step IDs that should show contextual guidance
+const DYNAMIC_COMBAT_STEP_ID = "bRelJfsU9wuHNmhUSg0db";
+
+// Hospitalized tutorial step
 export const TUTORIAL_HOSPITALIZED_STEP: TutorialStepConfig = {
   id: "5uhDcTB1sMeGO_",
   title: "You are Hospitalized!",
@@ -150,28 +157,6 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
     onCombatLoss: "w3eWC11tISZc0CUZ2tvYN",
     onCombatWin: "PCaQdWoDFuR0VGUq5c_ab",
     showNextButton: true,
-    proceedOnHighlightClick: true,
-  },
-  {
-    id: "RzahgsmGgfoNbLEcnQJsD",
-    title: "Battle Arena",
-    description: `Below the battlefield you see your available actions. The basic attack is the default action you can use to hit your opponent. Don't worry, you'll get powerful weapons and jutsus soon.`,
-    elementIds: ["tutorial-combat-action-basicAttack"],
-    page: "/combat",
-    onCombatLoss: "w3eWC11tISZc0CUZ2tvYN",
-    onCombatWin: "PCaQdWoDFuR0VGUq5c_ab",
-    showNextButton: true,
-    proceedOnHighlightClick: true,
-  },
-  {
-    id: "xPnHsTPYULb",
-    title: "Battle Arena",
-    description:
-      "Before you can attack, you'll have to move closer to your opponent. Chose the movement action here. ",
-    elementIds: ["tutorial-combat-action-move"],
-    page: "/combat",
-    onCombatLoss: "w3eWC11tISZc0CUZ2tvYN",
-    onCombatWin: "PCaQdWoDFuR0VGUq5c_ab",
     proceedOnHighlightClick: true,
   },
   {
@@ -592,6 +577,132 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
 ];
 
 /**
+ * Get dynamic combat tutorial step based on distance to enemy and selected action
+ * @param distanceToEnemy - Distance to the closest enemy
+ * @param selectedActionId - Currently selected action ID
+ * @param canAffordAttack - Whether the user has enough action points to afford an attack
+ */
+const getDynamicCombatStep = (
+  distanceToEnemy: number | null,
+  selectedActionId: string | undefined,
+  canAffordAttack: boolean,
+): TutorialStepConfig | null => {
+  // If we can't determine distance, return null (use default step)
+  if (distanceToEnemy === null) return null;
+
+  const baseStep = TUTORIAL_STEPS.find((step) => step.id === DYNAMIC_COMBAT_STEP_ID);
+  if (!baseStep) return null;
+
+  // User is more than 1 square away from enemy
+  if (distanceToEnemy > 1) {
+    if (selectedActionId !== "move") {
+      // Highlight move action
+      return {
+        ...baseStep,
+        description:
+          "You need to get closer to your opponent! Select the movement action to move across the battlefield.",
+        elementIds: ["tutorial-combat-action-move"],
+        proceedOnHighlightClick: false,
+      };
+    } else {
+      // Move is selected, highlight battlefield
+      return {
+        ...baseStep,
+        description:
+          "Great! Now click on a hex tile on the battlefield to move closer to your opponent.",
+        elementIds: ["tutorial-combat-field"],
+        showNextButton: false,
+      };
+    }
+  }
+
+  // User is 1 square away (adjacent to enemy)
+  if (distanceToEnemy === 1) {
+    // Check if user can't afford attack - they need to use wait to end their turn
+    if (!canAffordAttack) {
+      if (selectedActionId !== "wait") {
+        // Highlight wait action
+        return {
+          ...baseStep,
+          description:
+            "You don't have enough action points to attack right now. Select the 'End Turn' action to pass your turn.",
+          elementIds: ["tutorial-combat-action-wait"],
+          proceedOnHighlightClick: false,
+        };
+      } else {
+        // Wait is selected, highlight user's character on battlefield
+        return {
+          ...baseStep,
+          description:
+            "Now click on your own character on the battlefield to end your turn.",
+          elementIds: ["tutorial-combat-field"],
+          showNextButton: false,
+        };
+      }
+    }
+
+    // User can afford attack
+    if (selectedActionId !== "basicAttack") {
+      // Highlight basic attack
+      return {
+        ...baseStep,
+        description:
+          "You're close enough to attack! Select the basic attack action to hit your opponent.",
+        elementIds: ["tutorial-combat-action-basicAttack"],
+        proceedOnHighlightClick: false,
+      };
+    } else {
+      // Basic attack is selected, highlight battlefield
+      return {
+        ...baseStep,
+        description:
+          "Excellent! Now click on your opponent on the battlefield to attack them!",
+        elementIds: ["tutorial-combat-field"],
+        showNextButton: false,
+      };
+    }
+  }
+
+  // User is on same tile as enemy (distance 0) - just attack
+  if (!canAffordAttack) {
+    if (selectedActionId !== "wait") {
+      return {
+        ...baseStep,
+        description:
+          "You don't have enough action points to attack. Select 'End Turn' to pass your turn.",
+        elementIds: ["tutorial-combat-action-wait"],
+        proceedOnHighlightClick: false,
+      };
+    } else {
+      return {
+        ...baseStep,
+        description:
+          "Now click on your own character on the battlefield to end your turn.",
+        elementIds: ["tutorial-combat-field"],
+        showNextButton: false,
+      };
+    }
+  }
+
+  if (selectedActionId !== "basicAttack") {
+    return {
+      ...baseStep,
+      description:
+        "You're right next to your opponent! Select the basic attack to finish them off!",
+      elementIds: ["tutorial-combat-action-basicAttack"],
+      proceedOnHighlightClick: false,
+    };
+  } else {
+    return {
+      ...baseStep,
+      description: "Now click on your opponent to attack!",
+      elementIds: ["tutorial-combat-field"],
+      showNextButton: false,
+    };
+  }
+};
+
+/**
  * Hook to get the current tutorial step
  * @returns
  */
@@ -603,9 +714,52 @@ export const useTutorialStep = () => {
   const [currentStepNumber, setCurrentStepNumber] = useState<number>(0);
   const [isAssistantVisible, setIsAssistantVisible] = useState<boolean>(false);
 
+  // Jotai atoms for combat state
+  const battle = useAtomValue(userBattleAtom);
+  const selectedActionId = useAtomValue(combatActionIdAtom);
+
   // Derived
   const stepNumber = userData?.tutorialStep || 0;
-  const currentStep = TUTORIAL_STEPS?.[stepNumber];
+  const staticStep = TUTORIAL_STEPS?.[stepNumber];
+
+  // Calculate distance to closest enemy for dynamic combat steps
+  const distanceToEnemy = useMemo(() => {
+    if (!battle || !userData?.userId) return null;
+    return getDistanceToClosestEnemy(battle, userData.userId);
+  }, [battle, userData?.userId]);
+
+  // Calculate if user can afford the basic attack action
+  const canAffordAttack = useMemo(() => {
+    if (!battle || !userData?.userId) return true; // Default to true if we can't determine
+
+    // Get the user's current action points
+    const user = battle.usersState.find((u) => u.userId === userData.userId);
+    if (!user) return true;
+
+    // Get available actions and check if basic attack is affordable
+    const actions = availableUserActions(battle, userData.userId);
+    const basicAttack = actions.find((a) => a.id === "basicAttack");
+
+    // If no basic attack action or no action cost defined, assume affordable
+    if (!basicAttack || basicAttack.actionCostPerc === undefined) return true;
+
+    // Check if user has enough action points for the basic attack
+    return user.actionPoints >= basicAttack.actionCostPerc;
+  }, [battle, userData?.userId]);
+
+  // Compute dynamic combat step if applicable
+  const currentStep = useMemo(() => {
+    // Check if we're on the dynamic combat step
+    if (staticStep?.id === DYNAMIC_COMBAT_STEP_ID && pathname === "/combat") {
+      const dynamicStep = getDynamicCombatStep(
+        distanceToEnemy,
+        selectedActionId,
+        canAffordAttack,
+      );
+      if (dynamicStep) return dynamicStep;
+    }
+    return staticStep;
+  }, [staticStep, pathname, distanceToEnemy, selectedActionId, canAffordAttack]);
 
   // Update user's tutorial step
   const { mutate: updateTutorialStep, isPending } =

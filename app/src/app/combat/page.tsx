@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import Loader from "@/layout/Loader";
 import ActionTimer from "@/layout/ActionTimer";
 import CombatHistory from "@/layout/CombatHistory";
@@ -22,6 +23,7 @@ const Combat = dynamic(() => import("@/layout/Combat"), { ssr: false });
 
 export default function CombatPage() {
   // State
+  const router = useRouter();
   const [actionId, setActionId] = useAtom(combatActionIdAtom);
   const config = useCombatPreferences();
   const [battleState, setBattleState] = useState<BattleState | undefined>(undefined);
@@ -73,6 +75,18 @@ export default function CombatPage() {
 
   // Tutorial step
   const { currentStep, handleNextStep } = useTutorialStep();
+
+  // Redirect hospitalized users without a battle to hospital
+  useEffect(() => {
+    if (
+      userData?.status === "HOSPITALIZED" &&
+      !userData?.battleId &&
+      !isLoading &&
+      !results
+    ) {
+      router.push("/hospital");
+    }
+  }, [userData?.status, userData?.battleId, isLoading, results, router]);
 
   // Redirect to profile if not in battle
   useEffect(() => {

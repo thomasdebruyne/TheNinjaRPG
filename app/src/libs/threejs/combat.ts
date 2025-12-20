@@ -8,6 +8,8 @@ import {
   SpriteMaterial,
   Sprite,
   Line,
+  LineSegments,
+  EdgesGeometry,
   type BufferGeometry,
   type Texture,
 } from "three";
@@ -33,7 +35,6 @@ import {
   calculateTileOffset,
   createGroundCorners,
   createTileGeometry,
-  createTileEdges,
   createGroundGeometry,
   createGroundEdges,
   mergeBufferGeometries,
@@ -158,6 +159,7 @@ export const drawCombatBackground = (
   // Arrays to collect geometries for merging (major performance optimization)
   const groundGeometries: BufferGeometry[] = [];
   const groundEdgeGeometries: BufferGeometry[] = [];
+  const tileEdgeGeometries: BufferGeometry[] = [];
 
   // Draw the tiles
   honeycombGrid.forEach((tile) => {
@@ -238,16 +240,15 @@ export const drawCombatBackground = (
       mesh.userData.originalColor = clonedMaterial?.color.clone();
       mesh.userData.highlight = false;
       mesh.userData.selected = false;
-      mesh.userData.canClick = true;
+      mesh.userData.canClick = false;
       mesh.userData.isBattleTile = isBattleTile;
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
       group_tiles.add(mesh);
 
-      // Edges on the top face
-      const edgeMesh = createTileEdges(geometry, lineMaterial);
-      edgeMesh.updateMatrix();
-      group_edges.add(edgeMesh);
+      // Collect tile edge geometry for merging (performance optimization)
+      const edgeGeometry = new EdgesGeometry(geometry);
+      tileEdgeGeometries.push(edgeGeometry);
 
       // Ground part of the tile
       if (!lightLayout) {
@@ -345,6 +346,18 @@ export const drawCombatBackground = (
     }
   }
 
+  // Merge all tile edge geometries into a single mesh (performance optimization)
+  if (tileEdgeGeometries.length > 0) {
+    const mergedTileEdgeGeometry = mergeBufferGeometries(tileEdgeGeometries);
+    const mergedTileEdgeMesh = new LineSegments(mergedTileEdgeGeometry, lineMaterial);
+    mergedTileEdgeMesh.matrixAutoUpdate = false;
+    mergedTileEdgeMesh.updateMatrix();
+    group_edges.add(mergedTileEdgeMesh);
+  }
+
+  // Group for dynamically highlighted edges (rendered on top of base edges)
+  const group_highlight_edges = new Group();
+
   // Sort assets by position (one-time during scene setup)
   group_assets.children.sort((a, b) => b.position.y - a.position.y);
 
@@ -352,6 +365,7 @@ export const drawCombatBackground = (
     group_dirt,
     group_tiles,
     group_edges,
+    group_highlight_edges,
     group_names,
     group_assets,
     honeycombGrid,
@@ -1223,12 +1237,98 @@ export const drawCombatUsers = (info: {
   return anyUserMoving;
 };
 
+// Z offset for highlight edges to render above base edges
+const HIGHLIGHT_EDGE_Z_OFFSET = 0.5;
+const HIGHLIGHT_EDGE_Z_OFFSET_SELECTED = 0.6;
+
+// Cache for highlight edge geometries (keyed by tile name)
+const highlightEdgeGeometryCache = new Map<string, BufferGeometry>();
+
+// Reusable materials for highlight edges (created once, reused across frames)
+const highlightEdgeMaterials = {
+  highlight: new LineBasicMaterial({
+    color: new Color("rgb(100, 180, 255)"),
+    depthTest: true,
+  }),
+  green: new LineBasicMaterial({
+    color: new Color("rgb(0, 255, 100)"),
+    depthTest: true,
+  }),
+  blue: new LineBasicMaterial({
+    color: new Color("rgb(0, 150, 255)"),
+    depthTest: true,
+  }),
+  red: new LineBasicMaterial({ color: new Color("rgb(255, 80, 80)"), depthTest: true }),
+};
+
+// Pool of reusable LineSegments objects
+type HighlightEdgePool = {
+  meshes: LineSegments[];
+  activeCount: number;
+};
+
+/**
+ * Get or create a cached edge geometry for a tile
+ */
+const getOrCreateEdgeGeometry = (
+  mesh: HexagonalFaceMesh,
+  tileName: string,
+): BufferGeometry => {
+  let geometry = highlightEdgeGeometryCache.get(tileName);
+  if (!geometry) {
+    geometry = new EdgesGeometry(mesh.geometry);
+    highlightEdgeGeometryCache.set(tileName, geometry);
+  }
+  return geometry;
+};
+
+/**
+ * Get a LineSegments from the pool or create a new one
+ */
+const getPooledEdgeMesh = (
+  pool: HighlightEdgePool,
+  geometry: BufferGeometry,
+  material: LineBasicMaterial,
+  zOffset: number,
+): LineSegments => {
+  let edgeMesh: LineSegments;
+
+  if (pool.activeCount < pool.meshes.length) {
+    // Reuse existing mesh from pool
+    edgeMesh = pool.meshes[pool.activeCount]!;
+    edgeMesh.geometry = geometry;
+    edgeMesh.material = material;
+    edgeMesh.visible = true;
+  } else {
+    // Create new mesh and add to pool
+    edgeMesh = new LineSegments(geometry, material);
+    pool.meshes.push(edgeMesh);
+  }
+
+  edgeMesh.position.z = zOffset;
+  pool.activeCount++;
+  return edgeMesh;
+};
+
+/**
+ * Reset pool for next frame (hide all meshes, reset counter)
+ */
+const resetEdgePool = (pool: HighlightEdgePool) => {
+  for (let i = 0; i < pool.activeCount; i++) {
+    const mesh = pool.meshes[i];
+    if (mesh) mesh.visible = false;
+  }
+  pool.activeCount = 0;
+};
+
 /**
  * Highlight possible squares based on action
  * Uses cached intersections to avoid redundant raycasting
+ * Performance optimized: Uses geometry caching and object pooling
  */
 export const highlightTiles = (info: {
   group_tiles: Group;
+  group_highlight_edges: Group;
   cachedIntersections: CachedIntersections;
   user: ReturnedUserState;
   timeDiff: number;
@@ -1239,7 +1339,16 @@ export const highlightTiles = (info: {
   precomputedActions?: CombatAction[];
 }) => {
   // Definitions
-  const { group_tiles, user, battle, currentHighlights, action, grid, timeDiff } = info;
+  const {
+    group_tiles,
+    group_highlight_edges,
+    user,
+    battle,
+    currentHighlights,
+    action,
+    grid,
+    timeDiff,
+  } = info;
   const battleTileIntersects = info.cachedIntersections.battleTiles;
   const hit = battleTileIntersects.length > 0 && battleTileIntersects[0];
   const users = battle.usersState;
@@ -1255,6 +1364,16 @@ export const highlightTiles = (info: {
   const { canAct } = actionPointsAfterAction(user, battle, action);
   const canUseTile = actor.userId === user.userId && canAct;
 
+  // Get or create the edge mesh pool (stored on group userData for persistence)
+  let pool = group_highlight_edges.userData.edgePool as HighlightEdgePool | undefined;
+  if (!pool) {
+    pool = { meshes: [], activeCount: 0 };
+    group_highlight_edges.userData.edgePool = pool;
+  }
+
+  // Reset pool - hide all previously active meshes
+  resetEdgePool(pool);
+
   // Highlight fields on the map where action can be applied
   const newHighlights = new Set<string>();
   const highlights = getPossibleActionTiles(action, origin, grid);
@@ -1262,12 +1381,21 @@ export const highlightTiles = (info: {
   if (highlights && canUseTile) {
     highlights.forEach((tile) => {
       if (tile) {
-        const mesh = group_tiles.getObjectByName(
-          `${tile.row},${tile.col}`,
-        ) as HexagonalFaceMesh;
+        const tileName = `${tile.row},${tile.col}`;
+        const mesh = group_tiles.getObjectByName(tileName) as HexagonalFaceMesh;
         if (mesh) {
           mesh.userData.highlight = true;
           newHighlights.add(mesh.name);
+
+          // Get cached geometry and pooled mesh for highlight edge
+          const geometry = getOrCreateEdgeGeometry(mesh, tileName);
+          const edgeMesh = getPooledEdgeMesh(
+            pool,
+            geometry,
+            highlightEdgeMaterials.highlight,
+            HIGHLIGHT_EDGE_Z_OFFSET,
+          );
+          if (!edgeMesh.parent) group_highlight_edges.add(edgeMesh);
         }
       }
     });
@@ -1302,6 +1430,7 @@ export const highlightTiles = (info: {
     // Is the target in the highlights?
     const isAvailable =
       highlights.filter((h) => h === targetTile).size > 0 && !red.has(targetTile);
+
     // Highlight the tiles in different colors
     green.forEach((tile) => {
       const name = `${tile.row},${tile.col}`;
@@ -1321,6 +1450,19 @@ export const highlightTiles = (info: {
           }
           mesh.material.color.copy(tintedColor);
         }
+        // Get cached geometry and pooled mesh for selected edge
+        const geometry = getOrCreateEdgeGeometry(mesh, name);
+        const material =
+          hasMove && tile === targetTile
+            ? highlightEdgeMaterials.blue
+            : highlightEdgeMaterials.green;
+        const edgeMesh = getPooledEdgeMesh(
+          pool,
+          geometry,
+          material,
+          HIGHLIGHT_EDGE_Z_OFFSET_SELECTED,
+        );
+        if (!edgeMesh.parent) group_highlight_edges.add(edgeMesh);
         newSelection.add(name);
       }
     });
@@ -1337,6 +1479,15 @@ export const highlightTiles = (info: {
           tintedColor.lerp(new Color("rgb(255, 50, 50)"), 0.2);
           mesh.material.color.copy(tintedColor);
         }
+        // Get cached geometry and pooled mesh for red edge
+        const geometry = getOrCreateEdgeGeometry(mesh, name);
+        const edgeMesh = getPooledEdgeMesh(
+          pool,
+          geometry,
+          highlightEdgeMaterials.red,
+          HIGHLIGHT_EDGE_Z_OFFSET_SELECTED,
+        );
+        if (!edgeMesh.parent) group_highlight_edges.add(edgeMesh);
         newSelection.add(name);
       }
     });

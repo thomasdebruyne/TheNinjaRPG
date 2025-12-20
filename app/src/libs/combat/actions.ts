@@ -88,10 +88,14 @@ export const availableUserActions = (
   // Concatenate all actions
   let availableActions = [
     ...(basicMoves && !isStealth ? [basicActions.basicAttack] : []),
-    ...(basicMoves ? [basicActions.basicHeal] : []),
     ...(!isImmobilized ? [basicActions.basicMove] : []),
     ...(basicMoves && !isStealth && !isStudent
-      ? [basicActions.basicClear, basicActions.basicCleanse, basicActions.basicFlee]
+      ? [
+          basicActions.basicHeal,
+          basicActions.basicClear,
+          basicActions.basicCleanse,
+          basicActions.basicFlee,
+        ]
       : []),
     ...(availableActionPoints && availableActionPoints > 0
       ? [
@@ -164,7 +168,13 @@ export const availableUserActions = (
       : []),
   ];
   // If we only have move & end turn action, also add basic attack
-  if (availableActions.length === 2 && !isStealth) {
+  // If only 'move' and 'endTurn' actions are available, also add 'basicAttack'
+  if (
+    !isStealth &&
+    availableActions.length === 2 &&
+    availableActions.some((a) => a.id === "move") &&
+    availableActions.some((a) => a.id === "wait")
+  ) {
     availableActions.push(basicActions.basicAttack);
   }
   // If we hide cooldowns, hide then
