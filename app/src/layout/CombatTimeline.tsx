@@ -18,6 +18,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ContentImage from "@/layout/ContentImage";
 import ItemWithEffects, { type GenericObject } from "@/layout/ItemWithEffects";
 import Loader from "@/layout/Loader";
@@ -93,10 +99,20 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
   }, []);
 
   // Reset limit when battle version or filter changes
-  useEffect(() => setLimit(pageSize), [battleVersion, pageSize, userFilter]);
+  useEffect(
+    () => setLimit(pageSize),
+    [battleVersion, pageSize, userFilter, showBasicActions],
+  );
 
   const { data: entries, isFetching } = api.combat.getBattleEntries.useQuery(
-    { battleId, limit, offset: 0, refreshKey: battleVersion ?? 0, userFilter },
+    {
+      battleId,
+      limit,
+      offset: 0,
+      refreshKey: battleVersion ?? 0,
+      userFilter,
+      showBasicActions,
+    },
     { enabled: !!battleId, placeholderData: (prev) => prev },
   );
 
@@ -143,10 +159,36 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
               : placeholderObj);
         }
 
-        return { entry, user, action, actionItem, actionImage };
-      })
-      .filter((r) => showBasicActions || r.action?.type !== "basic");
-  }, [entries, battle, showBasicActions]);
+        // Calculate remaining rounds for active effects from this action
+        let remainingRounds = 0;
+        let isNewEffect = false;
+        if (battle && entry.actionId) {
+          const allEffects = [
+            ...(battle.usersEffects ?? []),
+            ...(battle.groundEffects ?? []),
+          ];
+          const actionEffects = allEffects.filter(
+            (e) =>
+              e.actionId === entry.actionId && e.rounds !== undefined && e.rounds > 0,
+          );
+          if (actionEffects.length > 0) {
+            remainingRounds = Math.max(...actionEffects.map((e) => e.rounds ?? 0));
+            // Check if any effect was cast this round (not active yet)
+            isNewEffect = actionEffects.some((e) => e.castThisRound);
+          }
+        }
+
+        return {
+          entry,
+          user,
+          action,
+          actionItem,
+          actionImage,
+          remainingRounds,
+          isNewEffect,
+        };
+      });
+  }, [entries, battle]);
 
   // Auto-scroll to right only when new entries appear (not when loading older)
   useEffect(() => {
@@ -232,56 +274,93 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
             </p>
           )}
 
-          {resolvedEntries.map(({ entry, user, actionImage }, idx) => (
-            <React.Fragment key={entry.id}>
-              {idx > 0 && (
-                <div className="relative w-4 flex-none">
-                  <ChevronRight className="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/70" />
-                </div>
-              )}
-              <button
-                className={cn(
-                  "group relative flex w-20 flex-none flex-col items-center rounded-lg px-1 py-1 text-xs transition",
-                  "hover:bg-slate-200",
+          {resolvedEntries.map(
+            (
+              { entry, user, actionImage, actionItem, remainingRounds, isNewEffect },
+              idx,
+            ) => (
+              <React.Fragment key={entry.id}>
+                {idx > 0 && (
+                  <div className="relative w-4 flex-none">
+                    <ChevronRight className="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/70" />
+                  </div>
                 )}
-                onClick={() => setSelected(entry)}
-                aria-label="View action details"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="relative">
-                    <div className="rounded-full border bg-slate-50 shadow-sm group-hover:border-gray-400">
-                      {actionImage ? (
-                        <ContentImage
-                          image={actionImage}
-                          alt="Action"
-                          className="h-16 w-16 rounded-full"
-                        />
-                      ) : (
-                        <div className="h-16 w-16 rounded-full bg-muted" />
-                      )}
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 rounded-full bg-slate-50 shadow-sm group-hover:border-gray-400">
-                      {user?.avatar ? (
-                        <ContentImage
-                          image={user.avatar}
-                          alt={user.username}
-                          className="h-8 w-8 rounded-full"
-                        />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-muted" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-4 text-[10px] font-medium text-gray-600">
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                      <Clock className="h-3 w-3" />
-                      <span>Round {entry.battleRound}</span>
-                    </span>
-                  </div>
-                </div>
-              </button>
-            </React.Fragment>
-          ))}
+                <TooltipProvider delayDuration={50}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className={cn(
+                          "group relative flex w-20 flex-none flex-col items-center rounded-lg px-1 py-1 text-xs transition",
+                          "hover:bg-slate-200",
+                        )}
+                        onClick={() => setSelected(entry)}
+                        aria-label="View action details"
+                      >
+                        <div className="flex flex-col items-center">
+                          <div className="relative">
+                            <div className="rounded-full border bg-slate-50 shadow-sm group-hover:border-gray-400">
+                              {actionImage ? (
+                                <ContentImage
+                                  image={actionImage}
+                                  alt="Action"
+                                  className="h-16 w-16 rounded-full"
+                                />
+                              ) : (
+                                <div className="h-16 w-16 rounded-full bg-muted" />
+                              )}
+                            </div>
+                            {/* Remaining rounds indicator - bottom left */}
+                            {remainingRounds > 0 && (
+                              <TooltipProvider delayDuration={50}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className={cn(
+                                        "absolute -bottom-1 -left-1 flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold shadow-sm",
+                                        isNewEffect
+                                          ? "border-red-400 bg-red-100 text-red-700"
+                                          : "border-green-500 bg-green-100 text-green-700",
+                                      )}
+                                    >
+                                      {remainingRounds}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {remainingRounds} round
+                                    {remainingRounds !== 1 ? "s" : ""} remaining
+                                    {isNewEffect ? " (activates next round)" : ""}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {/* User avatar - bottom right */}
+                            <div className="absolute -bottom-1 -right-1 rounded-full bg-slate-50 shadow-sm group-hover:border-gray-400">
+                              {user?.avatar ? (
+                                <ContentImage
+                                  image={user.avatar}
+                                  alt={user.username}
+                                  className="h-8 w-8 rounded-full"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-muted" />
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-4 text-[10px] font-medium text-gray-600">
+                            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                              <Clock className="h-3 w-3" />
+                              <span>Round {entry.battleRound}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{actionItem.name}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </React.Fragment>
+            ),
+          )}
         </div>
       </div>
 

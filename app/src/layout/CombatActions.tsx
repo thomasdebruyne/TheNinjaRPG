@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import ContentImage from "./ContentImage";
 import DurabilityBar from "@/layout/DurabilityBar";
 import { useUserData } from "@/utils/UserContext";
-import { Info, HelpCircle, Star, Palette } from "lucide-react";
+import { Info, HelpCircle, Star, Palette, Zap } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import ElementImage from "@/layout/ElementImage";
@@ -39,6 +39,7 @@ interface ActionItemProps {
   isReskinned?: boolean;
   assetType?: GameAssetType;
   url?: string;
+  actionCostPerc?: number;
 }
 
 interface ActionSelectorSettingsProps {
@@ -59,6 +60,7 @@ interface ActionSelectorSettingsProps {
   setLastElement?: (el: HTMLDivElement | null) => void;
   showInfoIcon?: boolean;
   combatMode?: boolean;
+  userActionPoints?: number;
 }
 
 interface ActionSelectorProps extends ActionSelectorSettingsProps {
@@ -77,12 +79,53 @@ interface ActionSelectorProps extends ActionSelectorSettingsProps {
 export const ActionSelector: React.FC<ActionSelectorProps> = (props) => {
   const { data: userData } = useUserData();
   const { items, counts, renderItem, ...settings } = props;
+  const { combatMode, selectedId, currentRound, userActionPoints, onClick } = props;
   const filtered = items?.filter(
     (i) => !i.hidden || (userData && canChangeContent(userData.role)),
   );
   const base = "gap-1 text-xs";
   const grid = props.gridClassNameOverwrite || "grid grid-cols-6 md:grid-cols-7";
   const bgColor = props.showBgColor ? "rounded-lg border bg-slate-50 text-black" : "";
+
+  // Track previous round to detect round changes
+  const prevRoundRef = useRef<number | undefined>(currentRound);
+
+  // Auto-deselect action in combat mode when round changes
+  useEffect(() => {
+    if (!combatMode || currentRound === undefined) return;
+    if (prevRoundRef.current !== undefined && prevRoundRef.current !== currentRound) {
+      if (selectedId) {
+        onClick(selectedId);
+      }
+    }
+    prevRoundRef.current = currentRound;
+  }, [combatMode, currentRound, selectedId, onClick]);
+
+  // Auto-deselect action in combat mode if it can't be repeated
+  useEffect(() => {
+    if (!combatMode || !selectedId || !filtered) return;
+    const selectedItem = filtered.find((i) => i.id === selectedId);
+    if (!selectedItem) return;
+
+    // Check if action is on cooldown
+    const isOnCooldown =
+      selectedItem.cooldown &&
+      selectedItem.cooldown > 0 &&
+      currentRound !== undefined &&
+      selectedItem.lastUsedRound !== undefined &&
+      currentRound - selectedItem.lastUsedRound < selectedItem.cooldown;
+
+    // Check if user has insufficient AP
+    const insufficientAP =
+      userActionPoints !== undefined &&
+      selectedItem.actionCostPerc !== undefined &&
+      userActionPoints < selectedItem.actionCostPerc;
+
+    if (isOnCooldown || insufficientAP) {
+      onClick(selectedId);
+    }
+  }, [combatMode, selectedId, currentRound, userActionPoints, onClick, filtered]);
+
   return (
     <>
       <div className={cn(base, grid, bgColor, props.className)}>
@@ -170,6 +213,7 @@ export const ActionOption: React.FC<ActionOptionProps> = (props) => {
     lastUsedRound,
     warning,
     isReskinned,
+    actionCostPerc,
   } = item;
 
   // Derived values
@@ -183,23 +227,32 @@ export const ActionOption: React.FC<ActionOptionProps> = (props) => {
     ? item.effects.flatMap((e) => ("elements" in e && e.elements ? e.elements : []))
     : [];
 
+  // Check if user has insufficient AP (only in combat mode)
+  const insufficientAP =
+    settings.combatMode &&
+    settings.userActionPoints !== undefined &&
+    actionCostPerc !== undefined &&
+    settings.userActionPoints < actionCostPerc;
+
+  // Handler that prevents selection when AP is insufficient
+  const handleClick = () => {
+    if (insufficientAP) return;
+    settings.onClick(item.id);
+  };
+
   // Render
   return (
     <div
       className={cn(
-        "relative text-center flex cursor-pointer flex-col items-center justify-start rounded-md",
-        props.isGreyed ? "hover:opacity-80" : "hover:opacity-90",
+        "relative text-center flex flex-col items-center justify-start rounded-md",
+        insufficientAP ? "cursor-not-allowed" : "cursor-pointer",
+        props.isGreyed ? "hover:opacity-80" : insufficientAP ? "" : "hover:opacity-90",
         props.className,
       )}
     >
       <div className="relative w-full">
         {item.assetType === "SFX" && item.url ? (
-          <div
-            className={cn(settings.aspectRatioClass)}
-            onClick={() => {
-              settings.onClick(item.id);
-            }}
-          >
+          <div className={cn(settings.aspectRatioClass)} onClick={handleClick}>
             <div className="relative w-full aspect-square rounded-xl border-2 bg-slate-100 flex items-center justify-center">
               <audio
                 src={item.url}
@@ -221,9 +274,7 @@ export const ActionOption: React.FC<ActionOptionProps> = (props) => {
             hideBorder={settings.hideBorder}
             frames={frames}
             speed={speed}
-            onClick={() => {
-              settings.onClick(item.id);
-            }}
+            onClick={handleClick}
           />
         )}
         {/* Count overlay - bottom right corner */}
@@ -276,6 +327,19 @@ export const ActionOption: React.FC<ActionOptionProps> = (props) => {
                 </div>
               )}
           </>
+        )}
+        {/* Insufficient AP overlay */}
+        {insufficientAP && cooldownPerc === 0 && (
+          <TooltipProvider delayDuration={50}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute top-0 right-0 left-0 bottom-0 bg-slate-800/70 flex items-center justify-center cursor-not-allowed rounded-md">
+                  <Zap className="h-8 w-8 text-red-500" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Not enough AP</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         {/* Help / info icon - bottom left corner */}
         {settings.showInfoIcon && (

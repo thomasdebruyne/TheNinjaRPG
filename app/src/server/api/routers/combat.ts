@@ -8,7 +8,19 @@ import {
   hasUserMiddleware,
 } from "@/api/trpc";
 import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
-import { eq, or, and, sql, gt, ne, isNotNull, isNull, inArray, gte } from "drizzle-orm";
+import {
+  eq,
+  or,
+  and,
+  sql,
+  gt,
+  ne,
+  isNotNull,
+  isNull,
+  inArray,
+  notInArray,
+  gte,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { desc, lt } from "drizzle-orm";
 import {
@@ -269,11 +281,25 @@ export const combatRouter = createTRPCRouter({
         offset: z.number().optional(),
         // Filter: "all" = no filter, "user" = only current user, "opponents" = exclude current user
         userFilter: z.enum(["all", "user", "opponents"]).optional(),
+        // Whether to include basic actions (move, wait, etc.) in results
+        showBasicActions: z.boolean().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const limit = input.limit ?? 30;
       const filter = input.userFilter ?? "all";
+      const showBasicActions = input.showBasicActions ?? true;
+
+      // Basic action IDs to filter out when showBasicActions is false
+      const basicActionIds = [
+        "basicAttack",
+        "basicHeal",
+        "move",
+        "cleanse",
+        "clear",
+        "flee",
+        "wait",
+      ];
 
       // Build where conditions
       const conditions = [eq(battleAction.battleId, input.battleId)];
@@ -281,6 +307,9 @@ export const combatRouter = createTRPCRouter({
         conditions.push(eq(battleAction.userId, ctx.userId));
       } else if (filter === "opponents") {
         conditions.push(ne(battleAction.userId, ctx.userId));
+      }
+      if (!showBasicActions) {
+        conditions.push(notInArray(battleAction.actionId, basicActionIds));
       }
 
       const entries = await ctx.drizzle.query.battleAction.findMany({
