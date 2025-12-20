@@ -83,7 +83,8 @@ const OPTIONS = {
 
 /**
  * Helper to check if an error is a PayPal cleanup error that should be suppressed.
- * These occur when users navigate away while PayPal buttons are initializing.
+ * These occur when users navigate away while PayPal buttons are initializing,
+ * or when users close the PayPal popup before the transaction completes.
  */
 const isPayPalCleanupError = (err: unknown): boolean => {
   const errorMessage = err?.toString() ?? "";
@@ -91,7 +92,8 @@ const isPayPalCleanupError = (err: unknown): boolean => {
     errorMessage.includes("zoid destroyed") ||
     errorMessage.includes("popup close") ||
     errorMessage.includes("Window closed") ||
-    errorMessage.includes("Component closed")
+    errorMessage.includes("Component closed") ||
+    errorMessage.includes("Target window is closed")
   );
 };
 
