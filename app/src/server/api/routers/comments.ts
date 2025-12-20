@@ -332,7 +332,8 @@ export const commentsRouter = createTRPCRouter({
       const filteredConverations = data?.conversations
         .filter(
           (c) =>
-            !c.conversation?.users
+            c.conversation &&
+            !c.conversation.users
               .filter((u) => u.userData)
               .every((u) =>
                 data.creatorBlacklist.some(
@@ -343,7 +344,7 @@ export const commentsRouter = createTRPCRouter({
         )
         .map((c) => ({
           ...c.conversation,
-          users: c.conversation.users.filter((u) => u.userData),
+          users: c.conversation!.users.filter((u) => u.userData),
         }))
         .sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1));
       // Return filtered conversations
