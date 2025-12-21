@@ -4092,6 +4092,11 @@ export const visitorLog = mysqlTable(
       refIdx: index("VisitorLog_ref_idx").on(table.ref),
       utmSourceIdx: index("VisitorLog_utmSource_idx").on(table.utmSource),
       createdAtIdx: index("VisitorLog_createdAt_idx").on(table.createdAt),
+      // Composite index for revenue analytics join (ip) + filter (utmSource)
+      ipUtmSourceIdx: index("VisitorLog_ip_utmSource_idx").on(
+        table.ip,
+        table.utmSource,
+      ),
     };
   },
 );

@@ -652,7 +652,7 @@ export const drawVillage = (
         // Add a structure group
         const { height: h, x, y } = pos;
         //  Structure shadow in the top of the structure, with edges from the original structure
-        const shadow_texture2 = loadTexture(structure.image);
+        const shadow_texture2 = loadTexture(structure.image, 200);
         const shadow_material2 = new SpriteMaterial({
           map: shadow_texture2,
           color: 0x000000,
@@ -666,7 +666,7 @@ export const drawVillage = (
         shadow_sprite2.position.set(x - 0.2 * h, y + h / 10 + 0.2 * h, ASSETS_LAYER);
         group.add(shadow_sprite2);
         // Structure
-        const texture = loadTexture(structure.image);
+        const texture = loadTexture(structure.image, 200);
         const material = new SpriteMaterial({
           map: texture,
           depthWrite: false,

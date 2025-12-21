@@ -24,10 +24,11 @@ let textureLoaderInstance: TextureLoader | null = null;
  * Transforms image URLs to use the CDN endpoint.
  * Replaces "utfs.io" or "ui0arpl8sm.ufs.sh" with "uploadthing.b-cdn.net"
  */
-const transformImageUrl = (url: string): string => {
-  return url
+const transformImageUrl = (url: string, width: number): string => {
+  const transformedUrl = url
     .replace(/utfs\.io/g, "uploadthing.b-cdn.net")
     .replace(/ui0arpl8sm\.ufs\.sh/g, "uploadthing.b-cdn.net");
+  return `${transformedUrl}?width=${width}`;
 };
 
 /**
@@ -48,7 +49,7 @@ const pendingLoads = new Map<string, Promise<Texture>>();
 /**
  * Load texture from file
  */
-export const loadTexture = (path: string) => {
+export const loadTexture = (path: string, width = 50) => {
   // Guard against empty or invalid paths - callers should provide fallback URLs
   if (!path || path.trim() === "") {
     // Return a new empty texture to prevent crashes, but this shouldn't happen
@@ -57,7 +58,7 @@ export const loadTexture = (path: string) => {
     return fallback;
   }
 
-  const transformedPath = transformImageUrl(path);
+  const transformedPath = transformImageUrl(path, width);
 
   // Return cached texture if available
   const cached = textureCache.get(transformedPath);
@@ -88,7 +89,9 @@ export const createSpriteMaterial = (map: Texture, alphaMap?: Texture) => {
  */
 export const preloadTextures = async (paths: string[]) => {
   const uniquePaths = [
-    ...new Set(paths.filter((p) => Boolean(p)).map(transformImageUrl)),
+    ...new Set(
+      paths.filter((p) => Boolean(p)).map((path) => transformImageUrl(path, 50)),
+    ),
   ];
   const results = await Promise.allSettled(
     uniquePaths.map((path) => {

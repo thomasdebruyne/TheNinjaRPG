@@ -1812,7 +1812,7 @@ export const fetchUser = async (client: DrizzleClient, userId: string) => {
     where: eq(userData.userId, userId),
   });
   if (!user) {
-    throw new Error(`fetchUser: User not found: ${userId}`);
+    throw serverError("NOT_FOUND", `User not found: ${userId}. Please complete registration.`);
   }
   return user;
 };
