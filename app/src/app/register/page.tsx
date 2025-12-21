@@ -97,27 +97,35 @@ const Register: React.FC = () => {
     });
 
   // Prepare initial randomized defaults for style-related fields
-  const validAttributes = attributes.filter(
-    (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
-  );
-  const shuffledAttributes = [...validAttributes].sort(() => 0.5 - Math.random());
-  const [initialAttr1, initialAttr2, initialAttr3] = shuffledAttributes.slice(0, 3);
+  // Using useState with lazy initialization to ensure values are computed only once
+  // and are consistent between SSR and client (prevents hydration mismatch)
+  const [initialFormValues] = useState(() => {
+    const validAttributes = attributes.filter(
+      (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
+    );
+    const shuffledAttributes = [...validAttributes].sort(() => 0.5 - Math.random());
+    const [attr1, attr2, attr3] = shuffledAttributes.slice(0, 3);
 
-  const validColors = colors.filter(
-    (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-  );
-  const validSkinColors = skin_colors.filter(
-    (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-  );
-  const validGenders = genders.filter(
-    (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
-  );
+    const validColors = colors.filter(
+      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+    );
+    const validSkinColors = skin_colors.filter(
+      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+    );
+    const validGenders = genders.filter(
+      (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
+    );
 
-  const initialHairColor = validColors[Math.floor(Math.random() * validColors.length)]!;
-  const initialEyeColor = validColors[Math.floor(Math.random() * validColors.length)]!;
-  const initialSkinColor =
-    validSkinColors[Math.floor(Math.random() * validSkinColors.length)]!;
-  const initialGender = validGenders[Math.floor(Math.random() * validGenders.length)]!;
+    return {
+      attribute_1: attr1,
+      attribute_2: attr2,
+      attribute_3: attr3,
+      hair_color: validColors[Math.floor(Math.random() * validColors.length)]!,
+      eye_color: validColors[Math.floor(Math.random() * validColors.length)]!,
+      skin_color: validSkinColors[Math.floor(Math.random() * validSkinColors.length)]!,
+      gender: validGenders[Math.floor(Math.random() * validGenders.length)]!,
+    };
+  });
 
   // Get unsigned user settings from localStorage
   const getLocalStorageBoolean = (key: string, defaultValue: boolean): boolean => {
@@ -136,13 +144,13 @@ const Register: React.FC = () => {
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       username: "",
-      gender: initialGender,
-      hair_color: initialHairColor,
-      eye_color: initialEyeColor,
-      skin_color: initialSkinColor,
-      attribute_1: initialAttr1,
-      attribute_2: initialAttr2,
-      attribute_3: initialAttr3,
+      gender: initialFormValues.gender,
+      hair_color: initialFormValues.hair_color,
+      eye_color: initialFormValues.eye_color,
+      skin_color: initialFormValues.skin_color,
+      attribute_1: initialFormValues.attribute_1,
+      attribute_2: initialFormValues.attribute_2,
+      attribute_3: initialFormValues.attribute_3,
       bloodlineId: undefined,
       musicOn: getLocalStorageBoolean("musicOn", true),
       sfxOn: getLocalStorageBoolean("sfxOn", true),
