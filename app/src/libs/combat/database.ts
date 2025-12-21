@@ -179,7 +179,12 @@ export const saveUsage = async (
       await client
         .insert(dataBattleAction)
         .values(uniqueData)
-        .onDuplicateKeyUpdate({ set: { count: sql`${dataBattleAction.count} + 1` } });
+        .onDuplicateKeyUpdate({
+          set: {
+            count: sql`${dataBattleAction.count} + 1`,
+            updatedAt: new Date(),
+          },
+        });
     }
   }
 };

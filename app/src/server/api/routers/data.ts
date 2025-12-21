@@ -1266,12 +1266,7 @@ export const dataRouter = createTRPCRouter({
           })
           .from(dataBattleAction)
           .innerJoin(bloodline, eq(dataBattleAction.contentId, bloodline.id))
-          .groupBy(
-            bloodline.name,
-            bloodline.id,
-            dataBattleAction.battleWon,
-            dataBattleAction.battleType,
-          )
+          .groupBy(bloodline.name, bloodline.id, dataBattleAction.battleWon)
           .where(and(...whereConditions))
           .having(gte(sql`SUM(${dataBattleAction.count})`, input.minCount)),
       ]);

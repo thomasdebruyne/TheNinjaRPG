@@ -2898,6 +2898,9 @@ export const dataBattleAction = mysqlTable(
     createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),
+    updatedAt: datetime("updatedAt", { mode: "date", fsp: 3 })
+      .default(sql`(CURRENT_TIMESTAMP(3))`)
+      .notNull(),
     battleWon: tinyint("battleWon").notNull(),
     count: int("count").notNull().default(1),
   },
