@@ -1118,7 +1118,7 @@ const SorroundingUsers: React.FC<SorroundingUsersProps> = (props) => {
         </p>
       )}
       <div className="grid grid-cols-3 gap-4 text-center sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10  xl:grid-cols-14 pb-3">
-        {users.map((user, i) => {
+        {users.map((user) => {
           // Derived
           const sameHex =
             user.latitude === props.hex.row && user.longitude === props.hex.col;
@@ -1136,7 +1136,7 @@ const SorroundingUsers: React.FC<SorroundingUsersProps> = (props) => {
 
           // Show user
           return (
-            <div key={i}>
+            <div key={`${user.userId}-sorrounding-${user.longitude}-${user.latitude}`}>
               <div className="relative">
                 <div className="absolute right-0 top-0 z-50 hover:opacity-80 hover:cursor-pointer max-w-1/3">
                   {showAttack && sameHex && (

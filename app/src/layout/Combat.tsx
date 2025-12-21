@@ -992,10 +992,10 @@ const Combat: React.FC<CombatProps> = (props) => {
               <div className="flex flex-row gap-4">
                 {battle.current.usersState
                   .filter((u) => u.isOriginal && !u.isAi)
-                  .map((u, i) => {
+                  .map((u) => {
                     return (
                       <div
-                        key={i}
+                        key={`${u.userId}-initiative-${u.initiative}`}
                         className="flex flex-col items-center relative font-bold"
                       >
                         <Image
