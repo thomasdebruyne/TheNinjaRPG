@@ -1,0 +1,1 @@
+ALTER TABLE `ForumThread` ADD `image` varchar(512);

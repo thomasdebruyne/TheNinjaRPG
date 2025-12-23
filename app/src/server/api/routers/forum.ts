@@ -10,7 +10,13 @@ import { errorResponse, baseServerResponse } from "@/server/api/trpc";
 import { eq, sql, desc, asc } from "drizzle-orm";
 import { forumBoardSchema } from "@/validators/forum";
 import { canModerate, canCreateNews } from "@/utils/permissions";
-import { callDiscordNews } from "@/libs/discord";
+import {
+  callDiscordNews,
+  callFacebookNews,
+  callInstagramNews,
+  callRedditNews,
+  callTwitterNews,
+} from "@/libs/socials";
 import { resolveSenderId } from "@/libs/comments";
 import { fetchUser } from "@/routers/profile";
 import { nanoid } from "nanoid";
@@ -75,7 +81,17 @@ export const forumRouter = createTRPCRouter({
         return errorResponse("Board does not exist");
       }
       if (isNews) {
-        await callDiscordNews(user.username, input.title, input.content, user.avatar);
+        const socialPosts = [
+          callDiscordNews(user.username, input.title, input.content, user.avatar),
+          callFacebookNews(input.title, input.content),
+          callRedditNews(input.title, input.content),
+          callTwitterNews(input.title, input.content),
+        ];
+        // Only post to Instagram if an image is attached
+        if (input.image) {
+          socialPosts.push(callInstagramNews(input.title, input.content, input.image));
+        }
+        await Promise.all(socialPosts);
       }
       // Mutate
       const sanitized = sanitize(input.content);
@@ -91,6 +107,7 @@ export const forumRouter = createTRPCRouter({
         ctx.drizzle.insert(forumThread).values({
           id: threadId,
           title: input.title,
+          image: input.image,
           boardId: input.board_id,
           userId: effectiveUserId,
         }),

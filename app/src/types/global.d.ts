@@ -5,6 +5,17 @@ declare global {
       DISCORD_TICKETS: string;
       DISCORD_CONTENT_UPDATES: string;
       DISCORD_NEWS_UPDATES: string;
+      FACEBOOK_PAGE_ID: string;
+      FACEBOOK_PAGE_ACCESS_TOKEN: string;
+      INSTAGRAM_BUSINESS_ACCOUNT_ID: string;
+      REDDIT_CLIENT_ID: string;
+      REDDIT_CLIENT_SECRET: string;
+      REDDIT_REFRESH_TOKEN: string;
+      REDDIT_SUBREDDIT: string;
+      TWITTER_API_KEY: string;
+      TWITTER_API_SECRET: string;
+      TWITTER_ACCESS_TOKEN: string;
+      TWITTER_ACCESS_SECRET: string;
       REPLICATE_API_TOKEN: string;
       CAPTCHA_SALT: string;
       PUSHER_APP_ID: string;

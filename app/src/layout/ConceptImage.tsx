@@ -24,6 +24,8 @@ import type { ImageWithRelations } from "@/routers/conceptart";
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   image: ImageWithRelations | undefined | null;
   showDetails?: boolean;
+  width?: number;
+  height?: number;
 }
 
 const ConceptImage: React.FC<InputProps> = (props) => {
@@ -92,8 +94,8 @@ const ConceptImage: React.FC<InputProps> = (props) => {
       <div className="relative">
         <Image
           src={image.image}
-          width={512}
-          height={768}
+          width={props.width || 512}
+          height={props.height || 768}
           quality={100}
           unoptimized={true}
           placeholder="blur"

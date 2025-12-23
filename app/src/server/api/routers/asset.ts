@@ -8,7 +8,7 @@ import { actionLog, contentTag } from "@/drizzle/schema";
 import { gameAssetValidator } from "@/validators/asset";
 import { fetchUser } from "@/routers/profile";
 import { canChangeContent } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/discord";
+import { callDiscordContent } from "@/libs/socials";
 import { calculateContentDiff } from "@/utils/diff";
 import { GameAssetTypes, IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
 import { gameAssetSchema } from "@/validators/asset";

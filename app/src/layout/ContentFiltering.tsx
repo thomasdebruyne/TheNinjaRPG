@@ -436,6 +436,7 @@ export const buildFilter = <
       if (field.type === "text" || field.type === "date")
         return typeof debouncedValue !== "string" || debouncedValue.length === 0;
       if (field.type === "tri-state") return debouncedValue === undefined;
+      if (field.type === "number") return debouncedValue === undefined;
       if (
         "emptyValues" in field &&
         Array.isArray(field.emptyValues) &&

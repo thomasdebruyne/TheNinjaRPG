@@ -38,7 +38,7 @@ import {
   canEditStarterQuests,
   canPlayHiddenQuests,
 } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/discord";
+import { callDiscordContent } from "@/libs/socials";
 import { LetterRanks } from "@/drizzle/constants";
 import { calculateContentDiff } from "@/utils/diff";
 import { initiateBattle } from "@/routers/combat";

@@ -6,7 +6,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/api/trp
 import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
 import { fetchUpdatedUser } from "@/routers/profile";
 import { canChangeContent } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/discord";
+import { callDiscordContent } from "@/libs/socials";
 import { calculateContentDiff } from "@/utils/diff";
 import { IMG_AVATAR_DEFAULT, COST_SKILL_RESET } from "@/drizzle/constants";
 import { SkillTreeValidator } from "@/libs/combat/types";

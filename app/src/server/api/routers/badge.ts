@@ -8,7 +8,7 @@ import { actionLog } from "@/drizzle/schema";
 import { BadgeValidator } from "@/validators/badge";
 import { fetchUser } from "@/routers/profile";
 import { canChangeContent } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/discord";
+import { callDiscordContent } from "@/libs/socials";
 import { calculateContentDiff } from "@/utils/diff";
 import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
 import { setEmptyStringsToNulls } from "@/utils/typeutils";

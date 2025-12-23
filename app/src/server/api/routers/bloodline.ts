@@ -23,7 +23,7 @@ import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
 import { BloodlineValidator } from "@/libs/combat/types";
 import { getRandomElement } from "@/utils/array";
 import { canChangeContent } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/discord";
+import { callDiscordContent } from "@/libs/socials";
 import { ROLL_CHANCE, REMOVAL_COST, BLOODLINE_COST } from "@/drizzle/constants";
 import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
 import { calculateContentDiff } from "@/utils/diff";

@@ -57,7 +57,7 @@ const makeUserFilteringSchema = () =>
         label: "Effects",
         type: "multi-select",
         defaultValue: [],
-        options: effectFilters.map((ef) => ({ value: ef, label: ef })),
+        options: (effectFilters ?? []).map((ef) => ({ value: ef, label: ef })),
         visibleIf: (ctx) =>
           Boolean((ctx as { showEffects?: boolean } | undefined)?.showEffects),
       },

@@ -28,6 +28,7 @@ const makeSchema = (bloodlines: { id: string; name: string }[]) =>
         label: "Minimum Count",
         type: "number",
         defaultValue: undefined,
+        normalizeForFilter: (v) => (v !== undefined && v >= 1 ? v : undefined),
       },
       {
         id: "jutsuEffects",

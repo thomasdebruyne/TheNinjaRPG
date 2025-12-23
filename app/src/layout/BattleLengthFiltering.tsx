@@ -26,6 +26,7 @@ const makeSchema = () =>
         label: "Minimum Count",
         type: "number",
         defaultValue: undefined,
+        normalizeForFilter: (v) => (v !== undefined && v >= 1 ? v : undefined),
       },
       {
         id: "minWinnerLevel",

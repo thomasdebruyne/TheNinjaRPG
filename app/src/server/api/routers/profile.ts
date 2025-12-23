@@ -53,7 +53,7 @@ import { mutateContentSchema } from "@/validators/comments";
 import { attributes } from "@/validators/register";
 import { removeFromSquad, fetchSquad } from "@/routers/anbu";
 import { colors, skin_colors } from "@/validators/register";
-import { callDiscordContent } from "@/libs/discord";
+import { callDiscordContent } from "@/libs/socials";
 import { scaleUserStats } from "@/libs/profile";
 import { insertAiSchema } from "@/drizzle/schema";
 import { calcLevelRequirements } from "@/libs/profile";
@@ -1812,7 +1812,10 @@ export const fetchUser = async (client: DrizzleClient, userId: string) => {
     where: eq(userData.userId, userId),
   });
   if (!user) {
-    throw serverError("NOT_FOUND", `User not found: ${userId}. Please complete registration.`);
+    throw serverError(
+      "NOT_FOUND",
+      `User not found: ${userId}. Please complete registration.`,
+    );
   }
   return user;
 };

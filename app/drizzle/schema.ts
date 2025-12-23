@@ -1032,6 +1032,7 @@ export const forumThread = mysqlTable(
   {
     id: varchar("id", { length: 191 }).primaryKey().notNull(),
     title: varchar("title", { length: 191 }).notNull(),
+    image: varchar("image", { length: 512 }),
     createdAt: datetime("createdAt", { mode: "date", fsp: 3 })
       .default(sql`(CURRENT_TIMESTAMP(3))`)
       .notNull(),

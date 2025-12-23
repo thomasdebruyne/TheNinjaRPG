@@ -47,7 +47,9 @@ const ConceptBox_ConceptImage: React.FC<ConceptBox_ConceptImageProps> = (props) 
         )
       }
     >
-      {image && <ConceptImage image={image} showDetails={true} />}
+      {image && (
+        <ConceptImage image={image} showDetails={true} width={768} height={1344} />
+      )}
       {!image && <div>Image could not be found anymore</div>}
     </ContentBox>
   );

@@ -28,11 +28,14 @@ import { forumBoardSchema, type ForumBoardSchema } from "@/validators/forum";
 import { useUserData } from "@/utils/UserContext";
 import { secondsPassed } from "@/utils/time";
 import { useInfinitePagination } from "@/libs/pagination";
-import { canModerate, canPostAsAi } from "@/utils/permissions";
+import { canModerate, canPostAsAi, canCreateNews } from "@/utils/permissions";
 import { IMG_ICON_FORUM } from "@/drizzle/constants";
 import { getSearchValidator } from "@/validators/register";
 import UserSearchSelect from "@/layout/UserSearchSelect";
+import ContentImageSelector from "@/layout/ContentImageSelector";
 import { useWatch } from "react-hook-form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Instagram } from "lucide-react";
 import type { z } from "zod";
 
 export default function Board(props: { params: Promise<{ boardid: string }> }) {
@@ -68,10 +71,13 @@ export default function Board(props: { params: Promise<{ boardid: string }> }) {
       board_id: board_id,
       title: "",
       content: "",
+      image: null,
       senderId: null,
     },
     resolver: zodResolver(forumBoardSchema),
   });
+
+  const watchedImage = useWatch({ control: form.control, name: "image" });
 
   // User search for sender selection (AI posting)
   const maxUsers = 1;
@@ -87,6 +93,8 @@ export default function Board(props: { params: Promise<{ boardid: string }> }) {
   });
   const senderUser = watchedUsers?.[0];
   const canPostAsAI = userData && canPostAsAi(userData.role);
+  const isNewsBoard = board?.name === "News";
+  const canPostNews = userData && canCreateNews(userData.role);
 
   const { mutate: createThread, isPending: l1 } = api.forum.createThread.useMutation({
     onSuccess: async (data) => {
@@ -120,6 +128,7 @@ export default function Board(props: { params: Promise<{ boardid: string }> }) {
   const onSubmit = form.handleSubmit((data) => {
     createThread({
       ...data,
+      image: data.image || null,
       ...(senderUser?.userId ? { senderId: senderUser.userId } : {}),
     });
   });
@@ -190,6 +199,30 @@ export default function Board(props: { params: Promise<{ boardid: string }> }) {
                         control={form.control}
                         error={form.formState.errors.content?.message}
                       />
+                      {isNewsBoard && canPostNews && (
+                        <div className="mt-4 space-y-3 ">
+                          <ContentImageSelector
+                            label="News Image (for Instagram)"
+                            imageUrl={watchedImage}
+                            id={board_id}
+                            prompt={form.getValues("title") || "News announcement"}
+                            allowImageUpload={true}
+                            type="ai"
+                            size="square"
+                            maxDim={1080}
+                            onUploadComplete={(url) => form.setValue("image", url)}
+                          />
+                          <Alert>
+                            <Instagram className="h-4 w-4" />
+                            <AlertTitle>Instagram Integration</AlertTitle>
+                            <AlertDescription>
+                              Adding an image will automatically post this news to
+                              Instagram. Without an image, news will only be posted to
+                              Discord and Facebook.
+                            </AlertDescription>
+                          </Alert>
+                        </div>
+                      )}
                     </form>
                   </Form>
                 </Confirm2>

@@ -21,7 +21,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/api/trp
 import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
 import { ItemValidator } from "@/libs/combat/types";
 import { canChangeContent } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/discord";
+import { callDiscordContent } from "@/libs/socials";
 import { getStrucBoost } from "@/utils/village";
 import { calcItemSellingPrice, calcItemRepairCost } from "@/libs/item";
 import {
