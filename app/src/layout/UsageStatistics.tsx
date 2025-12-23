@@ -450,7 +450,9 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
       const unknownData: number[] = [];
 
       for (let step = 0; step <= maxSteps; step++) {
-        labels.push(stepLabels?.[step] ?? (step === 0 ? "0 steps (all)" : `${step}+ steps`));
+        labels.push(
+          stepLabels?.[step] ?? (step === 0 ? "0 steps (all)" : `${step}+ steps`),
+        );
 
         // Count users who completed at least this many steps/objectives, by device type
         const usersAtStep = dataWithDevices.filter((d) => {
@@ -562,7 +564,9 @@ export const QuestFunnelBar: React.FC<QuestFunnelBarProps> = ({
       for (let step = 0; step <= maxSteps; step++) {
         const count = stepsArray.filter((n) => n >= step).length;
         values.push(count);
-        labels.push(stepLabels?.[step] ?? (step === 0 ? "0 steps (all)" : `${step}+ steps`));
+        labels.push(
+          stepLabels?.[step] ?? (step === 0 ? "0 steps (all)" : `${step}+ steps`),
+        );
       }
 
       // If in dropoff mode, convert counts to dropoffs

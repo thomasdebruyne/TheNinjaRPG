@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "@/layout/Image";
-import { Trash2, Flag, Info } from "lucide-react";
+import { Trash2, Flag, Info, Share2, Copy, Check } from "lucide-react";
 import { api } from "@/app/_trpc/client";
 import { useUserData } from "@/utils/UserContext";
 import { secondsPassed } from "@/utils/time";
@@ -12,6 +12,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import ReportUser from "@/layout/Report";
 import {
   IMG_ICON_FACEBOOK,
@@ -32,6 +34,7 @@ const ConceptImage: React.FC<InputProps> = (props) => {
   // Destructure props & state
   const { image, showDetails } = props;
   const { data: user } = useUserData();
+  const [copied, setCopied] = useState(false);
 
   // tRPC Utility
   const utils = api.useUtils();
@@ -212,6 +215,52 @@ const ConceptImage: React.FC<InputProps> = (props) => {
                   alt={"TwitterShare"}
                 ></Image>
               </a>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="mx-1 flex h-7 w-7 items-center justify-center rounded hover:bg-slate-700">
+                    <Share2 className="h-5 w-5 cursor-pointer hover:text-orange-500" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 min-w-96" side="top">
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="font-medium">Share to Chat</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Copy this tag and paste it in any conversation to share your
+                        art:
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 rounded bg-slate-200 px-2 py-1 text-sm font-mono text-black">
+                        [conceptart:{image.id}]
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void navigator.clipboard.writeText(
+                            `[conceptart:${image.id}]`,
+                          );
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                      >
+                        {copied ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Others will see your art and can vote on it directly in the chat!
+                    </p>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
               <TooltipProvider delayDuration={50}>
                 <Tooltip>

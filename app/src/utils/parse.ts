@@ -6,6 +6,7 @@ import React from "react";
 import { Quote } from "@/components/ui/quote";
 import { nanoid } from "nanoid";
 import { isAllowedIframeUrl } from "@/utils/audio";
+import EmbeddedConceptArt from "@/layout/EmbeddedConceptArt";
 
 interface HtmlNode {
   type: string;
@@ -51,11 +52,26 @@ const sanitizeIframeAllow = (raw?: string): string => {
   return unique.length ? unique.join("; ") : DEFAULT_IFRAME_ALLOW;
 };
 
+/**
+ * Pre-process HTML to convert special tags to custom elements
+ * Converts [conceptart:id] to <conceptart data-id="id"></conceptart>
+ */
+const preprocessHtml = (html: string): string => {
+  // Convert [conceptart:id] tags to custom HTML elements
+  return html.replace(
+    /\[conceptart:([a-zA-Z0-9_-]+)\]/g,
+    '<conceptart data-id="$1"></conceptart>',
+  );
+};
+
 /*
  * Parse HTML string into React components
  * @param html - HTML string to parse
  */
 export const parseHtml = (html: string) => {
+  // Pre-process to handle special tags
+  const processedHtml = preprocessHtml(html);
+
   const transform: Transform = (node: HtmlNode) => {
     if (
       node.type === "directive" ||
@@ -130,6 +146,16 @@ export const parseHtml = (html: string) => {
         },
         content,
       );
+    } else if (node.type === "tag" && node.name === "conceptart" && node.attribs) {
+      // Render embedded concept art for [conceptart:id] tags
+      const imageId = node.attribs["data-id"];
+      if (imageId) {
+        return React.createElement(EmbeddedConceptArt, {
+          imageId,
+          key: `conceptart-${imageId}-${nanoid()}`,
+        });
+      }
+      return null;
     } else if (node.type === "tag" && node.name === "iframe" && node.attribs) {
       const {
         src,
@@ -200,5 +226,5 @@ export const parseHtml = (html: string) => {
     return undefined;
   };
 
-  return ReactHtmlParser(html, { transform });
+  return ReactHtmlParser(processedHtml, { transform });
 };
