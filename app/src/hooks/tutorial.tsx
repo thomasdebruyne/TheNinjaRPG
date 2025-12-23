@@ -14,6 +14,7 @@ import {
   TUTORIAL_ITEM_ID,
   TUTORIAL_STARTER_QUEST_ID,
   TUTORIAL_GENIN_EXAM_QUEST_ID,
+  TUTORIAL_STEPS_COUNT,
 } from "@/drizzle/constants";
 
 export interface TutorialStepConfig {
@@ -575,6 +576,15 @@ export const TUTORIAL_STEPS: TutorialStepConfig[] = [
   //   showNextButton: true,
   // },
 ];
+
+// Warn if TUTORIAL_STEPS_COUNT in constants.ts is out of sync
+if (TUTORIAL_STEPS.length !== TUTORIAL_STEPS_COUNT) {
+  console.warn(
+    `⚠️ TUTORIAL_STEPS_COUNT mismatch! ` +
+      `constants.ts has ${TUTORIAL_STEPS_COUNT}, but TUTORIAL_STEPS has ${TUTORIAL_STEPS.length} steps. ` +
+      `Please update TUTORIAL_STEPS_COUNT in @/drizzle/constants.ts to ${TUTORIAL_STEPS.length}.`,
+  );
+}
 
 /**
  * Get dynamic combat tutorial step based on distance to enemy and selected action

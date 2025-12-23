@@ -236,10 +236,6 @@ const Combat: React.FC<CombatProps> = (props) => {
   const { mutate: battleArenaHealAndGo } = api.combat.battleArenaHeal.useMutation({
     onSuccess: (data) => {
       if (data.success) {
-        showMutationToast({
-          success: data.success,
-          message: "You enter the arena again",
-        });
         startArenaBattle({
           aiId: arenaOpponentId!,
           stats:
@@ -255,10 +251,6 @@ const Combat: React.FC<CombatProps> = (props) => {
   const { mutate: startArenaBattle } = api.combat.startArenaBattle.useMutation({
     onSuccess: async (result) => {
       if (result.success && result.battleId) {
-        showMutationToast({
-          success: result.success,
-          message: "You enter the arena again",
-        });
         setBattleAtom(undefined);
         setBattleState({ battle: undefined, result: null, isPending: true });
         await updateUser({

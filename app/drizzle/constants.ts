@@ -456,10 +456,7 @@ export const PveBattleTypes: BattleType[] = [
   "CLAN_CHALLENGE",
 ];
 
-export const QuestBattleTypes: BattleType[] = [
-  "QUEST",
-  "RANDOM_ENCOUNTER",
-];
+export const QuestBattleTypes: BattleType[] = ["QUEST", "RANDOM_ENCOUNTER"];
 
 export const BattleUsageTypes = ["PVE", "PVP", "BOTH"] as const;
 export type BattleUsageType = (typeof BattleUsageTypes)[number];
@@ -768,8 +765,9 @@ export const RECRUITMENT_GOALS = {
   SIGNUP_VALUE_USD: 0.5,
 } as const;
 
-// Number of tutorial steps used by the onboarding flow (see Tutorial.tsx)
-export const TUTORIAL_STEPS_COUNT = 54;
+// Number of tutorial steps used by the onboarding flow (see hooks/tutorial.tsx)
+// IMPORTANT: Keep this in sync with TUTORIAL_STEPS.length in hooks/tutorial.tsx
+export const TUTORIAL_STEPS_COUNT = 52;
 
 // Recruitment rewards config
 export const RECRUITMENT_REWARDS = [

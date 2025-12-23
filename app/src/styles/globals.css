@@ -6,8 +6,6 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-fontasia: Fontasia, Impact, sans-serif;
-
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -100,19 +98,6 @@
 }
 
 @layer base {
-  @font-face {
-    font-family: "fontasia";
-    src: url("/fonts/fontasia-webfont.eot");
-    src:
-      url("/fonts/fontasia-webfont.eot?#iefix") format("embedded-opentype"),
-      url("/fonts/fontasia-webfont.woff") format("woff"),
-      url("/fonts/fontasia-webfont.ttf") format("truetype"),
-      url("/fonts/fontasia-webfont.svg#fontasiaregular") format("svg");
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-  }
-
   :root {
     --background: 55 92% 95%; /* yellow-50 */
     --foreground: 15 75% 28%;

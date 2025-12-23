@@ -1,4 +1,4 @@
-import { eq, or, isNotNull, and, sql, gte, lte } from "drizzle-orm";
+import { eq, or, isNotNull, isNull, and, sql, gte, lte, inArray } from "drizzle-orm";
 import { drizzleDB } from "@/server/db";
 import { quest, questHistory, userData } from "@/drizzle/schema";
 import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
@@ -127,6 +127,33 @@ export async function GET() {
         );
       }
     }
+
+    // Re-enable tutorials for users with active tier quests who have completed all tutorial steps
+    // This helps users who previously disabled tutorials get guidance on tier quests
+    const usersWithActiveTierQuests = await drizzleDB
+      .select({ userId: questHistory.userId })
+      .from(questHistory)
+      .where(
+        and(
+          eq(questHistory.questType, "tier"),
+          eq(questHistory.completed, 0),
+          isNull(questHistory.endAt),
+        ),
+      );
+
+    if (usersWithActiveTierQuests.length > 0) {
+      const userIdsWithTierQuests = usersWithActiveTierQuests.map((u) => u.userId);
+      await drizzleDB
+        .update(userData)
+        .set({ tutorialOn: true })
+        .where(
+          and(
+            inArray(userData.userId, userIdsWithTierQuests),
+            eq(userData.tutorialOn, false),
+          ),
+        );
+    }
+
     return Response.json(`OK`);
   } catch (cause) {
     // Rollback

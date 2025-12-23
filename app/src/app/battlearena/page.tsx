@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useTutorialStep } from "@/hooks/tutorial";
+import { useSleepToggle } from "@/hooks/sleep";
+import { Sun } from "lucide-react";
 import type { z } from "zod";
 import type { GenericObject } from "@/layout/ItemWithEffects";
 import type { StatSchemaType } from "@/libs/combat/types";
@@ -306,6 +308,9 @@ const ChallengeAI: React.FC<ChallengeAIProps> = (props) => {
   // Tutorial step
   const { currentStep, handleNextStep } = useTutorialStep();
 
+  // Sleep toggle
+  const { toggleSleep, isTogglingSleep } = useSleepToggle();
+
   // Mutation for starting a fight
   const { mutate: attack, isPending: isAttacking } =
     api.combat.startArenaBattle.useMutation({
@@ -332,27 +337,44 @@ const ChallengeAI: React.FC<ChallengeAIProps> = (props) => {
 
   // Derived
   const canDoArena = userData.dailyArenaFights < BATTLE_ARENA_DAILY_LIMIT;
+  const isAsleep = userData.status === "ASLEEP";
 
   return (
     <div className="flex flex-col items-center">
       The arena is a fairly basic circular and raw battleground, where you can train &
       test your skills as a ninja. Opponents are various creatures or ninja deemed to be
       at your level.
-      {!canDoArena && (
-        <h1 className="pb-3 pt-5 font-fontasia text-7xl">Wait till tomorrow</h1>
+      {!canDoArena && <h1 className="pb-3 pt-5 italic text-7xl">Wait till tomorrow</h1>}
+      {isAsleep && canDoArena && (
+        <div className="p-3">
+          {isTogglingSleep ? (
+            <Loader explanation="Waking up..." />
+          ) : (
+            <Button
+              size="xl"
+              decoration="gold"
+              animation="pulse"
+              className="text-2xl italic"
+              onClick={() => toggleSleep()}
+            >
+              <Sun className="h-10 w-10 mr-4" />
+              Wake up!
+            </Button>
+          )}
+        </div>
       )}
-      {!isAttacking && canDoArena && (
+      {!isAttacking && canDoArena && !isAsleep && (
         <div className="p-3">
           <Button
             id="tutorial-battlearena-challenge-ai-enter"
             size="xl"
             decoration="gold"
             animation="pulse"
-            className="font-fontasia text-4xl"
+            className="italic text-2xl"
             onClick={() => aiId && attack({ aiId })}
           >
             <Swords className="h-10 w-10 mr-4" />
-            Enter The Arena
+            Enter arena
           </Button>
         </div>
       )}
@@ -556,6 +578,10 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
   const aiId = "tra93opw09262024jut5ufa8f";
   // Router for forwarding
   const router = useRouter();
+
+  // Sleep toggle
+  const { toggleSleep, isTogglingSleep } = useSleepToggle();
+
   // Mutation for starting a fight
   const { mutate: attack, isPending: isAttacking } =
     api.combat.startArenaBattle.useMutation({
@@ -594,6 +620,9 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
 
   // Loaders
   if (!userData) return <Loader explanation="Loading userdata" />;
+
+  // Derived
+  const isAsleep = userData.status === "ASLEEP";
 
   // Show component
   return (
@@ -634,16 +663,34 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
                 );
               }
             })}
-          {!isAttacking ? (
+          {isAsleep ? (
+            <div className="col-span-2 flex flex-row justify-center">
+              {isTogglingSleep ? (
+                <Loader explanation="Waking up..." />
+              ) : (
+                <Button
+                  type="button"
+                  size="xl"
+                  decoration="gold"
+                  animation="pulse"
+                  className="italic text-2xl w-full"
+                  onClick={() => toggleSleep()}
+                >
+                  <Sun className="h-10 w-10 mr-4" />
+                  Wake up!
+                </Button>
+              )}
+            </div>
+          ) : !isAttacking ? (
             <div className="col-span-2 flex flex-row justify-center">
               <Button
                 size="xl"
                 decoration="gold"
                 animation="pulse"
-                className="font-fontasia text-4xl w-full"
+                className="italic text-2xl w-full"
               >
                 <Swords className="h-10 w-10 mr-4" />
-                Enter The Arena
+                Enter arena
               </Button>
             </div>
           ) : (

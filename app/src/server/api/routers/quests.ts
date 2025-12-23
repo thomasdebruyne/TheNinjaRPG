@@ -133,6 +133,7 @@ export const questsRouter = createTRPCRouter({
         ),
         offset: skip,
         limit: input.limit,
+        ...(input?.questType === "tier" ? { orderBy: asc(quest.tierLevel) } : {}),
       });
       results.forEach((r) => controlShownQuestLocationInformation(r));
       const nextCursor = results.length < input.limit ? null : currentCursor + 1;
@@ -764,9 +765,10 @@ export const questsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       setEmptyStringsToNulls(input.data);
       // Query
-      const [user, entry] = await Promise.all([
+      const [user, entry, tierQuests] = await Promise.all([
         fetchUser(ctx.drizzle, ctx.userId),
         fetchQuest(ctx.drizzle, input.id),
+        ctx.drizzle.select().from(quest).where(eq(quest.questType, "tier")),
       ]);
       // Guards
       if (user.isBanned) {
@@ -775,11 +777,24 @@ export const questsRouter = createTRPCRouter({
       if (!entry) {
         return errorResponse("Quest not found");
       }
+      if (input.data.questType === "tier") {
+        if (!input.data.tierLevel) {
+          return errorResponse("Tier quest must have a tier level");
+        }
+        const existingTierQuest = tierQuests.find(
+          (tq) => tq.tierLevel === input.data.tierLevel && tq.id !== entry.id,
+        );
+        if (existingTierQuest) {
+          return errorResponse(
+            `Tier quest with level ${input.data.tierLevel} already exists: ${existingTierQuest.name}`,
+          );
+        }
+      }
       if (
         [TUTORIAL_STARTER_QUEST_ID, TUTORIAL_GENIN_EXAM_QUEST_ID].includes(entry.id) &&
         input?.data?.hidden
       ) {
-        return errorResponse("Cannot delete tutorial quest");
+        return errorResponse("Cannot edit tutorial quest");
       }
       // Permission check
       if (entry && canChangeContent(user.role)) {

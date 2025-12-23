@@ -238,11 +238,11 @@ const WarCard = ({
               size="xl"
               decoration="gold"
               animation="pulse"
-              className="font-fontasia text-4xl w-full"
+              className="italic text-2xl w-full"
               onClick={onAttack}
             >
               <Swords className="h-10 w-10 mr-4" />
-              Attack Shrine
+              Attack shrine
             </Button>
           ) : (
             <div className="min-h-64">

@@ -183,6 +183,7 @@ export const dataRouter = createTRPCRouter({
         deviceType: z.array(z.enum(["mobile", "desktop", "unknown"])).optional(),
         questFunnels: z.array(z.string()).optional(),
         includeTutorialDisabled: z.boolean().optional(),
+        includeTierTutorialDisabled: z.boolean().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -218,6 +219,8 @@ export const dataRouter = createTRPCRouter({
         allTimeSignupsForValueRaw,
         quests,
         completedQuests,
+        tierQuests,
+        completedTierQuestsRaw,
       ] = await Promise.all([
         // allVisitorsRow (with userAgent for device splitting)
         ctx.drizzle
@@ -403,6 +406,47 @@ export const dataRouter = createTRPCRouter({
                 ),
               )
           : Promise.resolve([]),
+        // tierQuests: Fetch all tier quests ordered by tierLevel
+        ctx.drizzle
+          .select({
+            id: quest.id,
+            name: quest.name,
+            description: quest.description,
+            tierLevel: quest.tierLevel,
+          })
+          .from(quest)
+          .where(eq(quest.questType, "tier"))
+          .orderBy(asc(quest.tierLevel)),
+        // completedTierQuests: Fetch completed tier quests for users who finished tutorial
+        ctx.drizzle
+          .select({
+            odUserId: userData.userId,
+            questId: questHistory.questId,
+          })
+          .from(questHistory)
+          .innerJoin(userData, eq(userData.userId, questHistory.userId))
+          .innerJoin(historicalIp, eq(historicalIp.userId, userData.userId))
+          .innerJoin(visitorLog, eq(visitorLog.ip, historicalIp.ip))
+          .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
+          .innerJoin(quest, eq(quest.id, questHistory.questId))
+          .where(
+            and(
+              ...(visitorWhere.length > 0 ? visitorWhere : []),
+              eq(userData.isAi, false),
+              lt(userData.tutorialStep, 100),
+              gte(userData.createdAt, visitorLog.createdAt),
+              gte(userData.tutorialStep, TUTORIAL_STEPS_COUNT),
+              // By default exclude users who disabled the tutorial
+              ...(input.includeTierTutorialDisabled
+                ? []
+                : [ne(userData.tutorialOn, false)]),
+              ...(input.utmSource && input.utmSource.length > 0
+                ? [eq(referralSource.source, input.utmSource)]
+                : []),
+              eq(quest.questType, "tier"),
+              eq(questHistory.completed, 1),
+            ),
+          ),
       ]);
 
       // Create mutable versions for filtering
@@ -593,6 +637,38 @@ export const dataRouter = createTRPCRouter({
       const nonStudentSignups = nonStudentSignupsRow.length;
       const nonStudentGeninSignups = nonStudentGeninSignupsRow.length;
 
+      // Create a map of userId -> Set of completed tier quest IDs
+      const completedTierQuestsMap = new Map<string, Set<string>>();
+      completedTierQuestsRaw.forEach((cq) => {
+        if (!completedTierQuestsMap.has(cq.odUserId)) {
+          completedTierQuestsMap.set(cq.odUserId, new Set());
+        }
+        completedTierQuestsMap.get(cq.odUserId)!.add(cq.questId);
+      });
+
+      // Get set of users who finished the tutorial
+      const tierEligibleUserIds = new Set(
+        tutorialFinishedSignupsRow.map((r) => r.userId),
+      );
+
+      // For each eligible user, count how many tier quests they've completed
+      const tierQuestCompletions = filteredSignupsRow
+        .filter((r) => r.userId && tierEligibleUserIds.has(r.userId))
+        .map((r) => {
+          const userId = r.userId ?? "";
+          const completedTierQuestIds = completedTierQuestsMap.get(userId) ?? new Set();
+          return {
+            completedTiers: completedTierQuestIds.size,
+            deviceType: getDeviceType(r.userAgent ?? undefined),
+            username: r.username ?? "",
+          };
+        });
+
+      // Get tier quest info for descriptions (name + description)
+      const tierQuestDescriptions = tierQuests.map(
+        (tq) => `${tq.name}: ${tq.description}`,
+      );
+
       return {
         signupRate,
         visitors: clicks,
@@ -612,6 +688,8 @@ export const dataRouter = createTRPCRouter({
         tutorialSteps,
         nonStudentSignups,
         nonStudentGeninSignups,
+        tierQuestCompletions,
+        tierQuestDescriptions,
       };
     }),
   // Recruitment analytics

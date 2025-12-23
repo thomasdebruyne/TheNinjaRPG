@@ -87,11 +87,12 @@ const Register: React.FC = () => {
   const { mutate: createCharacter, isPending } =
     api.register.createCharacter.useMutation({
       onSuccess: async (data) => {
-        showMutationToast(data);
         if (data.success) {
           await utils.profile.getUser.invalidate();
           createAvatar.mutate();
           sendGTMEvent({ event: "register", userId: userData?.userId ?? "" });
+        } else {
+          showMutationToast(data);
         }
       },
     });

@@ -20,6 +20,7 @@ import { api } from "@/app/_trpc/client";
 import { getStrucBoost } from "@/utils/village";
 import { showMutationToast } from "@/libs/toast";
 import { useRequireInVillage } from "@/utils/UserContext";
+import { useSleepToggle } from "@/hooks/sleep";
 import { calcMaxHouseMaterials } from "@/libs/item";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,8 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { UserItemWithItem } from "@/drizzle/schema";
 
 export default function HomePage() {
-  const { userData, sectorVillage, access, ownVillage, updateUser } =
-    useRequireInVillage("/home");
+  const { userData, sectorVillage, access, ownVillage } = useRequireInVillage("/home");
 
   // State
   const [selectedItem, setSelectedItem] = useState<UserItemWithItem | undefined>(
@@ -86,15 +86,7 @@ export default function HomePage() {
       },
     });
 
-  const { mutate: toggleSleep, isPending: isTogglingSleep } =
-    api.home.toggleSleep.useMutation({
-      onSuccess: async (data) => {
-        showMutationToast(data);
-        if (data.success && data.newStatus) {
-          await updateUser({ status: data.newStatus });
-        }
-      },
-    });
+  const { toggleSleep, isTogglingSleep } = useSleepToggle();
 
   if (!userData) return <Loader explanation="Loading userdata" />;
   if (!access) return <Loader explanation="Accessing Residence" />;
@@ -110,25 +102,37 @@ export default function HomePage() {
       !useritem.craftingFinishedAt || useritem.craftingFinishedAt < new Date(),
   );
   // Filter normal items (non-materials)
-  const storedItems = filteredItems?.filter((useritem) => useritem.storedAtHome && useritem.item.itemType !== "MATERIAL") ?? [];
+  const storedItems =
+    filteredItems?.filter(
+      (useritem) => useritem.storedAtHome && useritem.item.itemType !== "MATERIAL",
+    ) ?? [];
   const nonStoredItems =
     filteredItems
       ?.filter((useritem) => !useritem.storedAtHome)
       .filter((useritem) => useritem.equipped === "NONE")
       .filter((useritem) => useritem.item.itemType !== "MATERIAL") ?? [];
-  
+
   // Filter materials separately
-  const storedMaterials = filteredItems?.filter((useritem) => useritem.storedAtHome && useritem.item.itemType === "MATERIAL") ?? [];
-  const nonStoredMaterials = filteredItems
-    ?.filter((useritem) => !useritem.storedAtHome)
-    .filter((useritem) => useritem.equipped === "NONE")
-    .filter((useritem) => useritem.item.itemType === "MATERIAL") ?? [];
-  
+  const storedMaterials =
+    filteredItems?.filter(
+      (useritem) => useritem.storedAtHome && useritem.item.itemType === "MATERIAL",
+    ) ?? [];
+  const nonStoredMaterials =
+    filteredItems
+      ?.filter((useritem) => !useritem.storedAtHome)
+      .filter((useritem) => useritem.equipped === "NONE")
+      .filter((useritem) => useritem.item.itemType === "MATERIAL") ?? [];
+
   const canStoreMoreItems = storedItems.length < homeStorage;
-  const canStoreMoreMaterials = storedMaterials.length < (userData && homeData ? calcMaxHouseMaterials(userData, homeData.storage) : 0);
-  
+  const canStoreMoreMaterials =
+    storedMaterials.length <
+    (userData && homeData ? calcMaxHouseMaterials(userData, homeData.storage) : 0);
+
   // Calculate total stored items (excluding materials)
-  const totalStoredItems = filteredItems?.filter((useritem) => useritem.storedAtHome && useritem.item.itemType !== "MATERIAL").length ?? 0;
+  const totalStoredItems =
+    filteredItems?.filter(
+      (useritem) => useritem.storedAtHome && useritem.item.itemType !== "MATERIAL",
+    ).length ?? 0;
 
   // Filter upgrades and downgrades
   const upgrades = availableUpgrades?.filter((upgrade) => upgrade.isUpgrade) || [];
@@ -141,7 +145,7 @@ export default function HomePage() {
         subtitle={`Train, eat, sleep. +${boost}% regen sleeping.`}
         defaultBackHref="/village"
       >
-        <div className="grid grid-cols-3 text-center font-bold italic">
+        <div className="grid grid-cols-3 text-center font-bold italic items-center justify-center">
           <Link href="/traininggrounds">
             <Image
               className="hover:opacity-30"
@@ -214,9 +218,14 @@ export default function HomePage() {
                           {homeStorage > 0 && (
                             <span className="ml-2">+{homeStorage} Item Storage</span>
                           )}
-                          {userData && homeData && calcMaxHouseMaterials(userData, homeData.storage) > 0 && (
-                            <span className="ml-2">+{calcMaxHouseMaterials(userData, homeData.storage)} Material Storage</span>
-                          )}
+                          {userData &&
+                            homeData &&
+                            calcMaxHouseMaterials(userData, homeData.storage) > 0 && (
+                              <span className="ml-2">
+                                +{calcMaxHouseMaterials(userData, homeData.storage)}{" "}
+                                Material Storage
+                              </span>
+                            )}
                         </div>
                       </div>
                     </CardTitle>
@@ -406,7 +415,7 @@ export default function HomePage() {
                 </TabsContent>
 
                 <TabsContent value="materials">
-                  <div className="space-y-4">                    
+                  <div className="space-y-4">
                     <div>
                       <h4 className="font-semibold mb-2">Stored Materials</h4>
                       {storedMaterials.length === 0 ? (
@@ -432,7 +441,9 @@ export default function HomePage() {
                                 setSelectedItem(undefined);
                                 setIsModalOpen(false);
                               } else {
-                                const item = storedMaterials?.find((item) => item.id === id);
+                                const item = storedMaterials?.find(
+                                  (item) => item.id === id,
+                                );
                                 if (item) {
                                   setSelectedItem(item as UserItemWithItem);
                                   setIsModalOpen(true);
@@ -488,7 +499,7 @@ export default function HomePage() {
                           />
                         </div>
                       )}
-                      
+
                       {nonStoredMaterials.length > 0 && (
                         <div>
                           <h4 className="font-semibold mb-2">Materials</h4>

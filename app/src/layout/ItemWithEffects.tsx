@@ -590,6 +590,14 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                   <b>Quest Type</b>: {item.questType}
                 </p>
               )}
+              {"tierLevel" in item &&
+                item.tierLevel &&
+                "questType" in item &&
+                item.questType === "tier" && (
+                  <p>
+                    <b>Tier Level</b>: {item.tierLevel}
+                  </p>
+                )}
               {"content" in item && item.content && (
                 <div className="col-span-2">
                   <b>Reward:</b> {rewards.join(", ")}

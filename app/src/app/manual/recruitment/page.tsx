@@ -56,12 +56,15 @@ export default function ManualRecruitment() {
 
   const visitorFilterState = useVisitorFiltering();
   const [includeTutorialDisabled, setIncludeTutorialDisabled] = React.useState(false);
+  const [includeTierTutorialDisabled, setIncludeTierTutorialDisabled] =
+    React.useState(false);
 
   const { data: mainMetrics, isFetching: isFetchingMain } =
     api.data.getRecruitmentMainMetrics.useQuery(
       {
         ...getVisitorFilter(visitorFilterState),
         includeTutorialDisabled,
+        includeTierTutorialDisabled,
       },
       {
         staleTime: 1000 * 60,
@@ -493,6 +496,45 @@ export default function ManualRecruitment() {
                 />
               </div>
             )}
+
+            {mainMetrics?.tierQuestCompletions &&
+              mainMetrics.tierQuestCompletions.length > 0 && (
+                <div className="col-span-2">
+                  <QuestFunnelBar
+                    stepsCompleted={mainMetrics.tierQuestCompletions.map((tc) => ({
+                      steps: tc.completedTiers,
+                      deviceType: tc.deviceType,
+                      username: tc.username,
+                    }))}
+                    title="Tier Quest Completion (Tutorial Finished)"
+                    stepDescriptions={[
+                      "No tier quests completed",
+                      ...mainMetrics.tierQuestDescriptions,
+                    ]}
+                    stepLabels={[
+                      "None",
+                      ...mainMetrics.tierQuestDescriptions.map(
+                        (_, i) => `Tier ${i + 1}`,
+                      ),
+                    ]}
+                    extraControls={
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="include-tier-tutorial-disabled"
+                          checked={includeTierTutorialDisabled}
+                          onCheckedChange={setIncludeTierTutorialDisabled}
+                        />
+                        <Label
+                          htmlFor="include-tier-tutorial-disabled"
+                          className="cursor-pointer text-xs"
+                        >
+                          Include disabled
+                        </Label>
+                      </div>
+                    }
+                  />
+                </div>
+              )}
           </div>
         )}
       </ContentBox>
