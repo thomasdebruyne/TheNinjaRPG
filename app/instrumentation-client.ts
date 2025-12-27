@@ -47,9 +47,25 @@ Sentry.init({
     "Failed to load chunk", // New deployment
     "Invalid call to runtime.sendMessage()", // Browser extension error, not from our app
     "zoid destroyed", // PayPal SDK cleanup errors - occur when users navigate away while PayPal buttons are initializing
+    "Target window is closed", // PayPal SDK postrobot error - occurs when user closes popup before transaction completes
+    "postrobot_method", // PayPal SDK cross-window communication error - occurs when popup is closed
+    "Can not send postrobot", // PayPal SDK postrobot error - alternate format
     "Cannot set properties of undefined (setting 'iframeReady')", // Usercentrics (uc.js) consent management error - third-party script timing issue
     "Failed to fetch", // Network errors during navigation - occurs when user navigates away while fetch is in-flight (common on mobile)
+    "Clerk: Failed to load Clerk", // Clerk script load failure - typically on very old browsers (Android 5.x, Chrome 95) that don't support modern JS
+    "failed to load script", // Clerk's underlying script loading error (cause of the above) - network issues on mobile devices
   ],
+
+  // Filter out third-party errors that slip through ignoreErrors
+  beforeSend(event) {
+    if (isPayPalSdkError(event)) {
+      return null; // Drop the event
+    }
+    if (isGoogleTranslateError(event)) {
+      return null; // Drop Google Translate script errors
+    }
+    return event;
+  },
 
   // Only enable Sentry in production
   environment: process.env.NODE_ENV,
@@ -86,7 +102,23 @@ function isPayPalCleanupError(err: unknown): boolean {
     errorMessage.includes("popup close") ||
     errorMessage.includes("Window closed") ||
     errorMessage.includes("Component closed") ||
+    errorMessage.includes("Target window is closed") ||
+    errorMessage.includes("postrobot_method") ||
     errorMessage.includes("paypal_js_sdk")
+  );
+}
+
+/**
+ * Check if an error is a Clerk script loading error that should be suppressed.
+ * These occur when the Clerk JS script fails to load on mobile devices due to
+ * network issues, ad blockers, or browser restrictions.
+ */
+function isClerkScriptLoadError(err: unknown): boolean {
+  const errorMessage = err?.toString() ?? "";
+  return (
+    errorMessage.includes("failed to load script") ||
+    errorMessage.includes("failed_to_load_clerk_js") ||
+    errorMessage.includes("Failed to load Clerk")
   );
 }
 
@@ -121,6 +153,67 @@ function isTRPCError(err: unknown): boolean {
   return false;
 }
 
+/**
+ * Check if an error is from Google Translate scripts that should be filtered.
+ * When users access the site through Google Translate (translate.goog proxy),
+ * Google's scripts sometimes fail when manipulating DOM elements.
+ */
+function isGoogleTranslateError(event: Sentry.ErrorEvent): boolean {
+  const stackFrames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+
+  // Check if the error originates from Google Translate scripts
+  return stackFrames.some(
+    (frame) =>
+      frame.filename?.includes("translate.goog") ||
+      frame.filename?.includes("translate_http") ||
+      frame.filename?.includes("el_main") ||
+      frame.filename?.includes("el_conf") ||
+      frame.abs_path?.includes("translate.goog") ||
+      frame.abs_path?.includes("translate_http"),
+  );
+}
+
+/**
+ * Check if an error is a PayPal SDK cleanup error that should be filtered.
+ * These occur when users navigate away while PayPal buttons are initializing,
+ * or when users close the PayPal popup before the transaction completes.
+ */
+function isPayPalSdkError(event: Sentry.ErrorEvent): boolean {
+  const message = event.exception?.values?.[0]?.value ?? "";
+  const stackFrames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+
+  // Check message for PayPal-related error patterns
+  const paypalErrorPatterns = [
+    "zoid destroyed",
+    "popup close",
+    "Window closed",
+    "Component closed",
+    "Target window is closed",
+    "postrobot_method",
+    "paypal_js_sdk",
+    "Can not send postrobot",
+  ];
+
+  if (paypalErrorPatterns.some((pattern) => message.includes(pattern))) {
+    return true;
+  }
+
+  // Check if the error originates from PayPal SDK (sdk/js in stack trace)
+  const isFromPayPalSdk = stackFrames.some(
+    (frame) =>
+      frame.filename?.includes("sdk/js") ||
+      frame.filename?.includes("paypal") ||
+      frame.abs_path?.includes("sdk/js") ||
+      frame.abs_path?.includes("paypal"),
+  );
+
+  if (isFromPayPalSdk && message.includes("closed")) {
+    return true;
+  }
+
+  return false;
+}
+
 function ensureBrowserErrorHandler() {
   if (typeof window === "undefined") return;
   if (window.__TNR_GLOBAL_REJECTION_HANDLER__) return;
@@ -130,6 +223,12 @@ function ensureBrowserErrorHandler() {
   window.addEventListener("unhandledrejection", (event) => {
     // Skip PayPal cleanup errors - these are expected when users navigate away
     if (isPayPalCleanupError(event.reason)) {
+      event.preventDefault();
+      return;
+    }
+
+    // Skip Clerk script loading errors - these occur on mobile due to network issues
+    if (isClerkScriptLoadError(event.reason)) {
       event.preventDefault();
       return;
     }

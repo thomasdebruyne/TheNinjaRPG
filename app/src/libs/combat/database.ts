@@ -211,29 +211,30 @@ export const createAction = async (
     userId?: string;
   }[],
 ) => {
-  if (history.length > 0) {
-    const actions = history
-      .sort((a, b) => b.battleVersion - a.battleVersion)
-      .map((entry) => {
-        return {
-          id: nanoid(),
-          battleId: newBattle.id,
-          battleVersion: entry.battleVersion,
-          battleRound: entry.battleRound,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          actionId: entry.actionId ?? "unknown",
-          userId: entry.userId ?? "unknown",
-          description: entry.description,
-          appliedEffects: entry.appliedEffects,
-        };
-      });
-    await client
-      .insert(battleAction)
-      .values(actions)
-      .onDuplicateKeyUpdate({ set: { id: sql`id` } });
-    return actions;
+  if (history.length === 0) {
+    return [];
   }
+  const actions = history
+    .sort((a, b) => b.battleVersion - a.battleVersion)
+    .map((entry) => {
+      return {
+        id: nanoid(),
+        battleId: newBattle.id,
+        battleVersion: entry.battleVersion,
+        battleRound: entry.battleRound,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        actionId: entry.actionId ?? "unknown",
+        userId: entry.userId ?? "unknown",
+        description: entry.description,
+        appliedEffects: entry.appliedEffects,
+      };
+    });
+  await client
+    .insert(battleAction)
+    .values(actions)
+    .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+  return actions;
 };
 
 export const updateKage = async (

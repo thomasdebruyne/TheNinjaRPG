@@ -61,6 +61,20 @@ export default function TrpcClientProvider(props: { children: React.ReactNode })
             if (isNetworkError && opts.op.type === "query") {
               return opts.attempts <= 3;
             }
+            // Retry on offline errors (browser returns "Offline" text instead of JSON)
+            const isOfflineError = opts.error.message?.includes(
+              '"Offline" is not valid JSON',
+            );
+            if (isOfflineError && opts.op.type === "query") {
+              return opts.attempts <= 3;
+            }
+            // Retry on Safari JSON parsing errors (Safari throws this when response is invalid/empty)
+            const isSafariJsonError = opts.error.message?.includes(
+              "The string did not match the expected pattern",
+            );
+            if (isSafariJsonError && opts.op.type === "query") {
+              return opts.attempts <= 3;
+            }
             // Don't retry on non-500s
             if (
               opts.error.data &&
@@ -109,6 +123,20 @@ export const onError = (err: unknown) => {
   if (
     err instanceof TRPCClientError &&
     (err.message.includes("Load failed") || err.message.includes("fetch"))
+  ) {
+    return;
+  }
+  // Ignore offline errors (browser returns "Offline" text instead of JSON when user is offline)
+  if (
+    err instanceof TRPCClientError &&
+    err.message.includes('"Offline" is not valid JSON')
+  ) {
+    return;
+  }
+  // Ignore Safari JSON parsing errors (Safari throws this when response is invalid/empty, retries handle it)
+  if (
+    err instanceof TRPCClientError &&
+    err.message.includes("The string did not match the expected pattern")
   ) {
     return;
   }

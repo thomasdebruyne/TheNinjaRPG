@@ -542,8 +542,8 @@ export const getPaypalTransactions = async (
     .then((response) => {
       return response.json();
     })
-    .then((data: { transaction_details: PaypalTransaction[] }) => {
-      return data.transaction_details;
+    .then((data: { transaction_details?: PaypalTransaction[] }) => {
+      return data.transaction_details ?? [];
     });
 };
 
