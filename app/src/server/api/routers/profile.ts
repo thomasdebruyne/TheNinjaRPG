@@ -67,6 +67,7 @@ import {
   SKILL_POINT_MIN_LEVEL,
   SKILL_POINT_MAX_LEVEL,
   MAX_SKILL_POINTS_FROM_LEVELING,
+  TUTORIAL_STEPS_COUNT,
 } from "@/drizzle/constants";
 import { REGEN_SECONDS } from "@/drizzle/constants";
 import { createStatSchema } from "@/libs/combat/types";
@@ -166,7 +167,7 @@ export const profileRouter = createTRPCRouter({
         .where(eq(userData.userId, ctx.userId));
 
       // AB Test success
-      if (input.step === 54) {
+      if (input.step === TUTORIAL_STEPS_COUNT) {
         const abLoadedEvent = await ctx.drizzle.query.abEvent.findFirst({
           where: and(
             eq(abEvent.ip, ctx.userIp ?? ""),
