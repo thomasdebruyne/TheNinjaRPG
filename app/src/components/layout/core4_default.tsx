@@ -105,29 +105,29 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
   const rightSideBarRef = React.useRef<HTMLDivElement | null>(null);
 
   // State
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      const savedTheme = safeLocalStorageGetItem("theme");
-      return savedTheme === "dark" || savedTheme === "light" ? savedTheme : "light";
-    }
-    return "light";
-  });
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [lightLayout, setLightLayout] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Light layout mode: hide desktop logo & navbar, use mobile side sheets (persisted)
-  const [lightLayout, setLightLayout] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = safeLocalStorageGetItem("lightLayout");
-      if (saved !== null) return JSON.parse(saved) as boolean;
+  // Initialize state once mounted to avoid hydration mismatch
+  useEffect(() => {
+    // Theme
+    const savedTheme = safeLocalStorageGetItem("theme");
+    if (savedTheme === "dark" || savedTheme === "light") {
+      setTheme(savedTheme);
     }
-    return false; // default = full layout
-  });
+    // Layout
+    const savedLayout = safeLocalStorageGetItem("lightLayout");
+    if (savedLayout !== null) {
+      setLightLayout(JSON.parse(savedLayout) as boolean);
+    }
+    setIsMounted(true);
+  }, []);
 
   const toggleLightLayout = () => {
     setLightLayout((prev) => {
       const newState = !prev;
-      if (typeof window !== "undefined") {
-        safeLocalStorageSetItem("lightLayout", JSON.stringify(newState));
-      }
+      safeLocalStorageSetItem("lightLayout", JSON.stringify(newState));
       return newState;
     });
   };
@@ -146,14 +146,15 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
 
   // Set theme
   useEffect(() => {
+    if (!isMounted) return;
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, [theme]);
+  }, [theme, isMounted]);
 
-  // Images
+  // Images - calculated based on season (UTC-consistent) and user's village
   const imageset = getImageSet(userData);
 
   /**
@@ -1138,8 +1139,9 @@ const RightSideBar: React.FC<{
 };
 
 // Get wallpaper based on the season
+// Note: getCurrentSeason uses UTC to ensure consistent results between server and client
 export const getImageSet = (userData: UserWithRelations) => {
-  // Base settings
+  // Base settings with seasonal wallpaper
   const base = {
     navbar: IMG_LAYOUT_NAVBAR,
     handsign: IMG_LAYOUT_HANDSIGN,

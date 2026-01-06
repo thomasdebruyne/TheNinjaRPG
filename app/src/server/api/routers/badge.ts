@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { serverError, baseServerResponse } from "@/api/trpc";
+import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
 import { eq, asc } from "drizzle-orm";
 import { badge, userBadge } from "@/drizzle/schema";
 import { actionLog } from "@/drizzle/schema";
@@ -59,9 +59,20 @@ export const badgeRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       setEmptyStringsToNulls(input.data);
-      const user = await fetchUser(ctx.drizzle, ctx.userId);
-      const entry = await fetchBadge(ctx.drizzle, input.id);
-      if (entry && canChangeContent(user.role)) {
+      const [user, entry, badgeWithName] = await Promise.all([
+        fetchUser(ctx.drizzle, ctx.userId),
+        fetchBadge(ctx.drizzle, input.id),
+        ctx.drizzle.query.badge.findFirst({
+          columns: { name: true, id: true },
+          where: eq(badge.name, input.data.name),
+        }),
+      ]);
+      if (user.isBanned)
+        return errorResponse("You are banned and cannot perform this action");
+      if (!entry) return errorResponse("Badge not found");
+      if (badgeWithName && badgeWithName.id !== entry.id)
+        return errorResponse("Badge name already exists");
+      if (canChangeContent(user.role)) {
         // Calculate diff
         const diff = calculateContentDiff(entry, {
           id: entry.id,

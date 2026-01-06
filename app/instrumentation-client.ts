@@ -54,6 +54,7 @@ Sentry.init({
     "Failed to fetch", // Network errors during navigation - occurs when user navigates away while fetch is in-flight (common on mobile)
     "Clerk: Failed to load Clerk", // Clerk script load failure - typically on very old browsers (Android 5.x, Chrome 95) that don't support modern JS
     "failed to load script", // Clerk's underlying script loading error (cause of the above) - network issues on mobile devices
+    "Illegal invocation", // Third-party script error (Facebook in-app browser or Cookiebot)
   ],
 
   // Filter out third-party errors that slip through ignoreErrors
@@ -63,6 +64,12 @@ Sentry.init({
     }
     if (isGoogleTranslateError(event)) {
       return null; // Drop Google Translate script errors
+    }
+    if (isClerkStorageError(event)) {
+      return null; // Drop Clerk storage access errors
+    }
+    if (isThirdPartyInjectedError(event)) {
+      return null; // Drop errors from injected scripts (e.g. Facebook/Cookiebot)
     }
     return event;
   },
@@ -119,6 +126,41 @@ function isClerkScriptLoadError(err: unknown): boolean {
     errorMessage.includes("failed to load script") ||
     errorMessage.includes("failed_to_load_clerk_js") ||
     errorMessage.includes("Failed to load Clerk")
+  );
+}
+
+/**
+ * Check if an error is a localStorage access error caused by browser privacy settings.
+ * These are SecurityErrors thrown when cookies/storage are blocked.
+ */
+function isLocalStorageAccessError(err: unknown): boolean {
+  const msg = err?.toString() ?? "";
+  return (
+    msg.includes("localStorage") &&
+    msg.includes("Access is denied") &&
+    msg.includes("SecurityError")
+  );
+}
+
+/**
+ * Check if an error is a Clerk storage access error that should be filtered.
+ * These occur when browser privacy settings block Clerk from accessing localStorage.
+ */
+function isClerkStorageError(event: Sentry.ErrorEvent): boolean {
+  const message = event.exception?.values?.[0]?.value ?? "";
+  const stackFrames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+
+  const isStorageError =
+    message.includes("localStorage") &&
+    (message.includes("Access is denied") || message.includes("SecurityError"));
+
+  if (!isStorageError) return false;
+
+  // Check if the error originates from Clerk
+  return stackFrames.some(
+    (frame) =>
+      frame.filename?.includes("@clerk/clerk-js") ||
+      frame.abs_path?.includes("@clerk/clerk-js"),
   );
 }
 
@@ -214,6 +256,27 @@ function isPayPalSdkError(event: Sentry.ErrorEvent): boolean {
   return false;
 }
 
+/**
+ * Check if an error is from an injected third-party script like Facebook or Cookiebot.
+ * These often cause "Illegal invocation" errors in document.createEvent or similar.
+ */
+function isThirdPartyInjectedError(event: Sentry.ErrorEvent): boolean {
+  const message = event.exception?.values?.[0]?.value ?? "";
+  const stackFrames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+
+  const isInjectedScript = stackFrames.some(
+    (frame) =>
+      frame.filename?.includes("inject_content.js") ||
+      frame.filename?.includes("uc.js") ||
+      frame.filename?.includes("cc.js") ||
+      frame.abs_path?.includes("inject_content.js") ||
+      frame.abs_path?.includes("uc.js") ||
+      frame.abs_path?.includes("cc.js"),
+  );
+
+  return isInjectedScript && message.includes("Illegal invocation");
+}
+
 function ensureBrowserErrorHandler() {
   if (typeof window === "undefined") return;
   if (window.__TNR_GLOBAL_REJECTION_HANDLER__) return;
@@ -229,6 +292,12 @@ function ensureBrowserErrorHandler() {
 
     // Skip Clerk script loading errors - these occur on mobile due to network issues
     if (isClerkScriptLoadError(event.reason)) {
+      event.preventDefault();
+      return;
+    }
+
+    // Skip localStorage access errors - these occur when browser privacy settings block storage
+    if (isLocalStorageAccessError(event.reason)) {
       event.preventDefault();
       return;
     }

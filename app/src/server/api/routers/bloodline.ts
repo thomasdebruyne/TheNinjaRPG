@@ -285,14 +285,32 @@ export const bloodlineRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Query
-      const [user, reskin] = await Promise.all([
+      const [user, reskin, reskinWithName] = await Promise.all([
         fetchUser(ctx.drizzle, ctx.userId),
         fetchBloodlineReskin(ctx.drizzle, input.reskinId),
+        input.data.name
+          ? ctx.drizzle.query.bloodlineReskin.findFirst({
+              columns: { name: true, id: true },
+              where: and(
+                eq(bloodlineReskin.name, input.data.name),
+                eq(
+                  bloodlineReskin.bloodlineId,
+                  ctx.drizzle
+                    .select({ bloodlineId: bloodlineReskin.bloodlineId })
+                    .from(bloodlineReskin)
+                    .where(eq(bloodlineReskin.id, input.reskinId)),
+                ),
+              ),
+            })
+          : null,
       ]);
       // Guard
       if (user.isBanned)
         return errorResponse("You are banned and cannot perform this action");
       if (!reskin) return errorResponse("Reskin not found");
+      if (reskinWithName && reskinWithName.id !== reskin.id) {
+        return errorResponse("Reskin name already exists for this bloodline");
+      }
       if (!canChangeContent(user.role)) return errorResponse("Unauthorized");
       // Prepare old/new objects for diff (exclude reason from new)
       const oldData = {
@@ -473,11 +491,20 @@ export const bloodlineRouter = createTRPCRouter({
     .input(z.object({ id: z.string(), data: BloodlineValidator }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
-      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      const [user, entry, bloodlineWithName] = await Promise.all([
+        fetchUser(ctx.drizzle, ctx.userId),
+        fetchBloodline(ctx.drizzle, input.id),
+        ctx.drizzle.query.bloodline.findFirst({
+          columns: { name: true, id: true },
+          where: eq(bloodline.name, input.data.name),
+        }),
+      ]);
       if (user.isBanned)
         return errorResponse("You are banned and cannot perform this action");
-      const entry = await fetchBloodline(ctx.drizzle, input.id);
-      if (entry && canChangeContent(user.role)) {
+      if (!entry) return errorResponse("Bloodline not found");
+      if (bloodlineWithName && bloodlineWithName.id !== entry.id)
+        return errorResponse("Bloodline name already exists");
+      if (canChangeContent(user.role)) {
         // Prepare data: convert empty strings to null for optional fields
         setEmptyStringsToNulls(input.data as unknown as Record<string, unknown>);
         // Calculate diff
@@ -664,7 +691,9 @@ export const bloodlineRouter = createTRPCRouter({
       });
       // Guard
       if (!PITY_SYSTEM_ENABLED) return errorResponse("Pity system is disabled");
-      const prevRoll = previousRolls.find((r) => r.goal === input.rank && !r.bloodlineId,);
+      const prevRoll = previousRolls.find(
+        (r) => r.goal === input.rank && !r.bloodlineId,
+      );
       if (!prevRoll) return errorResponse("No previous roll found");
       const availablePityRolls = getPityRolls(prevRoll);
       if (availablePityRolls <= 0) return errorResponse("No pity rolls available");

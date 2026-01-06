@@ -38,6 +38,7 @@ import { colors, skin_colors } from "@/validators/register";
 import { genders } from "@/validators/register";
 import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
 import { safeLocalStorageGetItem } from "@/hooks/localstorage";
+
 import { sendGTMEvent } from "@next/third-parties/google";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -74,14 +75,17 @@ const Register: React.FC = () => {
     { rank: "D", hidden: false, limit: 500 },
     { getNextPageParam: (lastPage) => lastPage.nextCursor },
   );
-  const allBloodlines = bloodlines?.pages
-    .map((page) => page.data)
-    .flat()
-    .map((bloodline) => ({
-      ...bloodline,
-      type: "bloodline" as const,
-      description: "",
-    }));
+
+  const allBloodlines = React.useMemo(() => {
+    return bloodlines?.pages
+      .map((page) => page.data)
+      .flat()
+      .map((bloodline) => ({
+        ...bloodline,
+        type: "bloodline" as const,
+        description: "",
+      }));
+  }, [bloodlines]);
 
   // Create character mutation
   const { mutate: createCharacter, isPending } =
@@ -101,41 +105,16 @@ const Register: React.FC = () => {
   // Using useState with lazy initialization to ensure values are computed only once
   // and are consistent between SSR and client (prevents hydration mismatch)
   const [initialFormValues] = useState(() => {
-    const validAttributes = attributes.filter(
-      (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
-    );
-    const shuffledAttributes = [...validAttributes].sort(() => 0.5 - Math.random());
-    const [attr1, attr2, attr3] = shuffledAttributes.slice(0, 3);
-
-    const validColors = colors.filter(
-      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-    );
-    const validSkinColors = skin_colors.filter(
-      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-    );
-    const validGenders = genders.filter(
-      (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
-    );
-
     return {
-      attribute_1: attr1,
-      attribute_2: attr2,
-      attribute_3: attr3,
-      hair_color: validColors[Math.floor(Math.random() * validColors.length)]!,
-      eye_color: validColors[Math.floor(Math.random() * validColors.length)]!,
-      skin_color: validSkinColors[Math.floor(Math.random() * validSkinColors.length)]!,
-      gender: validGenders[Math.floor(Math.random() * validGenders.length)]!,
+      attribute_1: attributes[0]!,
+      attribute_2: attributes[1]!,
+      attribute_3: attributes[2]!,
+      hair_color: colors[0]!,
+      eye_color: colors[0]!,
+      skin_color: skin_colors[0]!,
+      gender: genders[0]!,
     };
   });
-
-  // Get unsigned user settings from localStorage
-  const getLocalStorageBoolean = (key: string, defaultValue: boolean): boolean => {
-    const saved = safeLocalStorageGetItem(key);
-    if (saved !== null) {
-      return JSON.parse(saved) as boolean;
-    }
-    return defaultValue;
-  };
 
   // Form handling
   const form = useForm<RegistrationSchema>({
@@ -153,10 +132,50 @@ const Register: React.FC = () => {
       attribute_2: initialFormValues.attribute_2,
       attribute_3: initialFormValues.attribute_3,
       bloodlineId: undefined,
-      musicOn: getLocalStorageBoolean("musicOn", true),
-      sfxOn: getLocalStorageBoolean("sfxOn", true),
+      musicOn: true,
+      sfxOn: true,
     },
   });
+
+  // Randomize values once mounted to avoid hydration mismatch
+  useEffect(() => {
+    const validAttributes = attributes.filter(
+      (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
+    );
+    const shuffledAttributes = [...validAttributes].sort(() => 0.5 - Math.random());
+    const [attr1, attr2, attr3] = shuffledAttributes.slice(0, 3);
+
+    const validColors = colors.filter(
+      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+    );
+    const validSkinColors = skin_colors.filter(
+      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
+    );
+    const validGenders = genders.filter(
+      (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
+    );
+
+    form.reset({
+      ...form.getValues(),
+      attribute_1: attr1,
+      attribute_2: attr2,
+      attribute_3: attr3,
+      hair_color: validColors[Math.floor(Math.random() * validColors.length)]!,
+      eye_color: validColors[Math.floor(Math.random() * validColors.length)]!,
+      skin_color: validSkinColors[Math.floor(Math.random() * validSkinColors.length)]!,
+      gender: validGenders[Math.floor(Math.random() * validGenders.length)]!,
+      musicOn: getLocalStorageBoolean("musicOn", true),
+      sfxOn: getLocalStorageBoolean("sfxOn", true),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Helper to get boolean from localStorage with default */
+  const getLocalStorageBoolean = (key: string, defaultValue: boolean): boolean => {
+    const value = safeLocalStorageGetItem(key);
+    if (value === null) return defaultValue;
+    return value === "true";
+  };
 
   // Carousel control
   useEffect(() => {
@@ -287,28 +306,36 @@ const Register: React.FC = () => {
     }
   }, [router, userStatus, userData]);
 
+  // Handle form submission
+  const handleCreateCharacter = form.handleSubmit(
+    (data) => createCharacter(data),
+    (errors) => showFormErrorsToast(errors),
+  );
+
+  // Options used for select fields
+  const option_colors = React.useMemo(
+    () =>
+      colors.map((color, index) => (
+        <SelectItem key={index} value={color}>
+          {color}
+        </SelectItem>
+      )),
+    [],
+  );
+  const option_skins = React.useMemo(
+    () =>
+      skin_colors.map((color, index) => (
+        <SelectItem key={index} value={color}>
+          {color}
+        </SelectItem>
+      )),
+    [],
+  );
+
   // If we are still trying to load user data
   if (userStatus === "pending" || (userStatus === "success" && userData)) {
     return <Loader explanation="Loading page..." />;
   }
-
-  // Handle form submit
-  const handleCreateCharacter = form.handleSubmit(
-    (data) => createCharacter(data),
-    (error) => showFormErrorsToast(error),
-  );
-
-  // Options used for select fields
-  const option_colors = colors.map((color, index) => (
-    <SelectItem key={index} value={color}>
-      {color}
-    </SelectItem>
-  ));
-  const option_skins = skin_colors.map((color, index) => (
-    <SelectItem key={index} value={color}>
-      {color}
-    </SelectItem>
-  ));
 
   return (
     <ContentBox

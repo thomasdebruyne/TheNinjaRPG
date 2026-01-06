@@ -407,15 +407,21 @@ export const jutsuRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Query in parallel for performance
-      const [user, entry, relations] = await Promise.all([
+      const [user, entry, relations, jutsuWithName] = await Promise.all([
         fetchUser(ctx.drizzle, ctx.userId),
         fetchJutsu(ctx.drizzle, input.id),
         getJutsuRelations(ctx.drizzle, input.id),
+        ctx.drizzle.query.jutsu.findFirst({
+          columns: { name: true, id: true },
+          where: eq(jutsu.name, input.data.name),
+        }),
       ]);
       // Guard
       if (user.isBanned)
         return errorResponse("You are banned and cannot perform this action");
       if (!entry) return errorResponse("Jutsu not found");
+      if (jutsuWithName && jutsuWithName.id !== entry.id)
+        return errorResponse("Jutsu name already exists");
       if (entry.id === TUTORIAL_JUTSU_ID && input?.data?.hidden)
         return errorResponse("Cannot hide tutorial jutsu");
       if (!canChangeContent(user.role)) return errorResponse("Not allowed");
@@ -1467,7 +1473,9 @@ export const jutsuDatabaseFilter = (input?: JutsuFilteringSchema) => {
     ...(input?.target ? [eq(jutsu.target, input.target)] : []),
 
     // Battle usage type filter
-    ...(input?.battleUsageType ? [eq(jutsu.battleUsageType, input.battleUsageType)] : []),
+    ...(input?.battleUsageType
+      ? [eq(jutsu.battleUsageType, input.battleUsageType)]
+      : []),
 
     // Action cost filter
     ...(input?.actionCostPerc !== undefined

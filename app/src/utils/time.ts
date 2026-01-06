@@ -115,8 +115,10 @@ export const addDays = (date: Date, days: number) => {
 };
 
 export const getCurrentSeason = () => {
+  // Use UTC month to ensure consistent results between server and client
+  // regardless of timezone differences
   const now = new Date();
-  const month = now.getMonth();
+  const month = now.getUTCMonth();
   switch (month) {
     case 11:
     case 0:

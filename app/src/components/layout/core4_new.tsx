@@ -42,7 +42,7 @@ const LayoutCore4New: React.FC<LayoutProps> = (props) => {
   // Derived data for layout
   const navbarMenuItems = getMainNavbarLinks(notifications);
 
-  // Images
+  // Images - calculated based on season (UTC-consistent) and user's village
   const imageset = getImageSet(userData);
 
   // Styling for yellow buttons

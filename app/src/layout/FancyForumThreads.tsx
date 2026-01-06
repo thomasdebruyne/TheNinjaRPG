@@ -18,7 +18,7 @@ interface FancyForumThreadsProps {
   initialData: Awaited<InfiniteThreads>;
   initialBreak?: boolean;
   image?: string;
-  canPost?: boolean;
+  canPost?: boolean | null;
 }
 
 const FancyForumThreads: React.FC<FancyForumThreadsProps> = (props) => {

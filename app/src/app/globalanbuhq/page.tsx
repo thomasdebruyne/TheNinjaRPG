@@ -20,7 +20,7 @@ export default async function GlobalAnbuHQ() {
       boardName: "ANBU HQ",
       limit: 10,
     }),
-    ...(user ? [fetchUser(drizzleDB, user.id)] : []),
+    ...(user ? [fetchUser(drizzleDB, user.id).catch(() => null)] : []),
   ]);
 
   // Can post news?

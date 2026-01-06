@@ -19,7 +19,7 @@ export default async function News() {
       boardName: "News",
       limit: 10,
     }),
-    ...(user ? [fetchUser(drizzleDB, user.id)] : []),
+    ...(user ? [fetchUser(drizzleDB, user.id).catch(() => null)] : []),
   ]);
 
   // Can post news?

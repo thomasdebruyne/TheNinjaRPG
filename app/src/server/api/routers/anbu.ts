@@ -294,11 +294,15 @@ export const anbuRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Fetch
-      const [user, squad, image] = await Promise.all([
+      const [user, squad, image, squadWithName] = await Promise.all([
         fetchUser(ctx.drizzle, ctx.userId),
         fetchSquad(ctx.drizzle, input.squadId),
         ctx.drizzle.query.historicalAvatar.findFirst({
           where: eq(historicalAvatar.avatar, input.image),
+        }),
+        ctx.drizzle.query.anbuSquad.findFirst({
+          columns: { name: true, id: true },
+          where: eq(anbuSquad.name, input.name),
         }),
       ]);
       // Guards
@@ -306,6 +310,9 @@ export const anbuRouter = createTRPCRouter({
       if (!user) return errorResponse("User not found");
       if (!image) return errorResponse("Image not found");
       if (!image.avatar) return errorResponse("Image not found");
+      if (squadWithName && squadWithName.id !== squad.id) {
+        return errorResponse("Squad name already exists");
+      }
       if (squad.leaderId !== user.userId) return errorResponse("Not squad leader");
       if (squad.villageId !== user.villageId) return errorResponse("Wrong village");
       if (user.anbuId !== squad.id) return errorResponse("Wrong squad");

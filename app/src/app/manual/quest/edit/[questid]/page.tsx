@@ -211,21 +211,18 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
                     ) {
                       continue;
                     } else if (key === "content") {
-                      const newObjectives = data.content?.objectives
-                        ?.map((objective) => {
+                      const newObjectives: AllObjectivesType[] | undefined =
+                        data.content?.objectives?.map((objective) => {
                           const schema = getObjectiveSchema(objective.task);
                           const parsed = schema.safeParse({
                             ...objective,
                             id: nanoid(5),
                           });
-                          if (parsed.success) {
-                            return parsed.data;
-                          } else {
-                            return undefined;
-                          }
-                        })
-                        .filter((e): e is NonNullable<typeof e> => e !== undefined);
-                      setObjectives(newObjectives);
+                          return parsed.success ? parsed.data : objective;
+                        });
+                      if (newObjectives) {
+                        setObjectives(newObjectives);
+                      }
                     } else {
                       form.setValue(key, data[key], { shouldDirty: true });
                     }

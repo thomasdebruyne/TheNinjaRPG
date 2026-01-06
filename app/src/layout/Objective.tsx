@@ -35,9 +35,10 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
   const { objective, tier, tracker, titlePrefix, checkRewards } = props;
   const { image, title } = getObjectiveImage(objective);
 
-  // Parse objective
+  // Parse objective - fall back to raw objective if validation fails (allows admin to see invalid data)
   const objectiveSchema = getObjectiveSchema(objective.task as string);
-  const parsed = objectiveSchema.parse(objective);
+  const parseResult = objectiveSchema.safeParse(objective);
+  const parsed: AllObjectivesType = parseResult.success ? parseResult.data : objective;
 
   // Derived status of the objective
   const { done, value, canCollect } = isObjectiveComplete(tracker, parsed);
@@ -56,14 +57,18 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
       },
     });
 
+  // Extract collect_time_minutes safely for countdown
+  const collectTimeMinutes =
+    "collect_time_minutes" in parsed && typeof parsed.collect_time_minutes === "number"
+      ? parsed.collect_time_minutes
+      : 0;
+
   const isTimeEventCountdown =
-    "collect_time_minutes" in parsed &&
-    parsed.collect_time_minutes > 0 &&
-    status?.timestamp ? (
+    collectTimeMinutes > 0 && status?.timestamp ? (
       <Countdown
         timeDiff={timeDiff}
         targetDate={secondsFromDate(
-          parsed.collect_time_minutes * 60,
+          collectTimeMinutes * 60,
           new Date(status.timestamp),
         )}
         onFinish={async () => {
@@ -73,24 +78,35 @@ export const Objective: React.FC<ObjectiveProps> = (props) => {
     ) : null;
 
   // Indicator icon
-  const indicatorIcons = done ? (
+  const indicatorIcons = (
     <div className="flex flex-col items-center gap-1">
-      <Check className="h-10 w-10 stroke-green-500" />
-      {hasReward(parsed) &&
-        (canCollect && userData?.status === "AWAKE" ? (
-          <Gift
-            className="h-7 w-7 cursor-pointer hover:text-orange-500"
-            onClick={checkRewards}
-          />
-        ) : (
-          <Gift className="h-7 w-7 fill-slate-500" />
-        ))}
+      {!parseResult.success && userData?.role !== "USER" && (
+        <div className="text-red-500 text-xs font-bold border-2 border-red-500 p-1 rounded-md text-center">
+          Invalid
+          <br />
+          Objective!
+        </div>
+      )}
+      {done ? (
+        <>
+          <Check className="h-10 w-10 stroke-green-500" />
+          {hasReward(parsed) &&
+            (canCollect && userData?.status === "AWAKE" ? (
+              <Gift
+                className="h-7 w-7 cursor-pointer hover:text-orange-500"
+                onClick={checkRewards}
+              />
+            ) : (
+              <Gift className="h-7 w-7 fill-slate-500" />
+            ))}
+        </>
+      ) : (
+        <>
+          <X className="h-10 w-10 stroke-red-500" />
+          {isTimeEventCountdown && <Loader2 className="h-10 w-10 animate-spin" />}
+        </>
+      )}
     </div>
-  ) : (
-    <>
-      <X className="h-10 w-10 stroke-red-500" />
-      {isTimeEventCountdown && <Loader2 className="h-10 w-10 animate-spin" />}
-    </>
   );
 
   // If future objectives are hidden, hide future objectives
@@ -313,7 +329,7 @@ const getStatusColor = (tier: number | undefined, done: boolean) => {
       return "bg-green-500";
     case 2:
       return "bg-yellow-500";
-    case 2:
+    case 3:
       return "bg-red-500";
     default:
       return "bg-blue-500";

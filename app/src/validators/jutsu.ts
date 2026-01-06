@@ -70,7 +70,7 @@ export type JutsuFilteringSchema = z.infer<typeof jutsuFilteringSchema>;
  * Base schema for reskins
  */
 export const baseReskinSchema = z.object({
-  name: z.string().min(0).max(100).optional(),
+  name: z.string().trim().min(0).max(100).optional(),
   description: z.string().min(0).max(1000).optional(),
   battleDescription: z.string().min(0).max(1000).optional(),
   image: z.string().min(1).max(191).optional(),

@@ -195,23 +195,28 @@ export const skillTreeRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Check permissions
-      const { user } = await fetchUpdatedUser({
-        client: ctx.drizzle,
-        userId: ctx.userId,
-      });
+      const [{ user }, skill, skillWithName] = await Promise.all([
+        fetchUpdatedUser({
+          client: ctx.drizzle,
+          userId: ctx.userId,
+        }),
+        ctx.drizzle.query.skillTree.findFirst({
+          where: eq(skillTree.id, input.id),
+        }),
+        ctx.drizzle.query.skillTree.findFirst({
+          columns: { name: true, id: true },
+          where: eq(skillTree.name, input.data.name),
+        }),
+      ]);
       if (!user || !canChangeContent(user.role)) {
         throw serverError(
           "UNAUTHORIZED",
           "You are not authorized to edit this content",
         );
       }
-
-      // Get existing skill
-      const skill = await ctx.drizzle.query.skillTree.findFirst({
-        where: eq(skillTree.id, input.id),
-      });
-
       if (!skill) return errorResponse("Skill not found");
+      if (skillWithName && skillWithName.id !== skill.id)
+        return errorResponse("Skill name already exists");
 
       // Prepare the data
       const data = {
@@ -359,7 +364,7 @@ export const skillTreeRouter = createTRPCRouter({
       return {
         success: true,
         message: `Skills points reset!${
-          isFreeReset 
+          isFreeReset
             ? canChangeContent(user.role)
               ? " (Free for staff member)"
               : " (Free for GOLD supporter)"

@@ -1552,7 +1552,7 @@ export const SuperRefineEffects = (effects: ZodAllTags[], ctx: z.RefinementCtx) 
  * Jutsu Type. Used for validating a jutsu object is set up properly
  */
 export const JutsuValidatorRawSchema = z.object({
-  name: z.string(),
+  name: z.string().trim(),
   image: z.string(),
   description: z.string(),
   battleDescription: z.string(),
@@ -1591,7 +1591,7 @@ export type ZodJutsuType = z.infer<typeof JutsuValidator>;
  * Bloodline Type. Used for validating a bloodline object is set up properly
  */
 export const BloodlineValidator = z.object({
-  name: z.string(),
+  name: z.string().trim(),
   image: z.string(),
   description: z.string(),
   rank: z.enum(LetterRanks),
@@ -1609,7 +1609,7 @@ export type ZodBloodlineType = z.infer<typeof BloodlineValidator>;
  * SkillTree Type. Used for validating a skill tree object is set up properly
  */
 export const SkillTreeValidator = z.object({
-  name: z.string(),
+  name: z.string().trim(),
   image: z.string(),
   description: z.string(),
   target: z.enum(SkillTreeTargets).default("SELF"),
@@ -1626,7 +1626,7 @@ export type ZodSkillTreeType = z.infer<typeof SkillTreeValidator>;
  * Item Type. Used for validating a item object is set up properly
  */
 export const ItemValidatorRawSchema = z.object({
-  name: z.string(),
+  name: z.string().trim(),
   image: z.string(),
   description: z.string(),
   battleDescription: z.string(),

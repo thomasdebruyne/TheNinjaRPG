@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronsLeft } from "lucide-react";
 
@@ -24,11 +24,14 @@ export interface ContentBoxProps {
 const ContentBox: React.FC<ContentBoxProps> = (props) => {
   // State for browser-based back functionality
   const router = useRouter();
-  // Use lazy initialization for browser history check
-  const [canGoBack] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return history.length > 1;
-  });
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  // Handle back navigation
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCanGoBack(history.length > 1);
+    }
+  }, []);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
