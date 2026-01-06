@@ -184,14 +184,9 @@ export const updateProjectiles = (info: {
       let progress = projectile.progress; // Fallback to stored progress
       if (projectile.clientSpawnTime !== undefined) {
         const elapsed = (now - projectile.clientSpawnTime) / 1000;
-        const distance = calculateHexDistance(
-          projectile.origin,
-          projectile.target,
-        );
+        const distance = calculateHexDistance(projectile.origin, projectile.target);
         progress =
-          distance > 0
-            ? Math.min((elapsed * PROJECTILE_SPEED) / distance, 1.0)
-            : 1.0;
+          distance > 0 ? Math.min((elapsed * PROJECTILE_SPEED) / distance, 1.0) : 1.0;
       }
 
       const x = originTile.x + (targetX - originTile.x) * progress;
