@@ -951,11 +951,13 @@ The HUD system has several potential failure points. Debug in order:
 **CRITICAL: Avoid sequential scans in SpacetimeDB.** As the number of concurrent sessions and historical runs grows, sequential scans will cause high CPU usage and slow down subscriptions.
 
 1. **Always index subscription filter columns**:
+
    - `game_session` and `completed_run` MUST be indexed on `ninjarpg_user_id`.
    - All entity tables (`enemy`, `enemy_spawn`, `projectile`, `session_upgrade`, `enemy_queued`) MUST be indexed on `session_id`.
    - `session_state` MUST be indexed on `session_id` (primary key).
 
 2. **Use filtered iterators in reducers**:
+
    - NEVER use `ctx.db.table().iter().filter(|row| row.session_id == id)` if an index on `session_id` exists.
    - ALWAYS use `ctx.db.table().session_id().filter(id)` to leverage the B-Tree index.
    - This applies to `game_loop`, cleanup functions, and purchase reducers.

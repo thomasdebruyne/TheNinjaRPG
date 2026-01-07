@@ -135,17 +135,51 @@ export class SpacetimeDBConnection {
   }
 
   /**
+   * Wait for connection to complete (or fail)
+   * Used to avoid race conditions when multiple calls to connect() happen concurrently
+   */
+  private waitForConnection(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const checkConnection = () => {
+        if (this.connectionState === "connected") {
+          resolve();
+        } else if (
+          this.connectionState === "error" ||
+          this.connectionState === "disconnected"
+        ) {
+          reject(new Error("Connection failed"));
+        } else {
+          setTimeout(checkConnection, 100);
+        }
+      };
+      setTimeout(checkConnection, 100);
+    });
+  }
+
+  /**
    * Connect to SpacetimeDB
    * @param userId - The user's ID for filtered subscriptions (use "guest" for unauthenticated)
    */
   async connect(userId?: string): Promise<void> {
-    if (this.connectionState === "connected" || this.connectionState === "connecting") {
-      // If already connected but userId changed, update subscriptions
-      if (
-        this.connectionState === "connected" &&
-        userId &&
-        userId !== this.currentUserId
-      ) {
+    // If already connected, just update subscriptions if needed
+    if (this.connectionState === "connected") {
+      if (userId && userId !== this.currentUserId) {
+        const validatedId = validateUserId(userId);
+        if (validatedId) {
+          this.currentUserId = validatedId;
+          this.setupGlobalSubscriptions();
+        }
+      }
+      return;
+    }
+
+    // If already connecting, wait for it to complete instead of returning immediately
+    // This fixes a race condition where startRun() could call createSession() before
+    // the WebSocket was actually open (InvalidStateError)
+    if (this.connectionState === "connecting") {
+      await this.waitForConnection();
+      // After connection completes, update subscriptions if needed
+      if (userId && userId !== this.currentUserId) {
         const validatedId = validateUserId(userId);
         if (validatedId) {
           this.currentUserId = validatedId;
@@ -196,18 +230,7 @@ export class SpacetimeDBConnection {
       this.connection = connection;
 
       // Wait for connection to complete
-      await new Promise<void>((resolve, reject) => {
-        const checkConnection = () => {
-          if (this.connectionState === "connected") {
-            resolve();
-          } else if (this.connectionState === "error") {
-            reject(new Error("Connection failed"));
-          } else {
-            setTimeout(checkConnection, 100);
-          }
-        };
-        setTimeout(checkConnection, 100);
-      });
+      await this.waitForConnection();
     } catch (error) {
       this.connectionState = "error";
       this.emit({ type: "connection_state", state: "error" });
