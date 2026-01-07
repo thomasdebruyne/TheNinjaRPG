@@ -728,12 +728,12 @@ const Combat: React.FC<CombatProps> = (props) => {
         if (!isMounted.current) return;
 
         // Performance profiling
-        profiler.beginFrame();
+        profiler?.beginFrame();
         performanceMonitor.begin();
-        const endTotal = profiler.mark("animate_total");
+        const endTotal = profiler?.mark("animate_total") ?? (() => {});
 
         // Use clock for animating sprites
-        const endSpriteMixer = profiler.mark("animate_sprite_mixer");
+        const endSpriteMixer = profiler?.mark("animate_sprite_mixer") ?? (() => {});
         spriteMixer.update(clock.getDelta());
         endSpriteMixer();
 
@@ -748,7 +748,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           );
 
           // Draw all users on the map
-          const endDrawUsers = profiler.mark("animate_draw_users");
+          const endDrawUsers = profiler?.mark("animate_draw_users") ?? (() => {});
           const isAnyUserMoving = drawCombatUsers({
             group_users: group_users,
             grid: grid.current,
@@ -775,7 +775,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           }
 
           // Draw all ground effects on the map (non-movement SFX delayed until movement completes)
-          const endDrawEffects = profiler.mark("animate_draw_effects");
+          const endDrawEffects = profiler?.mark("animate_draw_effects") ?? (() => {});
           drawCombatEffects({
             groupEffects: group_effects,
             battle: battle.current,
@@ -790,7 +790,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           endDrawEffects();
 
           // Performance optimization: Run raycaster intersections once per frame
-          const endRaycast = profiler.mark("animate_raycast");
+          const endRaycast = profiler?.mark("animate_raycast") ?? (() => {});
           const tilesIntersects = raycaster.intersectObjects(group_tiles.children);
           const cachedIntersections: CachedIntersections = {
             tiles: tilesIntersects,
@@ -800,7 +800,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           endRaycast();
 
           // Highlight information on user hover
-          const endHighlightUsers = profiler.mark("animate_highlight_users");
+          const endHighlightUsers = profiler?.mark("animate_highlight_users") ?? (() => {});
           userHighlights = highlightUsers({
             group_users,
             cachedIntersections,
@@ -812,7 +812,7 @@ const Combat: React.FC<CombatProps> = (props) => {
 
           // Detect intersections with tiles for movement/action
           if (user) {
-            const endHighlightTiles = profiler.mark("animate_highlight_tiles");
+            const endHighlightTiles = profiler?.mark("animate_highlight_tiles") ?? (() => {});
             highlights = highlightTiles({
               group_tiles,
               group_highlight_edges,
@@ -829,7 +829,7 @@ const Combat: React.FC<CombatProps> = (props) => {
           }
 
           // Highlight tooltips when hovering on battlefield
-          const endHighlightTooltips = profiler.mark("animate_highlight_tooltips");
+          const endHighlightTooltips = profiler?.mark("animate_highlight_tooltips") ?? (() => {});
           tooltips = highlightTooltips({
             group_ground,
             cachedIntersections,
@@ -862,7 +862,7 @@ const Combat: React.FC<CombatProps> = (props) => {
 
         // Smooth camera following
         if (cameraRef.current && controlsRef.current) {
-          const endCamera = profiler.mark("animate_camera");
+          const endCamera = profiler?.mark("animate_camera") ?? (() => {});
           smoothCameraFollow({
             camera: cameraRef.current,
             controls: controlsRef.current,
@@ -874,31 +874,31 @@ const Combat: React.FC<CombatProps> = (props) => {
         }
 
         // Trackball updates
-        const endControls = profiler.mark("animate_controls");
+        const endControls = profiler?.mark("animate_controls") ?? (() => {});
         controls.update();
         endControls();
 
         // Update wind and wave animations for sprites and tiles
         if (!lightLayout) {
-          const endShaders = profiler.mark("animate_shaders");
+          const endShaders = profiler?.mark("animate_shaders") ?? (() => {});
           updateWindAnimation(group_assets, performance.now() / 1000);
           updateWaveAnimation(group_tiles, performance.now() / 1000);
           endShaders();
         }
 
         // Render the scene
-        const endRender = profiler.mark("animate_render");
+        const endRender = profiler?.mark("animate_render") ?? (() => {});
         renderer?.render(scene, camera);
         endRender();
 
         if (renderer) {
-          profiler.setRendererInfo(renderer.info);
+          profiler?.setRendererInfo(renderer.info);
         }
 
         // Performance monitor
         performanceMonitor.end();
         endTotal();
-        profiler.log(2000);
+        profiler?.log(2000);
 
         animationId = performanceMonitor.requestFrame(render);
       }
@@ -913,7 +913,7 @@ const Combat: React.FC<CombatProps> = (props) => {
         performanceMonitor.cancelFrame(animationId);
 
         // Reset profiler and combat caches
-        profiler.reset();
+        profiler?.reset();
         resetCombatCaches();
 
         if (zoomTimeout) clearTimeout(zoomTimeout);
