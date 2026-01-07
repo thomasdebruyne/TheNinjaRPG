@@ -55,6 +55,7 @@ Sentry.init({
     "Clerk: Failed to load Clerk", // Clerk script load failure - typically on very old browsers (Android 5.x, Chrome 95) that don't support modern JS
     "failed to load script", // Clerk's underlying script loading error (cause of the above) - network issues on mobile devices
     "Illegal invocation", // Third-party script error (Facebook in-app browser or Cookiebot)
+    "Can't find variable: EmptyRanges", // Browser extension error (CodeMirror-based extensions)
   ],
 
   // Filter out third-party errors that slip through ignoreErrors
