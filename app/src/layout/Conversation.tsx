@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { nanoid } from "nanoid";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,6 +80,13 @@ const Conversation: React.FC<ConversationProps> = (props) => {
     secondsFromNow(CONVERSATION_QUIET_MINS * 60),
   );
   const silence = new Date() > quietTime;
+
+  // Typing indicator state
+  type TypingUser = { username: string; timestamp: number };
+  const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser>>(
+    () => new Map(),
+  );
+  const lastTypingSentRef = useRef<number>(0);
 
   const queryKey = {
     convo_id: props.convo_id,
@@ -270,6 +277,10 @@ const Conversation: React.FC<ConversationProps> = (props) => {
       },
     });
 
+  // Mutation for typing indicator
+  const { mutate: sendTypingIndicator } =
+    api.comments.sendTypingIndicator.useMutation();
+
   // tRPC utils
   const utils = api.useUtils();
 
@@ -314,6 +325,27 @@ const Conversation: React.FC<ConversationProps> = (props) => {
     name: "quoteIds",
     defaultValue: [],
   });
+
+  // Watch comment field for typing indicator
+  const commentValue = useWatch({
+    control,
+    name: "comment",
+    defaultValue: "",
+  });
+
+  // Send typing indicator when user types (debounced)
+  useEffect(() => {
+    const DEBOUNCE_MS = 2000;
+    if (
+      conversation?.isPublic &&
+      commentValue &&
+      commentValue.length > 0 &&
+      Date.now() - lastTypingSentRef.current > DEBOUNCE_MS
+    ) {
+      lastTypingSentRef.current = Date.now();
+      sendTypingIndicator({ conversationId: conversation.id });
+    }
+  }, [commentValue, conversation?.isPublic, conversation?.id, sendTypingIndicator]);
 
   // Set the object_id to the conversation id
   useEffect(() => {
@@ -502,6 +534,19 @@ const Conversation: React.FC<ConversationProps> = (props) => {
                 );
               }
               break;
+            case "typing":
+              console.log(data);
+              if (data?.fromId && data?.fromId !== userData?.userId && data?.username) {
+                setTypingUsers((prev) => {
+                  const next = new Map(prev);
+                  next.set(data.fromId!, {
+                    username: data.username!,
+                    timestamp: Date.now(),
+                  });
+                  return next;
+                });
+              }
+              break;
           }
         },
       );
@@ -511,6 +556,26 @@ const Conversation: React.FC<ConversationProps> = (props) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [silence, conversation]);
+
+  // Cleanup stale typing indicators every second
+  useEffect(() => {
+    const TYPING_TIMEOUT_MS = 3000;
+    const interval = setInterval(() => {
+      setTypingUsers((prev) => {
+        const now = Date.now();
+        const next = new Map(prev);
+        let changed = false;
+        for (const [userId, data] of next) {
+          if (now - data.timestamp > TYPING_TIMEOUT_MS) {
+            next.delete(userId);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   /**
    * Submit comment
@@ -643,6 +708,22 @@ const Conversation: React.FC<ConversationProps> = (props) => {
                     onClick={invalidateComments}
                   />
                 </div>
+                {conversation?.isPublic && typingUsers.size > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1 italic">
+                    {(() => {
+                      const names = Array.from(typingUsers.values()).map(
+                        (u) => u.username,
+                      );
+                      if (names.length === 1) {
+                        return `${names[0]} is typing...`;
+                      } else if (names.length === 2) {
+                        return `${names[0]} and ${names[1]} are typing...`;
+                      } else {
+                        return `${names.slice(0, 2).join(", ")} and ${names.length - 2} more are typing...`;
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
             )}
           {allComments

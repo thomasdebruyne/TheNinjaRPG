@@ -699,34 +699,31 @@ export const commentsRouter = createTRPCRouter({
         quotedUserIds,
       );
 
-      // Mutations
+      // Database mutations first (must complete before Pusher notifications)
       await Promise.all([
-        // Ping users (both mentioned and quoted, only those not in a blacklist relationship)
-        ...notifiedUserIds.map(({ userId, type }) =>
-          pusher.trigger(userId, "event", {
-            type: "pinged",
-            message: `${effectiveUsername} ${type === "mentioned" ? "pinged" : "quoted"} you in ${convo.title}`,
-          }),
-        ),
-        // Trigger new comment event
-        pusher.trigger(convo.id, "event", {
-          message: "new",
-          fromId: effectiveUserId,
-          commentId: commentId,
+        // Insert into DB
+        ctx.drizzle.insert(conversationComment).values({
+          id: commentId,
+          content: sanitized,
+          userId: effectiveUserId,
+          authorId: ctx.userId,
+          conversationId: convo.id,
         }),
-        // Inbox news
+        // Update conversation
+        ctx.drizzle
+          .update(conversation)
+          .set({ updatedAt: new Date() })
+          .where(eq(conversation.id, convo.id)),
+        // Inbox news (database update)
         ...(usersIdsInConvo.length > 0 && !convo.isPublic
           ? [
               ctx.drizzle
                 .update(userData)
                 .set({ inboxNews: sql`${userData.inboxNews} + 1` })
                 .where(inArray(userData.userId, usersIdsInConvo)),
-              ...usersIdsInConvo
-                .filter((id) => id !== effectiveUserId)
-                .map((userId) => pusher.trigger(userId, "event", { type: "newInbox" })),
             ]
           : []),
-        // Auto-moderation
+        // Auto-moderation and stats
         ...(convo.isPublic
           ? [
               moderateContent(ctx.drizzle, {
@@ -742,21 +739,31 @@ export const commentsRouter = createTRPCRouter({
                 .where(eq(userData.userId, effectiveUserId)),
             ]
           : []),
-        // Insert into DB
-        ctx.drizzle.insert(conversationComment).values({
-          id: commentId,
-          content: sanitized,
-          userId: effectiveUserId,
-          authorId: ctx.userId,
-          conversationId: convo.id,
-        }),
-        // Update conversation
-        ctx.drizzle
-          .update(conversation)
-          .set({ updatedAt: new Date() })
-          .where(eq(conversation.id, convo.id)),
       ]);
-      // Insert
+
+      // Pusher notifications (fire after DB commit, don't await)
+      void Promise.all([
+        // Ping users (both mentioned and quoted, only those not in a blacklist relationship)
+        ...notifiedUserIds.map(({ userId, type }) =>
+          pusher.trigger(userId, "event", {
+            type: "pinged",
+            message: `${effectiveUsername} ${type === "mentioned" ? "pinged" : "quoted"} you in ${convo.title}`,
+          }),
+        ),
+        // Trigger new comment event
+        pusher.trigger(convo.id, "event", {
+          message: "new",
+          fromId: effectiveUserId,
+          commentId: commentId,
+        }),
+        // Inbox news (pusher notifications)
+        ...(usersIdsInConvo.length > 0 && !convo.isPublic
+          ? usersIdsInConvo
+              .filter((id) => id !== effectiveUserId)
+              .map((userId) => pusher.trigger(userId, "event", { type: "newInbox" }))
+          : []),
+      ]);
+
       return { success: true, message: "Comment posted", commentId: commentId };
     }),
   reactConversationComment: protectedProcedure
@@ -800,6 +807,20 @@ export const commentsRouter = createTRPCRouter({
           : []),
       ]);
       return { success: true, message: "Reaction added" };
+    }),
+  sendTypingIndicator: protectedProcedure
+    .input(z.object({ conversationId: z.string() }))
+    .use(ratelimitMiddleware)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.userId) return errorResponse("You are not logged in");
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      const pusher = getServerPusher();
+      void pusher.trigger(input.conversationId, "event", {
+        message: "typing",
+        fromId: ctx.userId,
+        username: user.username,
+      });
+      return { success: true };
     }),
   editConversationComment: protectedProcedure
     .input(mutateCommentSchema)
