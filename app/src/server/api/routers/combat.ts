@@ -112,7 +112,6 @@ import { findRelationship } from "@/utils/alliance";
 import { getDefaultBasicActions } from "@/libs/combat/actions";
 import { canTrainJutsu, checkJutsuItems } from "@/libs/train";
 import { toOffenceStat, toDefenceStat } from "@/libs/stats";
-import { getReskinnedUserJutsu } from "@/libs/jutsu";
 import {
   ID_ANIMATION_SMOKE,
   ID_ANIMATION_HIT,
@@ -2330,14 +2329,11 @@ export const processUsersForBattle = async (
 
     // Set jutsus updatedAt to now (we use it for determining usage cooldowns)
     const isQuestBattle = QuestBattleTypes.includes(battleType);
-    // Filter and process jutsus - getReskinnedUserJutsu preserves ProcessedJutsu type
-    // Ensure activeReskin is null instead of undefined for getReskinnedUserJutsu compatibility
+    // Filter and process jutsus - DO NOT apply reskins here, they are applied dynamically
+    // in userJutsuToAction to ensure each user sees their own reskin
     const processedJutsus = user.jutsus
       .map((userjutsu) => ({
-        ...getReskinnedUserJutsu({
-          ...userjutsu,
-          activeReskin: userjutsu.activeReskin ?? null,
-        }),
+        ...userjutsu,
         lastUsedRound: userjutsu.lastUsedRound,
         originalCooldown: userjutsu.originalCooldown,
       }))

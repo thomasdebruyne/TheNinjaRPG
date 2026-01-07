@@ -7,7 +7,7 @@ import {
 } from "@/libs/combat/types";
 import { ClearTag, CleanseTag } from "@/libs/combat/types";
 import { nanoid } from "nanoid";
-import { getAffectedTiles, getJutsu, getItem } from "@/libs/combat/util";
+import { getAffectedTiles, getJutsu, getJutsuReskin, getItem } from "@/libs/combat/util";
 import { COMBAT_SECONDS } from "@/libs/combat/constants";
 import { checkFriendlyFire } from "@/libs/combat/process";
 import { applyEffects } from "@/libs/combat/process";
@@ -549,11 +549,18 @@ export const userJutsuToAction = (
 ) => {
   const jutsu = getJutsu(battle, userjutsu.jutsuId);
   if (!jutsu) throw new Error(`Jutsu not found: ${userjutsu.jutsuId}`);
+
+  // Apply reskin if the user has one for this jutsu
+  const reskin = getJutsuReskin(battle, userjutsu.reskinId);
+  const name = reskin?.name || jutsu.name;
+  const image = reskin?.image || jutsu.image;
+  const battleDescription = reskin?.battleDescription || jutsu.battleDescription;
+
   return {
     id: jutsu.id,
-    name: jutsu.name,
-    image: jutsu.image,
-    battleDescription: jutsu.battleDescription,
+    name,
+    image,
+    battleDescription,
     type: "jutsu" as const,
     target: jutsu.target,
     method: jutsu.method,
