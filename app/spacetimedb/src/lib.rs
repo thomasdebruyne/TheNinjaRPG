@@ -8,6 +8,8 @@
 //! 2. Client-side projectile interpolation (only spawn/delete, no progress updates)
 //! 3. Increased tick rate from 100ms to 150ms
 //! 4. Definition hash in completed_run instead of full JSON
+//! 5. B-Tree indexes on all subscription filter columns (session_id, ninjarpg_user_id)
+//! 6. Optimized reducers using index-based filtered iterators instead of sequential scans
 
 use spacetimedb::{
     reducer, table, ReducerContext, ScheduleAt, SpacetimeType, Table, Timestamp,
@@ -87,6 +89,7 @@ pub struct GameSession {
     #[primary_key]
     #[auto_inc]
     pub id: u64,
+    #[index(btree)]
     pub ninjarpg_user_id: String,
     pub seed: String,
     pub nonce: String,
@@ -126,6 +129,7 @@ pub struct GameSession {
 #[table(name = session_state, public)]
 pub struct SessionState {
     #[primary_key]
+    #[index(btree)]
     pub session_id: u64,
     pub wave: u32,
     pub score: u32,
@@ -167,6 +171,7 @@ pub struct SessionUpgrade {
     #[primary_key]
     #[auto_inc]
     pub id: u64,
+    #[index(btree)]
     pub session_id: u64,
     pub upgrade_id: String,
     pub level: u32,
@@ -178,6 +183,7 @@ pub struct EnemyQueued {
     #[primary_key]
     #[auto_inc]
     pub id: u64,
+    #[index(btree)]
     pub session_id: u64,
     pub enemy_type: String,
     pub health: i32,
@@ -196,6 +202,7 @@ pub struct EnemyQueued {
 pub struct EnemySpawn {
     #[primary_key]
     pub enemy_id: u64,
+    #[index(btree)]
     pub session_id: u64,
     pub spawn_col: u32,
     pub spawn_row: u32,
@@ -210,6 +217,7 @@ pub struct Enemy {
     #[primary_key]
     #[auto_inc]
     pub id: u64,
+    #[index(btree)]
     pub session_id: u64,
     pub enemy_type: String,
     pub col: u32,
@@ -232,6 +240,7 @@ pub struct Projectile {
     #[primary_key]
     #[auto_inc]
     pub id: u64,
+    #[index(btree)]
     pub session_id: u64,
     pub origin_col: u32,
     pub origin_row: u32,
@@ -250,7 +259,9 @@ pub struct CompletedRun {
     #[primary_key]
     #[auto_inc]
     pub id: u64,
+    #[index(btree)]
     pub session_id: u64,
+    #[index(btree)]
     pub ninjarpg_user_id: String,
     /// Session signature from the original session (for claim verification)
     pub session_signature: String,
@@ -640,12 +651,11 @@ pub fn create_session(
     
     // Mark any existing active sessions for this user as abandoned
     let mut sessions_to_abandon = Vec::new();
-    for session in ctx.db.game_session().iter() {
-        if session.ninjarpg_user_id == ninjarpg_user_id {
-            if let Some(state) = ctx.db.session_state().session_id().find(session.id) {
-                if state.status == "active" {
-                    sessions_to_abandon.push(session.id);
-                }
+    // PERFORMANCE: Use index to find sessions for this user
+    for session in ctx.db.game_session().ninjarpg_user_id().filter(&ninjarpg_user_id) {
+        if let Some(state) = ctx.db.session_state().session_id().find(session.id) {
+            if state.status == "active" {
+                sessions_to_abandon.push(session.id);
             }
         }
     }
@@ -961,8 +971,9 @@ pub fn purchase_upgrade(
     let mut current_level = 0u32;
     let mut existing_upgrade: Option<SessionUpgrade> = None;
     
-    for upgrade in ctx.db.session_upgrade().iter() {
-        if upgrade.session_id == session_id && upgrade.upgrade_id == upgrade_id {
+    // PERFORMANCE: Use index to filter by session_id instead of scanning all upgrades
+    for upgrade in ctx.db.session_upgrade().session_id().filter(session_id) {
+        if upgrade.upgrade_id == upgrade_id {
             current_level = upgrade.level;
             existing_upgrade = Some(upgrade);
             break;
@@ -1069,12 +1080,12 @@ pub fn purchase_upgrade(
 
 /// Internal function to clean up all data associated with a session
 fn internal_delete_session(ctx: &ReducerContext, session_id: u64) {
+    // PERFORMANCE: Use indexes for filtered deletion instead of scanning all tables
+    
     // Clean up enemy spawn data
     let mut spawns_to_delete = Vec::new();
-    for spawn in ctx.db.enemy_spawn().iter() {
-        if spawn.session_id == session_id {
-            spawns_to_delete.push(spawn.enemy_id);
-        }
+    for spawn in ctx.db.enemy_spawn().session_id().filter(session_id) {
+        spawns_to_delete.push(spawn.enemy_id);
     }
     for id in spawns_to_delete {
         ctx.db.enemy_spawn().enemy_id().delete(id);
@@ -1082,10 +1093,8 @@ fn internal_delete_session(ctx: &ReducerContext, session_id: u64) {
 
     // Clean up enemies
     let mut enemies_to_delete = Vec::new();
-    for enemy in ctx.db.enemy().iter() {
-        if enemy.session_id == session_id {
-            enemies_to_delete.push(enemy.id);
-        }
+    for enemy in ctx.db.enemy().session_id().filter(session_id) {
+        enemies_to_delete.push(enemy.id);
     }
     for id in enemies_to_delete {
         ctx.db.enemy().id().delete(id);
@@ -1093,10 +1102,8 @@ fn internal_delete_session(ctx: &ReducerContext, session_id: u64) {
 
     // Clean up projectiles
     let mut projectiles_to_delete = Vec::new();
-    for proj in ctx.db.projectile().iter() {
-        if proj.session_id == session_id {
-            projectiles_to_delete.push(proj.id);
-        }
+    for proj in ctx.db.projectile().session_id().filter(session_id) {
+        projectiles_to_delete.push(proj.id);
     }
     for id in projectiles_to_delete {
         ctx.db.projectile().id().delete(id);
@@ -1104,10 +1111,8 @@ fn internal_delete_session(ctx: &ReducerContext, session_id: u64) {
 
     // Clean up upgrades
     let mut upgrades_to_delete = Vec::new();
-    for upgrade in ctx.db.session_upgrade().iter() {
-        if upgrade.session_id == session_id {
-            upgrades_to_delete.push(upgrade.id);
-        }
+    for upgrade in ctx.db.session_upgrade().session_id().filter(session_id) {
+        upgrades_to_delete.push(upgrade.id);
     }
     for id in upgrades_to_delete {
         ctx.db.session_upgrade().id().delete(id);
@@ -1115,10 +1120,9 @@ fn internal_delete_session(ctx: &ReducerContext, session_id: u64) {
 
     // Clean up queued enemies
     let mut queued_to_delete = Vec::new();
-    for queued in ctx.db.enemy_queued().iter() {
-        if queued.session_id == session_id {
-            queued_to_delete.push(queued.id);
-        }
+    // PERFORMANCE: Use index to find queued enemies for this session
+    for queued in ctx.db.enemy_queued().session_id().filter(session_id) {
+        queued_to_delete.push(queued.id);
     }
     for id in queued_to_delete {
         ctx.db.enemy_queued().id().delete(id);
@@ -1126,10 +1130,8 @@ fn internal_delete_session(ctx: &ReducerContext, session_id: u64) {
 
     // Clean up completed runs
     let mut runs_to_delete = Vec::new();
-    for run in ctx.db.completed_run().iter() {
-        if run.session_id == session_id {
-            runs_to_delete.push(run.id);
-        }
+    for run in ctx.db.completed_run().session_id().filter(session_id) {
+        runs_to_delete.push(run.id);
     }
     for id in runs_to_delete {
         ctx.db.completed_run().id().delete(id);
@@ -1184,16 +1186,8 @@ pub fn game_loop(ctx: &ReducerContext, arg: GameLoopSchedule) {
         
         // Process spawn queue
         if now >= next_spawn_at {
-            // Find one queued enemy for this session
-            let mut queued_enemy = None;
-            for q in ctx.db.enemy_queued().iter() {
-                if q.session_id == session_id {
-                    queued_enemy = Some(q);
-                    break;
-                }
-            }
-            
-            if let Some(q) = queued_enemy {
+            // PERFORMANCE: Use index to find queued enemies for this session
+            if let Some(q) = ctx.db.enemy_queued().session_id().filter(session_id).next() {
                 let first_waypoint = q.path.first().unwrap_or(&player_pos);
                 let direction = calculate_direction(q.spawn_col, q.spawn_row, first_waypoint.col, first_waypoint.row);
                 
@@ -1253,12 +1247,12 @@ pub fn game_loop(ctx: &ReducerContext, arg: GameLoopSchedule) {
         };
         
         if time_since_last_shuriken >= state.ability_cooldown_ms as u64 {
-            // Find closest enemy in range
+            // PERFORMANCE: Use index to find enemies for this session
             let mut closest_enemy: Option<(u64, u32, u32, u32)> = None;
             let mut min_distance = u32::MAX;
             
-            for enemy in ctx.db.enemy().iter() {
-                if enemy.session_id != session_id || enemy.health <= 0 {
+            for enemy in ctx.db.enemy().session_id().filter(session_id) {
+                if enemy.health <= 0 {
                     continue;
                 }
                 
@@ -1295,11 +1289,8 @@ pub fn game_loop(ctx: &ReducerContext, arg: GameLoopSchedule) {
         // COST OPTIMIZATION: Process projectiles - only track progress server-side for hit detection
         // No updates sent to client - they compute progress from spawned_at
         let projectile_speed = 5.0; // tiles per second
-        for proj in ctx.db.projectile().iter() {
-            if proj.session_id != session_id {
-                continue;
-            }
-            
+        // PERFORMANCE: Use index to find projectiles for this session
+        for proj in ctx.db.projectile().session_id().filter(session_id) {
             // Calculate server-side progress for hit detection
             let origin = HexPosition { col: proj.origin_col, row: proj.origin_row };
             let target = HexPosition { col: proj.target_col, row: proj.target_row };
@@ -1311,9 +1302,9 @@ pub fn game_loop(ctx: &ReducerContext, arg: GameLoopSchedule) {
                 // Projectile reached target - process hit
                 let target_pos = HexPosition { col: proj.target_col, row: proj.target_row };
                 
-                // Find enemy at target
-                for enemy in ctx.db.enemy().iter() {
-                    if enemy.session_id != session_id || enemy.health <= 0 {
+                // PERFORMANCE: Use index to find enemy at target
+                for enemy in ctx.db.enemy().session_id().filter(session_id) {
+                    if enemy.health <= 0 {
                         continue;
                     }
                     
@@ -1377,8 +1368,9 @@ pub fn game_loop(ctx: &ReducerContext, arg: GameLoopSchedule) {
         }
         
         // Update enemies
-        for enemy in ctx.db.enemy().iter() {
-            if enemy.session_id != session_id || enemy.health <= 0 {
+        // PERFORMANCE: Use index to find enemies for this session
+        for enemy in ctx.db.enemy().session_id().filter(session_id) {
+            if enemy.health <= 0 {
                 continue;
             }
             
@@ -1456,9 +1448,10 @@ pub fn game_loop(ctx: &ReducerContext, arg: GameLoopSchedule) {
         }
         
         // Check if wave is complete
-        let enemies_remaining = ctx.db.enemy().iter().filter(|e| e.session_id == session_id && e.health > 0).count();
-        let projectiles_remaining = ctx.db.projectile().iter().filter(|p| p.session_id == session_id).count();
-        let queued_remaining = ctx.db.enemy_queued().iter().filter(|e| e.session_id == session_id).count();
+        // PERFORMANCE: Use indexes for count checks
+        let enemies_remaining = ctx.db.enemy().session_id().filter(session_id).filter(|e| e.health > 0).count();
+        let projectiles_remaining = ctx.db.projectile().session_id().filter(session_id).count();
+        let queued_remaining = ctx.db.enemy_queued().session_id().filter(session_id).count();
         let wave_complete = enemies_remaining == 0 && projectiles_remaining == 0 && queued_remaining == 0;
         
         // Check for game over
@@ -1523,16 +1516,13 @@ pub fn game_loop(ctx: &ReducerContext, arg: GameLoopSchedule) {
             });
             
             // Clean up enemies and spawn data
-            for enemy in ctx.db.enemy().iter() {
-                if enemy.session_id == session_id {
-                    ctx.db.enemy_spawn().enemy_id().delete(enemy.id);
-                    ctx.db.enemy().id().delete(enemy.id);
-                }
+            // PERFORMANCE: Use index for cleanup
+            for enemy in ctx.db.enemy().session_id().filter(session_id) {
+                ctx.db.enemy_spawn().enemy_id().delete(enemy.id);
+                ctx.db.enemy().id().delete(enemy.id);
             }
-            for proj in ctx.db.projectile().iter() {
-                if proj.session_id == session_id {
-                    ctx.db.projectile().id().delete(proj.id);
-                }
+            for proj in ctx.db.projectile().session_id().filter(session_id) {
+                ctx.db.projectile().id().delete(proj.id);
             }
             
             log::info!("Game over for session {}, score: {}", session.id, score);
