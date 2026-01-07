@@ -56,6 +56,7 @@ Sentry.init({
     "failed to load script", // Clerk's underlying script loading error (cause of the above) - network issues on mobile devices
     "Illegal invocation", // Third-party script error (Facebook in-app browser or Cookiebot)
     "Can't find variable: EmptyRanges", // Browser extension error (CodeMirror-based extensions)
+    "postMessage is not a function", // Clerk internal error - occurs in clerk.browser.js with Web Workers
   ],
 
   // Filter out third-party errors that slip through ignoreErrors
