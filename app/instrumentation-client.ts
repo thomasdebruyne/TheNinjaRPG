@@ -73,6 +73,9 @@ Sentry.init({
     if (isThirdPartyInjectedError(event)) {
       return null; // Drop errors from injected scripts (e.g. Facebook/Cookiebot)
     }
+    if (isEffectInterruptError(event)) {
+      return null; // Drop Effect-TS fiber interruption errors (SpacetimeDB SDK)
+    }
     return event;
   },
 
@@ -277,6 +280,20 @@ function isThirdPartyInjectedError(event: Sentry.ErrorEvent): boolean {
   );
 
   return isInjectedScript && message.includes("Illegal invocation");
+}
+
+/**
+ * Check if an error is from Effect-TS (used by SpacetimeDB SDK).
+ * Effect-TS creates frozen error objects for fiber interruption, and Sentry
+ * throws when trying to modify the `stack` property of these frozen objects.
+ */
+function isEffectInterruptError(event: Sentry.ErrorEvent): boolean {
+  const message = event.exception?.values?.[0]?.value ?? "";
+  return (
+    message.includes("MicroCause.Interrupt") ||
+    (message.includes("Cannot assign to read only property") &&
+      message.includes("stack"))
+  );
 }
 
 function ensureBrowserErrorHandler() {
