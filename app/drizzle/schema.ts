@@ -2993,6 +2993,12 @@ export const quest = mysqlTable(
       prerequisiteQuestIdIdx: index("Quest_prerequisiteQuestId_idx").on(
         table.prerequisiteQuestId,
       ),
+      // Composite index for fetchUncompletedQuests: WHERE questType = ? AND questRank IN (...) AND requiredLevel <= ?
+      questTypeRankLevelIdx: index("Quest_questType_questRank_requiredLevel_idx").on(
+        table.questType,
+        table.questRank,
+        table.requiredLevel,
+      ),
     };
   },
 );
@@ -3044,6 +3050,12 @@ export const questHistory = mysqlTable(
       userIdQuestTypeIdx: index("QuestHistory_userId_questType_idx").on(
         table.userId,
         table.questType,
+      ),
+      // Composite index for LEFT JOIN in fetchUncompletedQuests: ON quest.id = questHistory.questId AND questHistory.userId = ?
+      questIdUserIdCompletedIdx: index("QuestHistory_questId_userId_completed_idx").on(
+        table.questId,
+        table.userId,
+        table.completed,
       ),
     };
   },

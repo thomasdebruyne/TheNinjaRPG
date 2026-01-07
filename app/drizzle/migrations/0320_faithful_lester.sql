@@ -1,0 +1,2 @@
+CREATE INDEX `Quest_questType_questRank_requiredLevel_idx` ON `Quest` (`questType`,`questRank`,`requiredLevel`);
+CREATE INDEX `QuestHistory_questId_userId_completed_idx` ON `QuestHistory` (`questId`,`userId`,`completed`);

@@ -2241,6 +2241,13 @@
       "when": 1767708210612,
       "tag": "0319_cooing_wild_child",
       "breakpoints": false
+    },
+    {
+      "idx": 320,
+      "version": "5",
+      "when": 1767779865468,
+      "tag": "0320_faithful_lester",
+      "breakpoints": false
     }
   ]
 }
