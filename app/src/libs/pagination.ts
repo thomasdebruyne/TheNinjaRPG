@@ -25,6 +25,9 @@ export const useInfinitePagination = ({
         setPage((prev: number) => prev + 1);
       }
     });
+    return () => {
+      observer.current?.disconnect();
+    };
   }, []); // do this only once, on mount
 
   /**
