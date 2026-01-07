@@ -52,20 +52,68 @@ import {
 import type { CarouselApi } from "@/components/ui/carousel";
 import type { RegistrationSchema } from "@/validators/register";
 
+/**
+ * Wrapper component that handles the loading state and authenticated user redirect.
+ * This separation ensures consistent hook counts in the form component.
+ */
 const Register: React.FC = () => {
+  const router = useRouter();
+  const { data: userData, status: userStatus } = useUserData();
+
+  // Redirect authenticated users away from register page
+  useEffect(() => {
+    if (userStatus === "success" && userData) {
+      void router.push("/");
+    }
+  }, [router, userStatus, userData]);
+
+  // Show loader while checking auth status or if user is authenticated
+  if (userStatus === "pending" || (userStatus === "success" && userData)) {
+    return <Loader explanation="Loading page..." />;
+  }
+
+  // Only render the form when we're sure the user should see it
+  return <RegisterForm />;
+};
+
+/** Helper to get boolean from localStorage with default */
+const getLocalStorageBoolean = (key: string, defaultValue: boolean): boolean => {
+  const value = safeLocalStorageGetItem(key);
+  if (value === null) return defaultValue;
+  return value === "true";
+};
+
+/** Helper to get randomized initial form values */
+const getRandomizedFormValues = () => {
+  const shuffledAttributes = [...attributes].sort(() => 0.5 - Math.random());
+  const [attr1, attr2, attr3] = shuffledAttributes.slice(0, 3);
+
+  return {
+    attribute_1: attr1!,
+    attribute_2: attr2!,
+    attribute_3: attr3!,
+    hair_color: colors[Math.floor(Math.random() * colors.length)]!,
+    eye_color: colors[Math.floor(Math.random() * colors.length)]!,
+    skin_color: skin_colors[Math.floor(Math.random() * skin_colors.length)]!,
+    gender: genders[Math.floor(Math.random() * genders.length)]!,
+  };
+};
+
+/**
+ * The actual registration form component.
+ * Separated from the wrapper to ensure all hooks are called consistently.
+ */
+const RegisterForm: React.FC = () => {
   // Carousel state
   const [cApi, setCApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
 
-  // Router
-  const router = useRouter();
-
   // tRPC utility
   const utils = api.useUtils();
 
-  // User data
-  const { data: userData, status: userStatus } = useUserData();
+  // User data (for GTM event)
+  const { data: userData } = useUserData();
 
   // Create avatar mutation
   const createAvatar = api.avatar.createAvatar.useMutation();
@@ -103,18 +151,8 @@ const Register: React.FC = () => {
 
   // Prepare initial randomized defaults for style-related fields
   // Using useState with lazy initialization to ensure values are computed only once
-  // and are consistent between SSR and client (prevents hydration mismatch)
-  const [initialFormValues] = useState(() => {
-    return {
-      attribute_1: attributes[0]!,
-      attribute_2: attributes[1]!,
-      attribute_3: attributes[2]!,
-      hair_color: colors[0]!,
-      eye_color: colors[0]!,
-      skin_color: skin_colors[0]!,
-      gender: genders[0]!,
-    };
-  });
+  // Note: This runs on client only so randomization is fine (no SSR hydration mismatch)
+  const [initialFormValues] = useState(() => getRandomizedFormValues());
 
   // Form handling
   const form = useForm<RegistrationSchema>({
@@ -137,45 +175,11 @@ const Register: React.FC = () => {
     },
   });
 
-  // Randomize values once mounted to avoid hydration mismatch
+  // Set localStorage-based values once mounted (can't access localStorage during SSR/initial render)
   useEffect(() => {
-    const validAttributes = attributes.filter(
-      (attr) => attr && attr.toLowerCase() !== "none" && attr.trim() !== "",
-    );
-    const shuffledAttributes = [...validAttributes].sort(() => 0.5 - Math.random());
-    const [attr1, attr2, attr3] = shuffledAttributes.slice(0, 3);
-
-    const validColors = colors.filter(
-      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-    );
-    const validSkinColors = skin_colors.filter(
-      (color) => color && color.toLowerCase() !== "none" && color.trim() !== "",
-    );
-    const validGenders = genders.filter(
-      (gender) => gender && gender.toLowerCase() !== "none" && gender.trim() !== "",
-    );
-
-    form.reset({
-      ...form.getValues(),
-      attribute_1: attr1,
-      attribute_2: attr2,
-      attribute_3: attr3,
-      hair_color: validColors[Math.floor(Math.random() * validColors.length)]!,
-      eye_color: validColors[Math.floor(Math.random() * validColors.length)]!,
-      skin_color: validSkinColors[Math.floor(Math.random() * validSkinColors.length)]!,
-      gender: validGenders[Math.floor(Math.random() * validGenders.length)]!,
-      musicOn: getLocalStorageBoolean("musicOn", true),
-      sfxOn: getLocalStorageBoolean("sfxOn", true),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /** Helper to get boolean from localStorage with default */
-  const getLocalStorageBoolean = (key: string, defaultValue: boolean): boolean => {
-    const value = safeLocalStorageGetItem(key);
-    if (value === null) return defaultValue;
-    return value === "true";
-  };
+    form.setValue("musicOn", getLocalStorageBoolean("musicOn", true));
+    form.setValue("sfxOn", getLocalStorageBoolean("sfxOn", true));
+  }, [form]);
 
   // Carousel control
   useEffect(() => {
@@ -299,13 +303,6 @@ const Register: React.FC = () => {
     }
   }, [form]);
 
-  // If we have userdata, we should not be here
-  useEffect(() => {
-    if (userStatus === "success" && userData) {
-      void router.push("/");
-    }
-  }, [router, userStatus, userData]);
-
   // Handle form submission
   const handleCreateCharacter = form.handleSubmit(
     (data) => createCharacter(data),
@@ -331,11 +328,6 @@ const Register: React.FC = () => {
       )),
     [],
   );
-
-  // If we are still trying to load user data
-  if (userStatus === "pending" || (userStatus === "success" && userData)) {
-    return <Loader explanation="Loading page..." />;
-  }
 
   return (
     <ContentBox
