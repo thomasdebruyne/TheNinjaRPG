@@ -995,6 +995,12 @@ export const useTowerDefense = (userId?: string) => {
       const connection = connectionRef.current;
       await connection.connect(userId);
 
+      // Step 2b: For guests, subscribe to the specific session by seed BEFORE creating it
+      // PERFORMANCE: This is much more efficient than subscribing to all guest sessions
+      if (!userId) {
+        connection.subscribeToGuestSession(secureSession.seed);
+      }
+
       // Step 3: Create session on SpacetimeDB with signed parameters
       // The signature proves these values AND all definitions were calculated server-side
       await connection.createSession({
@@ -1377,6 +1383,18 @@ export const useTowerDefense = (userId?: string) => {
       } catch (error) {
         console.error("[useTowerDefense] Failed to claim run:", error);
         // Continue to lobby even if claim fails
+      }
+    }
+
+    // CLEANUP: For guests, delete the completed run and abandon the session
+    // This prevents guest sessions from accumulating in SpacetimeDB
+    if (isGuest && sessionIdRef.current) {
+      try {
+        await connectionRef.current.deleteCompletedRun(sessionIdRef.current);
+        await connectionRef.current.abandonSession(sessionIdRef.current);
+      } catch (error) {
+        console.error("[useTowerDefense] Failed to cleanup guest session:", error);
+        // Continue to lobby even if cleanup fails
       }
     }
 

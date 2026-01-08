@@ -58,7 +58,7 @@ const PAGE_TITLE = `${GAME_NAME} (Unstable Preview)`;
 const PAGE_SUBTITLE = "For experimentation with TNR tech, visuals & performance.";
 
 const TowerDefensePage: React.FC = () => {
-  const { data: userData, status } = useUserData();
+  const { data: userData, isClerkLoaded } = useUserData();
   const [upgradeTab, setUpgradeTab] = useLocalStorage<TowerDefenseUpgradeCategory>(
     "towerDefenseUpgradeTab",
     "ATTACK",
@@ -164,7 +164,7 @@ const TowerDefensePage: React.FC = () => {
   );
 
   // Loader
-  if (status === "pending") return <Loader explanation="Loading user data..." />;
+  if (!isClerkLoaded) return <Loader explanation="Loading user data..." />;
 
   // Lobby mode
   if (gameState.mode === "lobby") {
@@ -334,17 +334,19 @@ const TowerDefensePage: React.FC = () => {
         </div>
 
         {/* Upgrades Section */}
-        <div className="mt-6">
-          <TowerDefenseUpgrades
-            mode="permanent"
-            upgradeDefinitions={upgradeDefinitions ?? []}
-            userUpgrades={upgradesData?.upgrades ?? []}
-            currency={upgradesData?.points ?? 0}
-            activeTab={upgradeTab}
-            onTabChange={setUpgradeTab}
-            isGuest={isGuest}
-          />
-        </div>
+        {userData && (
+          <div className="mt-6">
+            <TowerDefenseUpgrades
+              mode="permanent"
+              upgradeDefinitions={upgradeDefinitions ?? []}
+              userUpgrades={upgradesData?.upgrades ?? []}
+              currency={upgradesData?.points ?? 0}
+              activeTab={upgradeTab}
+              onTabChange={setUpgradeTab}
+              isGuest={isGuest}
+            />
+          </div>
+        )}
 
         {/* Error Display */}
         {gameState.error && (

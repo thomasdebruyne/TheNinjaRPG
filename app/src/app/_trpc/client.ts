@@ -45,9 +45,19 @@ export const onError = (err: unknown) => {
   }
 };
 
+/**
+ * List of tRPC mutation paths that are allowed for unauthenticated users.
+ * These mutations have publicProcedure on the server and should not be blocked client-side.
+ */
+export const PUBLIC_MUTATIONS: string[] = ["towerDefense.initiateGuestSession"];
+
 export const useGlobalOnMutateProtect = () => {
   const { isSignedIn } = useUser();
-  return () => {
+  return (mutationPath?: string) => {
+    // Skip check for public mutations
+    if (mutationPath && PUBLIC_MUTATIONS.includes(mutationPath)) {
+      return;
+    }
     if (!isSignedIn) {
       throw new Error("You need to be signed in to perform this action.");
     }

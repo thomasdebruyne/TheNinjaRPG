@@ -129,6 +129,8 @@ export class SpacetimeDBConnection {
   private identity: string | null = null;
   private currentSessionId: bigint | null = null;
   private currentUserId: string | null = null;
+  // For guests, we use the seed to subscribe to a specific session (more efficient than all guest sessions)
+  private pendingGuestSeed: string | null = null;
 
   constructor(config: SpacetimeDBConfig) {
     this.config = config;
@@ -241,26 +243,27 @@ export class SpacetimeDBConnection {
   /**
    * Set up global subscriptions (user-level, not session-specific)
    * PERFORMANCE: Filtered subscriptions to only receive this user's data.
+   *
+   * For guests, we DON'T subscribe to all guest sessions here.
+   * Instead, subscribeToGuestSession() is called with the specific seed
+   * before creating a session. This is much more efficient.
    */
   private setupGlobalSubscriptions() {
     if (!this.connection || !this.currentUserId) return;
 
-    // Only subscribe to this user's sessions and completed runs.
-    // User ID is validated by SAFE_USER_ID_PATTERN to prevent SQL injection.
-    const queries =
-      this.currentUserId === "guest"
-        ? []
-        : [
-            `SELECT * FROM game_session WHERE ninjarpg_user_id = '${this.currentUserId}'`,
-            `SELECT * FROM session_state`,
-            `SELECT * FROM completed_run WHERE ninjarpg_user_id = '${this.currentUserId}'`,
-          ];
-
-    if (queries.length === 0) {
-      // For guests, skip global subscription - they'll get session subscription directly
+    // For guests, skip global subscription - they'll use subscribeToGuestSession() with specific seed
+    if (this.currentUserId === "guest") {
       this.setupTableHandlers();
       return;
     }
+
+    // Only subscribe to this user's sessions and completed runs.
+    // User ID is validated by SAFE_USER_ID_PATTERN to prevent SQL injection.
+    const queries = [
+      `SELECT * FROM game_session WHERE ninjarpg_user_id = '${this.currentUserId}'`,
+      `SELECT * FROM session_state`,
+      `SELECT * FROM completed_run WHERE ninjarpg_user_id = '${this.currentUserId}'`,
+    ];
 
     this.globalSubscription = this.connection
       .subscriptionBuilder()
@@ -277,6 +280,41 @@ export class SpacetimeDBConnection {
 
     // Set up table event handlers
     this.setupTableHandlers();
+  }
+
+  /**
+   * Subscribe to a specific guest session by seed.
+   * PERFORMANCE: Much more efficient than subscribing to all guest sessions.
+   * Call this BEFORE createSession() so we receive the session_update event.
+   */
+  subscribeToGuestSession(seed: string): void {
+    if (!this.connection) return;
+
+    // Unsubscribe from previous global subscription if any
+    if (this.globalSubscription) {
+      this.globalSubscription.unsubscribe();
+      this.globalSubscription = null;
+    }
+
+    this.pendingGuestSeed = seed;
+
+    // Subscribe to the specific session by seed (unique per session)
+    // This ensures we only receive events for OUR session, not all guests
+    this.globalSubscription = this.connection
+      .subscriptionBuilder()
+      .onApplied(() => {
+        if (DEBUG) {
+          console.log("[SpacetimeDB] Guest session subscription applied for seed:", seed);
+        }
+      })
+      .onError((ctx: ErrorContext) => {
+        console.error("[SpacetimeDB] Guest session subscription error:", ctx);
+        this.emit({ type: "error", message: "Guest session subscription error" });
+      })
+      .subscribe([
+        `SELECT * FROM game_session WHERE seed = '${seed}'`,
+        `SELECT * FROM session_state`,
+      ]);
   }
 
   /**

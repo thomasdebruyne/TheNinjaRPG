@@ -26,10 +26,6 @@ export default function TrpcClientProvider(props: { children: React.ReactNode })
             staleTime: Infinity,
           },
           mutations: {
-            onMutate: () => {
-              onMutateCheck();
-              document.body.style.cursor = "wait";
-            },
             onSettled: () => {
               document.body.style.cursor = "default";
             },
@@ -40,7 +36,12 @@ export default function TrpcClientProvider(props: { children: React.ReactNode })
           onError: onError,
         }),
         mutationCache: new MutationCache({
-          onMutate: () => {
+          onMutate: (_variables, mutation) => {
+            // Extract tRPC mutation path from mutation key (e.g., [["towerDefense", "initiateGuestSession"]])
+            const key = mutation.options.mutationKey;
+            const mutationPath =
+              Array.isArray(key) && Array.isArray(key[0]) ? key[0].join(".") : undefined;
+            onMutateCheck(mutationPath);
             document.body.style.cursor = "wait";
           },
           onSettled: () => {
