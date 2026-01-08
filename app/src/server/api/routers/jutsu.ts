@@ -1676,7 +1676,7 @@ export const selectJutsuLoadout = async (
   loadoutId: string,
   loadouts: JutsuLoadout[],
   userjutsus: UserJutsuWithRelations[],
-  user: UserData,
+  user: Pick<UserData, "userId" | "federalStatus" | "staffAccount">,
 ) => {
   const loadout = loadouts.find((l) => l.id === loadoutId);
   const maxLoadouts = fedJutsuLoadouts(user);

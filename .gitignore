@@ -7,6 +7,7 @@ scripts/user_segmentation.ipynb
 scripts/clips/*
 scripts/music/*
 scripts/theninja_rpg_trailer*
+scripts/fiverr*
 *.pem
 assets/pwa/*
 assets/sfx/*

@@ -10,7 +10,7 @@ import { useAtomValue } from "jotai";
 import { userBattleAtom } from "@/utils/UserContext";
 import { SideBannerTitle } from "@/components/layout/core4_default";
 import { VisualizeEffects } from "@/layout/MenuBoxProfile";
-import { getKeystoneItem } from "@/libs/combat/util";
+import { getKeystoneItem, getBloodline } from "@/libs/combat/util";
 
 const MenuBoxCombat: React.FC = () => {
   // State
@@ -87,24 +87,25 @@ const MenuBoxCombat: React.FC = () => {
           />
         </div>
       </div>
-      {battleUser?.bloodline && (
-        <Popover>
-          <PopoverTrigger>
-            <div className="flex flex-row items-center hover:text-orange-500 hover:cursor-pointer">
-              <Dna className="h-6 w-6 mr-2" /> {battleUser.bloodline.name ?? "??"}
-            </div>
-          </PopoverTrigger>
-          <PopoverContent>
-            <div className="max-w-[320px]">
-              <ItemWithEffects
-                item={battleUser.bloodline}
-                key={battleUser.bloodline.id}
-                hideDetails
-              />
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
+      {(() => {
+        if (!battle || !battleUser?.bloodlineId) return null;
+        const bloodline = getBloodline(battle, battleUser.bloodlineId);
+        if (!bloodline) return null;
+        return (
+          <Popover>
+            <PopoverTrigger>
+              <div className="flex flex-row items-center hover:text-orange-500 hover:cursor-pointer">
+                <Dna className="h-6 w-6 mr-2" /> {bloodline.name ?? "??"}
+              </div>
+            </PopoverTrigger>
+            <PopoverContent>
+              <div className="max-w-[320px]">
+                <ItemWithEffects item={bloodline} key={bloodline.id} hideDetails />
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+      })()}
       {(() => {
         if (!battleUser?.keystoneName || !battle) return null;
         const keystoneItem = getKeystoneItem(battle, battleUser.keystoneItemId);

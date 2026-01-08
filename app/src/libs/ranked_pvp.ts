@@ -68,8 +68,8 @@ export function getKFactor(lp: number): number {
  * @returns New LP value
  */
 export function calculateLpEloChange(
-  player: UserData,
-  opponent: UserData,
+  player: Pick<UserData, "rankedLp" | "rankedStreak">,
+  opponent: Pick<UserData, "rankedLp">,
   playerWon: boolean,
   topPlayersLP: number[],
 ): number {

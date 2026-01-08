@@ -46,6 +46,7 @@ import type {
 import type { CombatBiome } from "@/drizzle/constants";
 import type { TerrainHex } from "@/libs/hexgrid";
 import type { BattleType } from "@/drizzle/constants";
+import type { QuestTrackerType } from "@/validators/objectives";
 import type { Intersection, Object3D } from "three";
 
 export type BattleWar = War & {
@@ -169,7 +170,7 @@ export type CombatUserFields = {
   allyVillage: boolean;
   usedActions: { id: string; type: "jutsu" | "item" | "basic" | "bloodline" }[];
   initiative: number;
-  basicActions: CombatAction[];
+  basicActions: BattleBasicAction[];
   hex?: TerrainHex;
   hidden?: boolean;
   keystoneName?: string | null;
@@ -183,7 +184,7 @@ export type CombatUserFields = {
  * Has full relation objects for processing, converted to BattleUserState at end.
  */
 export type ProcessingBattleUser = Omit<CombatQueryUser, "jutsus" | "items"> &
-  CombatUserFields & {
+  Omit<CombatUserFields, "basicActions"> & {
     // Full objects needed during processing (not in final BattleUserState)
     relations?: VillageAlliance[];
     wars?: BattleWar[];
@@ -191,6 +192,8 @@ export type ProcessingBattleUser = Omit<CombatQueryUser, "jutsus" | "items"> &
     // Processed jutsus/items with full Jutsu/Item objects
     jutsus: ProcessedJutsu[];
     items: ProcessedItem[];
+    // Full basic actions during processing (converted to BattleBasicAction[] in final state)
+    basicActions: CombatAction[];
   };
 
 /**
@@ -238,17 +241,26 @@ export type BattleUserItem = {
 };
 
 /**
+ * BattleBasicAction - Minimal tracking data for basic actions.
+ * Full action definitions are regenerated via getDefaultBasicActions().
+ * Only stores per-user dynamic state.
+ */
+export type BattleBasicAction = {
+  id: string; // basicAttack, basicHeal, move, cleanse, clear, flee
+  lastUsedRound: number;
+  cooldown?: number; // Optional GCD override (only set when GCD is applied)
+};
+
+/**
  * BattleUserState - The user state stored in battle.usersState.
  * Contains ONLY references to static data, not full objects.
  * Use lookup functions (getJutsu, getItem, getVillage, etc.) to access full data.
  *
- * Based on UserData (core user fields) plus combat-specific fields.
- * Relations (village, clan, etc.) are stored in extraState and referenced by ID.
+ * Based on UserData plus combat-specific fields.
+ * Full relation objects (village, clan, bloodline, etc.) are stored in extraState and referenced by ID.
  */
-export type BattleUserState = UserData &
+export type BattleUserState = Omit<UserData, "questData"> &
   CombatUserFields & {
-    // Bloodline is stored directly (needed for combat calculations)
-    bloodline: Bloodline | null;
     // Reference jutsus/items (static data in extraState)
     jutsus: BattleUserJutsu[];
     items: BattleUserItem[];
@@ -279,6 +291,7 @@ export type ExtraState = {
   jutsus: Record<string, Jutsu>; // jutsuId -> Jutsu (includes user jutsus + injectable jutsus)
   jutsuReskins: Record<string, JutsuReskin>; // reskinId -> Reskin data
   items: Record<string, Item>; // itemId -> Item
+  bloodlines: Record<string, Bloodline>; // bloodlineId -> Bloodline
   villages: Record<string, CombatQueryVillage>; // villageId -> Village
   anbuSquads: Record<string, AnbuSquad>; // anbuId -> AnbuSquad
   keystoneItems: Record<string, Item>; // itemId -> Item
@@ -289,6 +302,7 @@ export type ExtraState = {
   // User-specific static data (keyed by controllerId)
   userQuests: Record<string, UserQuest[]>; // controllerId -> array of user quests
   completedQuests: Record<string, CombatQueryCompletedQuest[]>; // controllerId -> array of completed quest refs
+  questData: Record<string, QuestTrackerType[]>; // controllerId -> array of quest trackers
   bounties: Record<string, CombatQueryBounty[]>; // controllerId -> array of bounties on this user
   bountySignups: Record<string, CombatQueryBountySignup[]>; // controllerId -> array of bounty signups
   // Battle settings

@@ -1359,7 +1359,10 @@ export const selectItemLoadout = async (
   loadoutId: string,
   loadouts: ItemLoadout[],
   useritems: UserItemWithRelations[],
-  user: UserData,
+  user: Pick<
+    UserData,
+    "userId" | "federalStatus" | "staffAccount" | "level" | "bloodlineId"
+  >,
 ) => {
   // First unequip all items
   // Derived

@@ -39,7 +39,7 @@ export const publicState = [
   "anbuId",
   "avatar",
   "basicActions",
-  "bloodline",
+  "bloodlineId",
   "clanId",
   "controllerId",
   "curChakra",
@@ -82,7 +82,6 @@ export const publicState = [
  * Which user state is private
  */
 export const privateState = [
-  "bloodline",
   "bukijutsuDefence",
   "bukijutsuOffence",
   "genjutsuDefence",

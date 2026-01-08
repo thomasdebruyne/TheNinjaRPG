@@ -48,17 +48,27 @@ import {
   DURABILITY_USABILITY_THR,
   NO_DURABILITY_LOSS_COMBATS,
 } from "@/drizzle/constants";
-import type { BattleUserState, ReturnedUserState } from "./types";
+import type { BattleUserState } from "./types";
 import type { GroundEffect, UserEffect, ActionEffect, BattleEffect } from "./types";
 import type { CompleteBattle, Consequence, CombatAction } from "./types";
 import type { ShieldTagType } from "./types";
+/**
+ * Minimal user type for checkFriendlyFire
+ */
+type FriendlyFireUser = {
+  userId: string;
+  isSummon?: boolean;
+  controllerId: string;
+  villageId: string | null;
+};
+
 /**
  * Check whether to apply given effect to a user, based on friendly fire settings
  */
 export const checkFriendlyFire = (
   effect: BattleEffect,
-  target: ReturnedUserState,
-  usersState: ReturnedUserState[],
+  target: FriendlyFireUser,
+  usersState: FriendlyFireUser[],
 ) => {
   // Find the creator of the effect
   const creator = usersState.find((u) => u.userId === effect.creatorId);

@@ -12,7 +12,9 @@ import { MAX_REPS_PER_MONTH, MAX_REPS_EXTRA_PER_MONTH } from "@/drizzle/constant
 import type { FederalStatus } from "@/drizzle/schema";
 import type { UserData } from "@/drizzle/schema";
 
-export const getUserFederalStatus = (user: UserData) => {
+export const getUserFederalStatus = (
+  user: Pick<UserData, "staffAccount" | "federalStatus">,
+) => {
   if (user.staffAccount) {
     return "GOLD";
   } else {
@@ -20,7 +22,9 @@ export const getUserFederalStatus = (user: UserData) => {
   }
 };
 
-export const fedJutsuLoadouts = (user?: UserData) => {
+export const fedJutsuLoadouts = (
+  user?: Pick<UserData, "staffAccount" | "federalStatus">,
+) => {
   const base = 0;
   if (!user) return base;
   const status = getUserFederalStatus(user);
@@ -35,7 +39,9 @@ export const fedJutsuLoadouts = (user?: UserData) => {
   return base;
 };
 
-export const fedItemLoadouts = (user?: UserData) => {
+export const fedItemLoadouts = (
+  user?: Pick<UserData, "staffAccount" | "federalStatus">,
+) => {
   const base = 0;
   if (!user) return base;
   const status = getUserFederalStatus(user);

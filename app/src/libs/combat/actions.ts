@@ -7,7 +7,12 @@ import {
 } from "@/libs/combat/types";
 import { ClearTag, CleanseTag } from "@/libs/combat/types";
 import { nanoid } from "nanoid";
-import { getAffectedTiles, getJutsu, getJutsuReskin, getItem } from "@/libs/combat/util";
+import {
+  getAffectedTiles,
+  getJutsu,
+  getJutsuReskin,
+  getItem,
+} from "@/libs/combat/util";
 import { COMBAT_SECONDS } from "@/libs/combat/constants";
 import { checkFriendlyFire } from "@/libs/combat/process";
 import { applyEffects } from "@/libs/combat/process";
@@ -53,7 +58,7 @@ import {
   NO_DURABILITY_LOSS_COMBATS,
   QuestBattleTypes,
 } from "@/drizzle/constants";
-import type { AttackTargets, ElementName } from "@/drizzle/constants";
+import type { AttackTargets, ElementName, UserRank } from "@/drizzle/constants";
 import type { Jutsu } from "@/drizzle/schema";
 import type { BattleUserState, ReturnedUserState } from "@/libs/combat/types";
 import type { BattleUserJutsu, BattleUserItem } from "@/libs/combat/types";
@@ -252,33 +257,32 @@ export const getActiveBasicActions = (
   user: ReturnedUserState | undefined,
 ): BasicActions => {
   const userId = user?.userId;
-  const current = user?.basicActions;
+  const tracking = user?.basicActions; // Slim BattleBasicAction[] for lastUsedRound tracking
   const base = getDefaultBasicActions(user);
-  const active = {
-    basicAttack: current?.find((ba) => ba.id == "basicAttack") || base.basicAttack,
-    basicHeal: current?.find((ba) => ba.id == "basicHeal") || base.basicHeal,
-    basicMove: current?.find((ba) => ba.id == "move") || base.basicMove,
-    basicClear: current?.find((ba) => ba.id == "clear") || base.basicClear,
-    basicCleanse: current?.find((ba) => ba.id == "cleanse") || base.basicCleanse,
-    basicFlee: current?.find((ba) => ba.id == "flee") || base.basicFlee,
+
+  // Helper to merge lastUsedRound and cooldown override from tracking data into full action
+  const mergeTracking = (action: CombatAction, actionId: string): CombatAction => {
+    const trackingData = tracking?.find((ba) => ba.id === actionId);
+    if (trackingData) {
+      return {
+        ...action,
+        lastUsedRound: trackingData.lastUsedRound,
+        // Apply cooldown override from GCD if set, otherwise use base cooldown
+        cooldown: trackingData.cooldown ?? action.cooldown,
+      };
+    }
+    return action;
   };
-  // Always set battleDescriptions & range back to base values
-  active.basicAttack.battleDescription = base.basicAttack.battleDescription;
-  active.basicHeal.battleDescription = base.basicHeal.battleDescription;
-  active.basicMove.battleDescription = base.basicMove.battleDescription;
-  active.basicClear.battleDescription = base.basicClear.battleDescription;
-  active.basicCleanse.battleDescription = base.basicCleanse.battleDescription;
-  active.basicFlee.battleDescription = base.basicFlee.battleDescription;
-  active.basicMove.range = base.basicMove.range;
-  active.basicClear.range = base.basicClear.range;
-  active.basicCleanse.range = base.basicCleanse.range;
-  active.basicAttack.range = base.basicAttack.range;
-  active.basicHeal.range = base.basicHeal.range;
-  active.basicMove.cooldown = base.basicMove.cooldown;
-  active.basicClear.cooldown = base.basicClear.cooldown;
-  active.basicCleanse.cooldown = base.basicCleanse.cooldown;
-  active.basicAttack.cooldown = base.basicAttack.cooldown;
-  active.basicHeal.cooldown = base.basicHeal.cooldown;
+
+  // Build active actions using base (full CombatAction) merged with tracking data
+  const active: BasicActions = {
+    basicAttack: mergeTracking(base.basicAttack, "basicAttack"),
+    basicHeal: mergeTracking(base.basicHeal, "basicHeal"),
+    basicMove: mergeTracking(base.basicMove, "move"),
+    basicClear: mergeTracking(base.basicClear, "clear"),
+    basicCleanse: mergeTracking(base.basicCleanse, "cleanse"),
+    basicFlee: mergeTracking(base.basicFlee, "flee"),
+  };
 
   // Collect active, targeted effects once
   const userActiveEffects =
@@ -347,7 +351,14 @@ export const getActiveBasicActions = (
  * @returns The basic actions for the user
  */
 export const getDefaultBasicActions = (
-  user: ReturnedUserState | undefined,
+  user:
+    | {
+        level?: number;
+        basicActions?: { id: string; lastUsedRound?: number }[];
+        medicalExperience?: number;
+        rank?: UserRank;
+      }
+    | undefined,
 ): BasicActions => {
   return {
     basicAttack: {
@@ -1076,19 +1087,26 @@ export const performBattleAction = (props: {
           state: ui,
           cooldown: getItem(battle, ui.itemId)?.cooldown ?? 0,
         })),
-      // Basic actions
-      ...user.basicActions
-        .filter((ba) =>
-          ba.effects
-            .filter((e) => tagHasSharedCooldown(e))
-            .some((e) => actionSharedTags.includes(e.type)),
-        )
-        .map((ba) => ({
-          type: "basic" as const,
-          actionId: ba.id,
-          state: ba,
-          cooldown: ba.cooldown ?? 0,
-        })),
+      // Basic actions - regenerate full actions from slim tracking data
+      ...(() => {
+        const fullBasicActions = getDefaultBasicActions(user);
+        return Object.values(fullBasicActions)
+          .filter((ba) =>
+            ba.effects
+              .filter((e) => tagHasSharedCooldown(e))
+              .some((e) => actionSharedTags.includes(e.type)),
+          )
+          .map((ba) => {
+            // Find the tracking data in user.basicActions
+            const tracking = user.basicActions.find((t) => t.id === ba.id);
+            return {
+              type: "basic" as const,
+              actionId: ba.id,
+              state: tracking ?? { id: ba.id, lastUsedRound: ba.lastUsedRound ?? 0 },
+              cooldown: ba.cooldown ?? 0,
+            };
+          });
+      })(),
     ];
 
     // Apply GCD to all shared actions (excluding the one just used)
@@ -1196,7 +1214,9 @@ export const actionPointsAfterAction = (
 /**
  * Figure out if user is still live and well in battle (not fled, not dead, etc.)
  */
-export const stillInBattle = (user: ReturnedUserState) => {
+export const stillInBattle = (
+  user: Pick<ReturnedUserState, "curHealth" | "fledBattle">,
+) => {
   return user.curHealth > 0 && !user.fledBattle;
 };
 

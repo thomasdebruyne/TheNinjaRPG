@@ -132,8 +132,8 @@ export const saveUsage = async (
   const user = curBattle.usersState.find((user) => user.userId === userId);
   const battleType = curBattle.battleType;
   if (result && user) {
-    // Bloodline ID of user
-    const relatedBloodlineId = user.bloodline?.id;
+    // Bloodline ID of user (lookup from extraState for full data if needed)
+    const relatedBloodlineId = user.bloodlineId ?? undefined;
     // Get state, lost: 0, won: 1, flee: 2
     const outcome = result.outcome;
     const battleWon = outcome === "Won" ? 1 : outcome === "Fled" ? 2 : 0;
@@ -153,11 +153,10 @@ export const saveUsage = async (
       });
     });
     // Bloodline actions from this user
-    if (user.bloodline) {
-      const bid = user.bloodline.id;
+    if (relatedBloodlineId) {
       data.push({
         type: "bloodline",
-        contentId: bid,
+        contentId: relatedBloodlineId,
         battleType,
         battleWon,
       });
@@ -625,7 +624,7 @@ export const updateUser = async (
       trackerTasks,
     );
     updatedQuestIds.push(...questIdsUpdated);
-    user.questData = trackers;
+    const updatedQuestData = trackers;
     // Add notifications to combatResult
     result.notifications.push(...notifications);
 
@@ -811,7 +810,7 @@ export const updateUser = async (
           dailyArenaFights: sql`dailyArenaFights + ${
             curBattle.battleType === "ARENA" ? 1 : 0
           }`,
-          questData: user.questData,
+          questData: updatedQuestData,
           battleId: null,
           regenAt: new Date(),
           ...(curBattle.battleType === "RANKED_PVP"

@@ -962,19 +962,23 @@ export const combatRouter = createTRPCRouter({
           .filter((i): i is NonNullable<typeof i> => i !== null);
 
       // Build raw user for processing - hydrate from existing battle staticData and merge new data
-      // We need to add back the village and aiProfile from extraState since CombatQueryUser requires them
+      // We need to add back the village, bloodline, and aiProfile from extraState since CombatQueryUser requires them
       const village = user.villageId
         ? userBattle.extraState.villages?.[user.villageId]
         : null;
+      const bloodline = user.bloodlineId
+        ? userBattle.extraState.bloodlines?.[user.bloodlineId]
+        : null;
+      const questData = userBattle.extraState.questData?.[user.controllerId];
       const aiProfile =
         user.aiProfileId && user.aiProfileId !== "Default"
           ? userBattle.extraState.aiProfiles?.[user.aiProfileId]
           : userBattle.extraState.aiProfiles?.["Default"];
       // Build rawUserForProcessing from BattleUserState + extraState data
       // The jutsus/items are reconstructed from refs + static data with all required fields
-      const rawUserForProcessing: CombatQueryUser = {
+      const rawUserForProcessing = {
         ...user,
-        bloodline: user.bloodline ?? null,
+        bloodline: bloodline ?? null,
         jutsuLoadout: jId ?? user.jutsuLoadout,
         itemLoadout: iId ?? user.itemLoadout,
         jutsus: hydratedJutsus,
@@ -982,6 +986,7 @@ export const combatRouter = createTRPCRouter({
         userSkills: userSkills.filter((us) => us.activated),
         village: village ?? null,
         aiProfile: aiProfile ?? null,
+        questData: questData ?? [],
       };
 
       // Process only the single user
@@ -2667,6 +2672,7 @@ export const processUsersForBattle = async (
     jutsus: {},
     jutsuReskins: {},
     items: {},
+    bloodlines: {},
     villages: {},
     anbuSquads: {},
     keystoneItems: {},
@@ -2676,6 +2682,7 @@ export const processUsersForBattle = async (
     clans: {},
     userQuests: {},
     completedQuests: {},
+    questData: {},
     bounties: {},
     bountySignups: {},
   };
@@ -2731,6 +2738,15 @@ export const processUsersForBattle = async (
       extraState.clans[user.clanId] = user.clan;
     }
 
+    // Add bloodline
+    if (
+      user.bloodline &&
+      user.bloodlineId &&
+      !extraState.bloodlines[user.bloodlineId]
+    ) {
+      extraState.bloodlines[user.bloodlineId] = user.bloodline;
+    }
+
     // Add keystone item
     if (user.keystoneItem && !extraState.keystoneItems[user.keystoneItem.id]) {
       extraState.keystoneItems[user.keystoneItem.id] = user.keystoneItem;
@@ -2749,6 +2765,11 @@ export const processUsersForBattle = async (
     // Add completedQuests (static - don't change during battle)
     if (user.completedQuests && user.completedQuests.length > 0) {
       extraState.completedQuests[user.controllerId] = user.completedQuests;
+    }
+
+    // Add questData (quest progress trackers)
+    if (user.questData && user.questData.length > 0) {
+      extraState.questData[user.controllerId] = user.questData;
     }
 
     // Add bounties (static - don't change during battle)
@@ -2803,6 +2824,7 @@ export const processUsersForBattle = async (
       village: _village,
       anbuSquad: _anbuSquad,
       clan: _clan,
+      bloodline: _bloodline,
       userSkills: _userSkills,
       relations: _relations,
       wars: _wars,
@@ -2811,6 +2833,7 @@ export const processUsersForBattle = async (
       // These are stored in extraState, not on the user
       userQuests: _userQuests,
       completedQuests: _completedQuests,
+      questData: _questData,
       bounties: _bounties,
       bountySignups: _bountySignups,
       activeReskin: _activeReskin,
@@ -2822,22 +2845,29 @@ export const processUsersForBattle = async (
       _village,
       _anbuSquad,
       _clan,
+      _bloodline,
       _userSkills,
       _relations,
       _wars,
       _userQuests,
       _completedQuests,
+      _questData,
       _bounties,
       _bountySignups,
       _activeReskin;
 
-    // Construct BattleUserState with explicit fields
+    // Construct BattleUserState with slim references
     const battleUserState: BattleUserState = {
       ...rest,
       jutsus: jutsusRef,
       items: itemsRef,
       relationIds,
       warIds,
+      // Convert full CombatAction[] to slim BattleBasicAction[] (only tracking data)
+      basicActions: user.basicActions.map((ba) => ({
+        id: ba.id,
+        lastUsedRound: ba.lastUsedRound ?? 0,
+      })),
       aiProfileId: aiProfile?.id ?? "Default",
       keystoneItemId: keystoneItem?.id ?? null,
       keystoneName: keystoneItem?.name ?? null,
@@ -2855,6 +2885,7 @@ export const processUsersForBattle = async (
     Object.assign(extraState.jutsus, summonExtraState.jutsus);
     Object.assign(extraState.jutsuReskins, summonExtraState.jutsuReskins);
     Object.assign(extraState.items, summonExtraState.items);
+    Object.assign(extraState.bloodlines, summonExtraState.bloodlines);
     Object.assign(extraState.villages, summonExtraState.villages);
     Object.assign(extraState.anbuSquads, summonExtraState.anbuSquads);
     Object.assign(extraState.keystoneItems, summonExtraState.keystoneItems);

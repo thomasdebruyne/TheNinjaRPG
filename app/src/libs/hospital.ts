@@ -66,14 +66,15 @@ type Healer = Pick<UserData, "medicalExperience" | "rank">;
  * @param healer - The healer's user data.
  * @returns The MEDNIN rank of the healer.
  */
-export const calcMedninRank = (healer?: Healer): MEDNIN_RANK => {
+export const calcMedninRank = (healer?: Partial<Healer>): MEDNIN_RANK => {
   if (!healer) return "NONE";
-  if (!hasRequiredRank(healer.rank, MEDNIN_MIN_RANK)) return "NONE";
-  if (healer.medicalExperience >= MEDNIN_REQUIRED_EXP.LEGENDARY) {
+  if (!healer.rank || !hasRequiredRank(healer.rank, MEDNIN_MIN_RANK)) return "NONE";
+  const exp = healer.medicalExperience ?? 0;
+  if (exp >= MEDNIN_REQUIRED_EXP.LEGENDARY) {
     return "LEGENDARY";
-  } else if (healer.medicalExperience >= MEDNIN_REQUIRED_EXP.MASTER) {
+  } else if (exp >= MEDNIN_REQUIRED_EXP.MASTER) {
     return "MASTER";
-  } else if (healer.medicalExperience >= MEDNIN_REQUIRED_EXP.APPRENTICE) {
+  } else if (exp >= MEDNIN_REQUIRED_EXP.APPRENTICE) {
     return "APPRENTICE";
   }
   return "NOVICE";
@@ -119,7 +120,7 @@ export const calcUserHealFactor = (healer: Healer) => {
  * @param healer - The healer's user data.
  * @returns The combat heal percentage.
  */
-export const calcCombatHealPercentage = (healer?: Healer) => {
+export const calcCombatHealPercentage = (healer?: Partial<Healer>) => {
   switch (calcMedninRank(healer)) {
     case "NONE":
       return 30;

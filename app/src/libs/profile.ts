@@ -107,7 +107,33 @@ export function getSoftCappedExperience(user: UserData) {
 }
 
 /** Scale stats of user, and return total number of experience / stat points */
-export function scaleUserStats(user: UserData) {
+export function scaleUserStats(
+  user: Pick<
+    UserData,
+    | "level"
+    | "poolsMultiplier"
+    | "statsMultiplier"
+    | "curHealth"
+    | "maxHealth"
+    | "curStamina"
+    | "maxStamina"
+    | "curChakra"
+    | "maxChakra"
+    | "experience"
+    | "ninjutsuOffence"
+    | "ninjutsuDefence"
+    | "genjutsuOffence"
+    | "genjutsuDefence"
+    | "taijutsuOffence"
+    | "taijutsuDefence"
+    | "bukijutsuOffence"
+    | "bukijutsuDefence"
+    | "strength"
+    | "intelligence"
+    | "willpower"
+    | "speed"
+  >,
+) {
   // Multipliers
   const poolMod = user.poolsMultiplier ?? 1;
   const statMod = user.statsMultiplier ?? 1;

@@ -45,7 +45,7 @@ const Footer: React.FC = () => {
         TheNinja-RPG © by Studie-Tech ApS - 2005-{new Date().getFullYear()}
       </p>
       <p className="mb-7 text-xs">
-        Hindegade 6 - 1303 København K - Denmark -{" "}
+        Rådhusstræde 15 - 1466 København K - Denmark -{" "}
         <a href="mailto:contact@theninja-rpg.com">Contact</a>
       </p>
     </div>

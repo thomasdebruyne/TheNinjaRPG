@@ -24,13 +24,21 @@ import type { Battle } from "@/drizzle/schema";
 import { noCase } from "change-case";
 
 /**
+ * Minimal user type for realizeTag - only includes fields actually used
+ */
+type RealizeTagUser = Pick<
+  ReturnedUserState,
+  "userId" | "villageId" | "highestOffence" | "highestDefence" | "highestGenerals"
+>;
+
+/**
  * Realize tag with information about how powerful tag is
  */
 export const realizeTag = <T extends BattleEffect>(props: {
   tag: T;
-  user: ReturnedUserState;
+  user: RealizeTagUser;
   actionId: string;
-  target?: ReturnedUserState | undefined;
+  target?: RealizeTagUser | undefined;
   level: number | undefined;
   round?: number;
   barrierAbsorb?: number;
@@ -2652,10 +2660,14 @@ export const summon = (
         newAi.intelligence = newAi.intelligence * perc;
         newAi.willpower = newAi.willpower * perc;
         newAi.speed = newAi.speed * perc;
-        newAi.bloodline = ai.bloodline;
+        // Lookup bloodline from extraState and copy bloodlineId
+        const aiBloodline = ai.bloodlineId
+          ? battle.extraState.bloodlines?.[ai.bloodlineId]
+          : null;
+        newAi.bloodlineId = ai.bloodlineId;
         // Realize bloodline effects if they exist
-        if (newAi.bloodline?.effects) {
-          newAi.bloodline.effects.forEach((bloodlineEffect) => {
+        if (aiBloodline?.effects) {
+          aiBloodline.effects.forEach((bloodlineEffect) => {
             const realizedEffect = realizeTag({
               tag: bloodlineEffect as BattleEffect,
               user: newAi,

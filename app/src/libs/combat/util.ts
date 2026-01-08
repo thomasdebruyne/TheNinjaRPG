@@ -159,6 +159,17 @@ export const getClan = (
 };
 
 /**
+ * Get Bloodline data from extraState by bloodlineId
+ */
+export const getBloodline = (
+  battle: CompleteBattle | ReturnedBattle,
+  bloodlineId: string | null | undefined,
+) => {
+  if (!bloodlineId) return undefined;
+  return battle.extraState.bloodlines?.[bloodlineId];
+};
+
+/**
  * Get War data from extraState by warId
  */
 export const getWar = (battle: CompleteBattle | ReturnedBattle, warId: string) => {
@@ -242,12 +253,29 @@ export const getCompletedQuestsFromBattle = (
 };
 
 /**
- * Hydrate a BattleUserState with data from extraState for use with e.g. getNewTrackers.
+ * Get questData (quest progress trackers) from extraState for a user
  */
-export const hydrateUserForQuests = (battle: CompleteBattle, user: BattleUserState) => {
+export const getQuestDataFromBattle = (
+  battle: CompleteBattle | ReturnedBattle,
+  controllerId: string,
+) => {
+  return battle.extraState.questData?.[controllerId] ?? [];
+};
+
+/**
+ * Hydrate a BattleUserState with data from extraState for use with e.g. getNewTrackers.
+ * Returns a fully hydrated user with relations populated from battle.extraState.
+ */
+export const hydrateUserForQuests = (
+  battle: CompleteBattle,
+  user: BattleUserState,
+) => {
+  // Hydrate relations from extraState
   const userQuests = getUserQuestsFromBattle(battle, user.controllerId);
   const completedQuests = getCompletedQuestsFromBattle(battle, user.controllerId);
+  const questData = getQuestDataFromBattle(battle, user.controllerId);
   const village = user.villageId ? getVillage(battle, user.villageId) : undefined;
+  const bloodline = getBloodline(battle, user.bloodlineId);
 
   // Omit BattleUserState.items (BattleUserItem[]) to replace with UserItem[] for type compatibility
   const { items: battleItems, ...userWithoutItems } = user;
@@ -264,11 +292,14 @@ export const hydrateUserForQuests = (battle: CompleteBattle, user: BattleUserSta
     isInAuction: false,
   }));
 
+  // Return hydrated user for quest processing
   return {
     ...userWithoutItems,
     userQuests,
     completedQuests,
+    questData,
     village,
+    bloodline: bloodline ?? null,
     items,
   };
 };
