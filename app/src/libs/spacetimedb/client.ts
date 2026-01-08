@@ -572,7 +572,7 @@ export class SpacetimeDBConnection {
     gridExpandFreq: number;
     rangeVisualFactor: number;
   }): Promise<void> {
-    if (!this.connection) {
+    if (!this.connection || this.connectionState !== "connected") {
       throw new Error("Not connected to SpacetimeDB");
     }
 
@@ -586,7 +586,7 @@ export class SpacetimeDBConnection {
    * Start a new wave
    */
   async startWave(sessionId: bigint): Promise<void> {
-    if (!this.connection) {
+    if (!this.connection || this.connectionState !== "connected") {
       throw new Error("Not connected to SpacetimeDB");
     }
 
@@ -604,7 +604,7 @@ export class SpacetimeDBConnection {
     targetCol: number,
     targetRow: number,
   ): Promise<void> {
-    if (!this.connection) {
+    if (!this.connection || this.connectionState !== "connected") {
       throw new Error("Not connected to SpacetimeDB");
     }
 
@@ -618,7 +618,7 @@ export class SpacetimeDBConnection {
    * are looked up server-side from hardcoded definitions to prevent cheating.
    */
   async purchaseUpgrade(sessionId: bigint, upgradeId: string): Promise<void> {
-    if (!this.connection) {
+    if (!this.connection || this.connectionState !== "connected") {
       throw new Error("Not connected to SpacetimeDB");
     }
 
@@ -632,7 +632,7 @@ export class SpacetimeDBConnection {
    * Delete a completed run record after claiming
    */
   async deleteCompletedRun(sessionId: bigint): Promise<void> {
-    if (!this.connection) {
+    if (!this.connection || this.connectionState !== "connected") {
       throw new Error("Not connected to SpacetimeDB");
     }
 
@@ -646,7 +646,7 @@ export class SpacetimeDBConnection {
    * Abandon a session
    */
   async abandonSession(sessionId: bigint): Promise<void> {
-    if (!this.connection) {
+    if (!this.connection || this.connectionState !== "connected") {
       throw new Error("Not connected to SpacetimeDB");
     }
 
