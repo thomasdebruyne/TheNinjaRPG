@@ -47,6 +47,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           use_bedrock: "true"
+          claude_args: "--model us.anthropic.claude-opus-4-5-20251101-v1:0"
         env:
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
           CLAUDE_CODE_USE_BEDROCK: 1
