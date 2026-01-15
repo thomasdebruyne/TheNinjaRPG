@@ -19,12 +19,14 @@ import {
   MEDNIN_RANKS,
   type MEDNIN_RANK,
   type HUNTING_RANK,
+  type GATHERING_RANK,
   type LetterRank,
   type QuestType,
   MAP_TOTAL_SECTORS,
   SENSEI_STUDENT_MISSION_EXP_BOOST_PERC,
   SENSEI_MAX_STUDENT_LEVEL,
   HUNTING_RANKS,
+  GATHERING_RANKS,
   QuestTypesWithMaxAttempts,
 } from "@/drizzle/constants";
 import { getShrineBoost } from "@/utils/village";
@@ -38,6 +40,7 @@ import type {
   ObjectiveRewardType,
 } from "@/validators/objectives";
 import { getHuntingRank } from "@/libs/hunting";
+import { getGatheringRank } from "@/libs/gathering";
 import type { Quest, UserData, UserItem, GameSetting } from "@/drizzle/schema";
 import type { QuestTrackerType } from "@/validators/objectives";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
@@ -1135,6 +1138,7 @@ export const isAvailableUserQuests = (
     completed?: number | null;
     medicalRank?: MEDNIN_RANK | null;
     huntingRank?: HUNTING_RANK | null;
+    gatheringRank?: GATHERING_RANK | null;
     requiredLevel?: number | null;
     maxLevel?: number | null;
   },
@@ -1157,6 +1161,10 @@ export const isAvailableUserQuests = (
   const userHuntRank = getHuntingRank(user.huntingExperience);
   const reqHuntRankIdx = questHuntRank ? HUNTING_RANKS.indexOf(questHuntRank) : null;
   const userHuntRankIdx = HUNTING_RANKS.indexOf(userHuntRank);
+  const questGatherRank = questAndUserQuestInfo.gatheringRank;
+  const userGatherRank = getGatheringRank(user.gatheringExperience);
+  const reqGatherRankIdx = questGatherRank ? GATHERING_RANKS.indexOf(questGatherRank) : null;
+  const userGatherRankIdx = GATHERING_RANKS.indexOf(userGatherRank);
 
   // Checks
   const hideCheck = !questAndUserQuestInfo.hidden || canPlayHiddenQuests(user.role);
@@ -1174,6 +1182,7 @@ export const isAvailableUserQuests = (
   // Medical rank check for quests that require it
   const medicalRankCheck = !reqMedRankIdx || userMedRankIdx >= reqMedRankIdx;
   const huntingRankCheck = !reqHuntRankIdx || userHuntRankIdx >= reqHuntRankIdx;
+  const gatheringRankCheck = !reqGatherRankIdx || userGatherRankIdx >= reqGatherRankIdx;
 
   // Level check - user must be >= requiredLevel and <= maxLevel
   // Use originalLevel if available (for combat-scaled users), otherwise use current level
@@ -1217,6 +1226,7 @@ export const isAvailableUserQuests = (
     prerequisiteCheck &&
     medicalRankCheck &&
     huntingRankCheck &&
+    gatheringRankCheck &&
     levelCheck;
 
   // If quest is not available, return the reason
@@ -1232,6 +1242,8 @@ export const isAvailableUserQuests = (
     message += `Quest requires medical rank ${capitalizeFirstLetter(questMedRank ?? "NONE")}\n`;
   if (!huntingRankCheck)
     message += `Quest requires hunting rank ${capitalizeFirstLetter(questHuntRank ?? "NONE")}\n`;
+  if (!gatheringRankCheck)
+    message += `Quest requires gathering rank ${capitalizeFirstLetter(questGatherRank ?? "NONE")}\n`;
   if (!levelCheck) {
     if (
       questAndUserQuestInfo.requiredLevel &&
