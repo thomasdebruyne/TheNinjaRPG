@@ -1423,11 +1423,14 @@ export const updateRewards = async (info: {
     earnedExperience: user.earnedExperience + (rewards.reward_exp ?? 0),
     villagePrestige: user.villagePrestige + (rewards.reward_prestige ?? 0),
     reputationPoints: user.reputationPoints + (rewards.reward_reputation ?? 0),
-    reputationPointsTotal: user.reputationPointsTotal + (rewards.reward_reputation ?? 0),
+    reputationPointsTotal:
+      user.reputationPointsTotal + (rewards.reward_reputation ?? 0),
     skillPoints: cappedSkillPoints,
     medicalExperience: cappedMedicalExp,
-    huntingExperience: user.huntingExperience + (rewards.reward_hunting_experience ?? 0),
-    craftingExperience: user.craftingExperience + (rewards.reward_crafting_experience ?? 0),
+    huntingExperience:
+      user.huntingExperience + (rewards.reward_hunting_experience ?? 0),
+    craftingExperience:
+      user.craftingExperience + (rewards.reward_crafting_experience ?? 0),
     gatheringExperience:
       user.gatheringExperience + (rewards.reward_gathering_experience ?? 0),
     rank: getNewRank ? rewards.reward_rank : user.rank,
