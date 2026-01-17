@@ -332,9 +332,11 @@ export type GetRewardResult = ReturnType<typeof getReward>["rewards"];
  * @returns Post-processed rewards
  */
 export const postProcessRewards = (rewards: ObjectiveRewardType) => {
+  // Defensive check: ensure reward_items is an array (handles malformed DB data)
+  const rewardItems = Array.isArray(rewards?.reward_items) ? rewards.reward_items : [];
   return {
     ...rewards,
-    reward_items: (rewards.reward_items ?? [])
+    reward_items: rewardItems
       .filter((reward) => {
         return Math.random() * 100 < reward.number;
       })
