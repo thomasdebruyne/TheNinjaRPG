@@ -477,14 +477,6 @@ export const activityStreakRouter = createTRPCRouter({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      // Fetch user for permission check
-      const user = await fetchUser(ctx.drizzle, ctx.userId);
-
-      // Guard: permission check
-      if (!canChangeContent(user.role)) {
-        throw new Error("You don't have permission to view streak configurations");
-      }
-
       const whereClause = input?.streakType
         ? eq(activityStreakConfig.streakType, input.streakType)
         : undefined;
@@ -499,18 +491,10 @@ export const activityStreakRouter = createTRPCRouter({
       return configs;
     }),
 
-  // Get single config with rewards (admin only)
+  // Get single config with rewards
   getConfig: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      // Fetch user for permission check
-      const user = await fetchUser(ctx.drizzle, ctx.userId);
-
-      // Guard: permission check
-      if (!canChangeContent(user.role)) {
-        throw new Error("You don't have permission to view streak configurations");
-      }
-
       const config = await ctx.drizzle.query.activityStreakConfig.findFirst({
         where: eq(activityStreakConfig.id, input.id),
         with: {
