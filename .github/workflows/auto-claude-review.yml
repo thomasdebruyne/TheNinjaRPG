@@ -1,0 +1,25 @@
+name: Auto Claude Review on New Issues
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  add-claude-comment:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Add Claude review comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.issue.number;
+            const body = `@claude please review this user request, and investigate it with respect to the codebase thoroughly. Based on your investigation, write an implementation plan. Make sure to highlight any uncertainties wrt. to implementation in the plan, and request follow-up information as needed. Post the entire implementation plan into the issue. Do not start implementing!`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: body
+            });
