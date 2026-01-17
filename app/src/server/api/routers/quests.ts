@@ -1328,14 +1328,14 @@ export const updateRewards = async (info: {
           .from(item)
           .where(eq(item.canBeGathered, true))
       : undefined,
-    // Fetch names from the database
-    rewards.reward_items.length > 0
+    // Fetch names from the database (use optional chaining for defensive checks against malformed DB data)
+    (rewards.reward_items?.length ?? 0) > 0
       ? client
           .select({ id: item.id, name: item.name, rarity: item.rarity })
           .from(item)
           .where(inArray(item.id, rewards.reward_items))
       : [],
-    rewards.reward_jutsus.length > 0
+    (rewards.reward_jutsus?.length ?? 0) > 0
       ? client
           .select({ id: jutsu.id, name: jutsu.name })
           .from(jutsu)
@@ -1347,7 +1347,7 @@ export const updateRewards = async (info: {
             and(inArray(jutsu.id, rewards.reward_jutsus), isNull(userJutsu.userId)),
           )
       : [],
-    rewards.reward_bloodlines.length > 0
+    (rewards.reward_bloodlines?.length ?? 0) > 0
       ? client
           .select({ id: bloodline.id, name: bloodline.name, rank: bloodline.rank })
           .from(bloodline)
@@ -1365,7 +1365,7 @@ export const updateRewards = async (info: {
             ),
           )
       : [],
-    rewards.reward_badges.length > 0
+    (rewards.reward_badges?.length ?? 0) > 0
       ? client
           .select({ id: badge.id, name: badge.name, image: badge.image })
           .from(badge)
@@ -1404,31 +1404,32 @@ export const updateRewards = async (info: {
   const getNewRank = rewards.reward_rank !== "NONE";
   const getNewVillage = rewards.reward_village_membership !== "NONE";
 
-  // Cap medical experience at 4 million
+  // Cap medical experience at 4 million (use ?? 0 for defensive checks against malformed DB data)
   const cappedMedicalExp = Math.min(
-    user.medicalExperience + rewards.reward_medical_experience,
+    user.medicalExperience + (rewards.reward_medical_experience ?? 0),
     MEDNIN_EXP_CAP,
   );
 
   // Cap skillpoints at MAX_SKILL_POINTS
   const cappedSkillPoints = Math.min(
-    user.skillPoints + rewards.reward_skillpoints,
+    user.skillPoints + (rewards.reward_skillpoints ?? 0),
     MAX_SKILL_POINTS,
   );
 
   const updatedUserData: Record<string, unknown> = {
     questData: user.questData,
-    money: user.money + rewards.reward_money,
-    seichiSilver: user.seichiSilver + rewards.reward_seichi_silver,
-    earnedExperience: user.earnedExperience + rewards.reward_exp,
-    villagePrestige: user.villagePrestige + rewards.reward_prestige,
-    reputationPoints: user.reputationPoints + rewards.reward_reputation,
-    reputationPointsTotal: user.reputationPointsTotal + rewards.reward_reputation,
+    money: user.money + (rewards.reward_money ?? 0),
+    seichiSilver: user.seichiSilver + (rewards.reward_seichi_silver ?? 0),
+    earnedExperience: user.earnedExperience + (rewards.reward_exp ?? 0),
+    villagePrestige: user.villagePrestige + (rewards.reward_prestige ?? 0),
+    reputationPoints: user.reputationPoints + (rewards.reward_reputation ?? 0),
+    reputationPointsTotal: user.reputationPointsTotal + (rewards.reward_reputation ?? 0),
     skillPoints: cappedSkillPoints,
     medicalExperience: cappedMedicalExp,
-    huntingExperience: user.huntingExperience + rewards.reward_hunting_experience,
-    craftingExperience: user.craftingExperience + rewards.reward_crafting_experience,
-    gatheringExperience: user.gatheringExperience + rewards.reward_gathering_experience,
+    huntingExperience: user.huntingExperience + (rewards.reward_hunting_experience ?? 0),
+    craftingExperience: user.craftingExperience + (rewards.reward_crafting_experience ?? 0),
+    gatheringExperience:
+      user.gatheringExperience + (rewards.reward_gathering_experience ?? 0),
     rank: getNewRank ? rewards.reward_rank : user.rank,
     villageId: getNewVillage && villageData ? villageData.id : user.villageId,
   };
