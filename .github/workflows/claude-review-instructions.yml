@@ -14,20 +14,18 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const body = `## 🤖 AI Review Available
+            const body = `## 🤖 AI Assistants Available
 
-            To request a Claude code review with implementation plan, comment:
+            **Need a code review or implementation plan?** Copy and paste this:
 
             \`\`\`
-            /claude-review
+            @claude please review this issue and create an implementation plan. Investigate it thoroughly with respect to the codebase. Highlight any uncertainties and request follow-up information as needed. Do not start implementing!
             \`\`\`
-
-            > This command can only be used once per issue.
 
             ---
 
-            **Need help clarifying this issue?** You can mention any of these AI assistants:
-            - \`@claude\` - Claude AI
+            **Other AI assistants you can mention:**
+            - \`@claude\` - Claude AI (recommended for implementation plans)
             - \`@cursor\` - Cursor AI  
             - \`@coderabbitai\` - CodeRabbit AI
 
