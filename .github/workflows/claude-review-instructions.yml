@@ -25,9 +25,9 @@ jobs:
             ---
 
             **Other AI assistants you can mention:**
-            - \`@claude\` - Claude AI (recommended for implementation plans)
-            - \`@cursor\` - Cursor AI  
-            - \`@coderabbitai\` - CodeRabbit AI
+            - \`claude\` - Claude AI (recommended for implementation plans)
+            - \`cursor\` - Cursor AI  
+            - \`coderabbitai\` - CodeRabbit AI
 
             They can help detail requirements, suggest approaches, or answer questions about the codebase.`;
 
