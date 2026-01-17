@@ -331,7 +331,7 @@ export type GetRewardResult = ReturnType<typeof getReward>["rewards"];
 export const postProcessRewards = (rewards: ObjectiveRewardType) => {
   return {
     ...rewards,
-    reward_items: rewards.reward_items
+    reward_items: (rewards.reward_items ?? [])
       .filter((reward) => {
         return Math.random() * 100 < reward.number;
       })
@@ -577,7 +577,9 @@ export const getNewTrackers = (
                 }
 
                 // Check if user is an ally - find which side they support
-                const allyEntry = w.warAllies?.find((a) => a.villageId === userVillageId);
+                const allyEntry = w.warAllies?.find(
+                  (a) => a.villageId === userVillageId,
+                );
                 if (allyEntry) {
                   // supportVillageId is the village the user's village is supporting
                   // If supporting attacker, enemy is defender. If supporting defender, enemy is attacker.
@@ -669,7 +671,7 @@ export const getNewTrackers = (
             const userLevel =
               "originalLevel" in user && typeof user.originalLevel === "number"
                 ? user.originalLevel
-                : user.level ?? 1;
+                : (user.level ?? 1);
             status.value = userLevel;
           } else if (task === "days_in_village") {
             const days = Math.floor(secondsPassed(user.joinedVillageAt) / 60 / 60 / 24);
@@ -1178,7 +1180,7 @@ export const isAvailableUserQuests = (
   const userLevel =
     "originalLevel" in user && typeof user.originalLevel === "number"
       ? user.originalLevel
-      : user.level ?? 1;
+      : (user.level ?? 1);
   const levelCheck =
     (!questAndUserQuestInfo.requiredLevel ||
       userLevel >= questAndUserQuestInfo.requiredLevel) &&
@@ -1237,10 +1239,7 @@ export const isAvailableUserQuests = (
     ) {
       message += `Quest requires level ${questAndUserQuestInfo.requiredLevel}\n`;
     }
-    if (
-      questAndUserQuestInfo.maxLevel &&
-      userLevel > questAndUserQuestInfo.maxLevel
-    ) {
+    if (questAndUserQuestInfo.maxLevel && userLevel > questAndUserQuestInfo.maxLevel) {
       message += `Quest is only available up to level ${questAndUserQuestInfo.maxLevel}\n`;
     }
   }
