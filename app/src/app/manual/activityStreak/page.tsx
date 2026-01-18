@@ -80,7 +80,7 @@ export default function ActivityStreakListPage() {
     const streakType = hasRecurring ? "EVENT_PASS" : "RECURRING";
     create({
       name: streakType === "RECURRING" ? "Daily Login Streak" : "New Event Pass",
-      totalDays: 30,
+      totalDays: 28,
       streakType,
       isActive: false,
       ryoCost: 0,
