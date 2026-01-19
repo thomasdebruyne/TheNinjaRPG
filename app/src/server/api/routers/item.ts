@@ -421,7 +421,11 @@ export const itemRouter = createTRPCRouter({
         where: and(eq(userItem.userId, ctx.userId), eq(userItem.itemId, input.itemId)),
         with: { imbuements: true },
       });
-      const filteredUserItems = userItems.filter((i) => i.imbuements.length === 0);
+      const filteredUserItems = userItems.filter(
+        (i) =>
+          i.imbuements.length === 0 &&
+          (!i.craftingFinishedAt || i.craftingFinishedAt < new Date()),
+      );
       const totalQuantity = filteredUserItems.reduce((acc, i) => acc + i.quantity, 0);
       if (info && filteredUserItems.length > 0) {
         let currentCount = 0;
