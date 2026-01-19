@@ -591,6 +591,9 @@ export const itemRouter = createTRPCRouter({
       if (useritem.userId !== user.userId) return errorResponse("Not yours to consume");
       if (user.status !== "AWAKE")
         return errorResponse(`Cannot use items while ${user.status.toLowerCase()}`);
+      if (useritem.craftingFinishedAt && useritem.craftingFinishedAt > new Date()) {
+        return errorResponse("Cannot consume item that is being crafted");
+      }
       if (!nonCombatConsume(useritem.item, user)) {
         return errorResponse("Not consumable");
       }
@@ -941,6 +944,9 @@ export const itemRouter = createTRPCRouter({
       if (user.status !== "AWAKE") {
         return errorResponse(`Cannot use items while ${user.status.toLowerCase()}`);
       }
+      if (repairUserItem.craftingFinishedAt && repairUserItem.craftingFinishedAt > new Date()) {
+        return errorResponse("Cannot use repair item that is being crafted");
+      }
       if (repairUserItem.quantity <= 0) {
         return errorResponse("You don't have any of this repair item");
       }
@@ -1029,12 +1035,13 @@ export const itemRouter = createTRPCRouter({
       if (itemsNeedingRepair.length === 0) {
         return errorResponse("No items need repair");
       }
-      // Get all available repair kits
+      // Get all available repair kits (excluding items being crafted)
       const repairKits = useritems
         .filter(
           (userItem) =>
             userItem.item?.effects?.some((e: { type: string }) => e.type === "repair") &&
-            userItem.quantity > 0,
+            userItem.quantity > 0 &&
+            (!userItem.craftingFinishedAt || userItem.craftingFinishedAt < new Date()),
         )
         .map((userItem) => {
           const repairEffect = userItem.item.effects.find(

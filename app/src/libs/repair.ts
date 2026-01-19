@@ -41,7 +41,8 @@ export const getRepairKits = (
     .filter(
       (userItem) =>
         userItem.item?.effects?.some((e) => e.type === "repair") &&
-        userItem.quantity > 0,
+        userItem.quantity > 0 &&
+        (!userItem.craftingFinishedAt || userItem.craftingFinishedAt < new Date()),
     )
     .map((userItem) => {
       const repairEffect = userItem.item.effects.find((e) => e.type === "repair");

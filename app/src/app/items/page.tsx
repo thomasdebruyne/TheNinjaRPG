@@ -579,7 +579,8 @@ const Backpack: React.FC<BackpackProps> = (props) => {
   const repairItems = (useritems || []).filter(
     (userItem: UserItemWithRelations) =>
       userItem.item?.effects?.some((e: { type: string }) => e.type === "repair") &&
-      userItem.quantity > 0,
+      userItem.quantity > 0 &&
+      (!userItem.craftingFinishedAt || userItem.craftingFinishedAt < new Date()),
   );
 
   // Split stack handler
@@ -814,7 +815,8 @@ const Character: React.FC<CharacterProps> = (props) => {
   const repairItems = (useritems || []).filter(
     (userItem: UserItemWithRelations) =>
       userItem.item?.effects?.some((e: { type: string }) => e.type === "repair") &&
-      userItem.quantity > 0,
+      userItem.quantity > 0 &&
+      (!userItem.craftingFinishedAt || userItem.craftingFinishedAt < new Date()),
   );
 
   // tRPC utility

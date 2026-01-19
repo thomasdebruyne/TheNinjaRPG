@@ -393,7 +393,11 @@ export default function Travel() {
     currentSector && userData && activeTab === sectorLink
       ? `Sector ${currentSector} ${sectorData?.sectorData?.village ? `(${sectorData.sectorData.village.name})` : ""}`
       : "The world of Seichi";
-  const consumableItems = userItems?.filter((i) => nonCombatConsume(i.item, userData));
+  const consumableItems = userItems?.filter(
+    (i) =>
+      nonCombatConsume(i.item, userData) &&
+      (!i.craftingFinishedAt || i.craftingFinishedAt < new Date()),
+  );
   const shownConsumables = consumableItems?.map((ui) => ({ ...ui.item, ...ui }));
 
   // Render
