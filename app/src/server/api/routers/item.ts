@@ -1442,7 +1442,7 @@ export const selectItemLoadout = async (
   if (maxLoadouts <= 0) return errorResponse("Loadouts not available");
 
   // Validate items in loadout
-  const validItemData = [];
+  const validItemData: Array<{ itemId: string; slot: ItemSlot }> = [];
   const invalidItems = [];
   for (const itemEntry of loadout.itemData) {
     const useritem = useritems.find((ui) => ui.itemId === itemEntry.itemId);
@@ -1478,6 +1478,21 @@ export const selectItemLoadout = async (
     );
     if (currentlyImbuing.length > 0) {
       invalidItems.push(`${useritem.item.name} is being imbued`);
+      continue;
+    }
+    // Validate slot is still valid (handles legacy data like ITEM_7)
+    const validSlots = ItemSlots as readonly string[];
+    if (!validSlots.includes(itemEntry.slot)) {
+      // Try to find a valid slot for this item type
+      const itemSlotType = useritem.item.slot;
+      const matchingSlot = ItemSlots.find(
+        (slot) => slot.includes(itemSlotType) && !validItemData.find((v) => v.slot === slot),
+      );
+      if (matchingSlot) {
+        validItemData.push({ itemId: itemEntry.itemId, slot: matchingSlot });
+      } else {
+        invalidItems.push(`${useritem.item.name} has invalid slot`);
+      }
       continue;
     }
     validItemData.push(itemEntry);
