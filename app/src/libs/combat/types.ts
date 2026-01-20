@@ -549,7 +549,7 @@ const BaseAttributes = {
 };
 
 const PowerAttributes = {
-  power: z.coerce.number().min(1).default(1),
+  power: z.coerce.number().min(0).default(1),
   powerPerLevel: z.coerce.number().min(0).max(1).default(0),
 };
 

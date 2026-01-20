@@ -32,7 +32,7 @@ const MenuBoxCombat: React.FC = () => {
           href={`/userid/${battleUser.userId}`}
           className="inline-block hover:text-orange-500 flex flex-row"
         >
-          Enemy: {battleUser.username} <Link2 className="inline-block h-5 w-5" />
+          {battleUser.username} <Link2 className="inline-block h-5 w-5" />
         </Link>
       </SideBannerTitle>
       <div className="grid grid-cols-2 md:grid-cols-1 items-center justify-center">
