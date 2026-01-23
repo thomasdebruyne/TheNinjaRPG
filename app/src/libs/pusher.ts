@@ -39,7 +39,7 @@ export class Pusher {
       const endpoint =
         env.NODE_ENV === "development"
           ? `http://127.0.0.1:6001/apps/${this.app_id}/events?auth_key=${this.key}&auth_timestamp=${timestamp}&auth_version=1.0&body_md5=${md5}&auth_signature=${signature}`
-          : `https://soketi.theninja-rpg.ai/apps/${this.app_id}/events?auth_key=${this.key}&auth_timestamp=${timestamp}&auth_version=1.0&body_md5=${md5}&auth_signature=${signature}`;
+          : `https://soketi.theninja-rpg.com/apps/${this.app_id}/events?auth_key=${this.key}&auth_timestamp=${timestamp}&auth_version=1.0&body_md5=${md5}&auth_signature=${signature}`;
       await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
