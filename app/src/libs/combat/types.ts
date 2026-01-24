@@ -448,6 +448,8 @@ export type Consequence = {
   rawDamage?: number;
   residual?: number;
   rawResidual?: number;
+  /** Base damage value used for additive percentage modifier calculations (e.g., increaseDamageGiven) */
+  baseDamageForModifiers?: number;
   wound?: number;
   reflect?: number;
   recoil?: number;
