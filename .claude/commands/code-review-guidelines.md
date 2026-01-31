@@ -12,6 +12,7 @@ Review code changes for compliance with project guidelines.
 **IMPORTANT**: Before starting the review, create tasks for each major checkpoint using TaskCreate. Update each task to `in_progress` when starting and `completed` when done.
 
 Create these tasks at the start:
+
 1. "Read CLAUDE.md" - Understand project guidelines
 2. "Get changed files" - Get list of files to review
 3. "Read full file contents" - Read complete files (not just diffs)
@@ -31,16 +32,19 @@ Work through each task in order, marking as `in_progress` then `completed`.
 **Your job is to FIND GUIDELINE VIOLATIONS. Do NOT validate or praise code.**
 
 ### What NOT to output:
+
 - "Follows guidelines correctly" or "Good naming convention" - this is praise, not a finding
 - "This properly uses functional patterns" or "Correct structure" - this is validation, not a finding
 - Any statement saying code is compliant/correct/proper - SKIP IT ENTIRELY
 - Do NOT include items in your output that aren't actual guideline violations
 
 ### What TO output:
+
 - ONLY actual guideline violations that need fixing
 - If you find no issues, say "PASS" with no other commentary
 
 ### Review approach:
+
 - Look for ANY `any` type usage - should be properly typed
 - Look for ANY class usage - should be functional
 - Look for ANY function declaration - should be arrow function
@@ -50,10 +54,10 @@ Work through each task in order, marking as `in_progress` then `completed`.
 ## Process
 
 1. Read `CLAUDE.md` for project guidelines
-2. Get changed files:
-   - `git diff --name-only main...HEAD` (branch commits)
-   - `git diff --name-only --cached` (staged)
-   - `git diff --name-only` (unstaged)
+2. Get changed `.ts` and `.tsx` files (excluding migrations):
+   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
+   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
+   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
 3. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 4. **Locate the changed code within the file**, then examine the ENTIRE function/block containing those changes
 5. For each changed file, check:
@@ -83,6 +87,7 @@ Work through each task in order, marking as `in_progress` then `completed`.
 ## Output Format
 
 **IMPORTANT: Only include actual problems. Do NOT include:**
+
 - Praise ("follows guidelines", "good structure", "correct pattern")
 - Validation ("properly implements", "correctly uses")
 - Commentary on code that has no issues

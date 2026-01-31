@@ -10,6 +10,7 @@ Automate a complex feature request or bug fix by leveraging parallel investigati
 **Input**: `$ARGUMENTS`
 
 The input should be arbitrary instructions describing:
+
 - A feature to implement
 - A bug to fix
 - An improvement to make
@@ -24,6 +25,7 @@ This skill orchestrates a multi-agent workflow to handle complex requests:
 3. **Implementation** - Implement the aggregated plan with iterative review cycles
 
 This approach ensures:
+
 - Multiple perspectives on the problem
 - Thorough exploration of the codebase
 - Best solutions are identified through comparison
@@ -51,6 +53,7 @@ Launch **3 subagents in parallel** using the `Task` tool. Each subagent should i
 - Save the plan to `.claude/tasks/`
 
 **Subagent 1** - Launch with Task tool:
+
 ```
 You are Investigation Agent 1. Your task is to independently analyze a request and create an implementation plan.
 
@@ -77,7 +80,8 @@ You are Investigation Agent 1. Your task is to independently analyze a request a
    - Testing strategy
    - Risk assessment
 
-4. Save your implementation plan to: `.claude/tasks/<TASK_ID>_PLAN-A-<random-6-letters>.md`
+4. Save your implementation plan to: `.claude/tasks/<DATETIME>_<TASK_ID>_PLAN-A-<random-6-letters>.md`
+   - Where `<DATETIME>` is the current date and time in format `YYYYMMDD-HHMMSS` (e.g., `20250131-143052`)
 
 **Important**:
 - Work independently - your unique perspective is valuable
@@ -87,6 +91,7 @@ You are Investigation Agent 1. Your task is to independently analyze a request a
 ```
 
 **Subagent 2** - Launch with Task tool:
+
 ```
 You are Investigation Agent 2. Your task is to independently analyze a request and create an implementation plan.
 
@@ -113,7 +118,8 @@ You are Investigation Agent 2. Your task is to independently analyze a request a
    - Testing strategy
    - Risk assessment
 
-4. Save your implementation plan to: `.claude/tasks/<TASK_ID>_PLAN-B-<random-6-letters>.md`
+4. Save your implementation plan to: `.claude/tasks/<DATETIME>_<TASK_ID>_PLAN-B-<random-6-letters>.md`
+   - Where `<DATETIME>` is the current date and time in format `YYYYMMDD-HHMMSS` (e.g., `20250131-143052`)
 
 **Important**:
 - Work independently - your unique perspective is valuable
@@ -123,6 +129,7 @@ You are Investigation Agent 2. Your task is to independently analyze a request a
 ```
 
 **Subagent 3** - Launch with Task tool:
+
 ```
 You are Investigation Agent 3. Your task is to independently analyze a request and create an implementation plan.
 
@@ -149,7 +156,8 @@ You are Investigation Agent 3. Your task is to independently analyze a request a
    - Testing strategy
    - Risk assessment
 
-4. Save your implementation plan to: `.claude/tasks/<TASK_ID>_PLAN-C-<random-6-letters>.md`
+4. Save your implementation plan to: `.claude/tasks/<DATETIME>_<TASK_ID>_PLAN-C-<random-6-letters>.md`
+   - Where `<DATETIME>` is the current date and time in format `YYYYMMDD-HHMMSS` (e.g., `20250131-143052`)
 
 **Important**:
 - Work independently - your unique perspective is valuable
@@ -163,6 +171,7 @@ You are Investigation Agent 3. Your task is to independently analyze a request a
 ### Step 3: Collect Plan Paths
 
 After all investigation subagents complete:
+
 1. List the files in `.claude/tasks/` directory
 2. Identify the 3 plan files created (matching the `<TASK_ID>_PLAN-*` pattern)
 3. Collect the full paths to all plans
@@ -190,6 +199,7 @@ Skill(skill="implement", args="<AGGREGATED_PLAN_PATH>")
 Replace the path with the actual path to the aggregated plan file.
 
 This will:
+
 1. Parse the implementation plan
 2. Implement the changes iteratively
 3. Run code reviews after each implementation step
@@ -205,15 +215,18 @@ After all steps are complete, generate a comprehensive report:
 # Automation Request Complete
 
 ## Original Request
+
 <Brief summary of the original instructions>
 
 ## Investigation Phase
+
 - **Plans Created**: 3
 - **Plan A**: `<path>` - <brief summary of approach>
 - **Plan B**: `<path>` - <brief summary of approach>
 - **Plan C**: `<path>` - <brief summary of approach>
 
 ## Aggregation Phase
+
 - **Aggregated Plan**: `<path>`
 - **Best Elements Selected From**:
   - Plan A: <what was used>
@@ -221,6 +234,7 @@ After all steps are complete, generate a comprehensive report:
   - Plan C: <what was used>
 
 ## Implementation Phase
+
 - **Status**: Complete / Partial / Failed
 - **Changes Made**:
   - <list of key changes>
@@ -228,13 +242,16 @@ After all steps are complete, generate a comprehensive report:
   - <list of files>
 
 ## Summary
+
 <Overall summary of what was accomplished>
 
 ## Artifacts
-- Investigation Plans: `.claude/tasks/<TASK_ID>_PLAN-*.md`
-- Aggregated Plan: `.claude/tasks/<TASK_ID>_AGGREGATED-*.md`
+
+- Investigation Plans: `.claude/tasks/<DATETIME>_<TASK_ID>_PLAN-*.md`
+- Aggregated Plan: `.claude/tasks/<DATETIME>_<TASK_ID>_AGGREGATED-*.md`
 
 ## Next Steps (if any)
+
 <Any remaining work or recommendations>
 ```
 

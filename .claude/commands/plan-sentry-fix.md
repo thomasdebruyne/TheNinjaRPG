@@ -26,6 +26,8 @@ Use the Sentry MCP tools to get issue details from the provided argument:
 
 **Important**: Do NOT use `analyze_issue_with_seer` - always analyze issues manually by exploring the codebase yourself. This ensures a thorough understanding of the code context and produces better fixes.
 
+**Important**: Ensure that you fetch the latest event data from sentry. If permission error, do not look at any previous plans, but rather report back that Sentry could not be accessed.
+
 Extract from the issue:
 
 - **Issue ID**: The short ID like `THENINJARPG-XXX`
@@ -79,6 +81,7 @@ Based on your exploration, document:
 Consider multiple approaches to fixing the issue:
 
 1. **Option A**: [First approach - describe]
+
    - Pros: ...
    - Cons: ...
 
@@ -124,10 +127,12 @@ Create a detailed implementation plan document with the following structure:
 ## Implementation Steps
 
 ### Step 1: [Description]
+
 - [ ] Specific change to make
 - [ ] Code snippet or approach
 
 ### Step 2: [Description]
+
 - [ ] Specific change to make
 
 ... (continue for all steps)
@@ -146,14 +151,16 @@ Create a detailed implementation plan document with the following structure:
 
 ### Step 6: Save the Plan
 
-Save the implementation plan to: `.claude/tasks/[SENTRY_ID]_PLAN-[random]-[identifier].md`
+Save the implementation plan to: `.claude/tasks/[DATETIME]_[SENTRY_ID]_PLAN-[random]-[identifier].md`
 
 Where:
+
+- `[DATETIME]` is the current date and time in format `YYYYMMDD-HHMMSS` (e.g., `20250131-143052`)
 - `[SENTRY_ID]` is the Sentry issue ID with hyphens removed (e.g., `THENINJARPG123`)
 - `[random]` is a set of 6 random lowercase letters to create a unique plan ID
 - `[identifier]` is a short description of the fix (e.g., `null_check`, `retry_logic`)
 
-Example: `.claude/tasks/THENINJARPG123_PLAN-fdosdg-fix_null_reference.md`
+Example: `.claude/tasks/20250131-143052_THENINJARPG123_PLAN-fdosdg-fix_null_reference.md`
 
 ### Step 7: Validate the Plan (Critical)
 
@@ -197,5 +204,6 @@ After completing all steps, report:
 ## Sentry Configuration
 
 For this project:
+
 - **Organization**: `studie-tech-aps`
 - **Region URL**: `https://de.sentry.io`

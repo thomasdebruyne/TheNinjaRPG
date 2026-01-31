@@ -27,7 +27,7 @@ Replace `INSTRUCTIONS` with the exact content from `$ARGUMENTS`:
 
 **$ARGUMENTS = `$ARGUMENTS`**
 
-**Wait for all 3 subagents to complete.** Collect the 3 plan file paths they return (e.g., `.claude/tasks/IMPL_PLAN-abc123-feature_name.md`).
+**Wait for all 3 subagents to complete.** Collect the 3 plan file paths they return (e.g., `.claude/tasks/20250131-143052_IMPL_PLAN-feature_name-abc123.md`).
 
 ### Step 2: Aggregate Plans
 
@@ -51,8 +51,9 @@ After completion, report ONLY the path to the aggregated plan file.
 Return **ONLY** the path to the aggregated plan file. No other output.
 
 Example output:
+
 ```
-.claude/tasks/IMPL_PLAN_AGGREGATED-xyz789-merged_plan.md
+.claude/tasks/20250131-143100_IMPL_PLAN_AGGREGATED-xyz789-merged_plan.md
 ```
 
 ## Example Usage
@@ -62,25 +63,30 @@ User: `/plan-parallel Add a new settings page that allows users to configure not
 **Execution**:
 
 1. Run 3 parallel subagents (all at the same time):
+
    ```
    Task: "Run /plan-implementation Add a new settings page that allows users to configure notification preferences"
    Task: "Run /plan-implementation Add a new settings page that allows users to configure notification preferences"
    Task: "Run /plan-implementation Add a new settings page that allows users to configure notification preferences"
    ```
+
    Results:
-   - Plan 1: `.claude/tasks/IMPL_PLAN-abc123-settings_page.md`
-   - Plan 2: `.claude/tasks/IMPL_PLAN-def456-notification_settings.md`
-   - Plan 3: `.claude/tasks/IMPL_PLAN-ghi789-user_prefs.md`
+
+   - Plan 1: `.claude/tasks/20250131-143052_IMPL_PLAN-settings_page-abc123.md`
+   - Plan 2: `.claude/tasks/20250131-143053_IMPL_PLAN-notification_settings-def456.md`
+   - Plan 3: `.claude/tasks/20250131-143054_IMPL_PLAN-user_prefs-ghi789.md`
 
 2. Aggregate plans:
+
    ```
-   Task: "Run /plan-aggregate .claude/tasks/IMPL_PLAN-abc123-settings_page.md .claude/tasks/IMPL_PLAN-def456-notification_settings.md .claude/tasks/IMPL_PLAN-ghi789-user_prefs.md"
+   Task: "Run /plan-aggregate .claude/tasks/20250131-143052_IMPL_PLAN-settings_page-abc123.md .claude/tasks/20250131-143053_IMPL_PLAN-notification_settings-def456.md .claude/tasks/20250131-143054_IMPL_PLAN-user_prefs-ghi789.md"
    ```
-   Result: `.claude/tasks/IMPL_PLAN_AGGREGATED-xyz789-merged_plan.md`
+
+   Result: `.claude/tasks/20250131-143100_IMPL_PLAN_AGGREGATED-xyz789-merged_plan.md`
 
 3. Return:
    ```
-   .claude/tasks/IMPL_PLAN_AGGREGATED-xyz789-merged_plan.md
+   .claude/tasks/20250131-143100_IMPL_PLAN_AGGREGATED-xyz789-merged_plan.md
    ```
 
 ## Important Notes

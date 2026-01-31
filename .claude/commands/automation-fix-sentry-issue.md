@@ -30,6 +30,7 @@ Assign the Sentry issue to yourself using the Sentry MCP tools. **Do NOT read/fe
 **$ARGUMENTS = `$ARGUMENTS`**
 
 Example:
+
 ```
 update_issue(organizationSlug='studie-tech-aps', regionUrl='https://de.sentry.io', issueId='THENINJARPG-123', assignedTo='user:3351344')
 // Or with issueUrl:
@@ -52,7 +53,7 @@ After completion, report the path to the saved plan file.
 
 Replace `SENTRY_ISSUE_ID` with the actual Sentry issue ID from `$ARGUMENTS`.
 
-**Wait for all 3 subagents to complete.** Collect the 3 plan file paths they return (e.g., `.claude/tasks/THENINJARPG123_PLAN-abc123-fix_null.md`).
+**Wait for all 3 subagents to complete.** Collect the 3 plan file paths they return (e.g., `.claude/tasks/20250131-143052_THENINJARPG123_PLAN-abc123-fix_null.md`).
 
 ### Step 3: Aggregate Plans
 
@@ -96,6 +97,7 @@ Skill(skill="implement-review-loop")
 ```
 
 This runs in the **main thread** and will:
+
 1. Run comprehensive code review (14 parallel checks)
 2. Fix any issues found
 3. Iterate until all checks pass
@@ -136,6 +138,7 @@ bash .claude/commands/common/check_github_issue.sh "SENTRY_ISSUE_ID"
 ```
 
 The script will:
+
 - Search GitHub issues for the Sentry issue ID in title or body
 - Return the GitHub issue number if found
 - Return empty if no matching issue exists
@@ -151,6 +154,7 @@ bash .claude/commands/common/create_github_issue.sh "SENTRY_ISSUE_ID" "Short des
 ### Step 10: Create Pull Request
 
 Create the PR using the common PR creation script. The PR description should include:
+
 - **Sentry context**: What specific information from Sentry helped identify the root cause
 - **Direct link**: A clickable link to the Sentry issue for the reviewer
 
@@ -200,6 +204,7 @@ Closes #GITHUB_ISSUE_NUMBER
 User: `/automation-fix-sentry-issue THENINJARPG-123`
 
 **Todo list**:
+
 1. [ ] Assign Sentry issue to self
 2. [ ] Run 3 parallel `/plan-sentry-fix THENINJARPG-123` subagents
 3. [ ] Aggregate plans with `/plan-aggregate`
@@ -214,38 +219,47 @@ User: `/automation-fix-sentry-issue THENINJARPG-123`
 **Execution**:
 
 1. Assign the issue:
+
    ```
    update_issue(organizationSlug='studie-tech-aps', regionUrl='https://de.sentry.io', issueId='THENINJARPG-123', assignedTo='user:3351344')
    ```
 
 2. Run 3 parallel subagents (all at the same time):
+
    ```
    Task: "Run /plan-sentry-fix THENINJARPG-123"
    Task: "Run /plan-sentry-fix THENINJARPG-123"
    Task: "Run /plan-sentry-fix THENINJARPG-123"
    ```
+
    Results:
-   - Plan 1: `.claude/tasks/THENINJARPG123_PLAN-abc123-null_check.md`
-   - Plan 2: `.claude/tasks/THENINJARPG123_PLAN-def456-validation.md`
-   - Plan 3: `.claude/tasks/THENINJARPG123_PLAN-ghi789-error_handling.md`
+
+   - Plan 1: `.claude/tasks/20250131-143052_THENINJARPG123_PLAN-abc123-null_check.md`
+   - Plan 2: `.claude/tasks/20250131-143053_THENINJARPG123_PLAN-def456-validation.md`
+   - Plan 3: `.claude/tasks/20250131-143054_THENINJARPG123_PLAN-ghi789-error_handling.md`
 
 3. Aggregate plans:
+
    ```
-   Task: "Run /plan-aggregate .claude/tasks/THENINJARPG123_PLAN-abc123-null_check.md .claude/tasks/THENINJARPG123_PLAN-def456-validation.md .claude/tasks/THENINJARPG123_PLAN-ghi789-error_handling.md"
+   Task: "Run /plan-aggregate .claude/tasks/20250131-143052_THENINJARPG123_PLAN-abc123-null_check.md .claude/tasks/20250131-143053_THENINJARPG123_PLAN-def456-validation.md .claude/tasks/20250131-143054_THENINJARPG123_PLAN-ghi789-error_handling.md"
    ```
-   Result: `.claude/tasks/THENINJARPG123_AGGREGATED-xyz789-merged_fix.md`
+
+   Result: `.claude/tasks/20250131-143100_THENINJARPG123_AGGREGATED-xyz789-merged_fix.md`
 
 4. Implement:
+
    ```
-   Task: "Run /implement .claude/tasks/THENINJARPG123_AGGREGATED-xyz789-merged_fix.md"
+   Task: "Run /implement .claude/tasks/20250131-143100_THENINJARPG123_AGGREGATED-xyz789-merged_fix.md"
    ```
 
 5. Code review loop:
+
    ```
    Skill(skill="implement-review-loop")
    ```
 
 6. Commit:
+
    ```bash
    git branch --show-current  # Check if on main
    # If on main: git checkout -b "fix/THENINJARPG123_a1b2c3"
@@ -254,16 +268,19 @@ User: `/automation-fix-sentry-issue THENINJARPG-123`
    ```
 
 7. Push:
+
    ```bash
    git push -u origin HEAD
    ```
 
 8. Check for existing issue:
+
    ```bash
    bash .claude/commands/common/check_github_issue.sh "THENINJARPG-123"
    ```
 
 9. Create issue if needed:
+
    ```bash
    bash .claude/commands/common/create_github_issue.sh "THENINJARPG-123" "Null reference in UserService" "Stack trace..."
    ```
@@ -276,14 +293,15 @@ User: `/automation-fix-sentry-issue THENINJARPG-123`
       "Fix THENINJARPG-123: Null reference in UserService" \
       "Add null check for user profile before accessing properties" \
       "**Error observed**: TypeError: Cannot read property 'name' of undefined
+    ```
 
 **Frequency**: 150 events/day affecting ~50 users
 
 **Key insight from Sentry**: Stack trace showed the error occurs in UserService.getProfile() when the API returns a 204 No Content response.
 
 **Root cause**: Missing null check when API returns empty response after session expiration." \
-      "42"
-    ```
+ "42"
+```
 
 ## Important Notes
 
@@ -301,21 +319,27 @@ If the subagents report that an issue was already fixed (existing plan file, mer
 **Investigation steps for regressions:**
 
 1. **Check if the fix is actually in the current code**:
+
    ```bash
    git log --oneline -10 -- <file_that_was_fixed>
    ```
+
    Look for commits AFTER the fix that may have reverted or overwritten the changes.
 
 2. **Search for the error message in the codebase**:
+
    ```bash
    grep -r "exact error message" app/src/
    ```
+
    If the error message doesn't exist, the fix may have been deployed but there's caching/deployment lag.
 
 3. **Check if subsequent commits modified the fixed file**:
+
    ```bash
    git show <later_commit> -- <fixed_file>
    ```
+
    A later commit may have inadvertently reverted the fix while addressing a different issue.
 
 4. **If the fix was overwritten**: Re-apply the fix, ensuring it doesn't conflict with the changes that overwrote it. Consider if the original fix was incomplete or caused other issues that led to reversion.

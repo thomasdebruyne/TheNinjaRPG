@@ -71,6 +71,7 @@ Based on your exploration, document:
 Consider multiple approaches to implementing the feature:
 
 1. **Option A**: [First approach - describe]
+
    - Pros: ...
    - Cons: ...
 
@@ -102,12 +103,15 @@ Create a detailed implementation plan document with the following structure:
 ## Requirements Analysis
 
 ### Functional Requirements
+
 [What the code needs to do]
 
 ### Technical Requirements
+
 [How it needs to be implemented]
 
 ### Integration Points
+
 [Where this connects with existing code]
 
 ## Codebase Analysis
@@ -115,10 +119,12 @@ Create a detailed implementation plan document with the following structure:
 [Summary of relevant code discovered during exploration]
 
 ### Related Files
+
 - `path/to/file1.ts` - [Why it's relevant]
 - `path/to/file2.ts` - [Why it's relevant]
 
 ### Patterns to Follow
+
 [Existing patterns that should be used]
 
 ## Files to Modify
@@ -133,10 +139,12 @@ Create a detailed implementation plan document with the following structure:
 ## Implementation Steps
 
 ### Step 1: [Description]
+
 - [ ] Specific change to make
 - [ ] Code snippet or approach
 
 ### Step 2: [Description]
+
 - [ ] Specific change to make
 
 ... (continue for all steps)
@@ -155,13 +163,15 @@ Create a detailed implementation plan document with the following structure:
 
 ### Step 6: Save the Plan
 
-Save the implementation plan to: `.claude/tasks/IMPL_PLAN-[identifier]-[random].md`
+Save the implementation plan to: `.claude/tasks/[DATETIME]_IMPL_PLAN-[identifier]-[random].md`
 
 Where:
+
+- `[DATETIME]` is the current date and time in format `YYYYMMDD-HHMMSS` (e.g., `20250131-143052`)
 - `[identifier]` is a short description of the implementation (e.g., `add_auth`, `refactor_api`)
 - `[random]` is a set of 6 random letters in order to create a unique plan ID
 
-Example: `.claude/tasks/IMPL_PLAN-fdosdg-add_user_settings.md`
+Example: `.claude/tasks/20250131-143052_IMPL_PLAN-add_user_settings-fdosdg.md`
 
 ### Step 7: Validate the Plan (Critical)
 

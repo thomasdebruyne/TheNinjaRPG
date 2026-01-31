@@ -14,6 +14,7 @@ Review code for overly broad error ignores, exception handlers, and filter patte
 **IMPORTANT**: Before starting the review, create tasks for each major checkpoint using TaskCreate. Update each task to `in_progress` when starting and `completed` when done.
 
 Create these tasks at the start:
+
 1. "Get changed files" - Get list of files with error handling
 2. "Read full file contents" - Read complete files (not just diffs)
 3. "Check error message ignores" - Verify ignores are specific, not generic
@@ -30,16 +31,19 @@ Work through each task in order, marking as `in_progress` then `completed`.
 **Your job is to FIND OVERLY BROAD IGNORES. Do NOT validate or praise code.**
 
 ### What NOT to output:
+
 - "correctly scoped" or "appropriately specific" - this is praise, not a finding
 - "good filtering practice" - this is validation, not a finding
 - Any statement saying code is good/correct/proper - SKIP IT ENTIRELY
 - Do NOT include items in your output that aren't actual specificity issues
 
 ### What TO output:
+
 - ONLY actual issues where ignores/filters are too broad
 - If you find no issues, say "PASS" with no other commentary
 
 ### Review approach:
+
 - When you see error ignores, ask "could this accidentally suppress a different, legitimate error?"
 - When you see exception handlers, check if they're catching more than intended
 - Prefer stack trace/origin-based filtering over message-only matching
@@ -47,10 +51,10 @@ Work through each task in order, marking as `in_progress` then `completed`.
 
 ## Process
 
-1. Get changed files:
-   - `git diff --name-only main...HEAD` (branch commits)
-   - `git diff --name-only --cached` (staged)
-   - `git diff --name-only` (unstaged)
+1. Get changed `.ts` and `.tsx` files (excluding migrations):
+   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
+   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
+   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
 2. Filter to relevant files containing error handling patterns
 3. **IMPORTANT: Read the FULL file content** for each changed file
 4. **Analyze the specificity** of each error handling pattern:
@@ -64,7 +68,9 @@ Work through each task in order, marking as `in_progress` then `completed`.
 ### Critical Issues (Must Fix)
 
 **Overly Broad Error Message Ignores**
+
 - Generic error messages that could match multiple different errors
+
 ```typescript
 // BAD: Could match ANY split error from anywhere
 ignoreErrors: [
@@ -89,7 +95,9 @@ beforeSend(event) {
 ```
 
 **Catch-All Exception Handlers**
+
 - Catching `Exception` or `Error` base classes without re-throwing unexpected errors
+
 ```typescript
 // BAD: Swallows ALL errors
 try {
@@ -111,20 +119,28 @@ try {
 ```
 
 **Regex Patterns That Over-Match**
+
 - Regex in ignoreErrors that could match unintended strings
+
 ```typescript
 // BAD: Matches ANY "Error" in the message
-ignoreErrors: [/Error/]
+ignoreErrors: [/Error/];
 
 // GOOD: Specific pattern with anchors or unique identifiers
-ignoreErrors: [/^ChunkLoadError: Loading chunk \d+ failed$/]
+ignoreErrors: [/^ChunkLoadError: Loading chunk \d+ failed$/];
 ```
 
 **Silent Failures Without Logging**
+
 - Ignoring errors without any indication they occurred
+
 ```typescript
 // BAD: Error silently disappears
-try { parse(data); } catch { /* ignored */ }
+try {
+  parse(data);
+} catch {
+  /* ignored */
+}
 
 // GOOD: At least log in development or track metrics
 try {
@@ -139,30 +155,41 @@ try {
 ### Warnings (Should Fix)
 
 **Message-Only Filtering When Stack Available**
+
 - Using only message matching when stack trace would be more reliable
+
 ```typescript
 // WARNING: Message could change across versions
-if (message.includes("Failed to fetch")) { return null; }
+if (message.includes("Failed to fetch")) {
+  return null;
+}
 
 // BETTER: Also verify the source
-if (message.includes("Failed to fetch") &&
-    frames.some(f => f.filename?.includes("expected-source"))) {
+if (message.includes("Failed to fetch") && frames.some((f) => f.filename?.includes("expected-source"))) {
   return null;
 }
 ```
 
 **Ignoring Errors by Partial String Match**
+
 - Using `.includes()` or partial regex when exact match would be safer
+
 ```typescript
 // WARNING: Could match "HTTP Client Error with status code: 5040"
-if (message.includes("504")) { return null; }
+if (message.includes("504")) {
+  return null;
+}
 
 // BETTER: More specific match
-if (message.includes("HTTP Client Error with status code: 504")) { return null; }
+if (message.includes("HTTP Client Error with status code: 504")) {
+  return null;
+}
 ```
 
 **Multiple Similar Ignores That Could Be Consolidated**
+
 - Several ignore patterns that could be one more specific pattern
+
 ```typescript
 // WARNING: Three separate patterns
 ignoreErrors: [
@@ -180,7 +207,9 @@ beforeSend(event) {
 ```
 
 **Empty Catch Blocks**
+
 - Catching errors with empty handlers
+
 ```typescript
 // WARNING: What was supposed to happen here?
 try {
@@ -193,7 +222,9 @@ try {
 ### Suggestions (Consider)
 
 **Add Comments Explaining Why Errors Are Ignored**
+
 - Document the specific scenario being handled
+
 ```typescript
 // GOOD: Clear documentation
 // This error occurs in Edge browser during RSC navigation when webpack's
@@ -203,19 +234,22 @@ if (message.includes("...") && frames.some(...)) { return null; }
 ```
 
 **Consider Error Categories**
+
 - Group related ignores with shared validation logic
+
 ```typescript
 // Instead of multiple individual ignores:
 const isTransientRscError = (message: string, frames: Frame[]) => {
   const rscPatterns = ["Failed to fetch RSC payload", "504"];
   const rscSources = ["fetch-server-response", "router-reducer"];
-  return rscPatterns.some(p => message.includes(p)) &&
-         frames.some(f => rscSources.some(s => f.filename?.includes(s)));
+  return rscPatterns.some((p) => message.includes(p)) && frames.some((f) => rscSources.some((s) => f.filename?.includes(s)));
 };
 ```
 
 **Add Monitoring for Ignored Errors**
+
 - Track frequency to know if the underlying issue is getting worse
+
 ```typescript
 beforeSend(event) {
   if (shouldIgnore(event)) {
@@ -229,6 +263,7 @@ beforeSend(event) {
 ## Files to Check
 
 Focus on files containing error handling patterns:
+
 - `instrumentation-client.ts` - Sentry client configuration
 - `sentry.*.config.ts` - Sentry server/edge configuration
 - `**/error.tsx` - React error boundaries
@@ -260,6 +295,7 @@ X critical issues, Y warnings, Z suggestions
 ```
 
 If no issues found:
+
 ```
 ## Specific Ignores Review: PASS
 
@@ -269,6 +305,7 @@ No overly broad ignores found. Error handling is appropriately specific.
 ## Examples of Good Specificity
 
 ### Sentry beforeSend with Stack Trace Check
+
 ```typescript
 beforeSend(event) {
   const message = event.exception?.values?.[0]?.value ?? "";
@@ -291,12 +328,12 @@ beforeSend(event) {
 ```
 
 ### Error Boundary with Specific Recovery
+
 ```typescript
 class ChunkErrorBoundary extends React.Component {
   componentDidCatch(error: Error) {
     // Only handle chunk loading errors specifically
-    if (error.name === "ChunkLoadError" ||
-        error.message.includes("Loading chunk")) {
+    if (error.name === "ChunkLoadError" || error.message.includes("Loading chunk")) {
       // Attempt recovery by reloading
       window.location.reload();
     } else {
@@ -308,6 +345,7 @@ class ChunkErrorBoundary extends React.Component {
 ```
 
 ### Try-Catch with Type Guard
+
 ```typescript
 try {
   await fetchData();

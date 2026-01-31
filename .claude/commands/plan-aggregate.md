@@ -51,18 +51,21 @@ For each plan, extract and note:
 For each plan, thoroughly verify its analysis by exploring the codebase yourself:
 
 1. **Verify Root Cause Claims**
+
    - Read the files and code sections referenced in each plan
    - Trace the error paths or logic flows described
    - Determine which plan(s) correctly identified the root cause
    - Flag any plans that misdiagnosed the problem
 
 2. **Evaluate Proposed Solutions**
+
    - Assess whether each solution actually addresses the root cause
    - Check if the proposed changes follow existing codebase patterns
    - Identify potential bugs or regressions in proposed solutions
    - Rate solutions on: correctness, simplicity, maintainability, risk
 
 3. **Check Thoroughness**
+
    - Did the plan explore all relevant code paths?
    - Are there edge cases the plan missed?
    - Did the plan consider alternative approaches?
@@ -77,25 +80,25 @@ For each plan, thoroughly verify its analysis by exploring the codebase yourself
 
 Rate each plan on a 1-5 scale for each criterion:
 
-| Criterion | Description |
-|-----------|-------------|
-| **Root Cause Accuracy** | Does the plan correctly identify the actual root cause? |
-| **Solution Correctness** | Will the proposed fix actually solve the problem? |
-| **Codebase Understanding** | Does the plan show deep understanding of the code? |
-| **Pattern Compliance** | Does the solution follow existing codebase patterns? |
-| **Completeness** | Are all affected areas and edge cases addressed? |
-| **Risk Assessment** | Are risks and potential regressions properly considered? |
-| **Testing Strategy** | Is the verification approach thorough? |
+| Criterion                  | Description                                              |
+| -------------------------- | -------------------------------------------------------- |
+| **Root Cause Accuracy**    | Does the plan correctly identify the actual root cause?  |
+| **Solution Correctness**   | Will the proposed fix actually solve the problem?        |
+| **Codebase Understanding** | Does the plan show deep understanding of the code?       |
+| **Pattern Compliance**     | Does the solution follow existing codebase patterns?     |
+| **Completeness**           | Are all affected areas and edge cases addressed?         |
+| **Risk Assessment**        | Are risks and potential regressions properly considered? |
+| **Testing Strategy**       | Is the verification approach thorough?                   |
 
 Create a comparison matrix:
 
 ```markdown
-| Criterion             | Plan A | Plan B | Plan C | Notes |
-|-----------------------|--------|--------|--------|-------|
-| Root Cause Accuracy   | 4      | 2      | 5      | Plan C correctly identified X |
-| Solution Correctness  | 3      | 4      | 5      | Plan B/C both valid approaches |
-| ...                   | ...    | ...    | ...    | ... |
-| **TOTAL**             | 24     | 21     | 32     | Plan C is strongest |
+| Criterion            | Plan A | Plan B | Plan C | Notes                          |
+| -------------------- | ------ | ------ | ------ | ------------------------------ |
+| Root Cause Accuracy  | 4      | 2      | 5      | Plan C correctly identified X  |
+| Solution Correctness | 3      | 4      | 5      | Plan B/C both valid approaches |
+| ...                  | ...    | ...    | ...    | ...                            |
+| **TOTAL**            | 24     | 21     | 32     | Plan C is strongest            |
 ```
 
 ### Step 4: Synthesize Best Elements
@@ -103,21 +106,25 @@ Create a comparison matrix:
 Based on your analysis, create a fused plan by:
 
 1. **Select the Best Root Cause Analysis**
+
    - Choose the most accurate and thorough diagnosis
    - If multiple plans are correct, combine their insights
    - Explicitly note why other analyses were rejected
 
 2. **Choose the Optimal Solution Strategy**
+
    - Select the approach that best balances correctness, simplicity, and risk
    - If one plan's solution is clearly superior, adopt it
    - If plans have complementary good ideas, merge them thoughtfully
 
 3. **Compile Comprehensive File List**
+
    - Union of all files that genuinely need modification
    - Exclude files incorrectly identified by flawed plans
    - Add any files that all plans missed but should be modified
 
 4. **Merge Implementation Steps**
+
    - Use the most detailed and accurate steps
    - Reorder if necessary for logical flow
    - Add clarifications where plans were vague
@@ -137,11 +144,11 @@ Create a new implementation plan document with this structure:
 
 ## Source Plans Analyzed
 
-| Plan | Path | Quality Score | Verdict |
-|------|------|---------------|---------|
-| Plan A | `.claude/tasks/...` | 24/35 | Partially used - good solution, missed edge cases |
-| Plan B | `.claude/tasks/...` | 21/35 | Rejected - incorrect root cause analysis |
-| Plan C | `.claude/tasks/...` | 32/35 | Primary source - most thorough and accurate |
+| Plan   | Path                | Quality Score | Verdict                                           |
+| ------ | ------------------- | ------------- | ------------------------------------------------- |
+| Plan A | `.claude/tasks/...` | 24/35         | Partially used - good solution, missed edge cases |
+| Plan B | `.claude/tasks/...` | 21/35         | Rejected - incorrect root cause analysis          |
+| Plan C | `.claude/tasks/...` | 32/35         | Primary source - most thorough and accurate       |
 
 ## Issue Summary
 
@@ -152,20 +159,25 @@ Create a new implementation plan document with this structure:
 ## Plan Evaluation Summary
 
 ### What Plan A Got Right
+
 - [List correct insights]
 
 ### What Plan A Got Wrong
+
 - [List incorrect elements and why]
 
 ### What Plan B Got Right
+
 - [List correct insights]
 
 ### What Plan B Got Wrong
+
 - [List incorrect elements and why]
 
 [... repeat for all plans ...]
 
 ### Synthesis Decision
+
 [Explain why the final approach was chosen and how elements were combined]
 
 ## Root Cause Analysis
@@ -180,10 +192,12 @@ Create a new implementation plan document with this structure:
 ## Implementation Steps
 
 ### Step 1: [Description]
+
 - [ ] Specific change to make
 - [ ] Source: Plan C, Step 2 (verified correct)
 
 ### Step 2: [Description]
+
 - [ ] Specific change to make
 - [ ] Source: Combined from Plan A Step 3 and Plan C Step 4
 
@@ -205,6 +219,7 @@ Create a new implementation plan document with this structure:
 ## Rejected Approaches
 
 ### Approach from Plan B: [Description]
+
 **Why rejected**: [Explanation of why this approach was not used]
 
 [... repeat for other rejected approaches ...]
@@ -212,14 +227,16 @@ Create a new implementation plan document with this structure:
 
 ### Step 6: Save the Aggregated Plan
 
-Save the aggregated plan to: `.claude/tasks/[ISSUE_ID]_AGGREGATED-[random]-[identifier].md`
+Save the aggregated plan to: `.claude/tasks/[DATETIME]_[ISSUE_ID]_AGGREGATED-[random]-[identifier].md`
 
 Where:
+
+- `[DATETIME]` is the current date and time in format `YYYYMMDD-HHMMSS` (e.g., `20250131-143052`)
 - `[ISSUE_ID]` is the issue identifier (e.g., `HUBPROD123`)
 - `[random]` is a set of 6 random letters for uniqueness
 - `[identifier]` is a short description (e.g., `merged_fix`)
 
-Example: `.claude/tasks/HUBPROD123_AGGREGATED-xkwmqp-merged_fix.md`
+Example: `.claude/tasks/20250131-143052_HUBPROD123_AGGREGATED-xkwmqp-merged_fix.md`
 
 ### Step 7: Final Validation
 
@@ -232,6 +249,7 @@ Before completing, validate the aggregated plan:
 5. **Ensure implementation is complete** - No gaps in the steps?
 
 **Validation Checklist**:
+
 - [ ] The aggregated root cause is correct and well-supported
 - [ ] The chosen solution is the best option from all plans
 - [ ] All necessary files are included

@@ -12,6 +12,7 @@ Review changed files for security vulnerabilities including permission checks, i
 **IMPORTANT**: Before starting the review, create tasks for each major checkpoint using TaskCreate. Update each task to `in_progress` when starting and `completed` when done.
 
 Create these tasks at the start:
+
 1. "Get changed files" - Get list of files to review
 2. "Read full file contents" - Read complete files (not just diffs)
 3. "Check permission guards" - Verify ownership/permission checks on mutations
@@ -28,16 +29,19 @@ Work through each task in order, marking as `in_progress` then `completed`.
 **Your job is to FIND SECURITY VULNERABILITIES. Do NOT validate or praise code.**
 
 ### What NOT to output:
+
 - "Permissions are correctly checked" or "Good security practice" - this is praise, not a finding
 - "This properly validates input" or "Secure implementation" - this is validation, not a finding
 - Any statement saying code is secure/safe/correct - SKIP IT ENTIRELY
 - Do NOT include items in your output that aren't actual security issues
 
 ### What TO output:
+
 - ONLY actual security vulnerabilities that need fixing
 - If you find no issues, say "PASS" with no other commentary
 
 ### Review approach:
+
 - Look for ANY database mutation - is there an ownership/permission check?
 - Look for ANY user input - is it validated before use?
 - Look for ANY data returned to client - could it expose sensitive info?
@@ -46,11 +50,11 @@ Work through each task in order, marking as `in_progress` then `completed`.
 
 ## Process
 
-1. Get changed files:
-   - `git diff --name-only main...HEAD` (branch commits)
-   - `git diff --name-only --cached` (staged)
-   - `git diff --name-only` (unstaged)
-2. Filter to relevant files (`.ts`, `.tsx` in `routers/`, `app/`, `libs/`)
+1. Get changed `.ts` and `.tsx` files (excluding migrations):
+   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
+   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
+   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+2. Focus on files in `routers/`, `app/`, `libs/`
 3. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 4. **Locate the changed code within the file**, then examine the ENTIRE function containing those changes
 5. **For every database mutation (update, delete, insert):**
@@ -67,18 +71,21 @@ Work through each task in order, marking as `in_progress` then `completed`.
 ### Critical Issues (Must Fix)
 
 **Missing Permission Checks in tRPC Routers**
+
 - Mutations/queries that modify sensitive data without importing from `@/utils/permissions`
 - Admin-only operations missing permission guards
 - Endpoints using `publicProcedure` when they should use `protectedProcedure`
 - Role checks using hardcoded strings instead of permission functions
 
 **SQL/Drizzle Injection Risks**
+
 - Raw SQL with string interpolation: `` sql`...${userInput}...` `` without proper escaping
 - Dynamic column/table names from user input
 - `sql.raw()` with unsanitized input
 - Building queries with string concatenation
 
 **Exposed Sensitive Data**
+
 - Returning password hashes, tokens, or secrets in API responses
 - Logging sensitive information (passwords, tokens, API keys)
 - Hardcoded credentials or API keys in code
@@ -86,16 +93,19 @@ Work through each task in order, marking as `in_progress` then `completed`.
 ### Warnings (Should Fix)
 
 **Incomplete Permission Checks**
+
 - Permission check exists but doesn't cover all code paths
 - Missing null/undefined checks before permission validation
 - Permission function called but result not used in guard
 
 **Data Exposure Risks**
+
 - Returning full user objects instead of selecting specific fields
 - Missing field filtering on queries that return to clients
 - Internal IDs or metadata exposed unnecessarily
 
 **Input Validation Gaps**
+
 - Missing Zod validation on user inputs
 - Overly permissive validation schemas
 - Type coercion without validation
@@ -103,6 +113,7 @@ Work through each task in order, marking as `in_progress` then `completed`.
 ## Output Format
 
 **IMPORTANT: Only include actual problems. Do NOT include:**
+
 - Praise ("secure implementation", "correctly validates", "good practice")
 - Validation ("this properly checks", "appropriately restricts")
 - Commentary on code that has no issues
@@ -129,6 +140,7 @@ Security Review: PASS
 ## Reference
 
 Permission functions are in `app/src/utils/permissions.ts`. Key functions include:
+
 - `canModerate`, `canModerateRoles` - Moderation permissions
 - `canChangeContent` - Content editing
 - `canDeleteUsers`, `canBanUsers`, `canSilenceUsers` - User management
