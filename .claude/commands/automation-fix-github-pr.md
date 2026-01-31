@@ -1,6 +1,6 @@
 ---
 description: Fix GitHub PR issues and respond to review comments. Use /automation-fix-github-pr <PR_NUMBER_OR_URL> [optional comment]
-allowed-tools: Bash(bash .claude/commands/common/*:*), Bash(git *:*), Bash(gh *:*), Bash(make:*), Task, Skill
+allowed-tools: Bash(bash .claude/commands/common/*:*), Bash(git *:*), Bash(gh *:*), Bash(make:*), Task, Skill, TodoWrite
 ---
 
 # Fix GitHub PR (Automated)
@@ -27,7 +27,26 @@ This command helps you fix issues in an existing GitHub PR by:
 
 ## Workflow
 
-**IMPORTANT**: Create a todo list with all the steps below and follow them in order.
+**CRITICAL - TASK LIST REQUIRED**: Before doing ANYTHING else, you MUST create a todo list using the `TodoWrite` tool with ALL 9 workflow steps listed below. This ensures you complete every step including commit, push, and replying to comments.
+
+### Step 0: Create Master Task List (MANDATORY)
+
+**IMMEDIATELY** create a todo list with ALL workflow steps. Do this FIRST before any other action:
+
+```
+TodoWrite with these items:
+1. Parse arguments and extract PR number
+2. Fetch latest remote branch
+3. Rebase on latest main
+4. Fetch unresolved PR comments
+5. Create sub-tasks for each fix needed
+6. Address all fixes (user comment + PR comments)
+7. Run code review loop
+8. Commit and push changes
+9. Reply to and resolve PR comments
+```
+
+**You MUST mark each step as complete as you finish it, and you MUST NOT stop until ALL steps show as completed.**
 
 ### Step 1: Parse Arguments
 
@@ -230,17 +249,19 @@ In this case:
 
 The user comment should be prioritized when creating the todo list and addressing issues.
 
-**Todo list**:
+**Todo list** (created via TodoWrite FIRST):
 
-1. [ ] Parse arguments (PR: 895, comment: "focus on type errors...")
+1. [ ] Parse arguments and extract PR number
 2. [ ] Fetch latest remote branch
-3. [ ] Rebase on main
-4. [ ] Fetch unresolved comments
-5. [ ] Create todo list for fixes (prioritizing user comment)
-6. [ ] Address user comment and PR comments
-7. [ ] Run `/implement-review-loop` (code review)
+3. [ ] Rebase on latest main
+4. [ ] Fetch unresolved PR comments
+5. [ ] Create sub-tasks for each fix needed
+6. [ ] Address all fixes (user comment + PR comments)
+7. [ ] Run code review loop
 8. [ ] Commit and push changes
 9. [ ] Reply to and resolve PR comments
+
+**CRITICAL**: All 9 items must be marked complete before the command is finished!
 
 **Execution**:
 
@@ -327,8 +348,11 @@ All fixes have been implemented, committed, and pushed to the PR.
 **Status: DONE** - All changes pushed and PR comments resolved.
 ```
 
+**BEFORE REPORTING DONE**: Verify your todo list shows ALL 9 steps as completed. If any step is not complete, go back and complete it now.
+
 ## Important Notes
 
+- **COMPLETE ALL STEPS** - You MUST complete ALL 9 steps in the workflow. Do NOT stop after fixing code - you MUST also commit, push, and reply to comments. Check your todo list before finishing.
 - **Use force-with-lease for push** - After rebasing, use `git push --force-with-lease` to safely push rewritten history
 - **Do NOT add Co-Authored-By lines** - Don't include co-author attribution in commits
 - **Professional replies** - Keep PR comment replies concise and helpful
