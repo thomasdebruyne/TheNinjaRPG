@@ -7,7 +7,7 @@ allowed-tools: Bash(bash .claude/commands/common/*:*), Bash(git *:*), Bash(gh *:
 
 This command helps you fix issues in an existing GitHub PR by:
 
-1. Rebasing the PR on top of the latest remote main (handling conflicts if any)
+1. Fetching the latest remote PR branch and rebasing on main
 2. Fetching and addressing all unresolved PR review comments
 3. Running the comprehensive code review loop
 4. Committing and pushing changes, then replying to comments
@@ -43,7 +43,20 @@ Store the user comment for use in later steps.
 1. If `$ARGUMENTS` is a URL, extract the PR number from it
 2. If `$ARGUMENTS` is just a number, use it directly
 
-### Step 2: Rebase on Latest Main
+### Step 2: Fetch Latest Remote Branch
+
+Fetch and reset to the latest remote version of the PR branch to ensure you have the most recent changes:
+
+```bash
+git fetch origin
+git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+```
+
+This ensures that if someone else has pushed changes to the PR branch, you incorporate them before making your fixes.
+
+**Note**: This will discard any local uncommitted changes. Since this command runs on a fresh checkout, this should be safe.
+
+### Step 3: Rebase on Latest Main
 
 Rebase the PR branch on top of the latest remote main to ensure it's up to date:
 
@@ -53,8 +66,8 @@ bash .claude/commands/common/rebase_on_main.sh "." "<TARGET_BRANCH>"
 
 The script will output one of these statuses:
 
-- `STATUS=up-to-date` - Branch is already current, continue to Step 3
-- `STATUS=success` - Rebase completed successfully, continue to Step 3
+- `STATUS=up-to-date` - Branch is already current, continue to Step 4
+- `STATUS=success` - Rebase completed successfully, continue to Step 4
 - `STATUS=conflicts` - Conflicts detected, resolve them before continuing
 
 #### Handling Rebase Conflicts
@@ -89,7 +102,7 @@ If conflicts are detected, the script outputs the conflicted files and conflict 
   3. After the rebase completes, re-generate migrations with `make makemigrations`
      This ensures migration files have correct sequential numbering and don't conflict with migrations already in main.
 
-### Step 3: Fetch Unresolved PR Comments
+### Step 4: Fetch Unresolved PR Comments
 
 Get all unresolved review comments that need to be addressed:
 
@@ -99,7 +112,7 @@ bash .claude/commands/common/get_unresolved_comments.sh "<PR_NUMBER>"
 
 This returns JSON with unresolved review threads. For each thread, note:
 
-- `thread_id`: The GraphQL node ID (e.g., `PRRT_kwDOG...`) - **needed for resolving the thread in Step 8**
+- `thread_id`: The GraphQL node ID (e.g., `PRRT_kwDOG...`) - **needed for resolving the thread in Step 9**
 - `path`: File path the comment is on
 - `line`: Line number (may be null for file-level comments)
 - `comments`: Array of comments in the thread
@@ -110,17 +123,17 @@ This returns JSON with unresolved review threads. For each thread, note:
 
 **Important**: Parse this output carefully and track both `thread_id` AND `database_id` for each thread. You will need:
 
-- `database_id` (from the first comment) to reply to the thread in Step 8a
-- `thread_id` to resolve the thread in Step 8b
+- `database_id` (from the first comment) to reply to the thread in Step 9a
+- `thread_id` to resolve the thread in Step 9b
 
-### Step 4: Create Todo List for Fixes
+### Step 5: Create Todo List for Fixes
 
 Create a todo list with:
 
 1. **User's requested fix (if provided)**: If the user included a comment in `$ARGUMENTS` after the PR number/URL, add this as a high-priority task
 2. Each unresolved PR comment as a separate task
 
-### Step 5: Address User Comment and Unresolved PR Comments
+### Step 6: Address User Comment and Unresolved PR Comments
 
 **First**, if the user provided a comment in `$ARGUMENTS`:
 
@@ -133,9 +146,9 @@ Create a todo list with:
 1. **Read the comment** and understand what the reviewer is asking for
 2. **Navigate to the file** mentioned in `path`
 3. **Implement the requested change** or fix
-4. **Track the comment** for later reply (Step 8)
+4. **Track the comment** for later reply (Step 9)
 
-### Step 6: Code Review Loop
+### Step 7: Code Review Loop
 
 Run the iterative code review loop using the Skill tool:
 
@@ -151,7 +164,7 @@ This runs in the **main thread** and will:
 
 **Wait for completion before proceeding.**
 
-### Step 7: Commit and Push Changes
+### Step 8: Commit and Push Changes
 
 After all fixes and code review are complete, commit and push changes:
 
@@ -165,17 +178,17 @@ Use a descriptive commit message summarizing the changes made.
 
 **Note**: Use `--force-with-lease` because the rebase may have rewritten history. This is safe as it will fail if someone else has pushed to the branch since you last fetched.
 
-### Step 8: Reply to and Resolve PR Comments
+### Step 9: Reply to and Resolve PR Comments
 
 For each unresolved comment that was addressed:
 
-**Step 8a: Reply to the comment** explaining what was done:
+**Step 9a: Reply to the comment** explaining what was done:
 
 ```bash
 bash .claude/commands/common/reply_to_comment.sh "<PR_NUMBER>" "<COMMENT_DATABASE_ID>" "<REPLY_BODY>"
 ```
 
-**Step 8b: Resolve the thread** to mark it as addressed:
+**Step 9b: Resolve the thread** to mark it as addressed:
 
 ```bash
 bash .claude/commands/common/resolve_comment.sh "<THREAD_ID>"
@@ -220,13 +233,14 @@ The user comment should be prioritized when creating the todo list and addressin
 **Todo list**:
 
 1. [ ] Parse arguments (PR: 895, comment: "focus on type errors...")
-2. [ ] Rebase on main: `bash .claude/commands/common/rebase_on_main.sh "." "main"`
-3. [ ] Fetch unresolved comments
-4. [ ] Create todo list for fixes (prioritizing user comment)
-5. [ ] Address user comment and PR comments
-6. [ ] Run `/implement-review-loop` (code review)
-7. [ ] Commit and push changes
-8. [ ] Reply to and resolve PR comments
+2. [ ] Fetch latest remote branch
+3. [ ] Rebase on main
+4. [ ] Fetch unresolved comments
+5. [ ] Create todo list for fixes (prioritizing user comment)
+6. [ ] Address user comment and PR comments
+7. [ ] Run `/implement-review-loop` (code review)
+8. [ ] Commit and push changes
+9. [ ] Reply to and resolve PR comments
 
 **Execution**:
 
