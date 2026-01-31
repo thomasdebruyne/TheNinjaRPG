@@ -1,7 +1,7 @@
 ---
 name: plan-sentry-fix
 description: Create an implementation plan for a Sentry issue. Use /plan-sentry-fix <ISSUE_ID_OR_URL>
-allowed-tools: mcp__sentry__get_issue_details, mcp__sentry__get_issue_tag_values, Read, Grep, Glob, Write, Task
+allowed-tools: Bash(bash .claude/commands/common/*:*), Read, Grep, Glob, Write, Task
 ---
 
 # Plan Sentry Fix
@@ -14,19 +14,23 @@ Create a detailed implementation plan for fixing a Sentry issue by fetching issu
 
 ### Step 1: Fetch Sentry Issue Details
 
-Use the Sentry MCP tools to get issue details from the provided argument:
+Fetch the Sentry issue details using the CLI script:
 
 **$ARGUMENTS = `$ARGUMENTS`**
 
-1. If `$ARGUMENTS` is a Sentry URL, use `get_issue_details` with the `issueUrl` parameter
-2. If `$ARGUMENTS` is an issue ID (e.g., `THENINJARPG-123`), use `get_issue_details` with:
-   - `organizationSlug`: `studie-tech-aps`
-   - `regionUrl`: `https://de.sentry.io`
-   - `issueId`: the provided ID
+```bash
+bash .claude/commands/common/sentry_get_issue.sh "SENTRY_ISSUE_ID_OR_URL"
+```
 
-**Important**: Do NOT use `analyze_issue_with_seer` - always analyze issues manually by exploring the codebase yourself. This ensures a thorough understanding of the code context and produces better fixes.
+Example:
 
-**Important**: Ensure that you fetch the latest event data from sentry. If permission error, do not look at any previous plans, but rather report back that Sentry could not be accessed.
+```bash
+bash .claude/commands/common/sentry_get_issue.sh "THENINJARPG-123"
+# Or with URL:
+bash .claude/commands/common/sentry_get_issue.sh "https://studie-tech-aps.sentry.io/issues/THENINJARPG-123/"
+```
+
+**Important**: Ensure that you fetch the latest event data from Sentry. If you get a permission error, do not look at any previous plans, but rather report back that Sentry could not be accessed.
 
 Extract from the issue:
 
@@ -196,7 +200,6 @@ After completing all steps, report:
 ## Important Notes
 
 - **Take your time** - A thorough analysis prevents multiple fix attempts
-- **Never use `analyze_issue_with_seer`** - Manual analysis produces better understanding
 - **Check existing patterns** - The codebase likely has similar error handling you can follow
 - **Document assumptions** - If you're uncertain about something, note it in the plan
 - **Be skeptical** - Question your own analysis before finalizing
@@ -207,3 +210,4 @@ For this project:
 
 - **Organization**: `studie-tech-aps`
 - **Region URL**: `https://de.sentry.io`
+- **Auth Token**: Set via `SENTRY_AUTH_TOKEN` environment variable

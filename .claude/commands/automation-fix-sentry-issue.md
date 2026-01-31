@@ -1,6 +1,6 @@
 ---
 description: Fix Sentry issues and create GitHub PRs. Use /automation-fix-sentry-issue <ISSUE_ID_OR_URL>
-allowed-tools: Bash(bash .claude/commands/common/*:*), Bash(git *:*), mcp__sentry__whoami, mcp__sentry__update_issue, Task, Skill
+allowed-tools: Bash(bash .claude/commands/common/*:*), Bash(git *:*), Task, Skill
 ---
 
 # Fix Sentry Issue (Automated)
@@ -12,7 +12,8 @@ This command helps you fix issues reported in Sentry using parallel plan generat
 ## Prerequisites
 
 - GitHub CLI (`gh`) installed and authenticated
-- Sentry MCP tools available for fetching issue details
+- `SENTRY_AUTH_TOKEN` environment variable set with a valid Sentry API token
+- `curl` and `jq` available for API calls
 
 ## Workflow
 
@@ -20,21 +21,20 @@ This command helps you fix issues reported in Sentry using parallel plan generat
 
 ### Step 1: Assign the Sentry Issue
 
-Assign the Sentry issue to yourself using the Sentry MCP tools. **Do NOT read/fetch the issue details** - the subagents will do that.
-
-1. Use `update_issue` with the `assignedTo` parameter:
-   - `organizationSlug`: `studie-tech-aps`
-   - `regionUrl`: `https://de.sentry.io`
-   - `assignedTo`: `user:3351344` (nano.mathias@gmail.com)
+Assign the Sentry issue to yourself using the Sentry CLI script. **Do NOT read/fetch the issue details** - the subagents will do that.
 
 **$ARGUMENTS = `$ARGUMENTS`**
 
+```bash
+bash .claude/commands/common/sentry_assign_issue.sh "SENTRY_ISSUE_ID_OR_URL"
+```
+
 Example:
 
-```
-update_issue(organizationSlug='studie-tech-aps', regionUrl='https://de.sentry.io', issueId='THENINJARPG-123', assignedTo='user:3351344')
-// Or with issueUrl:
-update_issue(issueUrl='https://sentry.io/issues/PROJECT-123/', regionUrl='https://de.sentry.io', assignedTo='user:3351344')
+```bash
+bash .claude/commands/common/sentry_assign_issue.sh "THENINJARPG-123"
+# Or with URL:
+bash .claude/commands/common/sentry_assign_issue.sh "https://studie-tech-aps.sentry.io/issues/THENINJARPG-123/"
 ```
 
 This ensures the issue is tracked as being worked on.
@@ -220,8 +220,8 @@ User: `/automation-fix-sentry-issue THENINJARPG-123`
 
 1. Assign the issue:
 
-   ```
-   update_issue(organizationSlug='studie-tech-aps', regionUrl='https://de.sentry.io', issueId='THENINJARPG-123', assignedTo='user:3351344')
+   ```bash
+   bash .claude/commands/common/sentry_assign_issue.sh "THENINJARPG-123"
    ```
 
 2. Run 3 parallel subagents (all at the same time):
@@ -306,7 +306,6 @@ User: `/automation-fix-sentry-issue THENINJARPG-123`
 ## Important Notes
 
 - **Never add .claude files to git** - The `.claude` folder is gitignored and should not be committed
-- **Do NOT use `analyze_issue_with_seer`** - Manual analysis via subagents produces better understanding
 - **Do NOT add Co-Authored-By lines** - Don't include co-author attribution in commits or PRs
 - **Do NOT read Sentry issue in main agent** - Let the subagents fetch and analyze the issue details
 - **3 parallel plans** - Running multiple subagents increases solution quality through diverse analysis
@@ -358,3 +357,4 @@ The Sentry configuration for this project:
 - **Organization**: `studie-tech-aps`
 - **Region URL**: `https://de.sentry.io`
 - **User ID**: `3351344` (nano.mathias@gmail.com)
+- **Auth Token**: Set via `SENTRY_AUTH_TOKEN` environment variable
