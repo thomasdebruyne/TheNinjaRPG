@@ -24,8 +24,9 @@ jobs:
 
             **Need a code review or implementation plan for a fix?** Copy and paste this:
 
+            \`\`\`
             @claude please review this issue and create an implementation plan. Investigate it thoroughly with respect to the codebase. Highlight any uncertainties and request follow-up information as needed. Do not start implementing!
-
+            \`\`\`
             ---
 
             **Other AI assistants you can mention:**
