@@ -1,67 +1,68 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { eq, and, desc, sql, asc, gte, lt } from "drizzle-orm";
-import { timingSafeEqual } from "crypto";
-import {
-  towerDefenseUpgrade,
-  userTowerDefenseUpgrade,
-  towerDefenseRun,
-  towerDefenseCharacter,
-  userData,
-  type TowerDefenseCharacterDb,
-} from "@/drizzle/schema";
+import { timingSafeEqual } from "node:crypto";
 import type { InferSelectModel } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { UTApi } from "uploadthing/server";
+import { z } from "zod";
 import {
-  TD_SCORE_PER_KILL,
-  TD_SCORE_TO_POINTS_RATIO,
+  TD_GRID_EXPAND_EVERY_N_WAVES,
   TD_INITIAL_GRID_SIZE,
   TD_MAX_GRID_SIZE,
-  TD_GRID_EXPAND_EVERY_N_WAVES,
-  TD_RANGE_VISUAL_FACTOR,
   TD_PLAYER_BASE_HEALTH,
+  TD_RANGE_VISUAL_FACTOR,
+  TD_SCORE_PER_KILL,
+  TD_SCORE_TO_POINTS_RATIO,
   TowerDefenseUpgradeTypes,
 } from "@/drizzle/constants";
 import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-  baseServerResponse,
-  errorResponse,
-} from "../trpc";
-import { ratelimitMiddleware, hasUserMiddleware } from "../trpc";
-import { canChangeContent } from "@/utils/permissions";
-import { validateUrlForSsrf } from "@/utils/ssrf";
+  type TowerDefenseCharacterDb,
+  towerDefenseCharacter,
+  towerDefenseRun,
+  towerDefenseUpgrade,
+  userData,
+  userTowerDefenseUpgrade,
+} from "@/drizzle/schema";
 import {
-  purchaseUpgradeInputSchema,
-  playerBonusesSchema,
-  towerDefenseAbilitySchema,
-  insertTowerDefenseCharacterSchema,
-  characterAssetConfigSchema,
-  signedUpgradeDefinitionSchema,
-  signedEnemyDefinitionSchema,
-} from "@/validators/towerDefense";
-import {
-  getShurikenAbility,
   applyUpgradesToAbility,
   calculatePlayerBonuses,
-  getModifiedPlayerHealth,
   getDefaultPlayerBonuses,
+  getModifiedPlayerHealth,
+  getShurikenAbility,
 } from "@/libs/towerDefense/abilities";
 import {
-  signSessionParams,
-  generateSessionNonce,
-  type SessionParams,
-} from "@/server/utils/towerDefenseCrypto";
-import type {
-  SignedUpgradeDefinition,
-  SignedEnemyDefinition,
-} from "@/validators/towerDefense";
-import {
-  generateRunSeed,
   calculateUpgradeCost,
   directionToSpriteDirection,
+  generateRunSeed,
 } from "@/libs/towerDefense/game";
-import { UTApi } from "uploadthing/server";
+import {
+  generateSessionNonce,
+  type SessionParams,
+  signSessionParams,
+} from "@/server/utils/towerDefenseCrypto";
+import { canChangeContent } from "@/utils/permissions";
+import { validateUrlForSsrf } from "@/utils/ssrf";
+import type {
+  SignedEnemyDefinition,
+  SignedUpgradeDefinition,
+} from "@/validators/towerDefense";
+import {
+  characterAssetConfigSchema,
+  insertTowerDefenseCharacterSchema,
+  playerBonusesSchema,
+  purchaseUpgradeInputSchema,
+  signedEnemyDefinitionSchema,
+  signedUpgradeDefinitionSchema,
+  towerDefenseAbilitySchema,
+} from "@/validators/towerDefense";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  hasUserMiddleware,
+  protectedProcedure,
+  publicProcedure,
+  ratelimitMiddleware,
+} from "../trpc";
 
 /**
  * Tower Defense tRPC Router
@@ -512,23 +513,25 @@ export const towerDefenseRouter = createTRPCRouter({
               .where(eq(userData.userId, ctx.userId))
           : Promise.resolve({ rowsAffected: 1 }), // Mock result for 0 points
         // Create run record in MySQL for leaderboards
-        ctx.drizzle.insert(towerDefenseRun).values({
-          id: nanoid(),
-          seed: claimId,
-          userId: ctx.userId,
-          wave: input.finalWave,
-          score: input.finalScore,
-          gridSize: input.initialGridSize,
-          status: "COMPLETED",
-          state: {
-            playerHealth: 0,
-            playerPosition: { col: 0, row: 0 },
-            inRunCurrency: 0,
-            activeUpgrades: {},
+        ctx.drizzle
+          .insert(towerDefenseRun)
+          .values({
+            id: nanoid(),
+            seed: claimId,
+            userId: ctx.userId,
+            wave: input.finalWave,
+            score: input.finalScore,
             gridSize: input.initialGridSize,
-          },
-          endedAt: new Date(),
-        }),
+            status: "COMPLETED",
+            state: {
+              playerHealth: 0,
+              playerPosition: { col: 0, row: 0 },
+              inRunCurrency: 0,
+              activeUpgrades: {},
+              gridSize: input.initialGridSize,
+            },
+            endedAt: new Date(),
+          }),
       ]);
 
       if (updateResult.rowsAffected === 0) {
@@ -810,8 +813,9 @@ export const towerDefenseRouter = createTRPCRouter({
 
           for (let j = 0; j < batch.length; j++) {
             const result = uploadResults[j];
-            if (result && result.data?.ufsUrl) {
-              uploadedUrls.set(batch[j]!.path, result.data.ufsUrl);
+            const batchItem = batch[j];
+            if (result?.data?.ufsUrl && batchItem) {
+              uploadedUrls.set(batchItem.path, result.data.ufsUrl);
             }
           }
         }
@@ -1097,7 +1101,6 @@ function buildSessionParams(input: {
 
 /** Extract client params from session params (exclude server-only fields) */
 function extractClientParams(sessionParams: SessionParams) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { userId, nonce, upgradeDefinitions, enemyDefinitions, ...clientParams } =
     sessionParams;
   return clientParams;

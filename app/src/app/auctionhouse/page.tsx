@@ -1,49 +1,12 @@
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect } from "react";
-import { api } from "@/app/_trpc/client";
-import { useRequireInVillage, useRequiredUserData } from "@/utils/UserContext";
-import Loader from "@/layout/Loader";
-import ContentBox from "@/layout/ContentBox";
-import Countdown from "@/layout/Countdown";
-import Table from "@/layout/Table";
-import ItemWithEffects from "@/layout/ItemWithEffects";
-import AvatarImage from "@/layout/Avatar";
-import Modal2 from "@/layout/Modal2";
-import UserSearchSelect from "@/layout/UserSearchSelect";
-import { getSearchValidator } from "@/validators/register";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Hammer, Plus, Search } from "lucide-react";
-import { showMutationToast } from "@/libs/toast";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { cn } from "src/libs/shadui";
-import { createAuctionListingSchema } from "@/validators/auction";
-import type { CreateAuctionListingSchema } from "@/validators/auction";
-import { capitalizeFirstLetter } from "@/utils/sanitize";
-import {
-  AUCTION_LISTING_STATES,
-  AUCTION_LISTING_TYPES,
-  TRADEABLE_CURRENCY_TYPES,
-  IMG_AVATAR_DEFAULT,
-} from "@/drizzle/constants";
-import { useInfinitePagination } from "@/libs/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import type { z } from "zod";
+import { api } from "@/app/_trpc/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +17,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -62,9 +33,38 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AUCTION_LISTING_STATES,
+  AUCTION_LISTING_TYPES,
+  IMG_AVATAR_DEFAULT,
+  TRADEABLE_CURRENCY_TYPES,
+} from "@/drizzle/constants";
+import AvatarImage from "@/layout/Avatar";
+import ContentBox from "@/layout/ContentBox";
+import Countdown from "@/layout/Countdown";
+import ItemWithEffects from "@/layout/ItemWithEffects";
+import Loader from "@/layout/Loader";
+import Modal2 from "@/layout/Modal2";
 import type { ColumnDefinitionType } from "@/layout/Table";
+import Table from "@/layout/Table";
+import UserSearchSelect from "@/layout/UserSearchSelect";
+import { useInfinitePagination } from "@/libs/pagination";
+import { showMutationToast } from "@/libs/toast";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
 import type { ArrayElement } from "@/utils/typeutils";
-import type { z } from "zod";
+import { useRequiredUserData, useRequireInVillage } from "@/utils/UserContext";
+import type { CreateAuctionListingSchema } from "@/validators/auction";
+import { createAuctionListingSchema } from "@/validators/auction";
+import { getSearchValidator } from "@/validators/register";
 
 export default function AuctionHousePage() {
   // Settings
@@ -84,7 +84,7 @@ export default function AuctionHousePage() {
       defaultBackHref="/village"
       padding={false}
       topRightContent={
-        <div className="flex gap-2 items-center">
+        <div className="flex items-center gap-2">
           <div>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger className="w-32">
@@ -151,9 +151,8 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
   // (can happen if item was deleted between query time and render time)
   const allListings =
     listings?.pages
-      .map((page) => page.data)
-      .flat()
-      .filter((listing) => listing.userItem && listing.userItem.item) ?? [];
+      .flatMap((page) => page.data)
+      .filter((listing) => listing.userItem?.item) ?? [];
 
   // Transform data to include JSX directly in the objects
   const transformedData =
@@ -164,7 +163,7 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
         <div>
           <p>{listing.userItem.item.name}</p>
           {listing.userItem.item.canStack && listing.userItem.quantity > 1 && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Quantity: {listing.userItem.quantity}
             </p>
           )}
@@ -177,7 +176,7 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
             {listing.currencyType === "MONEY" ? "ryo" : "reputation"}
           </p>
           {listing.buyoutPrice && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Buyout: {listing.buyoutPrice.toLocaleString()}{" "}
               {listing.currencyType === "MONEY" ? "ryo" : "reputation"}
             </p>
@@ -187,11 +186,11 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
       seller: listing.seller?.avatar ?? IMG_AVATAR_DEFAULT,
       listingType:
         listing.listingType === "AUCTION" ? (
-          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
+          <span className="rounded-md bg-blue-100 px-2 py-1 font-medium text-blue-800 text-xs">
             Auction
           </span>
         ) : (
-          <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs font-medium">
+          <span className="rounded-md bg-amber-100 px-2 py-1 font-medium text-amber-800 text-xs">
             Direct
           </span>
         ),
@@ -239,11 +238,11 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
   return (
     <div className="space-y-2">
       {/* Search and Filters */}
-      <div className="flex flex-row gap-2 items-end p-3">
-        <div className="flex-1 min-w-[100px]">
+      <div className="flex flex-row items-end gap-2 p-3">
+        <div className="min-w-[100px] flex-1">
           <Label htmlFor="search">Search Items</Label>
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
             <Input
               id="search"
               placeholder="Search by item name..."
@@ -389,7 +388,7 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
       <Modal2 title="Auction Details" isOpen={isOpen} setIsOpen={setIsOpen}>
         <div className="p-4 text-center">
           <p className="text-red-600">This auction is no longer available.</p>
-          <p className="text-muted-foreground text-sm mt-2">
+          <p className="mt-2 text-muted-foreground text-sm">
             The item associated with this auction could not be found.
           </p>
         </div>
@@ -463,41 +462,41 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
           showStatistic="item"
         />
         {listing.userItem.item.canStack && listing.userItem.quantity > 1 && (
-          <div className="bg-popover p-2 rounded-lg border">
-            <p className="text-sm font-semibold">
+          <div className="rounded-lg border bg-popover p-2">
+            <p className="font-semibold text-sm">
               Quantity: <span className="font-normal">{listing.userItem.quantity}</span>
             </p>
           </div>
         )}
 
         {/* Auction Info */}
-        <div className="bg-popover p-2 rounded-lg border">
+        <div className="rounded-lg border bg-popover p-2">
           <div
             className={cn(
-              "grid gap-4 items-center",
+              "grid items-center gap-4",
               listing.listingType === "DIRECT" ? "grid-cols-3" : "grid-cols-2",
             )}
           >
             <div>
-              <h4 className="font-semibold mb-2 text-center">Seller</h4>
+              <h4 className="mb-2 text-center font-semibold">Seller</h4>
             </div>
             {listing.listingType === "DIRECT" && (
               <div>
-                <h4 className="font-semibold mb-2 text-center">Sale for</h4>
+                <h4 className="mb-2 text-center font-semibold">Sale for</h4>
               </div>
             )}
             <div>
-              <h4 className="font-semibold mb-2 text-center">Current</h4>
+              <h4 className="mb-2 text-center font-semibold">Current</h4>
             </div>
           </div>
           <div
             className={cn(
-              "grid gap-4 items-center",
+              "grid items-center gap-4",
               listing.listingType === "DIRECT" ? "grid-cols-3" : "grid-cols-2",
             )}
           >
             <div className="flex flex-col items-center">
-              <div className="flex flex-col items-center gap-2 w-20">
+              <div className="flex w-20 flex-col items-center gap-2">
                 <AvatarImage
                   href={listing.seller?.avatar ?? IMG_AVATAR_DEFAULT}
                   alt={listing.seller?.username ?? "Deleted User"}
@@ -508,7 +507,7 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
             </div>
             {listing.listingType === "DIRECT" && listing.targetUser && (
               <div className="flex flex-col items-center">
-                <div className="flex flex-col items-center gap-2 w-20">
+                <div className="flex w-20 flex-col items-center gap-2">
                   <AvatarImage
                     href={listing.targetUser.avatar}
                     alt={listing.targetUser.username}
@@ -519,12 +518,12 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
               </div>
             )}
             <div className="flex flex-col items-center">
-              <p className="text-2xl font-bold text-green-600">
+              <p className="font-bold text-2xl text-green-600">
                 {listing.currentPrice.toLocaleString()}{" "}
                 {listing.currencyType === "MONEY" ? "ryo" : "reputation"}
               </p>
               {listing.buyoutPrice && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Buyout: {listing.buyoutPrice.toLocaleString()}{" "}
                   {listing.currencyType === "MONEY" ? "ryo" : "reputation"}
                 </p>
@@ -534,10 +533,10 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
         </div>
 
         {/* Bids */}
-        <div className="bg-popover rounded-lg border">
-          <h4 className="font-semibold p-2 ">Bid History ({listing.bids.length})</h4>
+        <div className="rounded-lg border bg-popover">
+          <h4 className="p-2 font-semibold">Bid History ({listing.bids.length})</h4>
           {listing.bids.length === 0 ? (
-            <p className="text-muted-foreground p-2 ">No bids yet</p>
+            <p className="p-2 text-muted-foreground">No bids yet</p>
           ) : (
             <Table
               data={listing.bids.map((bid) => ({
@@ -562,7 +561,7 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
           (!listing.targetUserId || listing.targetUserId === userData.userId) && (
             <div className="space-y-4">
               {/* Show current bid info */}
-              <div className="p-3 rounded-lg">
+              <div className="rounded-lg p-3">
                 <div className="flex justify-between text-sm">
                   <span>Your available bank funds:</span>
                   <span className="font-semibold">
@@ -570,7 +569,7 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
                   </span>
                 </div>
                 {userBid && (
-                  <div className="flex justify-between text-sm text-blue-600">
+                  <div className="flex justify-between text-blue-600 text-sm">
                     <span>Your current bid:</span>
                     <span className="font-semibold">
                       {userBid.amount.toLocaleString()} ryo
@@ -596,7 +595,7 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
                     parseFloat(bidAmount) > availableFunds
                   }
                 >
-                  <Hammer className="h-4 w-4 mr-1" />
+                  <Hammer className="mr-1 h-4 w-4" />
                   {userBid ? "Raise Bid To" : "Place Bid"}
                 </Button>
               </div>
@@ -613,13 +612,13 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
           )}
 
         {isOwner && (
-          <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="rounded-lg bg-blue-50 p-4">
             <p className="text-blue-800">This is your auction listing</p>
           </div>
         )}
 
         {isExpired && (
-          <div className="p-4 bg-red-50 rounded-lg">
+          <div className="rounded-lg bg-red-50 p-4">
             <p className="text-red-800">This auction has expired</p>
           </div>
         )}
@@ -630,7 +629,7 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
           !isOwner &&
           listing.targetUserId &&
           listing.targetUserId !== userData.userId && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
               <p className="text-red-800 text-sm">
                 This is a direct auction restricted to {listing.targetUser?.username}.
                 You are not allowed to bid.
@@ -652,7 +651,7 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
               </span>{" "}
               on this auction?
               {userBid && (
-                <span className="block mt-2 text-sm">
+                <span className="mt-2 block text-sm">
                   Your current bid of {userBid.amount.toLocaleString()} will be
                   replaced.
                 </span>
@@ -787,7 +786,7 @@ export const NewAuctionListingDialog: React.FC = () => {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           New
         </Button>
       </DialogTrigger>
@@ -849,12 +848,12 @@ export const NewAuctionListingDialog: React.FC = () => {
                             e.target.value === ""
                               ? undefined
                               : parseInt(e.target.value, 10);
-                          field.onChange(isNaN(value || 0) ? undefined : value);
+                          field.onChange(Number.isNaN(value || 0) ? undefined : value);
                         }}
                         value={field.value || ""}
                       />
                     </FormControl>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Current stack: {selectedItem?.quantity} items
                     </p>
                     <FormMessage />

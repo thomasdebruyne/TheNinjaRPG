@@ -1,25 +1,34 @@
-import { z } from "zod";
+import { and, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, ne, and, or, sql, inArray } from "drizzle-orm";
-import { clan, userData } from "@/drizzle/schema";
-import { tournament, tournamentMatch, tournamentRecord } from "@/drizzle/schema";
-import { fetchUser } from "@/routers/profile";
-import { fetchClan } from "@/routers/clan";
-import { checkCoLeader } from "@/validators/clan";
-import { errorResponse, baseServerResponse } from "@/server/api/trpc";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { getServerPusher } from "@/libs/pusher";
-import { tournamentCreateSchema } from "@/validators/tournament";
-import { initiateBattle } from "@/routers/combat";
-import { TOURNAMENT_ROUND_SECONDS } from "@/drizzle/constants";
-import { secondsFromDate } from "@/utils/time";
-import { updateRewards } from "@/routers/quests";
-import { ObjectiveReward } from "@/validators/rewards";
-import { postProcessRewards } from "@/libs/quest";
-import type { TournamentMatch } from "@/drizzle/schema";
+import { z } from "zod";
 import type { TournamentMatchState } from "@/drizzle/constants";
+import { TOURNAMENT_ROUND_SECONDS } from "@/drizzle/constants";
+import type { TournamentMatch } from "@/drizzle/schema";
+import {
+  clan,
+  tournament,
+  tournamentMatch,
+  tournamentRecord,
+  userData,
+} from "@/drizzle/schema";
+import { getServerPusher } from "@/libs/pusher";
+import { postProcessRewards } from "@/libs/quest";
+import { fetchClan } from "@/routers/clan";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUser } from "@/routers/profile";
+import { updateRewards } from "@/routers/quests";
 import type { BaseServerResponse } from "@/server/api/trpc";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
 import type { DrizzleClient } from "@/server/db";
+import { secondsFromDate } from "@/utils/time";
+import { checkCoLeader } from "@/validators/clan";
+import { ObjectiveReward } from "@/validators/rewards";
+import { tournamentCreateSchema } from "@/validators/tournament";
 
 const pusher = getServerPusher();
 
@@ -119,9 +128,9 @@ export const tournamentRouter = createTRPCRouter({
             }),
           ]);
           const users = [
-            ...new Set(data.matches.map((m) => [m.userId1, m.userId2]).flat()),
+            ...new Set(data.matches.flatMap((m) => [m.userId1, m.userId2])),
           ];
-          users.map((u) => {
+          users.forEach((u) => {
             if (u) {
               void pusher.trigger(u, "event", {
                 type: "userMessage",

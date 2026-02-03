@@ -40,7 +40,7 @@ export const getTimeOfLastReset = () => {
  * @returns The number of seconds passed since the given date
  */
 export const secondsPassed = (date: Date, timeDiff?: number, floor = true) => {
-  let now = new Date().getTime();
+  let now = Date.now();
   if (timeDiff) now = now - timeDiff;
   const parsedDate = date instanceof Date ? date : new Date(date);
   const rawPassedValue = (now - parsedDate.getTime()) / 1000;

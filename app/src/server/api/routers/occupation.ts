@@ -1,32 +1,36 @@
-import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure, errorResponse } from "@/server/api/trpc";
-import { userData, userItem, item, userItemImbuement } from "@/drizzle/schema";
-import { fetchUser, fetchUpdatedUser } from "@/server/api/routers/profile";
-import { getShrineBoost } from "@/utils/village";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import {
+  CLAN_BOOST_MAX_LEVEL,
+  CLAN_BOOST_PERCENT_PER_LEVEL,
+  CONSUMABLE_CRAFTING_TIMES_MINS,
+  CRAFTING_TIMES_MINS,
+  OCCUPATION_CHANGE_COOLDOWN_DAYS,
+  OCCUPATIONS,
+} from "@/drizzle/constants";
+import { item, userData, userItem, userItemImbuement } from "@/drizzle/schema";
+import {
+  calculateItemConsumption,
+  getCraftingRank,
+  getEffectiveMaxImbuements,
+  getTotalItemQuantity,
+} from "@/libs/crafting";
+import { getNewTrackers } from "@/libs/quest";
 import {
   fetchItemWithCraftingRequirements,
   fetchUserItems,
 } from "@/server/api/routers/item";
+import { fetchUpdatedUser, fetchUser } from "@/server/api/routers/profile";
 import {
-  OCCUPATIONS,
-  OCCUPATION_CHANGE_COOLDOWN_DAYS,
-  CRAFTING_TIMES_MINS,
-  CONSUMABLE_CRAFTING_TIMES_MINS,
-  CLAN_BOOST_MAX_LEVEL,
-  CLAN_BOOST_PERCENT_PER_LEVEL,
-} from "@/drizzle/constants";
-import {
-  getCraftingRank,
-  getTotalItemQuantity,
-  calculateItemConsumption,
-  getEffectiveMaxImbuements,
-} from "@/libs/crafting";
-import { nanoid } from "nanoid";
-import { baseServerResponse } from "@/server/api/trpc";
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
 import { canChangeContent } from "@/utils/permissions";
-import { getNewTrackers } from "@/libs/quest";
 import { formatSecondsToTimeDisplay } from "@/utils/time";
+import { getShrineBoost } from "@/utils/village";
 
 export const occupationRouter = createTRPCRouter({
   getCraftableItems: protectedProcedure.query(async ({ ctx }) => {

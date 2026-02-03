@@ -1,14 +1,17 @@
-import { eq, and, isNotNull, inArray, isNull } from "drizzle-orm";
-import { drizzleDB } from "@/server/db";
-import { userData, clan, village } from "@/drizzle/schema";
-import { updateGameSetting } from "@/libs/gamesettings";
-import { lockWithMonthlyTimer, handleEndpointError } from "@/libs/gamesettings";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
 import {
-  KAGE_MAX_ELDERS,
   ELDER_NOMINATION_CUTOFF_DAY,
   ELDER_NOMINATION_DEADLINE_DAY,
+  KAGE_MAX_ELDERS,
 } from "@/drizzle/constants";
+import { clan, userData, village } from "@/drizzle/schema";
+import {
+  handleEndpointError,
+  lockWithMonthlyTimer,
+  updateGameSetting,
+} from "@/libs/gamesettings";
+import { drizzleDB } from "@/server/db";
 
 export async function GET() {
   // disable cache for this server action (https://github.com/vercel/next.js/discussions/50045)
@@ -25,7 +28,9 @@ export async function GET() {
     return handleRotation();
   } else {
     return Response.json(
-      { error: "Elder rotation cron should only run on cutoff or deadline days" },
+      {
+        error: "Elder rotation cron should only run on cutoff or deadline days",
+      },
       { status: 400 },
     );
   }
@@ -52,16 +57,26 @@ async function handleCutoff() {
       }),
       drizzleDB.query.clan.findMany({
         where: isNotNull(clan.villageId),
-        columns: { id: true, villageId: true, activityPoints: true, points: true },
+        columns: {
+          id: true,
+          villageId: true,
+          activityPoints: true,
+          points: true,
+        },
       }),
     ]);
 
-    const villageIds = villages.map((v) => v.id);
+    type VillageCutoffType = (typeof villages)[number];
+    const villageIds = villages.map((v: VillageCutoffType) => v.id);
 
     // Clear all cutoff fields in one query
     await drizzleDB
       .update(clan)
-      .set({ elderCutoffMonth: null, elderCutoffYear: null, elderCutoffRank: null })
+      .set({
+        elderCutoffMonth: null,
+        elderCutoffYear: null,
+        elderCutoffRank: null,
+      })
       .where(inArray(clan.villageId, villageIds));
 
     // Group clans by village and compute top 3 per village
@@ -75,19 +90,25 @@ async function handleCutoff() {
     }
 
     // Determine clans to mark with cutoff rank
+    type ClanType = (typeof allClans)[number];
     const clansToMark: { id: string; rank: number }[] = [];
     for (const [, clans] of clansByVillage) {
       const sorted = clans
-        .filter((c) => c.activityPoints > 0)
-        .sort((a, b) => b.activityPoints - a.activityPoints || b.points - a.points)
+        .filter((c: ClanType) => c.activityPoints > 0)
+        .sort(
+          (a: ClanType, b: ClanType) =>
+            b.activityPoints - a.activityPoints || b.points - a.points,
+        )
         .slice(0, KAGE_MAX_ELDERS);
-      sorted.forEach((c, i) => clansToMark.push({ id: c.id, rank: i + 1 }));
+      sorted.forEach((c: ClanType, i: number) => {
+        clansToMark.push({ id: c.id, rank: i + 1 });
+      });
     }
 
     // Batch update all eligible clans in parallel
     if (clansToMark.length > 0) {
       await Promise.all(
-        clansToMark.map((c) =>
+        clansToMark.map((c: { id: string; rank: number }) =>
           drizzleDB
             .update(clan)
             .set({
@@ -150,21 +171,30 @@ async function handleRotation() {
       }),
     ]);
 
-    const villageIds = villages.map((v) => v.id);
+    type VillageType = (typeof villages)[number];
+    type ClanWithCutoffType = (typeof clansWithCutoff)[number];
+    type AllClanType = (typeof allClans)[number];
+    const villageIds = villages.map((v: VillageType) => v.id);
 
     // Build eligible clans per village (cutoff snapshot or fallback)
     const eligibleByVillage = new Map<string, typeof clansWithCutoff>();
     for (const villageId of villageIds) {
       const cutoffClans = clansWithCutoff
-        .filter((c) => c.villageId === villageId)
-        .sort((a, b) => (a.elderCutoffRank ?? 0) - (b.elderCutoffRank ?? 0));
+        .filter((c: ClanWithCutoffType) => c.villageId === villageId)
+        .sort(
+          (a: ClanWithCutoffType, b: ClanWithCutoffType) =>
+            (a.elderCutoffRank ?? 0) - (b.elderCutoffRank ?? 0),
+        );
       if (cutoffClans.length > 0) {
         eligibleByVillage.set(villageId, cutoffClans);
       } else {
         // Fallback to live calculation
         const fallback = allClans
-          .filter((c) => c.villageId === villageId && c.activityPoints > 0)
-          .sort((a, b) => b.activityPoints - a.activityPoints || b.points - a.points)
+          .filter((c: AllClanType) => c.villageId === villageId && c.activityPoints > 0)
+          .sort(
+            (a: AllClanType, b: AllClanType) =>
+              b.activityPoints - a.activityPoints || b.points - a.points,
+          )
           .slice(0, KAGE_MAX_ELDERS);
         eligibleByVillage.set(villageId, fallback);
       }
@@ -201,7 +231,10 @@ async function handleRotation() {
         : [];
 
     // Build map for O(1) lookups
-    const validNomineeMap = new Map(validNominees.map((n) => [n.userId, n]));
+    type NomineeType = (typeof validNominees)[number];
+    const validNomineeMap = new Map(
+      validNominees.map((n: NomineeType) => [n.userId, n]),
+    );
 
     // Determine all users to promote
     const toPromote: string[] = [];

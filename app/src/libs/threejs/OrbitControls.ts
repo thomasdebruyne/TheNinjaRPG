@@ -1,4 +1,5 @@
 import {
+  type Camera,
   EventDispatcher,
   MOUSE,
   Quaternion,
@@ -6,7 +7,6 @@ import {
   TOUCH,
   Vector2,
   Vector3,
-  type Camera,
 } from "three";
 
 /**
@@ -450,7 +450,7 @@ export class OrbitControls extends EventDispatcher<OrbitControlsEventMap> {
   }
 
   private getZoomScale(): number {
-    return Math.pow(0.95, this.zoomSpeed);
+    return 0.95 ** this.zoomSpeed;
   }
 
   // --- Rotate --------------------------------------------------------------
@@ -957,10 +957,7 @@ export class OrbitControls extends EventDispatcher<OrbitControlsEventMap> {
       const dy = event.pageY - position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       this.dollyEnd.set(0, distance);
-      this.dollyDelta.set(
-        0,
-        Math.pow(this.dollyEnd.y / this.dollyStart.y, this.zoomSpeed),
-      );
+      this.dollyDelta.set(0, (this.dollyEnd.y / this.dollyStart.y) ** this.zoomSpeed);
       this.dollyOut(this.dollyDelta.y);
       this.dollyStart.copy(this.dollyEnd);
     }

@@ -1,23 +1,22 @@
+import { and, desc, eq, gte, inArray, isNull, like, lt, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, sql, gte, and, desc, isNull, like, inArray, or, lt } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { fetchUser } from "./profile";
 import {
+  actionLog,
+  auctionBid,
+  auctionListing,
+  item,
   userData,
   userItem,
-  item,
-  actionLog,
-  auctionListing,
-  auctionBid,
 } from "@/drizzle/schema";
-import { errorResponse } from "../trpc";
+import type { DrizzleClient } from "@/server/db";
 import {
   createAuctionListingSchema,
   getAuctionListingsSchema,
 } from "@/validators/auction";
-import type { DrizzleClient } from "@/server/db";
+import { createTRPCRouter, errorResponse, protectedProcedure } from "../trpc";
 import { splitItemStack } from "./item";
+import { fetchUser } from "./profile";
 
 export const auctionRouter = createTRPCRouter({
   // Get single auction listing with all bids

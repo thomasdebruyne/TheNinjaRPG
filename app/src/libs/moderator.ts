@@ -1,18 +1,24 @@
-import OpenAI from "openai";
-import { generateObject } from "ai";
-import { z } from "zod";
 import { openai as openaiSdk } from "@ai-sdk/openai";
-import { eq, lt, and, sql, desc } from "drizzle-orm";
-import { conversationComment, forumPost, userReportComment } from "@/drizzle/schema";
-import { userData } from "@/drizzle/schema";
-import { generateText } from "ai";
-import { insertUserReport } from "@/routers/reports";
-import { insertAutomatedModeration } from "@/routers/reports";
-import { TERR_BOT_ID, REPORT_CONTEXT_WINDOW, BanStates } from "@/drizzle/constants";
-import { OPENAI_MODERATION_MODEL } from "@/drizzle/constants";
-import type { UserReport } from "@/drizzle/schema";
-import type { DrizzleClient } from "@/server/db";
+import { generateObject, generateText } from "ai";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
+import OpenAI from "openai";
+import { z } from "zod";
 import type { AutomoderationCategory } from "@/drizzle/constants";
+import {
+  BanStates,
+  OPENAI_MODERATION_MODEL,
+  REPORT_CONTEXT_WINDOW,
+  TERR_BOT_ID,
+} from "@/drizzle/constants";
+import type { UserReport } from "@/drizzle/schema";
+import {
+  conversationComment,
+  forumPost,
+  userData,
+  userReportComment,
+} from "@/drizzle/schema";
+import { insertAutomatedModeration, insertUserReport } from "@/routers/reports";
+import type { DrizzleClient } from "@/server/db";
 import type { AdditionalContext } from "@/validators/reports";
 
 // OpenAI client

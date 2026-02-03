@@ -1,30 +1,34 @@
-import { z } from "zod";
+import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure } from "@/api/trpc";
-import { eq, and, desc, gte, isNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
-  userData,
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/api/trpc";
+import { COST_STREAK_CATCHUP_DAY } from "@/drizzle/constants";
+import {
+  actionLog,
   activityStreakConfig,
   activityStreakReward,
+  userData,
   userStreakProgress,
-  actionLog,
 } from "@/drizzle/schema";
+import { getRewardPreview } from "@/libs/objectives";
+import { postProcessRewards } from "@/libs/quest";
+import { fetchUser } from "@/routers/profile";
+import { updateRewards } from "@/server/api/routers/quests";
+import type { DrizzleClient } from "@/server/db";
 import { canChangeContent } from "@/utils/permissions";
-import { isToday, isWithinDateRange, hoursSince } from "@/utils/time";
+import { hoursSince, isToday, isWithinDateRange } from "@/utils/time";
 import {
   activityStreakConfigSchema,
   activityStreakConfigUpdateSchema,
-  purchaseEventPassSchema,
   claimStreakDaySchema,
+  purchaseEventPassSchema,
 } from "@/validators/activityStreak";
-import { COST_STREAK_CATCHUP_DAY } from "@/drizzle/constants";
-import { baseServerResponse, errorResponse } from "@/api/trpc";
-import { fetchUser } from "@/routers/profile";
-import { updateRewards } from "@/server/api/routers/quests";
-import { postProcessRewards } from "@/libs/quest";
-import { getRewardPreview } from "@/libs/objectives";
 import { ObjectiveReward, type ObjectiveRewardType } from "@/validators/rewards";
-import type { DrizzleClient } from "@/server/db";
 
 const STREAK_CONTINUITY_HOURS = 36;
 

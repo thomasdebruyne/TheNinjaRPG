@@ -1,10 +1,10 @@
-import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { checkContentAiAuth } from "@/libs/llm";
-import { BadgeValidator } from "@/validators/badge";
 import type { CoreMessage } from "ai";
+import { streamText } from "ai";
 import { OPENAI_CONTENT_MODEL } from "@/drizzle/constants";
+import { checkContentAiAuth } from "@/libs/llm";
 import { convertToOpenaiCompatibleSchema } from "@/libs/zod_utils";
+import { BadgeValidator } from "@/validators/badge";
 
 export async function POST(req: Request) {
   // Auth guard

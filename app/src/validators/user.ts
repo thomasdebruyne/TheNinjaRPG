@@ -1,11 +1,9 @@
 import { z } from "zod";
-import { UserRoles, UserRanks } from "@/drizzle/constants";
-import { GeneralTypes, StatTypes } from "@/drizzle/constants";
-import { usernameSchema } from "@/validators/register";
-import type { LetterRank, QuestType } from "@/drizzle/constants";
+import type { ElementName, LetterRank, QuestType } from "@/drizzle/constants";
+import { GeneralTypes, StatTypes, UserRanks, UserRoles } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
-import type { ElementName } from "@/drizzle/constants";
 import type { ZodAllTags } from "@/validators/combat";
+import { usernameSchema } from "@/validators/register";
 
 export const updateUserSchema = z.object({
   username: usernameSchema,
@@ -53,9 +51,12 @@ export const getUserElements = (user: UserWithRelations) => {
   let finalElements: ElementName[] = [];
 
   if (bloodlineElements.length === 1 && userElements.length === 2) {
-    const bloodlineElement = bloodlineElements[0]!;
-    const primaryElement = userElements[0]!;
-    const secondaryElement = userElements[1]!;
+    const bloodlineElement = bloodlineElements[0];
+    const primaryElement = userElements[0];
+    const secondaryElement = userElements[1];
+    if (!bloodlineElement || !primaryElement || !secondaryElement) {
+      return userElements;
+    }
 
     if (secondaryElement === bloodlineElement) {
       // Secondary matches bloodline, keep primary and bloodline

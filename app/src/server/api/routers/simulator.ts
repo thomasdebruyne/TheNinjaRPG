@@ -1,11 +1,15 @@
-import { z } from "zod";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { serverError } from "../trpc";
-import { eq, and, gt, desc } from "drizzle-orm";
+import { z } from "zod";
 import { damageSimulation } from "@/drizzle/schema";
-import { statSchema, actSchema } from "@/validators/combat";
+import { actSchema, statSchema } from "@/validators/combat";
 import type { DrizzleClient } from "../../db";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "../trpc";
 
 export const simulatorRouter = createTRPCRouter({
   getDamageSimulations: protectedProcedure.query(async ({ ctx }) => {

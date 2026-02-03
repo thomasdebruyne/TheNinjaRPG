@@ -1,14 +1,12 @@
-import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { auth } from "@clerk/nextjs/server";
+import type { CoreMessage } from "ai";
+import { streamText } from "ai";
+import { and, eq, lte, sql } from "drizzle-orm";
+import { MAX_DAILY_AI_CALLS, OPENAI_CHAT_MODEL } from "@/drizzle/constants";
+import { userData } from "@/drizzle/schema";
 import { drizzleDB } from "@/server/db";
 import { BadgeValidator } from "@/validators/badge";
-import { MAX_DAILY_AI_CALLS } from "@/drizzle/constants";
-import { userData } from "@/drizzle/schema";
-import { eq, lte, sql } from "drizzle-orm";
-import { and } from "drizzle-orm";
-import type { CoreMessage } from "ai";
-import { OPENAI_CHAT_MODEL } from "@/drizzle/constants";
 
 export async function POST(req: Request) {
   // Auth guard

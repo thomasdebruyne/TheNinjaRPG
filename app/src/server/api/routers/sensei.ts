@@ -1,7 +1,6 @@
+import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { baseServerResponse, errorResponse } from "@/server/api/trpc";
-import { eq, asc, and, lte, or, isNull } from "drizzle-orm";
+import { SENSEI_MAX_STUDENT_LEVEL, SENSEI_RANKS } from "@/drizzle/constants";
 import { userData, userRequest } from "@/drizzle/schema";
 import { getServerPusher } from "@/libs/pusher";
 import { fetchUser } from "@/routers/profile";
@@ -11,7 +10,12 @@ import {
   insertRequest,
   updateRequestState,
 } from "@/routers/sparring";
-import { SENSEI_RANKS, SENSEI_MAX_STUDENT_LEVEL } from "@/drizzle/constants";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
 import type { DrizzleClient } from "@/server/db";
 
 const pusher = getServerPusher();

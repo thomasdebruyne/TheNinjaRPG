@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { Folder } from "lucide-react";
-import { MultiSelect } from "@/components/ui/multi-select";
+import Image from "next/image";
 import type { OptionType } from "@/components/ui/multi-select";
-import type { SkillTreeFolder, SkillTree } from "@/drizzle/schema";
+import { MultiSelect } from "@/components/ui/multi-select";
+import type { SkillTree, SkillTreeFolder } from "@/drizzle/schema";
 
 interface FolderStats {
   folderId: string;
@@ -74,30 +74,24 @@ export const SkillTreeFolderGrid: React.FC<SkillTreeFolderGridProps> = ({
       </div>
 
       {/* Folder grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {filteredFolders.map((folder) => {
           const stats = getStats(folder.id);
           const isComplete =
             stats.ownedSkills === stats.totalSkills && stats.totalSkills > 0;
 
           return (
-            <div
+            <button
+              type="button"
               key={folder.id}
               onClick={() => onFolderClick(folder.id)}
-              className={`
-                relative cursor-pointer rounded-lg border-2 p-4 transition-all duration-200
-                hover:shadow-lg hover:scale-105
-                ${
-                  isComplete
-                    ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-                    : "border-border bg-card hover:border-primary"
-                }
+              className={`relative cursor-pointer rounded-lg border-2 p-4 text-left transition-all duration-200 hover:scale-105 hover:shadow-lg ${isComplete ? "border-green-500 bg-green-50 dark:bg-green-950/30" : "border-border bg-card hover:border-primary"}
               `}
             >
               {/* Folder image or icon */}
-              <div className="flex justify-center mb-3">
+              <div className="mb-3 flex justify-center">
                 {folder.image ? (
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                  <div className="relative h-16 w-16 overflow-hidden rounded-lg">
                     <Image
                       src={folder.image}
                       alt={folder.name}
@@ -107,25 +101,25 @@ export const SkillTreeFolderGrid: React.FC<SkillTreeFolderGridProps> = ({
                     />
                   </div>
                 ) : (
-                  <Folder className="w-16 h-16 text-muted-foreground" />
+                  <Folder className="h-16 w-16 text-muted-foreground" />
                 )}
               </div>
 
               {/* Folder name */}
-              <h3 className="text-center font-semibold text-sm truncate">
+              <h3 className="truncate text-center font-semibold text-sm">
                 {folder.name}
               </h3>
 
               {/* Skill count */}
               <p
-                className={`text-center text-xs mt-1 ${isComplete ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                className={`mt-1 text-center text-xs ${isComplete ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
               >
                 {stats.ownedSkills}/{stats.totalSkills} skills
               </p>
 
               {/* Progress bar */}
               {stats.totalSkills > 0 && (
-                <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
                     className={`h-full transition-all duration-300 ${isComplete ? "bg-green-500" : "bg-primary"}`}
                     style={{
@@ -134,13 +128,13 @@ export const SkillTreeFolderGrid: React.FC<SkillTreeFolderGridProps> = ({
                   />
                 </div>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
 
       {filteredFolders.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="py-8 text-center text-muted-foreground">
           {selectedEffects.length > 0
             ? "No folders contain skills with the selected effects."
             : "No skill folders available yet."}

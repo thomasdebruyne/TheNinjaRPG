@@ -161,7 +161,6 @@
   "overrides": {
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
-    "eslint-plugin-react-hooks": "5.2.0",
     "import-in-the-middle": "1.14.2",
     "require-in-the-middle": "7.5.2",
     "sharp": "0.34.5",

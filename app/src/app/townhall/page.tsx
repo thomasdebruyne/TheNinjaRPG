@@ -1,56 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "@/layout/Image";
-import Link from "next/link";
-import ContentBox from "@/layout/ContentBox";
-import BanInfo from "@/layout/BanInfo";
-import Confirm2 from "@/layout/Confirm2";
-import Loader from "@/layout/Loader";
-import Countdown from "@/layout/Countdown";
-import NavTabs from "@/layout/NavTabs";
-import AvatarImage from "@/layout/Avatar";
-import PublicUserComponent from "@/layout/PublicUser";
-import UserRequestSystem from "@/layout/UserRequestSystem";
-import { Handshake, LandPlot, DoorOpen, Swords } from "lucide-react";
-import { CircleArrowUp, Lock, LockOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { showMutationToast } from "@/libs/toast";
-import { secondsPassed, secondsFromDate } from "@/utils/time";
-import { DoorClosed, ShieldPlus } from "lucide-react";
-import { api } from "@/app/_trpc/client";
-import { useRequiredUserData } from "@/utils/UserContext";
-import { capitalizeFirstLetter } from "@/utils/sanitize";
-import { canTakeKage } from "@/utils/permissions";
-import { canChallengeKage } from "@/utils/kage";
-import { findRelationship } from "@/utils/alliance";
-import { KAGE_PRESTIGE_REQUIREMENT } from "@/drizzle/constants";
-import { KAGE_CHALLENGE_SECS, KAGE_CHALLENGE_MINS } from "@/drizzle/constants";
-import { KAGE_RANK_REQUIREMENT, WAR_FUNDS_COST } from "@/drizzle/constants";
-import { KAGE_PRESTIGE_COST } from "@/drizzle/constants";
-import { KAGE_MIN_DAYS_IN_VILLAGE } from "@/drizzle/constants";
-import { KAGE_CHALLENGE_MAX_DAILY_LOCKED_HOURS } from "@/drizzle/constants";
-import {
-  ELDER_NOMINATION_CUTOFF_DAY,
-  ELDER_NOMINATION_DEADLINE_DAY,
-} from "@/drizzle/constants";
-import { useForm } from "react-hook-form";
-import { useLocalStorage } from "@/hooks/localstorage";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import type { Village, VillageAlliance } from "@/drizzle/schema";
-import type { UserWithRelations } from "@/routers/profile";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Modal2 from "@/layout/Modal2";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { calculateEnemyConsequences } from "@/utils/alliance";
+  CircleArrowUp,
+  DoorClosed,
+  DoorOpen,
+  Handshake,
+  LandPlot,
+  Lock,
+  LockOpen,
+  ShieldPlus,
+  Swords,
+} from "lucide-react";
+import Link from "next/link";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { api } from "@/app/_trpc/client";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -58,8 +26,50 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { WarRoom } from "@/layout/WarSystem";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ELDER_NOMINATION_CUTOFF_DAY,
+  ELDER_NOMINATION_DEADLINE_DAY,
+  KAGE_CHALLENGE_MAX_DAILY_LOCKED_HOURS,
+  KAGE_CHALLENGE_MINS,
+  KAGE_CHALLENGE_SECS,
+  KAGE_MIN_DAYS_IN_VILLAGE,
+  KAGE_PRESTIGE_COST,
+  KAGE_PRESTIGE_REQUIREMENT,
+  KAGE_RANK_REQUIREMENT,
+  WAR_FUNDS_COST,
+} from "@/drizzle/constants";
+import type { Village, VillageAlliance } from "@/drizzle/schema";
+import { useLocalStorage } from "@/hooks/localstorage";
+import AvatarImage from "@/layout/Avatar";
+import BanInfo from "@/layout/BanInfo";
+import Confirm2 from "@/layout/Confirm2";
+import ContentBox from "@/layout/ContentBox";
+import Countdown from "@/layout/Countdown";
+import Image from "@/layout/Image";
+import Loader from "@/layout/Loader";
+import Modal2 from "@/layout/Modal2";
+import NavTabs from "@/layout/NavTabs";
+import PublicUserComponent from "@/layout/PublicUser";
 import { ShrineHall } from "@/layout/ShrineHall";
+import UserRequestSystem from "@/layout/UserRequestSystem";
+import { WarRoom } from "@/layout/WarSystem";
+import { showMutationToast } from "@/libs/toast";
+import type { UserWithRelations } from "@/routers/profile";
+import { calculateEnemyConsequences, findRelationship } from "@/utils/alliance";
+import { canChallengeKage } from "@/utils/kage";
+import { canTakeKage } from "@/utils/permissions";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
+import { secondsFromDate, secondsPassed } from "@/utils/time";
+import { useRequiredUserData } from "@/utils/UserContext";
 
 export default function TownHall() {
   const { data: userData } = useRequiredUserData();
@@ -140,7 +150,7 @@ const ElderHall: React.FC<{
           member to become elder between the {ELDER_NOMINATION_CUTOFF_DAY}th and{" "}
           {ELDER_NOMINATION_DEADLINE_DAY}th if their clan qualifies.
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Activity points are earned through PvP combat, completing quests, and other
           clan activities. Points reset at the start of each month. All-time clan points
           are used as a tie-breaker when clans have equal activity points.
@@ -155,8 +165,8 @@ const ElderHall: React.FC<{
         >
           {isPending && <Loader explanation="Loading Elders" />}
           <div className="grid grid-cols-3 pt-3">
-            {elders?.map((elder, i) => (
-              <div key={i} className="relative">
+            {elders?.map((elder) => (
+              <div key={elder.userId} className="relative">
                 <Link href={`/userid/${elder.userId}`} className="text-center">
                   <AvatarImage
                     href={elder.avatar}
@@ -191,13 +201,7 @@ const ElderHall: React.FC<{
             {rankedClans.map((clan, i) => (
               <div
                 key={clan.id}
-                className={`flex items-center justify-between p-3 rounded-lg ${
-                  i === 0
-                    ? "bg-amber-500/20 border border-amber-500/40"
-                    : i === 1
-                      ? "bg-muted border border-border"
-                      : "bg-orange-500/10 border border-orange-500/30"
-                }`}
+                className={`flex items-center justify-between rounded-lg p-3 ${i === 0 ? "border border-amber-500/40 bg-amber-500/20" : i === 1 ? "border border-border bg-muted" : "border border-orange-500/30 bg-orange-500/10"}`}
               >
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-lg">#{i + 1}</span>
@@ -216,15 +220,15 @@ const ElderHall: React.FC<{
                     >
                       {clan.name}
                     </Link>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-muted-foreground text-sm">
                       {clan.members.length} members
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-bold">{clan.activityPoints ?? 0}</div>
-                  <div className="text-sm text-muted-foreground">activity points</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-muted-foreground text-sm">activity points</div>
+                  <div className="text-muted-foreground text-xs">
                     {clan.points ?? 0} all-time pts
                   </div>
                 </div>
@@ -338,7 +342,7 @@ const KageHall: React.FC<{
             className="my-2 w-full"
             onClick={() => resign({ villageId: village.villageData.id })}
           >
-            <DoorClosed className="h-6 w-6 mr-2" />
+            <DoorClosed className="mr-2 h-6 w-6" />
             Resign as Kage
           </Button>
         )}
@@ -350,7 +354,7 @@ const KageHall: React.FC<{
                 control={prestigeForm.control}
                 name="amount"
                 render={({ field }) => (
-                  <FormItem className="w-full flex flex-col">
+                  <FormItem className="flex w-full flex-col">
                     <FormControl>
                       <Input
                         id="amount"
@@ -381,9 +385,9 @@ const KageHall: React.FC<{
           subtitle="Kage Challenges & Outcomes"
           initialBreak={true}
         >
-          <div className="grid grid-cols-4 lggrid-cols-5">
-            {village.defendedChallenges.map((challenge, i) => (
-              <div key={i} className="p-2 text-center">
+          <div className="lggrid-cols-5 grid grid-cols-4">
+            {village.defendedChallenges.map((challenge) => (
+              <div key={challenge.id} className="p-2 text-center">
                 <Link href={`/userid/${challenge.userId}`}>
                   <AvatarImage
                     href={challenge.user.avatar}
@@ -400,10 +404,10 @@ const KageHall: React.FC<{
                       Lost, {challenge.rounds} rounds
                     </p>
                   )}
-                  <p className="italic text-xs">
+                  <p className="text-xs italic">
                     {challenge.createdAt.toLocaleDateString()}
                   </p>
-                  <p className="italic text-xs">
+                  <p className="text-xs italic">
                     {challenge.createdAt.toLocaleTimeString()}
                   </p>
                 </Link>
@@ -555,7 +559,7 @@ const KageChallenge: React.FC<{
       padding={false}
     >
       {isAtWar ? (
-        <p className="p-3 text-red-500 font-bold text-center">
+        <p className="p-3 text-center font-bold text-red-500">
           Kage challenges are disabled while the village is at war
         </p>
       ) : (
@@ -568,21 +572,21 @@ const KageChallenge: React.FC<{
               onClick={() => toggleChallenges({ villageId: user.villageId ?? "" })}
             >
               {openForChallenges ? (
-                <LockOpen className="h-6 w-6 mr-2" />
+                <LockOpen className="mr-2 h-6 w-6" />
               ) : (
-                <Lock className="h-6 w-6 mr-2" />
+                <Lock className="mr-2 h-6 w-6" />
               )}
               {openForChallenges ? "Accepting Challenges" : "Not Accepting Challenges"}
             </Button>
           </p>
           {isKage && (
-            <div className="p-3 text-sm text-gray-600">
+            <div className="p-3 text-gray-600 text-sm">
               <p>
                 <span className="font-bold">Daily Lock Time Used: </span>
                 <span
                   className={
                     dailyLockedTimeSeconds >= maxDailySeconds
-                      ? "text-red-500 font-bold"
+                      ? "font-bold text-red-500"
                       : ""
                   }
                 >
@@ -590,7 +594,7 @@ const KageChallenge: React.FC<{
                 </span>
               </p>
               {dailyLockedTimeSeconds >= maxDailySeconds ? (
-                <p className="text-red-500 font-bold">
+                <p className="font-bold text-red-500">
                   Daily limit reached! Challenges will be automatically unlocked at the
                   start of the next day.
                 </p>
@@ -625,7 +629,7 @@ const KageChallenge: React.FC<{
             <p className="p-3">No current challenge requests</p>
           )}
           {activeRequest && (
-            <div className="p-3 flex flex-col items-center">
+            <div className="flex flex-col items-center p-3">
               <p>If not accepted by kage, challenge will execute as Ai vs Ai in:</p>
               <Countdown
                 targetDate={secondsFromDate(
@@ -651,7 +655,7 @@ const KageChallenge: React.FC<{
                       }
                     }}
                   >
-                    <Swords className="h-6 w-6 mr-2" />
+                    <Swords className="mr-2 h-6 w-6" />
                     Send Kage Challenge Request
                   </Button>
                   <p>
@@ -701,7 +705,7 @@ const KageChallenge: React.FC<{
             onClick={() => setShowTakeKageModal(true)}
             loading={isTaking}
           >
-            <ShieldPlus className="h-6 w-6 mr-2" />
+            <ShieldPlus className="mr-2 h-6 w-6" />
             Take kage as Staff
           </Button>
         </div>
@@ -728,7 +732,7 @@ const KageChallenge: React.FC<{
           isValid={takeKageReason.trim().length >= 10}
         >
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               You are about to take the kage position as staff. This action will be
               logged and should only be used for administrative purposes.
             </p>
@@ -741,7 +745,7 @@ const KageChallenge: React.FC<{
                 onChange={(e) => setTakeKageReason(e.target.value)}
                 placeholder="Enter reason for taking kage position (minimum 10 characters)..."
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 This reason will be logged in the action log. Minimum 10 characters
                 required.
               </p>
@@ -936,7 +940,7 @@ const AllianceList: React.FC<{
           placeholder="Search villages & factions..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 min-w-[150px]"
+          className="min-w-[150px] flex-1"
         />
         <Select
           value={typeFilter}
@@ -986,7 +990,7 @@ const AllianceList: React.FC<{
           />
         ))}
         {filteredEntities.length === 0 && (
-          <p className="text-center text-muted-foreground py-4">
+          <p className="py-4 text-center text-muted-foreground">
             No villages or factions found
           </p>
         )}
@@ -1043,7 +1047,7 @@ const AllianceCard: React.FC<{
   };
 
   return (
-    <div className="flex items-center justify-between p-3 border rounded-lg">
+    <div className="flex items-center justify-between rounded-lg border p-3">
       <div className="flex items-center gap-3">
         <Image
           src={entity.villageGraphic}
@@ -1055,10 +1059,10 @@ const AllianceCard: React.FC<{
         <div>
           <p className="font-bold">{entity.name}</p>
           <div className="flex gap-1">
-            <span className={`text-xs px-2 py-0.5 rounded ${typeColors}`}>
+            <span className={`rounded px-2 py-0.5 text-xs ${typeColors}`}>
               {typeLabel}
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded ${statusColors[status]}`}>
+            <span className={`rounded px-2 py-0.5 text-xs ${statusColors[status]}`}>
               {capitalizeFirstLetter(status)}
             </span>
           </div>

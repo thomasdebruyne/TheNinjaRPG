@@ -1,23 +1,21 @@
 "use client";
 
-import ContentBox from "@/layout/ContentBox";
-import Loader from "@/layout/Loader";
-import ChatInputField from "@/layout/ChatInputField";
-import { ItemHelper } from "@/layout/ContentHelp";
-import { api } from "@/app/_trpc/client";
-import { useEffect, use } from "react";
+import { FileMinus, FilePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { EditContent } from "@/layout/EditContent";
-import { EffectFormWrapper } from "@/layout/EditContent";
-import { FilePlus, FileMinus } from "lucide-react";
-import { useRequiredUserData } from "@/utils/UserContext";
-import { setNullsToEmptyStrings } from "@/utils/typeutils";
-import { DamageTag, ItemValidator, tagTypes, getTagSchema } from "@/validators/combat";
-import { canChangeContent } from "@/utils/permissions";
+import { use, useEffect } from "react";
+import { api } from "@/app/_trpc/client";
+import type { CraftingRequirement, Item } from "@/drizzle/schema";
 import { useItemEditForm } from "@/hooks/item";
-import type { CraftingRequirement } from "@/drizzle/schema";
+import ChatInputField from "@/layout/ChatInputField";
+import ContentBox from "@/layout/ContentBox";
+import { ItemHelper } from "@/layout/ContentHelp";
+import { EditContent, EffectFormWrapper } from "@/layout/EditContent";
+import Loader from "@/layout/Loader";
+import { canChangeContent } from "@/utils/permissions";
+import { setNullsToEmptyStrings } from "@/utils/typeutils";
+import { useRequiredUserData } from "@/utils/UserContext";
 import type { ZodItemType } from "@/validators/combat";
-import type { Item } from "@/drizzle/schema";
+import { DamageTag, getTagSchema, ItemValidator, tagTypes } from "@/validators/combat";
 
 export default function ItemEdit(props: { params: Promise<{ itemid: string }> }) {
   const params = use(props.params);
@@ -40,7 +38,6 @@ export default function ItemEdit(props: { params: Promise<{ itemid: string }> })
     if (userData && !canChangeContent(userData.role)) {
       void router.push("/profile");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
 
   // Prevent unauthorized access
@@ -87,7 +84,7 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
         defaultBackHref="/manual/item"
         topRightContent={
           formData.find((e) => e.id === "description") ? (
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               <ChatInputField
                 inputProps={{
                   id: "chatInput",
@@ -105,7 +102,6 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
                   let key: keyof typeof data;
                   for (key in data) {
                     if (["villageId", "image"].includes(key)) {
-                      continue;
                     } else if (key === "effects") {
                       const newEffects = data.effects
                         .map((effect) => {

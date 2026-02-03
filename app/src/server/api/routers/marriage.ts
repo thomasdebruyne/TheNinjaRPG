@@ -1,8 +1,9 @@
-import { userAssociation } from "@/drizzle/schema";
-import { z } from "zod";
 import type { inferRouterOutputs } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { errorResponse, baseServerResponse, publicProcedure } from "@/server/api/trpc";
+import { and, eq, inArray, or } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import type { UserAssociation } from "@/drizzle/constants";
+import { userAssociation } from "@/drizzle/schema";
 import { getServerPusher } from "@/libs/pusher";
 import { fetchUser } from "@/routers/profile";
 import {
@@ -11,10 +12,15 @@ import {
   insertRequest,
   updateRequestState,
 } from "@/routers/sparring";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+} from "@/server/api/trpc";
 import type { DrizzleClient } from "@/server/db";
-import type { UserAssociation } from "@/drizzle/constants";
-import { nanoid } from "nanoid";
-import { and, eq, or, inArray } from "drizzle-orm";
+
 const pusher = getServerPusher();
 
 export const marriageRouter = createTRPCRouter({

@@ -1,25 +1,24 @@
 "use client";
 
-import ContentBox from "@/layout/ContentBox";
-import Loader from "@/layout/Loader";
-import AiProfileEdit from "@/layout/AiProfileEdit";
-import { AiHelper } from "@/layout/ContentHelp";
-import StatusBar from "@/layout/StatusBar";
-import NindoChange from "@/layout/NindoChange";
-import { useEffect, use } from "react";
+import { FileMinus, FilePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { EditContent } from "@/layout/EditContent";
-import { EffectFormWrapper } from "@/layout/EditContent";
-import { FilePlus, FileMinus } from "lucide-react";
+import { use, useEffect } from "react";
 import { api } from "@/app/_trpc/client";
-import { tagTypes, WeaknessTag } from "@/validators/combat";
-import { useRequiredUserData } from "@/utils/UserContext";
-import { setNullsToEmptyStrings } from "@/utils/typeutils";
-import { canChangeContent } from "@/utils/permissions";
 import { insertAiSchema } from "@/drizzle/schema";
+import AiProfileEdit from "@/layout/AiProfileEdit";
+import ContentBox from "@/layout/ContentBox";
+import { AiHelper } from "@/layout/ContentHelp";
+import { EditContent, EffectFormWrapper } from "@/layout/EditContent";
+import Loader from "@/layout/Loader";
+import NindoChange from "@/layout/NindoChange";
+import StatusBar from "@/layout/StatusBar";
 import { useAiEditForm } from "@/libs/ais";
 import { showMutationToast } from "@/libs/toast";
 import type { AiWithRelations } from "@/routers/profile";
+import { canChangeContent } from "@/utils/permissions";
+import { setNullsToEmptyStrings } from "@/utils/typeutils";
+import { useRequiredUserData } from "@/utils/UserContext";
+import { tagTypes, WeaknessTag } from "@/validators/combat";
 
 export default function ManualAisEdit(props: { params: Promise<{ aiid: string }> }) {
   const params = use(props.params);
@@ -42,7 +41,6 @@ export default function ManualAisEdit(props: { params: Promise<{ aiid: string }>
     if (userData && !canChangeContent(userData.role)) {
       router.push("/profile");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
 
   // Prevent unauthorized access
@@ -110,15 +108,18 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
         defaultBackHref="/manual/ai"
         topRightContent={
           <AiHelper
-            ai={{ userId: processedUser.userId, username: processedUser.username }}
+            ai={{
+              userId: processedUser.userId,
+              username: processedUser.username,
+            }}
           />
         }
       >
         {!processedUser && <p>Could not find this AI</p>}
         {!loading && processedUser && (
           <>
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-2xl font-bold">Edit AI</h1>
+            <div className="mb-4 flex items-center justify-between">
+              <h1 className="font-bold text-2xl">Edit AI</h1>
             </div>
             <StatusBar
               title="HP"
@@ -212,7 +213,10 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
           <NindoChange
             userId={processedUser.userId}
             onChange={(data) =>
-              updateNindo({ userId: processedUser.userId, content: data.content })
+              updateNindo({
+                userId: processedUser.userId,
+                content: data.content,
+              })
             }
           />
         )}

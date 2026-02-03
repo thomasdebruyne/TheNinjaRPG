@@ -1,15 +1,9 @@
+import { asc, desc, eq, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { z } from "zod";
-import { forumThread, forumBoard, forumPost } from "@/drizzle/schema";
-import { userData } from "@/drizzle/schema";
-import {
-  createTRPCRouter,
-  publicProcedure,
-  protectedProcedure,
-} from "@/server/api/trpc";
-import { errorResponse, baseServerResponse } from "@/server/api/trpc";
-import { eq, sql, desc, asc } from "drizzle-orm";
-import { forumBoardSchema } from "@/validators/forum";
-import { canModerate, canCreateNews } from "@/utils/permissions";
+import { forumBoard, forumPost, forumThread, userData } from "@/drizzle/schema";
+import { resolveSenderId } from "@/libs/comments";
+import { moderateContent } from "@/libs/moderator";
 import {
   callDiscordNews,
   callFacebookNews,
@@ -17,11 +11,17 @@ import {
   callRedditNews,
   callTwitterNews,
 } from "@/libs/socials";
-import { resolveSenderId } from "@/libs/comments";
 import { fetchUser } from "@/routers/profile";
-import { nanoid } from "nanoid";
-import { moderateContent } from "@/libs/moderator";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+} from "@/server/api/trpc";
+import { canCreateNews, canModerate } from "@/utils/permissions";
 import sanitize from "@/utils/sanitize";
+import { forumBoardSchema } from "@/validators/forum";
 import type { DrizzleClient } from "../../db";
 
 export const forumRouter = createTRPCRouter({

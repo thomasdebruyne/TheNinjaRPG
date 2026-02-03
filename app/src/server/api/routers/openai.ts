@@ -1,17 +1,16 @@
+import { and, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
+import { IMG_ORIENTATIONS } from "@/drizzle/constants";
+import { historicalAvatar } from "@/drizzle/schema";
+import { img2model, txt2imgNanoBanana } from "@/libs/replicate";
+import { fetchUser } from "@/routers/profile";
+import { canChangeContent } from "@/utils/permissions";
 import {
   baseServerResponse,
   createTRPCRouter,
   protectedProcedure,
   serverError,
 } from "../trpc";
-import { canChangeContent } from "@/utils/permissions";
-import { fetchUser } from "@/routers/profile";
-import { txt2imgNanoBanana, img2model } from "@/libs/replicate";
-import { historicalAvatar } from "@/drizzle/schema";
-import { and, gte, sql } from "drizzle-orm";
-import { eq } from "drizzle-orm";
-import { IMG_ORIENTATIONS } from "@/drizzle/constants";
 
 export const generativeAiRouter = createTRPCRouter({
   create3dModel: protectedProcedure

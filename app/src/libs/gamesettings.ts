@@ -1,14 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
-import { gameSetting } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { getDaysHoursMinutesSeconds, getTimeLeftStr } from "@/utils/time";
-import { secondsPassed, addDays } from "@/utils/time";
-import { round } from "@/utils/math";
-import { getWeekNumber } from "@/utils/time";
-import type { DrizzleClient } from "@/server/db";
 import type { GameSetting } from "@/drizzle/schema";
+import { gameSetting } from "@/drizzle/schema";
+import type { DrizzleClient } from "@/server/db";
+import { round } from "@/utils/math";
+import {
+  addDays,
+  getDaysHoursMinutesSeconds,
+  getTimeLeftStr,
+  getWeekNumber,
+  secondsPassed,
+} from "@/utils/time";
 
 /**
  * Retrieves the game setting for the specified timer name.

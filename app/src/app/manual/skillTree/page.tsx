@@ -1,19 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { ChartCandlestick, FilePlus, FolderOpen } from "lucide-react";
 import Link from "next/link";
-import ItemWithEffects from "@/layout/ItemWithEffects";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { api } from "@/app/_trpc/client";
+import { Button } from "@/components/ui/button";
 import ContentBox from "@/layout/ContentBox";
+import ItemWithEffects from "@/layout/ItemWithEffects";
 import Loader from "@/layout/Loader";
 import SkillTreeFiltering, {
-  useFiltering,
   getFilter,
+  useFiltering,
 } from "@/layout/SkillTreeFiltering";
-import { Button } from "@/components/ui/button";
-import { FilePlus, FolderOpen, ChartCandlestick } from "lucide-react";
 import { useInfinitePagination } from "@/libs/pagination";
-import { api } from "@/app/_trpc/client";
 import { showMutationToast } from "@/libs/toast";
 import { canChangeContent } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
@@ -125,7 +125,7 @@ export default function ManualSkillTree() {
           <div className="flex flex-row items-center gap-2">
             {userData && canChangeContent(userData.role) && (
               <Button id="create-skill" onClick={() => create()} disabled={load1}>
-                <FilePlus className="sm:mr-2 h-6 w-6" />
+                <FilePlus className="h-6 w-6 sm:mr-2" />
                 {load1 ? "Creating..." : "New"}
               </Button>
             )}

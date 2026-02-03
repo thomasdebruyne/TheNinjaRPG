@@ -1,77 +1,75 @@
-import {
-  MoveTag,
-  DamageTag,
-  FleeTag,
-  HealTag,
-  InjectJutsusTag,
-  ClearTag,
-  CleanseTag,
-} from "@/validators/combat";
+import type { Grid } from "honeycomb-grid";
 import { nanoid } from "nanoid";
+import type { AttackTargets, ElementName, UserRank } from "@/drizzle/constants";
 import {
-  getAffectedTiles,
-  getJutsu,
-  getJutsuReskin,
-  getItem,
-} from "@/libs/combat/util";
-import { COMBAT_SECONDS } from "@/libs/combat/constants";
-import { checkFriendlyFire } from "@/libs/combat/process";
-import { applyEffects } from "@/libs/combat/process";
-import { calcPoolCost } from "@/libs/combat/util";
-import { hasNoAvailableActions } from "@/libs/combat/util";
-import { calcApReduction } from "@/libs/combat/util";
-import { getBarriersBetween } from "@/libs/combat/util";
-import {
-  IncreaseRangeTag,
-  IncreaseCooldownTag,
-  DecreaseCooldownTag,
-} from "@/validators/combat";
-import {
-  isUserStealthed,
-  isUserImmobilized,
-  isUserSummonPrevented,
-} from "@/libs/combat/util";
-import {
-  getUserElementalSeal,
-  isEffectActive,
-  getEffectiveCurPool,
-} from "@/libs/combat/util";
-import { getPower } from "@/libs/combat/tags";
-import { realizeTag, updateStatUsage } from "@/libs/combat/tags";
-import { getPossibleActionTiles } from "@/libs/hexgrid";
-import { PathCalculator } from "@/libs/hexgrid";
-import { calcCombatHealPercentage } from "@/libs/hospital";
-import { actionHasSharedCooldown } from "@/libs/combat/util";
-import { tagHasSharedCooldown } from "@/libs/combat/util";
-import {
-  IMG_BASIC_HEAL,
+  DURABILITY_USABILITY_THR,
+  ID_ANIMATION_HEAL,
+  ID_ANIMATION_HIT,
+  ID_SFX_CLEANSE,
+  ID_SFX_CLEAR,
+  ID_SFX_HEAL,
+  ID_SFX_HIT,
+  ID_SFX_MOVE,
   IMG_BASIC_ATTACK,
   IMG_BASIC_CLEANSE,
   IMG_BASIC_CLEAR,
   IMG_BASIC_FLEE,
-  IMG_BASIC_WAIT,
+  IMG_BASIC_HEAL,
   IMG_BASIC_MOVE,
-  ID_ANIMATION_HEAL,
-  ID_ANIMATION_HIT,
-  ID_SFX_HIT,
-  ID_SFX_HEAL,
-  ID_SFX_MOVE,
-  DURABILITY_USABILITY_THR,
-  NonActionItemTypes,
-  ID_SFX_CLEANSE,
-  ID_SFX_CLEAR,
+  IMG_BASIC_WAIT,
   NO_DURABILITY_LOSS_COMBATS,
+  NonActionItemTypes,
   QuestBattleTypes,
 } from "@/drizzle/constants";
-import type { AttackTargets, ElementName, UserRank } from "@/drizzle/constants";
 import type { Jutsu } from "@/drizzle/schema";
-import type { BattleUserState, ReturnedUserState } from "@/libs/combat/types";
-import type { BattleUserJutsu, BattleUserItem } from "@/libs/combat/types";
-import type { CompleteBattle, ReturnedBattle } from "@/libs/combat/types";
-import type { Grid } from "honeycomb-grid";
+import { COMBAT_SECONDS } from "@/libs/combat/constants";
+import { applyEffects, checkFriendlyFire } from "@/libs/combat/process";
+import { getPower, realizeTag, updateStatUsage } from "@/libs/combat/tags";
+import type {
+  BasicActions,
+  BattleUserItem,
+  BattleUserJutsu,
+  BattleUserState,
+  CombatAction,
+  CompleteBattle,
+  GroundEffect,
+  ReturnedBattle,
+  ReturnedUserState,
+  UserEffect,
+} from "@/libs/combat/types";
+import {
+  actionHasSharedCooldown,
+  calcApReduction,
+  calcPoolCost,
+  getAffectedTiles,
+  getBarriersBetween,
+  getEffectiveCurPool,
+  getItem,
+  getJutsu,
+  getJutsuReskin,
+  getUserElementalSeal,
+  hasNoAvailableActions,
+  isEffectActive,
+  isUserImmobilized,
+  isUserStealthed,
+  isUserSummonPrevented,
+  tagHasSharedCooldown,
+} from "@/libs/combat/util";
 import type { TerrainHex } from "@/libs/hexgrid";
-import type { CombatAction, BasicActions } from "@/libs/combat/types";
-import type { GroundEffect, UserEffect } from "@/libs/combat/types";
+import { getPossibleActionTiles, PathCalculator } from "@/libs/hexgrid";
+import { calcCombatHealPercentage } from "@/libs/hospital";
+import {
+  CleanseTag,
+  ClearTag,
+  DamageTag,
+  DecreaseCooldownTag,
+  FleeTag,
+  HealTag,
+  IncreaseCooldownTag,
+  IncreaseRangeTag,
+  InjectJutsusTag,
+  MoveTag,
+} from "@/validators/combat";
 
 /**
  * Given a user, return a list of actions that the user can perform
@@ -383,7 +381,7 @@ export const getDefaultBasicActions = (
       cooldown: 0,
       originalCooldown: 0,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "basicAttack")?.lastUsedRound ?? 0,
+        user?.basicActions?.find((ba) => ba.id === "basicAttack")?.lastUsedRound ?? 0,
       level: user?.level,
       effects: [
         DamageTag.parse({
@@ -414,7 +412,7 @@ export const getDefaultBasicActions = (
       cooldown: 5,
       originalCooldown: 5,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "basicHeal")?.lastUsedRound ?? -10,
+        user?.basicActions?.find((ba) => ba.id === "basicHeal")?.lastUsedRound ?? -10,
       level: user?.level,
       effects: [
         HealTag.parse({
@@ -440,7 +438,7 @@ export const getDefaultBasicActions = (
       cooldown: 0,
       originalCooldown: 0,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "move")?.lastUsedRound ?? 0,
+        user?.basicActions?.find((ba) => ba.id === "move")?.lastUsedRound ?? 0,
       healthCost: 0,
       chakraCost: 0,
       staminaCost: 0,
@@ -460,7 +458,7 @@ export const getDefaultBasicActions = (
       cooldown: 10,
       originalCooldown: 10,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "cleanse")?.lastUsedRound ?? -10,
+        user?.basicActions?.find((ba) => ba.id === "cleanse")?.lastUsedRound ?? -10,
       healthCost: 0,
       chakraCost: 0,
       staminaCost: 0,
@@ -480,7 +478,7 @@ export const getDefaultBasicActions = (
       cooldown: 10,
       originalCooldown: 10,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "clear")?.lastUsedRound ?? -10,
+        user?.basicActions?.find((ba) => ba.id === "clear")?.lastUsedRound ?? -10,
       healthCost: 0,
       chakraCost: 0,
       staminaCost: 0,
@@ -500,7 +498,7 @@ export const getDefaultBasicActions = (
       cooldown: 0,
       originalCooldown: 0,
       lastUsedRound:
-        user?.basicActions?.find((ba) => ba.id == "flee")?.lastUsedRound ?? 0,
+        user?.basicActions?.find((ba) => ba.id === "flee")?.lastUsedRound ?? 0,
       healthCost: 0.1,
       chakraCost: 0,
       staminaCost: 0,
@@ -679,7 +677,9 @@ export const insertAction = (info: {
   const { usersState, usersEffects, groundEffects } = battle;
 
   // Convenience
-  usersState.map((u) => (u.hex = grid.getHex({ col: u.longitude, row: u.latitude })));
+  usersState.forEach((u) => {
+    u.hex = grid.getHex({ col: u.longitude, row: u.latitude });
+  });
   const alive = usersState.filter((u) => u.curHealth > 0);
   const user = alive.find((u) => u.userId === actorId);
   const targetTile = grid.getHex({ col: longitude, row: latitude });
@@ -915,7 +915,7 @@ export const insertAction = (info: {
         action.battleDescription = action.battleDescription.replaceAll(
           "%target_subject",
           targetGenders.length === 1 && targetGenders[0]
-            ? targetGenders[0] == "Male"
+            ? targetGenders[0] === "Male"
               ? "himself"
               : "herself"
             : "they",
@@ -923,7 +923,7 @@ export const insertAction = (info: {
         action.battleDescription = action.battleDescription.replaceAll(
           "%target_object",
           targetGenders.length === 1 && targetGenders[0]
-            ? targetGenders[0] == "Male"
+            ? targetGenders[0] === "Male"
               ? "him"
               : "her"
             : "them",
@@ -931,7 +931,7 @@ export const insertAction = (info: {
         action.battleDescription = action.battleDescription.replaceAll(
           "%target_posessive",
           targetGenders.length === 1 && targetGenders[0]
-            ? targetGenders[0] == "Male"
+            ? targetGenders[0] === "Male"
               ? "his"
               : "hers"
             : "theirs",
@@ -939,7 +939,7 @@ export const insertAction = (info: {
         action.battleDescription = action.battleDescription.replaceAll(
           "%target_reflexive",
           targetGenders.length === 1 && targetGenders[0]
-            ? targetGenders[0] == "Male"
+            ? targetGenders[0] === "Male"
               ? "himself"
               : "herself"
             : "themselves",
@@ -964,7 +964,7 @@ export const getTargetUser = (
   tile: TerrainHex,
   userId: string,
 ) => {
-  let result: BattleUserState | undefined = undefined;
+  let result: BattleUserState | undefined;
   const user = users.find((u) => u.userId === userId);
   if (user) {
     if (target === "SELF") {

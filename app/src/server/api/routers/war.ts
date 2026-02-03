@@ -1,58 +1,67 @@
-import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { baseServerResponse, errorResponse } from "../trpc";
-import { eq, and, gte, ne, desc, sql, inArray } from "drizzle-orm";
-import {
-  war,
-  village,
-  warAlly,
-  warKill,
-  sector,
-  userData,
-  notification,
-  actionLog,
-  quest,
-} from "@/drizzle/schema";
-import { findActiveExclusiveRaidForSector } from "@/libs/raids";
-import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
-import { fetchVillages, fetchAlliances, fetchStructures } from "@/routers/village";
+import { and, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { DrizzleClient } from "@/server/db";
-import { canAdministrateWars } from "@/utils/permissions";
-import { secondsFromDate, DAY_S } from "@/utils/time";
+import { z } from "zod";
+import type { RouterOutputs } from "@/app/_trpc/client";
 import {
-  WAR_DECLARATION_COST,
-  VILLAGE_SYNDICATE_ID,
-  WAR_PURCHASE_SHRINE_TOKEN_COST,
+  IMG_AVATAR_DEFAULT,
   MAP_RESERVED_SECTORS,
-  WAR_VILLAGE_MAX_SECTORS,
-  WAR_FACTION_MAX_SECTORS,
-  WAR_MINIMUM_TOKENS_FOR_BEING_ATTACKABLE,
   SHRINE_MAX_PER_VILLAGE,
+  VILLAGE_SYNDICATE_ID,
+  WAR_ALLY_MAX_PAYMENT_PERCENTAGE,
+  WAR_DECLARATION_COST,
+  WAR_FACTION_MAX_SECTORS,
   WAR_LOSING_COOLDOWN_DAYS,
   WAR_MINIMUM_MEMBERS_REQUIRED,
-  WAR_ALLY_MAX_PAYMENT_PERCENTAGE,
+  WAR_MINIMUM_TOKENS_FOR_BEING_ATTACKABLE,
+  WAR_PURCHASE_SHRINE_TOKEN_COST,
   WAR_RAID_SHRINE_HP,
+  WAR_VILLAGE_MAX_SECTORS,
 } from "@/drizzle/constants";
+import type { Village, VillageStructure, War, WarAlly } from "@/drizzle/schema";
 import {
-  handleWarEnd,
+  actionLog,
+  notification,
+  quest,
+  sector,
+  userData,
+  village,
+  war,
+  warAlly,
+  warKill,
+} from "@/drizzle/schema";
+import { findActiveExclusiveRaidForSector } from "@/libs/raids";
+import {
   canJoinWar,
   getShrineHpByLevel,
+  handleWarEnd,
   isVillageInvolvedInAnyWar,
 } from "@/libs/war";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import {
-  insertRequest,
-  updateRequestState,
   fetchRequest,
   fetchRequests,
+  insertRequest,
+  updateRequestState,
 } from "@/routers/sparring";
+import {
+  countVillageSectors,
+  fetchAlliances,
+  fetchSector,
+  fetchStructures,
+  fetchVillages,
+} from "@/routers/village";
+import type { DrizzleClient } from "@/server/db";
 
 import { findRelationship } from "@/utils/alliance";
 import { isKage } from "@/utils/kage";
-import { countVillageSectors, fetchSector } from "@/routers/village";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import type { War, WarAlly, Village, VillageStructure } from "@/drizzle/schema";
-import type { RouterOutputs } from "@/app/_trpc/client";
+import { canAdministrateWars } from "@/utils/permissions";
+import { DAY_S, secondsFromDate } from "@/utils/time";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "../trpc";
 
 export const warRouter = createTRPCRouter({
   // Get active wars for a village

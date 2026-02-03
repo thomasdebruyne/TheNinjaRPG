@@ -1,41 +1,41 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import ContentBox from "@/layout/ContentBox";
-import ItemWithEffects from "@/layout/ItemWithEffects";
-import Modal2 from "@/layout/Modal2";
-import Countdown from "@/layout/Countdown";
-import ContentImage from "@/layout/ContentImage";
-import { ActionSelector } from "@/layout/CombatActions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import Confirm2 from "@/layout/Confirm2";
-import { Hammer, Star, Info, Gem, Zap, Wrench } from "lucide-react";
+import { Gem, Hammer, Info, Star, Wrench, Zap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/app/_trpc/client";
-import { useRequiredUserData } from "@/utils/UserContext";
-import { showMutationToast } from "@/libs/toast";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
+  CONSUMABLE_CRAFTING_TIMES_MINS,
+  CRAFTING_MAX_IMBUED_ITEMS,
   CRAFTING_REQUIRED_EXP,
   CRAFTING_TIMES_MINS,
-  CRAFTING_MAX_IMBUED_ITEMS,
-  CONSUMABLE_CRAFTING_TIMES_MINS,
 } from "@/drizzle/constants";
-import { capitalizeFirstLetter } from "@/utils/sanitize";
-import { canChangeContent } from "@/utils/permissions";
-import {
-  getCurrentCraftingStatus,
-  getCraftingRankProgress,
-  getTotalItemQuantity,
-  getEffectiveMaxImbuements,
-  getCraftingRank,
-} from "@/libs/crafting";
-import { getShrineBoost } from "@/utils/village";
-import { calcItemRepairCost } from "@/libs/item";
-import { formatSecondsToTimeDisplay } from "@/utils/time";
 import type { Item, UserItemWithRelations } from "@/drizzle/schema";
+import { ActionSelector } from "@/layout/CombatActions";
+import Confirm2 from "@/layout/Confirm2";
+import ContentBox from "@/layout/ContentBox";
+import ContentImage from "@/layout/ContentImage";
+import Countdown from "@/layout/Countdown";
+import ItemWithEffects from "@/layout/ItemWithEffects";
+import Modal2 from "@/layout/Modal2";
+import {
+  getCraftingRank,
+  getCraftingRankProgress,
+  getCurrentCraftingStatus,
+  getEffectiveMaxImbuements,
+  getTotalItemQuantity,
+} from "@/libs/crafting";
+import { calcItemRepairCost } from "@/libs/item";
+import { showMutationToast } from "@/libs/toast";
+import { canChangeContent } from "@/utils/permissions";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
+import { formatSecondsToTimeDisplay } from "@/utils/time";
+import { useRequiredUserData } from "@/utils/UserContext";
+import { getShrineBoost } from "@/utils/village";
 
 export default function OccupationCrafting() {
   // Utils
@@ -236,7 +236,7 @@ export default function OccupationCrafting() {
                 <Hammer className="h-5 w-5" />
                 Currently Crafting
                 {craftingStatus.craftingFinishedAt && (
-                  <span className="text-sm font-normal text-muted-foreground">
+                  <span className="font-normal text-muted-foreground text-sm">
                     (
                     <Countdown
                       targetDate={craftingStatus.craftingFinishedAt}
@@ -257,7 +257,7 @@ export default function OccupationCrafting() {
                 )}
                 {craftingStatus.craftingFinishedAt &&
                   new Date(craftingStatus.craftingFinishedAt) <= new Date() && (
-                    <div className="text-sm text-green-600 font-medium">Finished!</div>
+                    <div className="font-medium text-green-600 text-sm">Finished!</div>
                   )}
                 {/* Find the currently crafting userItem to get its ID */}
                 {userItems &&
@@ -281,7 +281,7 @@ export default function OccupationCrafting() {
                         size="sm"
                         className="w-fit"
                       >
-                        <Zap className="h-4 w-4 mr-2" />
+                        <Zap className="mr-2 h-4 w-4" />
                         Instant Finish (Staff)
                       </Button>
                     ) : null;
@@ -432,18 +432,26 @@ export default function OccupationCrafting() {
                       return (
                         <>
                           {/* Quantity Selector */}
-                          <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3">
-                            <label className="text-sm font-medium mb-2 block">
+                          <div className="rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+                            <label
+                              htmlFor="craft-quantity"
+                              className="mb-2 block font-medium text-sm"
+                            >
                               Quantity to Craft (Max: {maxCraftable})
                             </label>
                             <Input
+                              id="craft-quantity"
                               type="number"
                               min={canAffordAny ? 1 : 0}
                               max={canAffordAny ? effectiveMax : 0}
                               value={effectiveQuantity}
                               onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                if (!isNaN(val) && val >= 1 && val <= effectiveMax) {
+                                const val = parseInt(e.target.value, 10);
+                                if (
+                                  !Number.isNaN(val) &&
+                                  val >= 1 &&
+                                  val <= effectiveMax
+                                ) {
                                   setCraftQuantity(val);
                                 }
                               }}
@@ -453,26 +461,26 @@ export default function OccupationCrafting() {
                           </div>
 
                           {/* Crafting Info */}
-                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">
+                                <span className="font-medium text-sm">
                                   {canAffordAny
                                     ? "Total Crafting Time:"
                                     : "Crafting Time (per item):"}
                                 </span>
-                                <span className="text-sm font-semibold">
+                                <span className="font-semibold text-sm">
                                   {displayTimeValue}
                                 </span>
                               </div>
                               {displayExpGain > 0 && (
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium">
+                                  <span className="font-medium text-sm">
                                     {canAffordAny
                                       ? "Total Experience Gain:"
                                       : "Experience Gain (per item):"}
                                   </span>
-                                  <span className="text-sm font-semibold text-green-600">
+                                  <span className="font-semibold text-green-600 text-sm">
                                     +{displayExpGain} EXP
                                   </span>
                                 </div>
@@ -482,43 +490,37 @@ export default function OccupationCrafting() {
 
                           {/* Required Materials */}
                           {hasRequirements && (
-                            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3">
-                              <h4 className="font-semibold text-sm mb-2">
+                            <div className="rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+                              <h4 className="mb-2 font-semibold text-sm">
                                 Required Materials
                               </h4>
                               <div className="space-y-2">
-                                {craftableItem.craftingRequirements.map(
-                                  (req, index) => {
-                                    const totalQuantity = getTotalItemQuantity(
-                                      userItems || [],
-                                      req.requirementItemId,
-                                    );
-                                    const required = req.quantity * craftQuantity;
-                                    const hasEnough = totalQuantity >= required;
+                                {craftableItem.craftingRequirements.map((req) => {
+                                  const totalQuantity = getTotalItemQuantity(
+                                    userItems || [],
+                                    req.requirementItemId,
+                                  );
+                                  const required = req.quantity * craftQuantity;
+                                  const hasEnough = totalQuantity >= required;
 
-                                    return (
+                                  return (
+                                    <div
+                                      key={req.requirementItemId}
+                                      className="flex items-center justify-between"
+                                    >
+                                      <span className="text-sm">
+                                        {required}x{" "}
+                                        {req.requirementItem?.name || "Unknown Item"}
+                                      </span>
                                       <div
-                                        key={index}
-                                        className="flex items-center justify-between"
+                                        className={`font-medium text-sm ${hasEnough ? "text-green-600" : "text-red-600"}`}
                                       >
-                                        <span className="text-sm">
-                                          {required}x{" "}
-                                          {req.requirementItem?.name || "Unknown Item"}
-                                        </span>
-                                        <div
-                                          className={`text-sm font-medium ${
-                                            hasEnough
-                                              ? "text-green-600"
-                                              : "text-red-600"
-                                          }`}
-                                        >
-                                          {totalQuantity}/{required}
-                                          {hasEnough ? " ✓" : " ✗"}
-                                        </div>
+                                        {totalQuantity}/{required}
+                                        {hasEnough ? " ✓" : " ✗"}
                                       </div>
-                                    );
-                                  },
-                                )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
@@ -540,7 +542,7 @@ export default function OccupationCrafting() {
                 <Gem className="h-5 w-5" />
                 Currently Imbuing
                 {activeImbuement?.craftingFinishedAt && (
-                  <span className="text-sm font-normal text-muted-foreground">
+                  <span className="font-normal text-muted-foreground text-sm">
                     (
                     <Countdown
                       targetDate={new Date(activeImbuement.craftingFinishedAt)}
@@ -576,7 +578,7 @@ export default function OccupationCrafting() {
                     size="sm"
                     className="w-fit"
                   >
-                    <Zap className="h-4 w-4 mr-2" />
+                    <Zap className="mr-2 h-4 w-4" />
                     Instant Finish (Staff)
                   </Button>
                 )}
@@ -616,7 +618,7 @@ export default function OccupationCrafting() {
                 ) : (
                   <>
                     <div>
-                      <h4 className="font-medium mb-2">Select Item to Imbue</h4>
+                      <h4 className="mb-2 font-medium">Select Item to Imbue</h4>
                       <ActionSelector
                         items={imbuableItems
                           .map((userItem) => {
@@ -659,8 +661,8 @@ export default function OccupationCrafting() {
 
                     {selectedImbuableItem && (
                       <div>
-                        <h4 className="font-medium mb-2">Select Crystal</h4>
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <h4 className="mb-2 font-medium">Select Crystal</h4>
+                        <p className="mb-2 text-muted-foreground text-sm">
                           Only crystals compatible with{" "}
                           <strong>{selectedImbuableItem.item?.itemType}</strong> items
                           are shown.
@@ -723,7 +725,7 @@ export default function OccupationCrafting() {
                         >
                           <div className="space-y-4">
                             <div>
-                              <h4 className="font-semibold text-sm mb-2">
+                              <h4 className="mb-2 font-semibold text-sm">
                                 Target Item
                               </h4>
                               {selectedImbuableItem.item && (
@@ -738,13 +740,13 @@ export default function OccupationCrafting() {
                               )}
                             </div>
                             <div>
-                              <h4 className="font-semibold text-sm mb-2">Crystal</h4>
+                              <h4 className="mb-2 font-semibold text-sm">Crystal</h4>
                               {selectedCrystalUserItem.item && (
                                 <ItemWithEffects item={selectedCrystalUserItem.item} />
                               )}
                             </div>
-                            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3">
-                              <p className="text-sm text-muted-foreground">
+                            <div className="rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+                              <p className="text-muted-foreground text-sm">
                                 This will permanently imbue your{" "}
                                 {selectedImbuableItem.item?.name} with the effects of{" "}
                                 {selectedCrystalUserItem.item?.name}. The crystal will
@@ -789,12 +791,12 @@ export default function OccupationCrafting() {
               <CardContent>
                 <div className="space-y-4">
                   {itemsWithImbuements.map((userItem) => (
-                    <div key={userItem.id} className="border rounded-lg p-4">
-                      <div className="flex items-center gap-3 mb-3">
+                    <div key={userItem.id} className="rounded-lg border p-4">
+                      <div className="mb-3 flex items-center gap-3">
                         <ContentImage
                           image={userItem.item?.image || ""}
                           alt={userItem.item?.name || "Unknown"}
-                          className="w-12 h-12"
+                          className="h-12 w-12"
                         />
                         <div>
                           <h4 className="font-semibold">{userItem.item?.name}</h4>
@@ -805,7 +807,7 @@ export default function OccupationCrafting() {
                                 new Date(i.craftingFinishedAt) <= new Date(),
                             ).length;
                             return (
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-muted-foreground text-sm">
                                 {done} imbuement{done !== 1 ? "s" : ""}
                               </p>
                             );
@@ -821,7 +823,7 @@ export default function OccupationCrafting() {
                       {/* Imbuements with remove buttons */}
                       {userItem.imbuements && userItem.imbuements.length > 0 && (
                         <div className="mt-3 rounded-lg bg-purple-100 p-3">
-                          <h4 className="font-semibold text-purple-800 mb-2">
+                          <h4 className="mb-2 font-semibold text-purple-800">
                             Imbuements
                           </h4>
                           <div className="space-y-2">
@@ -834,13 +836,13 @@ export default function OccupationCrafting() {
                               .map((imbuement) => (
                                 <div
                                   key={imbuement.id}
-                                  className="flex items-center justify-between bg-white rounded p-2"
+                                  className="flex items-center justify-between rounded bg-white p-2"
                                 >
                                   <div className="flex items-center space-x-2">
                                     <ContentImage
                                       image={imbuement.item.image}
                                       alt={imbuement.item.name}
-                                      className="w-8 h-8"
+                                      className="h-8 w-8"
                                     />
                                     <span className="font-medium">
                                       {imbuement.item.name}
@@ -911,10 +913,10 @@ export default function OccupationCrafting() {
                     );
                     const canAfford = (userData?.money || 0) >= totalRepairCost;
                     return (
-                      <div className="mb-4 flex items-center justify-between rounded-lg border p-4 bg-muted/50">
+                      <div className="mb-4 flex items-center justify-between rounded-lg border bg-muted/50 p-4">
                         <div>
                           <p className="font-semibold">Repair All Items</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-muted-foreground text-sm">
                             Total cost:{" "}
                             <span
                               className={canAfford ? "text-green-600" : "text-red-600"}
@@ -961,16 +963,16 @@ export default function OccupationCrafting() {
                       (userItem.durability / userItem.item.maxDurability) * 100,
                     );
                     return (
-                      <div key={userItem.id} className="border rounded-lg p-4">
-                        <div className="flex items-center gap-3 mb-3">
+                      <div key={userItem.id} className="rounded-lg border p-4">
+                        <div className="mb-3 flex items-center gap-3">
                           <ContentImage
                             image={userItem.item?.image || ""}
                             alt={userItem.item?.name || "Unknown"}
-                            className="w-12 h-12"
+                            className="h-12 w-12"
                           />
                           <div className="flex-1">
                             <h4 className="font-semibold">{userItem.item?.name}</h4>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                               Durability: {userItem.durability} /{" "}
                               {userItem.item.maxDurability} ({durabilityPercent}%)
                             </p>
@@ -1022,7 +1024,7 @@ export default function OccupationCrafting() {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
                   <div>
                     <Badge variant="outline" className="mb-2">
                       Novice (0-
@@ -1072,8 +1074,8 @@ export default function OccupationCrafting() {
                 </div>
               </div>
               <div>
-                <h4 className="font-medium mb-2">How Crafting Works</h4>
-                <ul className="space-y-1 text-sm text-muted-foreground">
+                <h4 className="mb-2 font-medium">How Crafting Works</h4>
+                <ul className="space-y-1 text-muted-foreground text-sm">
                   <li>• Items need crafting requirements set by administrators</li>
                   <li>• You can only craft one item at a time</li>
                   <li>• Required materials are consumed when crafting starts</li>

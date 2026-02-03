@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { statFilters } from "@/libs/train";
 import {
-  ItemTypes,
+  AttackMethods,
+  AttackTargets,
+  BattleUsageTypes,
   ItemRarities,
   ItemSlotTypes,
-  AttackTargets,
-  AttackMethods,
-  BattleUsageTypes,
+  ItemTypes,
 } from "@/drizzle/constants";
+import { statFilters } from "@/libs/train";
 
 export const itemFilteringSchema = z.object({
   limit: z.number().min(1).max(500),

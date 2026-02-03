@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Clock, Gift, Pencil, Plus, Shield, Trash2 } from "lucide-react";
+import { useState } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { api } from "@/app/_trpc/client";
-import { showMutationToast } from "@/libs/toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -17,24 +22,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, Gift, Shield, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { STARTER_VILLAGES, UserRanks } from "@/drizzle/constants";
+import { EditContent, EffectFormWrapper, type FormEntry } from "@/layout/EditContent";
 import Modal2 from "@/layout/Modal2";
-import { ObjectiveReward } from "@/validators/rewards";
-import { EffectFormWrapper, EditContent, type FormEntry } from "@/layout/EditContent";
-import { getTagSchema, tagTypes } from "@/validators/combat";
 import { getRewardArray } from "@/libs/objectives";
-import { useUserData } from "@/utils/UserContext";
+import { showMutationToast } from "@/libs/toast";
 import { canAwardReputation } from "@/utils/permissions";
-import { UserRanks, STARTER_VILLAGES } from "@/drizzle/constants";
+import { useUserData } from "@/utils/UserContext";
 import type { ZodAllTags } from "@/validators/combat";
+import { getTagSchema, tagTypes } from "@/validators/combat";
 import type { ObjectiveRewardType } from "@/validators/rewards";
-import type { UseFormReturn } from "react-hook-form";
+import { ObjectiveReward } from "@/validators/rewards";
 
 interface RaidThresholdEditorProps {
   questId: string;
@@ -275,8 +275,8 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
     <div className="space-y-4">
       {/* Threshold List */}
       {thresholds.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <Gift className="h-12 w-12 mx-auto mb-2 opacity-50" />
+        <div className="py-8 text-center text-muted-foreground">
+          <Gift className="mx-auto mb-2 h-12 w-12 opacity-50" />
           <p>No damage thresholds configured yet.</p>
           <p className="text-sm">
             Add thresholds to reward players based on damage dealt.
@@ -287,7 +287,7 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
           {thresholds.map((threshold, idx) => (
             <div
               key={threshold.id}
-              className="flex items-center justify-between p-3 border rounded-lg"
+              className="flex items-center justify-between rounded-lg border p-3"
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
@@ -295,19 +295,19 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
                     Tier {idx + 1}: {threshold.damageRequired.toLocaleString()} damage
                   </span>
                   {threshold.effects && threshold.effects.length > 0 && (
-                    <span className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded">
+                    <span className="flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-blue-800 text-xs dark:bg-blue-900 dark:text-blue-200">
                       <Shield className="h-3 w-3" />
                       {threshold.effects.length} effect(s)
                     </span>
                   )}
                   {threshold.effects && threshold.effects.length > 0 && (
-                    <span className="flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded">
+                    <span className="flex items-center gap-1 rounded bg-purple-100 px-2 py-0.5 text-purple-800 text-xs dark:bg-purple-900 dark:text-purple-200">
                       <Clock className="h-3 w-3" />
                       {threshold.effectDurationMinutes}min
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {formatRewards(threshold.rewards)}
                 </p>
               </div>
@@ -335,7 +335,7 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
 
       {/* Add Button */}
       <Button onClick={openCreateModal} className="w-full">
-        <Plus className="h-4 w-4 mr-2" />
+        <Plus className="mr-2 h-4 w-4" />
         Add Damage Threshold
       </Button>
 
@@ -382,10 +382,10 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
 
             {/* Rewards Section */}
             <div className="space-y-4">
-              <Label className="text-base font-semibold">Rewards</Label>
+              <Label className="font-semibold text-base">Rewards</Label>
 
-              <div className="flex items-center justify-between border rounded-md p-3">
-                <span className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <span className="text-muted-foreground text-sm">
                   {formatRewards(watchedRewards)}
                 </span>
                 <Button
@@ -412,11 +412,11 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
             {/* Combat Effects Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">
+                <Label className="font-semibold text-base">
                   Combat Effects (Raid Buff)
                 </Label>
                 <Button type="button" variant="outline" size="sm" onClick={addEffect}>
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="mr-1 h-4 w-4" />
                   Add Effect
                 </Button>
               </div>
@@ -437,7 +437,7 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
                           {...field}
                         />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         How long the combat buff lasts (1 min - 7 days)
                       </p>
                       <FormMessage />
@@ -447,14 +447,17 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
               )}
 
               {effects.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
+                <p className="py-4 text-center text-muted-foreground text-sm">
                   No combat effects. Add effects to grant temporary combat buffs when
                   claiming this reward.
                 </p>
               ) : (
                 <div className="space-y-4">
                   {effects.map((effect, idx) => (
-                    <div key={idx} className="border rounded-lg p-4 relative">
+                    <div
+                      key={`effect-${effect.type}-${idx}`}
+                      className="relative rounded-lg border p-4"
+                    >
                       <Button
                         type="button"
                         variant="ghost"
@@ -512,7 +515,7 @@ const RewardDialog: React.FC<RewardDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-y-auto max-h-screen">
+      <DialogContent className="max-h-screen max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Rewards</DialogTitle>
         </DialogHeader>

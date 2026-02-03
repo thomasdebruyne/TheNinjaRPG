@@ -1,16 +1,14 @@
 "use client";
 
-import { api } from "@/app/_trpc/client";
 import Link from "next/link";
+import { api } from "@/app/_trpc/client";
 import AvatarImage from "@/layout/Avatar";
 import ConceptImage from "@/layout/ConceptImage";
 import ContentBox, { type ContentBoxProps } from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 
-interface ConceptBox_ConceptImageProps extends Omit<
-  ContentBoxProps,
-  "title" | "subtitle" | "children"
-> {
+interface ConceptBox_ConceptImageProps
+  extends Omit<ContentBoxProps, "title" | "subtitle" | "children"> {
   imageid?: string;
 }
 

@@ -1,28 +1,34 @@
-import { availableUserActions } from "@/libs/combat/actions";
-import { performBattleAction } from "@/libs/combat/actions";
-import { actionPointsAfterAction } from "@/libs/combat/actions";
-import { stillInBattle } from "@/libs/combat/actions";
+import type { Grid } from "honeycomb-grid";
+import { spiral } from "honeycomb-grid";
 import {
-  findUser,
-  findBarrier,
+  actionPointsAfterAction,
+  availableUserActions,
+  performBattleAction,
+  stillInBattle,
+} from "@/libs/combat/actions";
+import type {
+  ActionEffect,
+  BattleUserState,
+  CombatAction,
+  CompleteBattle,
+  GroundEffect,
+  UserEffect,
+} from "@/libs/combat/types";
+import {
   calcPoolCost,
+  findBarrier,
+  findUser,
   getAiProfile,
+  getBarriersBetween,
   getEffectiveCurPool,
   getEffectiveMaxPool,
 } from "@/libs/combat/util";
-import { PathCalculator, findHex } from "@/libs/hexgrid";
-import { getBarriersBetween } from "@/libs/combat/util";
-import { ActionEndTurn, getBackupRules } from "@/validators/ai";
-import { enforceExtraRules } from "@/validators/ai";
-import { spiral } from "honeycomb-grid";
-import type { ActionEffect, BattleUserState } from "@/libs/combat/types";
-import type { CombatAction, GroundEffect, UserEffect } from "@/libs/combat/types";
-import type { CompleteBattle } from "@/libs/combat/types";
+import type { Point2D, UserLocation } from "@/libs/hexgrid";
+import { findHex, PathCalculator } from "@/libs/hexgrid";
+import type { ZodAllAiAction, ZodAllAiCondition } from "@/validators/ai";
+import { ActionEndTurn, enforceExtraRules, getBackupRules } from "@/validators/ai";
 import type { ZodAllTags } from "@/validators/combat";
 import type { TerrainHex } from "../hexgrid";
-import type { ZodAllAiCondition, ZodAllAiAction } from "@/validators/ai";
-import type { Grid } from "honeycomb-grid";
-import type { Point2D, UserLocation } from "@/libs/hexgrid";
 
 type ActionWithTarget = {
   action: CombatAction;
@@ -53,7 +59,7 @@ export const performAIaction = (
   const aiUsers = nextBattle.usersState.filter((user) => user.isAi);
 
   // Next action bookkeeping
-  let nextAction: ActionWithTarget | undefined = undefined;
+  let nextAction: ActionWithTarget | undefined;
 
   // Path finder on grid in path lines
   let astar = new PathCalculator(updateGridWithObstacles(grid, nextBattle));
@@ -88,13 +94,17 @@ export const performAIaction = (
     // User hex
     const origin = findHex(grid, user);
     // Get user enemies - use nextBattle to get latest state after earlier actions
-    const enemies = getEnemies(nextBattle.usersState, user.userId, nextBattle.usersEffects).map(
-      (u) => mapDistancesToTarget(grid, astar, u, origin),
-    );
+    const enemies = getEnemies(
+      nextBattle.usersState,
+      user.userId,
+      nextBattle.usersEffects,
+    ).map((u) => mapDistancesToTarget(grid, astar, u, origin));
     // Get user allies - use nextBattle to get latest state after earlier actions
-    const allies = getAllies(nextBattle.usersState, user.userId, nextBattle.usersEffects).map(
-      (u) => mapDistancesToTarget(grid, astar, u, origin),
-    );
+    const allies = getAllies(
+      nextBattle.usersState,
+      user.userId,
+      nextBattle.usersEffects,
+    ).map((u) => mapDistancesToTarget(grid, astar, u, origin));
     // Derived for convenience
     const userWithDistance = { ...user, path: undefined, distance: 0 };
     const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
@@ -185,7 +195,7 @@ export const performAIaction = (
           return barriers[0];
         case "SELF":
           return userWithDistance;
-        case "EMPTY_GROUND_CLOSEST_TO_OPPONENT":
+        case "EMPTY_GROUND_CLOSEST_TO_OPPONENT": {
           const closestTiles = getTargetableTiles(origin, action);
           const closestTarget = closestTiles?.[0];
           if (closestTarget) {
@@ -197,7 +207,8 @@ export const performAIaction = (
             };
           }
           break;
-        case "EMPTY_GROUND_CLOSEST_TO_SELF":
+        }
+        case "EMPTY_GROUND_CLOSEST_TO_SELF": {
           const furthestTiles = getTargetableTiles(origin, action);
           const furthestTarget = furthestTiles?.at(-1);
           if (furthestTarget) {
@@ -209,6 +220,7 @@ export const performAIaction = (
             };
           }
           break;
+        }
       }
       return undefined;
     };
@@ -234,7 +246,7 @@ export const performAIaction = (
           case "distance_lower_than":
             return target ? target.distance <= condition.value : false;
           case "specific_round":
-            return nextBattle.round === condition.value ? true : false;
+            return nextBattle.round === condition.value;
           case "round_greater_than":
             return nextBattle.round > condition.value;
           case "round_lower_than":
@@ -278,6 +290,8 @@ export const performAIaction = (
             );
             return totalTargetPower >= condition.threshold;
           }
+          default:
+            return true;
         }
       });
       /** ************************ */

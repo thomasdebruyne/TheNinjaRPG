@@ -40,7 +40,7 @@ export const getMostCommonElement = <T extends string>(arr: T[]): T | undefined 
   }
 
   let maxCount = 0;
-  let mostCommon: T | undefined = undefined;
+  let mostCommon: T | undefined;
 
   for (const item of arr) {
     if (counts[item] > maxCount) {

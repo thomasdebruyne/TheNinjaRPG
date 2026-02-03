@@ -1,74 +1,77 @@
-import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, gte, inArray, like, ne, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, inArray, sql, and, or, gte, ne, like, desc } from "drizzle-orm";
+import { z } from "zod";
 import {
-  jutsu,
-  userJutsu,
-  userData,
-  actionLog,
-  jutsuLoadout,
-  bloodline,
-  jutsuReskin,
-  skillTree,
-  item,
-  quest,
-} from "@/drizzle/schema";
-import { fetchUser, fetchUpdatedUser } from "./profile";
-import { canTrainJutsu } from "@/libs/train";
-import { getNewTrackers } from "@/libs/quest";
-import {
+  COST_RESKIN_JUTSU,
+  IMG_AVATAR_DEFAULT,
   JUTSU_LEVEL_CAP,
+  JUTSU_MAX_BARRIER_EQUIPPED,
+  JUTSU_MAX_EVENT_EQUIPPED,
+  JUTSU_MAX_PIERCE_EQUIPPED,
+  JUTSU_MAX_RESIDUAL_EQUIPPED,
+  JUTSU_MAX_STUN_EQUIPPED,
   JUTSU_TRANSFER_COST,
   JUTSU_TRANSFER_DAYS,
   JUTSU_TRANSFER_MAX_LEVEL,
   JUTSU_TRANSFER_MINIMUM_LEVEL,
-  JUTSU_MAX_RESIDUAL_EQUIPPED,
-  JUTSU_MAX_PIERCE_EQUIPPED,
-  JUTSU_MAX_EVENT_EQUIPPED,
-  JUTSU_MAX_BARRIER_EQUIPPED,
-  JUTSU_MAX_STUN_EQUIPPED,
+  RESKIN_LIMIT,
   TUTORIAL_JUTSU_ID,
 } from "@/drizzle/constants";
+import type { JutsuLoadout, UserData, UserJutsuWithRelations } from "@/drizzle/schema";
 import {
-  calcJutsuTrainTime,
-  calcJutsuTrainCost,
-  calcJutsuEquipLimit,
-} from "@/libs/train";
-import { DAY_S, secondsFromDate } from "@/utils/time";
+  actionLog,
+  bloodline,
+  item,
+  jutsu,
+  jutsuLoadout,
+  jutsuReskin,
+  quest,
+  skillTree,
+  userData,
+  userJutsu,
+} from "@/drizzle/schema";
 import { getFreeTransfers, getReskinnedUserJutsu } from "@/libs/jutsu";
-import { JutsuValidator } from "@/validators/combat";
+import { validateUserUpdateReason } from "@/libs/moderator";
+import { getNewTrackers } from "@/libs/quest";
+import { callDiscordContent } from "@/libs/socials";
+import {
+  calcJutsuEquipLimit,
+  calcJutsuTrainCost,
+  calcJutsuTrainTime,
+  canTrainJutsu,
+} from "@/libs/train";
+import { fetchStudents } from "@/routers/sensei";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "@/server/api/trpc";
+import type { DrizzleClient } from "@/server/db";
+import { calculateContentDiff } from "@/utils/diff";
+import { fedJutsuLoadouts } from "@/utils/paypal";
 import {
   canChangeContent,
   canEditJutsus,
-  canTransferJutsu,
-  canReskinFreely,
   canModerateReskin,
   canOnlyEditSelf,
+  canReskinFreely,
+  canTransferJutsu,
 } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/socials";
-import { createTRPCRouter, errorResponse } from "@/server/api/trpc";
-import { protectedProcedure, publicProcedure } from "@/server/api/trpc";
-import { serverError, baseServerResponse } from "@/server/api/trpc";
-import { fedJutsuLoadouts } from "@/utils/paypal";
-import {
-  IMG_AVATAR_DEFAULT,
-  RESKIN_LIMIT,
-  COST_RESKIN_JUTSU,
-} from "@/drizzle/constants";
-import { calculateContentDiff } from "@/utils/diff";
+import { DAY_S, secondsFromDate } from "@/utils/time";
+import type { ZodAllTags } from "@/validators/combat";
+import { JutsuValidator } from "@/validators/combat";
+import type { JutsuFilteringSchema } from "@/validators/jutsu";
 import {
   jutsuFilteringSchema,
   jutsuReskinCreateSchema,
   jutsuReskinUpdateSchema,
 } from "@/validators/jutsu";
 import { QuestTracker } from "@/validators/objectives";
-import type { JutsuFilteringSchema } from "@/validators/jutsu";
-import type { ZodAllTags } from "@/validators/combat";
-import type { UserData, JutsuLoadout, UserJutsuWithRelations } from "@/drizzle/schema";
-import type { DrizzleClient } from "@/server/db";
-import { TRPCError } from "@trpc/server";
-import { fetchStudents } from "@/routers/sensei";
-import { validateUserUpdateReason } from "@/libs/moderator";
+import { fetchUpdatedUser, fetchUser } from "./profile";
 
 export const jutsuRouter = createTRPCRouter({
   getRecentTransfers: protectedProcedure.query(async ({ ctx }) => {
@@ -832,7 +835,7 @@ export const jutsuRouter = createTRPCRouter({
         j.jutsu.effects.some((e) => e.type === "stun"),
       ).length;
       const curJutsuIsStun = userjutsuObj?.jutsu.effects.some((e) => e.type === "stun");
-      const newEquippedState = isEquipped ? false : true;
+      const newEquippedState = !isEquipped;
       const loadout = loadouts.find((l) => l.id === user.jutsuLoadout);
       const isLoaded = userjutsuObj && loadout?.jutsuIds.includes(userjutsuObj.jutsuId);
       const residualJutsus = userjutsus.filter(

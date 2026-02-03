@@ -1,12 +1,9 @@
-import { ObjectiveReward, type PostProcessedRewards } from "@/validators/rewards";
-import { getQuestCounterFieldName } from "@/validators/user";
-import { ObjectiveTracker, QuestTracker } from "@/validators/objectives";
-import { secondsPassed } from "@/utils/time";
-import { isQuestObjectiveAvailable } from "@/libs/objectives";
-import { canChangeContent, canPlayHiddenQuests } from "@/utils/permissions";
-import { calcMedninRank } from "@/libs/hospital";
 import {
-  IMG_MISSION_S,
+  ADDITIONAL_MISSION_REWARD_MULTIPLIER,
+  type GATHERING_RANK,
+  GATHERING_RANKS,
+  type HUNTING_RANK,
+  HUNTING_RANKS,
   IMG_MISSION_A,
   IMG_MISSION_B,
   IMG_MISSION_C,
@@ -14,33 +11,43 @@ import {
   IMG_MISSION_E,
   IMG_MISSION_M,
   IMG_MISSION_PVP,
-  VILLAGE_SYNDICATE_ID,
-  ADDITIONAL_MISSION_REWARD_MULTIPLIER,
-  MEDNIN_RANKS,
-  type MEDNIN_RANK,
-  type HUNTING_RANK,
-  type GATHERING_RANK,
+  IMG_MISSION_S,
   type LetterRank,
-  type QuestType,
   MAP_TOTAL_SECTORS,
-  SENSEI_STUDENT_MISSION_EXP_BOOST_PERC,
-  SENSEI_MAX_STUDENT_LEVEL,
-  HUNTING_RANKS,
-  GATHERING_RANKS,
+  type MEDNIN_RANK,
+  MEDNIN_RANKS,
+  type QuestType,
   QuestTypesWithMaxAttempts,
+  SECTOR_HEIGHT,
+  SECTOR_WIDTH,
+  SENSEI_MAX_STUDENT_LEVEL,
+  SENSEI_STUDENT_MISSION_EXP_BOOST_PERC,
+  VILLAGE_SYNDICATE_ID,
 } from "@/drizzle/constants";
-import { getShrineBoost } from "@/utils/village";
-import { SECTOR_HEIGHT, SECTOR_WIDTH } from "@/drizzle/constants";
-import { getUnique } from "@/utils/grouping";
-import { isQuestComplete, findCompletedPredecessor } from "@/libs/objectives";
-import type { UserWithRelations } from "@/routers/profile";
-import type { AllObjectivesType, AllObjectiveTask } from "@/validators/objectives";
-import type { ObjectiveRewardType } from "@/validators/rewards";
-import { getHuntingRank } from "@/libs/hunting";
+import type { GameSetting, Quest, UserData, UserItem } from "@/drizzle/schema";
 import { getGatheringRank } from "@/libs/gathering";
-import type { Quest, UserData, UserItem, GameSetting } from "@/drizzle/schema";
-import type { QuestTrackerType } from "@/validators/objectives";
+import { calcMedninRank } from "@/libs/hospital";
+import { getHuntingRank } from "@/libs/hunting";
+import {
+  findCompletedPredecessor,
+  isQuestComplete,
+  isQuestObjectiveAvailable,
+} from "@/libs/objectives";
+import type { UserWithRelations } from "@/routers/profile";
+import { getUnique } from "@/utils/grouping";
+import { canChangeContent, canPlayHiddenQuests } from "@/utils/permissions";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
+import { secondsPassed } from "@/utils/time";
+import { getShrineBoost } from "@/utils/village";
+import type {
+  AllObjectivesType,
+  AllObjectiveTask,
+  QuestTrackerType,
+} from "@/validators/objectives";
+import { ObjectiveTracker, QuestTracker } from "@/validators/objectives";
+import type { ObjectiveRewardType } from "@/validators/rewards";
+import { ObjectiveReward, type PostProcessedRewards } from "@/validators/rewards";
+import { getQuestCounterFieldName } from "@/validators/user";
 
 /**
  * Get currently active quests for a user
@@ -978,6 +985,7 @@ export const getNewTrackers = (
         });
         return questTracker;
       }
+      return undefined;
     })
     .filter((q): q is QuestTrackerType => !!q);
 
@@ -1119,11 +1127,11 @@ export const controlShownQuestLocationInformation = (
       if ("sector" in status) {
         objective.sector = status.sector;
       }
-      if ("longitude" in status) {
-        objective.longitude = status.longitude!;
+      if ("longitude" in status && status.longitude !== undefined) {
+        objective.longitude = status.longitude;
       }
-      if ("latitude" in status) {
-        objective.latitude = status.latitude!;
+      if ("latitude" in status && status.latitude !== undefined) {
+        objective.latitude = status.latitude;
       }
     }
 
@@ -1405,7 +1413,10 @@ export const verifyQuestObjectiveFlow = (
     if (startingIds.length > 1) {
       throw new Error(`Multiple starting objectives found: ${startingIds.join(", ")}`);
     }
-    const startId = startingIds[0]!;
+    const startId = startingIds[0];
+    if (!startId) {
+      throw new Error("No starting objective found");
+    }
 
     // ------------------------------------------------------------------
     // 4. DFS to detect cycles & ensure reachability

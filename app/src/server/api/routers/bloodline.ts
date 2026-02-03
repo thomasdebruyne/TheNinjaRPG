@@ -1,56 +1,77 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { randomInt } from "crypto";
+import { randomInt } from "node:crypto";
 import {
+  and,
+  desc,
   eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  like,
   or,
   sql,
-  gte,
-  and,
-  inArray,
-  isNull,
-  isNotNull,
-  like,
-  desc,
 } from "drizzle-orm";
-import { userData } from "@/drizzle/schema";
-import { bloodline, bloodlineRolls, actionLog } from "@/drizzle/schema";
-import { bloodlineReskin } from "@/drizzle/schema";
-import { userJutsu, jutsu } from "@/drizzle/schema";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/api/trpc";
-import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
-import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
-import { BloodlineValidator } from "@/validators/combat";
-import { getRandomElement } from "@/utils/array";
-import { canChangeContent } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/socials";
-import { ROLL_CHANCE, REMOVAL_COST, BLOODLINE_COST } from "@/drizzle/constants";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { calculateContentDiff } from "@/utils/diff";
-import { bloodlineFilteringSchema } from "@/validators/bloodline";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "@/api/trpc";
+import {
+  BLOODLINE_COST,
+  BLOODLINE_SWAP_COOLDOWN_HOURS,
+  BLOODLINE_SWAP_FREE_DAYS,
+  COST_SWAP_BLOODLINE,
+  IMG_AVATAR_DEFAULT,
+  LetterRanks,
+  PITY_SYSTEM_ENABLED,
+  REMOVAL_COST,
+  ROLL_CHANCE,
+} from "@/drizzle/constants";
+import type { Bloodline, BloodlineRank, UserData } from "@/drizzle/schema";
+import {
+  actionLog,
+  bloodline,
+  bloodlineReskin,
+  bloodlineRolls,
+  jutsu,
+  userData,
+  userJutsu,
+} from "@/drizzle/schema";
+import {
+  filterRollableBloodlines,
+  getFreeBloodlineSwaps,
+  getPityRolls,
+} from "@/libs/bloodline";
+import { validateUserUpdateReason } from "@/libs/moderator";
+import { callDiscordContent } from "@/libs/socials";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import type { DrizzleClient } from "@/server/db";
+import { getRandomElement } from "@/utils/array";
+import { calculateContentDiff } from "@/utils/diff";
+import { getUnique } from "@/utils/grouping";
+import { getUserFederalStatus } from "@/utils/paypal";
+import { canChangeContent, canSwapBloodline } from "@/utils/permissions";
+import {
+  DAY_S,
+  getDaysHoursMinutesSeconds,
+  getTimeLeftStr,
+  secondsFromDate,
+  secondsPassed,
+} from "@/utils/time";
+import { setEmptyStringsToNulls } from "@/utils/typeutils";
+import type { BloodlineFilteringSchema } from "@/validators/bloodline";
+import {
+  bloodlineFilteringSchema,
   bloodlineReskinCreateSchema,
   bloodlineReskinUpdateSchema,
 } from "@/validators/bloodline";
-import { validateUserUpdateReason } from "@/libs/moderator";
-import { filterRollableBloodlines, getPityRolls } from "@/libs/bloodline";
-import { LetterRanks, PITY_SYSTEM_ENABLED } from "@/drizzle/constants";
-import { COST_SWAP_BLOODLINE } from "@/drizzle/constants";
-import {
-  BLOODLINE_SWAP_COOLDOWN_HOURS,
-  BLOODLINE_SWAP_FREE_DAYS,
-} from "@/drizzle/constants";
-import { getUnique } from "@/utils/grouping";
-import { canSwapBloodline } from "@/utils/permissions";
-import { getUserFederalStatus } from "@/utils/paypal";
-import { getFreeBloodlineSwaps } from "@/libs/bloodline";
-import { secondsFromDate, secondsPassed, DAY_S } from "@/utils/time";
-import { getTimeLeftStr, getDaysHoursMinutesSeconds } from "@/utils/time";
-import { setEmptyStringsToNulls } from "@/utils/typeutils";
 import type { ZodAllTags } from "@/validators/combat";
-import type { BloodlineRank, Bloodline, UserData } from "@/drizzle/schema";
-import type { DrizzleClient } from "@/server/db";
-import type { BloodlineFilteringSchema } from "@/validators/bloodline";
+import { BloodlineValidator } from "@/validators/combat";
 
 export const bloodlineRouter = createTRPCRouter({
   getAllNames: publicProcedure.query(async ({ ctx }) => {
@@ -232,9 +253,7 @@ export const bloodlineRouter = createTRPCRouter({
 
       return {
         success: true,
-        message: `Bloodline swapped${
-          isFreeSwap ? ` (Free for ${federalStatus} supporter)` : ""
-        }`,
+        message: `Bloodline swapped${isFreeSwap ? ` (Free for ${federalStatus} supporter)` : ""}`,
       };
     }),
   // Bloodline reskins (staff-only creation & moderation)
@@ -619,7 +638,7 @@ export const bloodlineRouter = createTRPCRouter({
      */
     const doRoll = async () => {
       const rand = randomInt(0, 1_000_000) / 1_000_000;
-      let bloodlineRank: BloodlineRank | undefined = undefined;
+      let bloodlineRank: BloodlineRank | undefined;
       if (rand < ROLL_CHANCE.S) {
         bloodlineRank = "S";
       } else if (rand < ROLL_CHANCE.A) {
@@ -854,15 +873,17 @@ export const updateBloodline = async (
         and(eq(userData.userId, user.userId), gte(userData.reputationPoints, repCost)),
       ),
     // Create a log entry for this action
-    client.insert(actionLog).values({
-      id: nanoid(),
-      userId: user.userId,
-      tableName: "user",
-      changes: [logMsg],
-      relatedId: user.userId,
-      relatedMsg: "Bloodline Changed",
-      relatedImage: user.avatarLight || user.avatar || IMG_AVATAR_DEFAULT,
-    }),
+    client
+      .insert(actionLog)
+      .values({
+        id: nanoid(),
+        userId: user.userId,
+        tableName: "user",
+        changes: [logMsg],
+        relatedId: user.userId,
+        relatedMsg: "Bloodline Changed",
+        relatedImage: user.avatarLight || user.avatar || IMG_AVATAR_DEFAULT,
+      }),
   ]);
 };
 /**
@@ -927,8 +948,11 @@ export const fetchUserHistoricBloodlines = async (
     with: { bloodline: { with: { village: true } } },
   });
   const userBloodlines = getUnique(userRolls, "bloodlineId")
-    .filter((roll) => roll.bloodline)
-    .map((roll) => roll.bloodline!);
+    .filter(
+      (roll): roll is typeof roll & { bloodline: NonNullable<typeof roll.bloodline> } =>
+        !!roll.bloodline,
+    )
+    .map((roll) => roll.bloodline);
   // Return array of bloodline objects
   return userBloodlines;
 };

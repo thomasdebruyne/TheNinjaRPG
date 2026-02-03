@@ -1,61 +1,88 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { eq, sql, and, or, gte, like, isNull, inArray, desc } from "drizzle-orm";
-import { getTableColumns } from "drizzle-orm";
-import { villageStructure, conversation, sector } from "@/drizzle/schema";
-import { war, warAlly, warKill } from "@/drizzle/schema";
-import { clan, mpvpBattleQueue, mpvpBattleUser, actionLog } from "@/drizzle/schema";
-import { userData, userRequest, historicalAvatar, village } from "@/drizzle/schema";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { errorResponse, baseServerResponse } from "@/server/api/trpc";
-import { fetchVillage, fetchVillages, fetchStructures } from "@/routers/village";
-import { fetchUser, updateNindo } from "@/routers/profile";
-import { getServerPusher } from "@/libs/pusher";
+import type { inferRouterOutputs } from "@trpc/server";
 import {
-  clanCreateSchema,
-  checkCoLeader,
-  checkAssassin,
-  clanBoostTypeSchema,
-} from "@/validators/clan";
-import { hasRequiredRank } from "@/libs/train";
-import { canEditClans } from "@/utils/permissions";
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  isNull,
+  like,
+  or,
+  sql,
+} from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import {
+  ASSASSIN_MAX_PER_FACTION,
+  CLAN_ASSASSIN_SLOTS,
+  CLAN_BOOST_CONFIG,
+  CLAN_BOOST_MAX_LEVEL,
+  CLAN_BOOST_PERCENT_PER_LEVEL,
+  CLAN_COLOR_CHANGE_REP_COST,
+  CLAN_CREATE_PRESTIGE_REQUIREMENT,
+  CLAN_CREATE_RYO_COST,
+  CLAN_LOBBY_SECONDS,
+  CLAN_MAX_MEMBERS,
+  CLAN_RANK_REQUIREMENT,
+  CLANS_PER_STRUCTURE_LEVEL,
+  ELDER_NOMINATION_CUTOFF_DAY,
+  ELDER_NOMINATION_DEADLINE_DAY,
+  FACTION_MIN_MEMBERS_FOR_TOWN,
+  FACTION_MIN_POINTS_FOR_TOWN,
+  HIDEOUT_COST,
+  HIDEOUT_TOWN_UPGRADE,
+  IMG_AVATAR_DEFAULT,
+  IMG_VILLAGE_FACTION,
+  KAGE_MAX_ELDERS,
+  TOWN_REESTABLISH_COST,
+  VILLAGE_SYNDICATE_ID,
+} from "@/drizzle/constants";
+import type { UserData } from "@/drizzle/schema";
+import {
+  actionLog,
+  clan,
+  conversation,
+  historicalAvatar,
+  mpvpBattleQueue,
+  mpvpBattleUser,
+  sector,
+  userData,
+  userRequest,
+  village,
+  villageStructure,
+  war,
+  warAlly,
+  warKill,
+} from "@/drizzle/schema";
 import { checkIfSectorIsAvailable } from "@/libs/clan";
+import { getServerPusher } from "@/libs/pusher";
+import { hasRequiredRank } from "@/libs/train";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUser, updateNindo } from "@/routers/profile";
 import {
   fetchRequest,
   fetchRequests,
   insertRequest,
   updateRequestState,
 } from "@/routers/sparring";
-import { initiateBattle } from "@/routers/combat";
-import { CLAN_LOBBY_SECONDS, CLAN_RANK_REQUIREMENT } from "@/drizzle/constants";
-import { CLAN_CREATE_RYO_COST, CLANS_PER_STRUCTURE_LEVEL } from "@/drizzle/constants";
-import { CLAN_CREATE_PRESTIGE_REQUIREMENT } from "@/drizzle/constants";
-import { CLAN_MAX_MEMBERS } from "@/drizzle/constants";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
+import { fetchStructures, fetchVillage, fetchVillages } from "@/routers/village";
 import {
-  CLAN_BOOST_MAX_LEVEL,
-  CLAN_BOOST_CONFIG,
-  CLAN_BOOST_PERCENT_PER_LEVEL,
-} from "@/drizzle/constants";
-import { HIDEOUT_COST, HIDEOUT_TOWN_UPGRADE } from "@/drizzle/constants";
-import { TOWN_REESTABLISH_COST } from "@/drizzle/constants";
-import { FACTION_MIN_POINTS_FOR_TOWN } from "@/drizzle/constants";
-import { ASSASSIN_MAX_PER_FACTION } from "@/drizzle/constants";
-import { CLAN_ASSASSIN_SLOTS } from "@/drizzle/constants";
-import { FACTION_MIN_MEMBERS_FOR_TOWN } from "@/drizzle/constants";
-import { IMG_VILLAGE_FACTION } from "@/drizzle/constants";
-import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
-import { CLAN_COLOR_CHANGE_REP_COST } from "@/drizzle/constants";
-import {
-  ELDER_NOMINATION_CUTOFF_DAY,
-  ELDER_NOMINATION_DEADLINE_DAY,
-  KAGE_MAX_ELDERS,
-} from "@/drizzle/constants";
-import type { inferRouterOutputs } from "@trpc/server";
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
 import type { DrizzleClient } from "@/server/db";
-import type { UserData } from "@/drizzle/schema";
+import { canEditClans } from "@/utils/permissions";
 import { secondsFromDate } from "@/utils/time";
 import { getEffectiveStructureLevel } from "@/utils/village";
+import {
+  checkAssassin,
+  checkCoLeader,
+  clanBoostTypeSchema,
+  clanCreateSchema,
+} from "@/validators/clan";
 
 const pusher = getServerPusher();
 

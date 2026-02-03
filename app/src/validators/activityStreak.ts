@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { rewardFields } from "./rewards";
 import { ActivityStreakTypes } from "@/drizzle/constants";
+import { rewardFields } from "./rewards";
 
 // Reward schema - reuse from objectives
 export const streakRewardSchema = z.object(rewardFields);

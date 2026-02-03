@@ -1,7 +1,7 @@
-import { z } from "zod";
 import { createInsertSchema } from "drizzle-zod";
-import { towerDefenseCharacter } from "@/drizzle/schema";
+import { z } from "zod";
 import { TD_ENEMY_DIRECTIONS } from "@/drizzle/constants";
+import { towerDefenseCharacter } from "@/drizzle/schema";
 
 // ============================================
 // Position & Coordinates

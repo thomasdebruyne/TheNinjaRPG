@@ -1,7 +1,7 @@
-import { zodToJsonSchema } from "openai-zod-to-json-schema";
 import { jsonSchema } from "ai";
-import type { ZodTypeAny } from "zod";
 import type { JSONSchema7 } from "json-schema";
+import { zodToJsonSchema } from "openai-zod-to-json-schema";
+import type { ZodTypeAny } from "zod";
 
 /**
  * Converts a Zod schema to an OpenAI compatible schema.

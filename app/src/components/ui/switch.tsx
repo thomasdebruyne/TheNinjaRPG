@@ -1,11 +1,10 @@
-import * as React from "react";
 import * as SwitchPrimitives from "@radix-ui/react-switch";
+import type * as React from "react";
 
 import { cn } from "src/libs/shadui";
 
-export interface SwitchProps extends React.ComponentPropsWithoutRef<
-  typeof SwitchPrimitives.Root
-> {
+export interface SwitchProps
+  extends React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {
   isDirty?: boolean;
   ref?: React.Ref<React.ElementRef<typeof SwitchPrimitives.Root>>;
 }

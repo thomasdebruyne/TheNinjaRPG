@@ -1,48 +1,48 @@
-import { z } from "zod";
+import { and, desc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { z } from "zod";
 import {
-  createTRPCRouter,
-  protectedProcedure,
-  ratelimitMiddleware,
-  hasUserMiddleware,
-  baseServerResponse,
-  errorResponse,
-} from "../trpc";
-import { and, eq, gte, lt, lte, isNull, sql, desc, inArray } from "drizzle-orm";
+  RAID_BATTLE_LOBBY_SECONDS,
+  RAID_BATTLE_MAX_USERS_PER_TEAM,
+  RAID_CLAIMING_TIMEOUT_MS,
+  RAID_MAX_CONCURRENT_TEAMS,
+} from "@/drizzle/constants";
 import {
-  quest,
-  raidParticipation,
-  raidDamageThreshold,
-  userRaidBuff,
-  mpvpBattleQueue,
-  mpvpBattleUser,
-  userData,
-  sector,
+  badge,
+  bloodline,
   item,
   jutsu,
-  bloodline,
-  badge,
+  mpvpBattleQueue,
+  mpvpBattleUser,
+  quest,
+  raidDamageThreshold,
+  raidParticipation,
+  sector,
+  userData,
+  userRaidBuff,
   war,
 } from "@/drizzle/schema";
-import {
-  RAID_BATTLE_MAX_USERS_PER_TEAM,
-  RAID_MAX_CONCURRENT_TEAMS,
-  RAID_BATTLE_LOBBY_SECONDS,
-  RAID_CLAIMING_TIMEOUT_MS,
-} from "@/drizzle/constants";
-import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
-import { initiateBattle } from "@/routers/combat";
-import { fetchActiveUserMpvpBattles } from "@/routers/clan";
-import { updateRewards } from "@/routers/quests";
-import { ObjectiveReward } from "@/validators/rewards";
-import type { RaidObjectiveType } from "@/validators/objectives";
+import { getServerPusher, updateRaidTeamsOnSector } from "@/libs/pusher";
 import { postProcessRewards } from "@/libs/quest";
 import { getRaidObjectiveData, validateRaidIsActive } from "@/libs/raids";
-import { secondsFromDate } from "@/utils/time";
-import { getServerPusher, updateRaidTeamsOnSector } from "@/libs/pusher";
+import { fetchActiveUserMpvpBattles } from "@/routers/clan";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import { updateRewards } from "@/routers/quests";
 import type { DrizzleClient } from "@/server/db";
 import { canChangeContent } from "@/utils/permissions";
+import { secondsFromDate } from "@/utils/time";
 import { AllTags } from "@/validators/combat";
+import type { RaidObjectiveType } from "@/validators/objectives";
+import { ObjectiveReward } from "@/validators/rewards";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  hasUserMiddleware,
+  protectedProcedure,
+  ratelimitMiddleware,
+} from "../trpc";
 
 export const raidsRouter = createTRPCRouter({
   /**
@@ -333,7 +333,7 @@ export const raidsRouter = createTRPCRouter({
       });
 
       // Derived
-      let nextCursor: typeof input.cursor = undefined;
+      let nextCursor: typeof input.cursor;
       if (participations.length > input.limit) {
         participations.pop();
         nextCursor = offset + input.limit;

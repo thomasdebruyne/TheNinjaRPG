@@ -1,42 +1,48 @@
-import { z } from "zod";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { baseServerResponse, errorResponse, serverError } from "../trpc";
-import { canSeeSecretData } from "@/utils/permissions";
-import { eq, and, gte, sql, asc, gt, isNull, desc, inArray } from "drizzle-orm";
+import { z } from "zod";
 import {
-  SHRINE_UPGRADE_COST,
-  SHRINE_BOOST_DURATION_HOURS,
-  SHRINE_AI_UNLOCK_COST,
-  SHRINE_MAX_AI_ASSIGNMENTS,
-  SHRINE_MAX_LEVEL,
-  SHRINE_WEEKLY_MAINTENANCE_COST,
-  SHRINE_BOOST_TYPES,
-  SHRINE_BOOST_COST,
-  WAR_SHRINE_MAINTENANCE_DAYS,
-  SHRINE_BATTLE_MIN_ATTACKERS,
-  SHRINE_BATTLE_MAX_USERS_PER_SIDE,
-  SHRINE_BATTLE_LOBBY_SECONDS,
   MAP_RESERVED_SECTORS,
   MAX_BOOSTS_PER_SHRINE,
+  SHRINE_AI_UNLOCK_COST,
+  SHRINE_BATTLE_LOBBY_SECONDS,
+  SHRINE_BATTLE_MAX_USERS_PER_SIDE,
+  SHRINE_BATTLE_MIN_ATTACKERS,
+  SHRINE_BOOST_COST,
+  SHRINE_BOOST_DURATION_HOURS,
+  SHRINE_BOOST_TYPES,
+  SHRINE_MAX_AI_ASSIGNMENTS,
+  SHRINE_MAX_LEVEL,
+  SHRINE_UPGRADE_COST,
+  SHRINE_WEEKLY_MAINTENANCE_COST,
   VILLAGE_SYNDICATE_ID,
+  WAR_SHRINE_MAINTENANCE_DAYS,
 } from "@/drizzle/constants";
 import {
-  sector,
-  village,
-  userData,
-  shrineBoostSchedule,
   mpvpBattleQueue,
   mpvpBattleUser,
+  sector,
+  shrineBoostSchedule,
+  userData,
+  village,
 } from "@/drizzle/schema";
-import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
-import { fetchActiveWars } from "./war";
-import { fetchAlliances } from "./village";
-import { fetchActiveUserMpvpBattles } from "./clan";
-import { findRelationship } from "@/utils/alliance";
-import { secondsFromDate, secondsFromNow, formatDateTimeShort } from "@/utils/time";
-import { initiateBattle } from "@/routers/combat";
 import { getServerPusher } from "@/libs/pusher";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import { findRelationship } from "@/utils/alliance";
+import { canSeeSecretData } from "@/utils/permissions";
+import { formatDateTimeShort, secondsFromDate, secondsFromNow } from "@/utils/time";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "../trpc";
+import { fetchActiveUserMpvpBattles } from "./clan";
+import { fetchAlliances } from "./village";
+import { fetchActiveWars } from "./war";
 
 // Pusher instance
 const pusher = getServerPusher();
@@ -470,12 +476,14 @@ export const shrineRouter = createTRPCRouter({
       }
 
       // Refund tokens to the village (schedule was in the future, so always refund)
-      await ctx.drizzle
-        .update(village)
-        .set({
-          tokens: sql`${village.tokens} + ${SHRINE_BOOST_COST}`,
-        })
-        .where(eq(village.id, user.villageId!));
+      if (user.villageId) {
+        await ctx.drizzle
+          .update(village)
+          .set({
+            tokens: sql`${village.tokens} + ${SHRINE_BOOST_COST}`,
+          })
+          .where(eq(village.id, user.villageId));
+      }
 
       return {
         success: true,

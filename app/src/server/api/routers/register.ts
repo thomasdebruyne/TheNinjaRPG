@@ -1,27 +1,31 @@
+import { and, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, sql, and } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { errorResponse, baseServerResponse } from "@/server/api/trpc";
-import { registrationSchema, utmSourceSchema } from "@/validators/register";
-import { historicalIp } from "@/drizzle/schema";
-import { referralSource } from "@/drizzle/schema";
-import { visitorLog } from "@/drizzle/schema";
-import { secondsFromNow } from "@/utils/time";
-import { checkForBadWords } from "@/utils/profanity";
 import {
-  TUTORIAL_STARTER_QUEST_ID,
   IMG_DEFAULT_PROFILE_PICTURE,
+  TUTORIAL_STARTER_QUEST_ID,
 } from "@/drizzle/constants";
 import {
   bloodline,
   bloodlineRolls,
   emailReminder,
+  historicalIp,
+  questHistory,
+  referralSource,
   userAttribute,
   userData,
-  questHistory,
   village,
+  visitorLog,
 } from "@/drizzle/schema";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
+import { checkForBadWords } from "@/utils/profanity";
+import { secondsFromNow } from "@/utils/time";
+import { registrationSchema, utmSourceSchema } from "@/validators/register";
 
 export const registerRouter = createTRPCRouter({
   // Set referral source on sign-in (before character creation)
@@ -131,9 +135,9 @@ export const registerRouter = createTRPCRouter({
           input.attribute_1,
           input.attribute_2,
           input.attribute_3,
-          input.hair_color + " hair",
-          input.eye_color + " eyes",
-          input.skin_color + " skin",
+          `${input.hair_color} hair`,
+          `${input.eye_color} eyes`,
+          `${input.skin_color} skin`,
         ]),
       ];
       await ctx.drizzle

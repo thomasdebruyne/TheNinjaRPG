@@ -1,29 +1,35 @@
+import type { ExecutedQuery } from "@planetscale/database";
+import { and, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { serverError, baseServerResponse, errorResponse } from "@/server/api/trpc";
-import { sql, eq, gte, lte, and, or, inArray, isNull } from "drizzle-orm";
-import { userData } from "@/drizzle/schema";
-import { hasRequiredRank } from "@/libs/train";
-import { calcHealFinish } from "@/libs/hospital";
-import { calcHealCost } from "@/libs/hospital";
-import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
-import { fetchStructures } from "@/routers/village";
-import { getStrucBoost } from "@/utils/village";
-import { findRelationship } from "@/utils/alliance";
-import { fetchAlliances } from "@/routers/village";
-import { getNewTrackers } from "@/libs/quest";
-import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
-import { calcHealthToChakra } from "@/libs/hospital";
-import { calcHowMuchToHeal } from "@/libs/hospital";
-import { MEDNIN_MIN_RANK } from "@/drizzle/constants";
 import {
+  MEDNIN_EXP_CAP,
   MEDNIN_HEAL_TO_EXP,
+  MEDNIN_HEALABLE_STATES,
+  MEDNIN_MIN_RANK,
   SENSEI_GENIN_MED_EXP_SHARE_PERC,
   SENSEI_MAX_STUDENT_LEVEL,
-  MEDNIN_EXP_CAP,
 } from "@/drizzle/constants";
-import { MEDNIN_HEALABLE_STATES } from "@/drizzle/constants";
-import type { ExecutedQuery } from "@planetscale/database";
+import { userData } from "@/drizzle/schema";
+import {
+  calcHealCost,
+  calcHealFinish,
+  calcHealthToChakra,
+  calcHowMuchToHeal,
+} from "@/libs/hospital";
+import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
+import { getNewTrackers } from "@/libs/quest";
+import { hasRequiredRank } from "@/libs/train";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import { fetchAlliances, fetchStructures } from "@/routers/village";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  serverError,
+} from "@/server/api/trpc";
+import { findRelationship } from "@/utils/alliance";
+import { getStrucBoost } from "@/utils/village";
 
 const pusher = getServerPusher();
 
@@ -38,8 +44,7 @@ export const hospitalRouter = createTRPCRouter({
     const allies = alliances
       .filter((a) => a.villageIdA === user.villageId || a.villageIdB === user.villageId)
       .filter((a) => a.status === "ALLY")
-      .map((a) => [a.villageIdA, a.villageIdB])
-      .flat();
+      .flatMap((a) => [a.villageIdA, a.villageIdB]);
     const uniqueVillageIds = user.villageId
       ? [...new Set([user.villageId, ...allies])]
       : [];

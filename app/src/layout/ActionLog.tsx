@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Loader from "@/layout/Loader";
-import ContentBox from "@/layout/ContentBox";
-import Table, { type ColumnDefinitionType } from "@/layout/Table";
 import { api } from "@/app/_trpc/client";
+import ContentBox from "@/layout/ContentBox";
+import Loader from "@/layout/Loader";
+import Table, { type ColumnDefinitionType } from "@/layout/Table";
 import { useInfinitePagination } from "@/libs/pagination";
 import type { ArrayElement } from "@/utils/typeutils";
 import type { ActionLogSchema } from "@/validators/logs";
@@ -35,8 +35,7 @@ const ActionLogs: React.FC<ActionLogsProps> = (props) => {
     },
   );
   const allEntries = entries?.pages
-    .map((page) => page.data)
-    .flat()
+    .flatMap((page) => page.data)
     .map((entry) => {
       return {
         ...entry,
@@ -45,11 +44,11 @@ const ActionLogs: React.FC<ActionLogsProps> = (props) => {
           <div>
             <h3>{entry.relatedMsg}</h3>
             {entry.changes.length > 0 &&
-              entry.changes.map((change, i) => {
-                return <li key={i}>{change}</li>;
+              entry.changes.map((change) => {
+                return <li key={change}>{change}</li>;
               })}
             {entry.changes.length === 0 && <li>No changes</li>}
-            <p className="italic font-bold mt-2">
+            <p className="mt-2 font-bold italic">
               Changed at: {entry.createdAt.toLocaleString()} by{" "}
               {entry.user?.username ?? "Unknown"}
             </p>

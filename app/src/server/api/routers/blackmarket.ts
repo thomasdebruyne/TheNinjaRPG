@@ -1,35 +1,44 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { eq, sql, gte, gt, and, asc, desc, isNull, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNotNull, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { fetchUser } from "./profile";
-import { round } from "@/utils/math";
-import { userData, ryoTrade, actionLog } from "@/drizzle/schema";
-import { secondsFromDate } from "@/utils/time";
-import { statSchema } from "@/validators/combat";
-import { COST_RESET_STATS } from "@/drizzle/constants";
-import { RYO_FOR_REP_DAYS_FROZEN } from "@/drizzle/constants";
-import { COST_CUSTOM_TITLE } from "@/drizzle/constants";
-import { COST_EXTRA_ITEM_SLOT } from "@/drizzle/constants";
-import { COST_CHANGE_GENDER } from "@/drizzle/constants";
-import { COST_EXTRA_JUTSU_SLOT } from "@/drizzle/constants";
-import { MAX_EXTRA_JUTSU_SLOTS } from "@/drizzle/constants";
-import { COST_REROLL_ELEMENT } from "@/drizzle/constants";
-import { RYO_FOR_REP_MAX_LISTINGS } from "@/drizzle/constants";
-import { RYO_FOR_REP_MIN_REPS } from "@/drizzle/constants";
-import { BasicElementName, ElementNames } from "@/drizzle/constants";
-import { RYO_CAP } from "@/drizzle/constants";
-import { getRandomElement } from "@/utils/array";
-import { genders } from "@/validators/register";
-import { baseServerResponse, errorResponse } from "../trpc";
-import { canRollPrimaryElement, canRollSecondaryElement } from "@/utils/permissions";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import type { ElementName } from "@/drizzle/constants";
+import {
+  BasicElementName,
+  COST_CHANGE_GENDER,
+  COST_CUSTOM_TITLE,
+  COST_EXTRA_ITEM_SLOT,
+  COST_EXTRA_JUTSU_SLOT,
+  COST_REROLL_ELEMENT,
+  COST_RESET_STATS,
+  ElementNames,
+  MAX_EXTRA_JUTSU_SLOTS,
+  RYO_CAP,
+  RYO_FOR_REP_DAYS_FROZEN,
+  RYO_FOR_REP_MAX_LISTINGS,
+  RYO_FOR_REP_MIN_REPS,
+} from "@/drizzle/constants";
+import { actionLog, ryoTrade, userData } from "@/drizzle/schema";
 import { filterValidElementsTypeguard } from "@/libs/train";
 import type { DrizzleClient } from "@/server/db";
-import type { ElementName } from "@/drizzle/constants";
+import { getRandomElement } from "@/utils/array";
+import { round } from "@/utils/math";
+import {
+  canChangeContent,
+  canRollPrimaryElement,
+  canRollSecondaryElement,
+} from "@/utils/permissions";
+import { secondsFromDate } from "@/utils/time";
 import type { DatabasePromiseReturn } from "@/utils/typeutils";
-
-import { canChangeContent } from "@/utils/permissions";
+import { statSchema } from "@/validators/combat";
+import { genders } from "@/validators/register";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "../trpc";
+import { fetchUser } from "./profile";
 
 export const blackMarketRouter = createTRPCRouter({
   getRyoOffers: protectedProcedure
@@ -299,18 +308,20 @@ export const blackMarketRouter = createTRPCRouter({
               ]
             : []),
           // Log the failure for debugging
-          ctx.drizzle.insert(actionLog).values({
-            id: nanoid(),
-            userId: ctx.userId,
-            tableName: "ryoTrade",
-            changes: [
-              `Rollback of offer ${input.offerId}`,
-              `Buyer update: ${buyerFailed ? "failed" : "success"}`,
-              `Seller update: ${sellerFailed ? "failed" : "success"}`,
-            ],
-            relatedId: input.offerId,
-            relatedMsg: `Rollback: buyer=${buyerFailed ? "fail" : "ok"}, seller=${sellerFailed ? "fail" : "ok"}`,
-          }),
+          ctx.drizzle
+            .insert(actionLog)
+            .values({
+              id: nanoid(),
+              userId: ctx.userId,
+              tableName: "ryoTrade",
+              changes: [
+                `Rollback of offer ${input.offerId}`,
+                `Buyer update: ${buyerFailed ? "failed" : "success"}`,
+                `Seller update: ${sellerFailed ? "failed" : "success"}`,
+              ],
+              relatedId: input.offerId,
+              relatedMsg: `Rollback: buyer=${buyerFailed ? "fail" : "ok"}, seller=${sellerFailed ? "fail" : "ok"}`,
+            }),
         ]);
 
         return errorResponse(
@@ -737,13 +748,13 @@ export const getRolledElements = async (client: DrizzleClient, userId: string) =
  * @param {string} elementType - The type of element rolled (primary or secondary).
  * @param {string} element - The name of the element rolled.
  */
-const addElementRoll = async (
+const addElementRoll = (
   client: DrizzleClient,
   userId: string,
   elementType: "primary" | "secondary",
   element: ElementName,
 ) => {
-  await client.insert(actionLog).values({
+  return client.insert(actionLog).values({
     id: nanoid(),
     userId: userId,
     tableName: "elementRoll",

@@ -1,21 +1,40 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ImageIcon,
+  ImagePlus,
+  Loader2,
+  Sparkles,
+  Upload,
+  User,
+  Video,
+  X,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
-import ContentBox from "@/layout/ContentBox";
-import ConceptImage from "@/layout/ConceptImage";
-import Confirm2 from "@/layout/Confirm2";
+import { api } from "@/app/_trpc/client";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
-  FormLabel,
+  FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -24,44 +43,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { api } from "@/app/_trpc/client";
-import {
-  conceptArtPromptSchema,
-  conceptArtFilterSchema,
-  conceptVideoPromptSchema,
-} from "@/validators/art";
-import { sortOptions, timeFrame } from "@/validators/art";
-import {
-  User,
-  Sparkles,
-  Loader2,
-  Video,
-  ImageIcon,
-  X,
-  Upload,
-  ImagePlus,
-} from "lucide-react";
+import { COST_CONCEPT_IMAGE, COST_CONCEPT_VIDEO } from "@/drizzle/constants";
+import ConceptImage from "@/layout/ConceptImage";
+import Confirm2 from "@/layout/Confirm2";
+import ContentBox from "@/layout/ContentBox";
+import { useInfinitePagination } from "@/libs/pagination";
+import { showMutationToast } from "@/libs/toast";
 import { useUserData } from "@/utils/UserContext";
 import { UploadDropzone } from "@/utils/uploadthing";
-import Image from "next/image";
-import { showMutationToast } from "@/libs/toast";
-import { useInfinitePagination } from "@/libs/pagination";
-import { COST_CONCEPT_IMAGE, COST_CONCEPT_VIDEO } from "@/drizzle/constants";
 import type {
-  ConceptPromptType,
   ConceptFilterType,
+  ConceptPromptType,
   ConceptVideoPromptType,
+} from "@/validators/art";
+import {
+  conceptArtFilterSchema,
+  conceptArtPromptSchema,
+  conceptVideoPromptSchema,
+  sortOptions,
+  timeFrame,
 } from "@/validators/art";
 
 export default function ConceptArt() {
@@ -149,7 +150,10 @@ export default function ConceptArt() {
   // Filters
   const only_own = useWatch({ control: filterForm.control, name: "only_own" });
   const sort = useWatch({ control: filterForm.control, name: "sort" });
-  const time_frame = useWatch({ control: filterForm.control, name: "time_frame" });
+  const time_frame = useWatch({
+    control: filterForm.control,
+    name: "time_frame",
+  });
 
   // Fetch data
   const { data, fetchNextPage, hasNextPage } = api.conceptart.getAll.useInfiniteQuery(
@@ -160,8 +164,7 @@ export default function ConceptArt() {
     },
   );
   const allImage = data?.pages
-    .map((page) => page.data)
-    .flat()
+    .flatMap((page) => page.data)
     .sort((a, b) => {
       if (sort === "Most Recent") {
         return b.createdAt.getTime() - a.createdAt.getTime();
@@ -179,7 +182,10 @@ export default function ConceptArt() {
         if (userData.reputationPoints >= COST_CONCEPT_IMAGE) {
           if (!isPending) create(data);
         } else {
-          showMutationToast({ success: false, message: "No reputation points left." });
+          showMutationToast({
+            success: false,
+            message: "No reputation points left.",
+          });
         }
       }
     },
@@ -307,7 +313,7 @@ export default function ConceptArt() {
                     <VideoCreationForm form={videoPromptForm} />
                   </TabsContent>
                 </Tabs>
-                <p className="pt-3 text-xs text-muted-foreground">
+                <p className="pt-3 text-muted-foreground text-xs">
                   By creating concept art, you agree that it may be used for
                   advertisement purposes by TheNinja-RPG.
                 </p>
@@ -317,7 +323,7 @@ export default function ConceptArt() {
         </div>
       }
     >
-      <div className="relative grid w-full grow grid-cols-2 sm:grid-cols-3 md:grid-cols-4 ">
+      <div className="relative grid w-full grow grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
         {allImage?.map((image, i) => {
           return (
             <div
@@ -524,7 +530,7 @@ const ConceptArtImageSelector: React.FC<{
           <button
             type="button"
             onClick={() => onChange("")}
-            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+            className="absolute top-1 right-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
           >
             <X className="h-3 w-3" />
           </button>
@@ -536,7 +542,7 @@ const ConceptArtImageSelector: React.FC<{
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full h-24 border-dashed">
+        <Button variant="outline" className="h-24 w-full border-dashed">
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <ImagePlus className="h-8 w-8" />
             <span className="text-xs">Select {label}</span>
@@ -574,7 +580,7 @@ const ConceptArtImageSelector: React.FC<{
               onUploadError={(error: Error) => {
                 showMutationToast({ success: false, message: error.message });
               }}
-              className="ut-label:text-sm ut-allowed-content:text-xs ut-button:bg-primary"
+              className="ut-button:bg-primary ut-allowed-content:text-xs ut-label:text-sm"
             />
           </TabsContent>
           <TabsContent value="gallery" className="mt-4">
@@ -583,7 +589,7 @@ const ConceptArtImageSelector: React.FC<{
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
             ) : imageOnlyArt.length === 0 ? (
-              <div className="text-center p-8 text-muted-foreground">
+              <div className="p-8 text-center text-muted-foreground">
                 <p>No concept art images found.</p>
                 <p className="text-sm">Create some images first!</p>
               </div>
@@ -595,7 +601,7 @@ const ConceptArtImageSelector: React.FC<{
                       key={img.id}
                       type="button"
                       onClick={() => img.image && handleSelectImage(img.image)}
-                      className="relative aspect-square rounded-md overflow-hidden hover:ring-2 hover:ring-primary transition-all"
+                      className="relative aspect-square overflow-hidden rounded-md transition-all hover:ring-2 hover:ring-primary"
                     >
                       {img.image && (
                         <Image

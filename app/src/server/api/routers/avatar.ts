@@ -1,15 +1,22 @@
+import { and, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import { eq, sql, gt, and, isNotNull, desc } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure } from "@/api/trpc";
-import { baseServerResponse, errorResponse } from "@/api/trpc";
-import { getAvatarPrompt, fastTxt2imgReplicate } from "@/libs/replicate";
-import { createThumbnail } from "@/libs/replicate";
-import { fetchUser } from "@/routers/profile";
-import { userData, historicalAvatar } from "@/drizzle/schema";
-import { canChangeContent } from "@/utils/permissions";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/api/trpc";
 import { ContentTypes } from "@/drizzle/constants";
 import type { UserData } from "@/drizzle/schema";
+import { historicalAvatar, userData } from "@/drizzle/schema";
+import {
+  createThumbnail,
+  fastTxt2imgReplicate,
+  getAvatarPrompt,
+} from "@/libs/replicate";
+import { fetchUser } from "@/routers/profile";
 import type { DrizzleClient } from "@/server/db";
+import { canChangeContent } from "@/utils/permissions";
 
 export const avatarRouter = createTRPCRouter({
   createAvatar: protectedProcedure
@@ -78,7 +85,7 @@ export const avatarRouter = createTRPCRouter({
         limit: limit + 1,
         orderBy: [desc(historicalAvatar.id)],
       });
-      let nextCursor: typeof cursor | undefined = undefined;
+      let nextCursor: typeof cursor | undefined;
       if (avatars.length > limit) {
         const nextItem = avatars.pop();
         nextCursor = nextItem?.id;

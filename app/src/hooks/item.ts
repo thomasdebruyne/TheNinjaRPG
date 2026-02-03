@@ -1,19 +1,21 @@
-import { calculateContentDiff } from "@/utils/diff";
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ItemValidator } from "@/validators/combat";
-import { WeaponTypes } from "@/drizzle/constants";
-import { AttackTargets } from "@/drizzle/constants";
-import { AttackMethods } from "@/drizzle/constants";
-import { ItemTypes } from "@/drizzle/constants";
-import { ItemRarities } from "@/drizzle/constants";
-import { ItemSlotTypes } from "@/drizzle/constants";
-import { BattleUsageTypes } from "@/drizzle/constants";
+import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
-import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
-import type { Item, CraftingRequirement } from "@/drizzle/schema";
-import type { ZodAllTags, ZodItemType } from "@/validators/combat";
+import {
+  AttackMethods,
+  AttackTargets,
+  BattleUsageTypes,
+  ItemRarities,
+  ItemSlotTypes,
+  ItemTypes,
+  WeaponTypes,
+} from "@/drizzle/constants";
+import type { CraftingRequirement, Item } from "@/drizzle/schema";
 import type { FormEntry } from "@/layout/EditContent";
+import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
+import { calculateContentDiff } from "@/utils/diff";
+import type { ZodAllTags, ZodItemType } from "@/validators/combat";
+import { ItemValidator } from "@/validators/combat";
 
 /**
  * Hook used when creating frontend forms for editing items

@@ -1,20 +1,19 @@
 "use client";
 
-import { useEffect, use } from "react";
+import { FileMinus, FilePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import ContentBox from "@/layout/ContentBox";
-import Loader from "@/layout/Loader";
-import { EditContent } from "@/layout/EditContent";
-import { EffectFormWrapper } from "@/layout/EditContent";
-import { SkillTreeHelper } from "@/layout/ContentHelp";
-import { FilePlus, FileMinus } from "lucide-react";
+import { use, useEffect } from "react";
 import { api } from "@/app/_trpc/client";
-import { useRequiredUserData } from "@/utils/UserContext";
-import { setNullsToEmptyStrings } from "@/utils/typeutils";
-import { SkillTreeValidator, DamageTag, tagTypes } from "@/validators/combat";
-import { canChangeContent } from "@/utils/permissions";
-import { useSkillTreeEditForm } from "@/hooks/skillTree";
 import type { SkillTree } from "@/drizzle/schema";
+import { useSkillTreeEditForm } from "@/hooks/skillTree";
+import ContentBox from "@/layout/ContentBox";
+import { SkillTreeHelper } from "@/layout/ContentHelp";
+import { EditContent, EffectFormWrapper } from "@/layout/EditContent";
+import Loader from "@/layout/Loader";
+import { canChangeContent } from "@/utils/permissions";
+import { setNullsToEmptyStrings } from "@/utils/typeutils";
+import { useRequiredUserData } from "@/utils/UserContext";
+import { DamageTag, SkillTreeValidator, tagTypes } from "@/validators/combat";
 
 export default function SkillTreeEdit(props: { params: Promise<{ skillid: string }> }) {
   const params = use(props.params);
@@ -36,7 +35,6 @@ export default function SkillTreeEdit(props: { params: Promise<{ skillid: string
     if (userData && !canChangeContent(userData.role)) {
       void router.push("/profile");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
 
   // Prevent unauthorized access

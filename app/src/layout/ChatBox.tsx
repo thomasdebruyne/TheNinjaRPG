@@ -1,7 +1,14 @@
 "use client";
 
-import { z } from "zod";
+import { useChat } from "@ai-sdk/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { BrainCircuit, Meh, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { cn } from "src/libs/shadui";
+import { z } from "zod";
+import { api } from "@/app/_trpc/client";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -11,15 +18,8 @@ import {
 } from "@/components/ui/form";
 import AvatarImage from "@/layout/Avatar";
 import RichInput from "@/layout/RichInput";
-import { X, BrainCircuit, ThumbsUp, ThumbsDown, Meh } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { cn } from "src/libs/shadui";
-import { useUserData } from "@/utils/UserContext";
 import { showMutationToast } from "@/libs/toast";
-import { useChat } from "@ai-sdk/react";
-import { api } from "@/app/_trpc/client";
+import { useUserData } from "@/utils/UserContext";
 
 interface ToolCall<NAME extends string, ARGS> {
   toolCallId: string;
@@ -130,16 +130,16 @@ const ChatBox: React.FC<ChatBoxProps> = ({
     <div
       className={cn(
         position === "fixed"
-          ? "fixed bottom-28 right-4 min-w-96 max-w-96 shadow-lg z-50"
+          ? "fixed right-4 bottom-28 z-50 min-w-96 max-w-96 shadow-lg"
           : "w-full",
-        "bg-popover rounded-md overflow-hidden",
+        "overflow-hidden rounded-md bg-popover",
         className,
       )}
     >
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         {showHeader && (
-          <header className="flex items-center justify-between px-4 py-2 border-b">
-            <h4 className="text-lg font-medium">Chat</h4>
+          <header className="flex items-center justify-between border-b px-4 py-2">
+            <h4 className="font-medium text-lg">Chat</h4>
             {showCloseButton && (
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-4 w-4" />
@@ -172,7 +172,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                       <AvatarImage
                         href={userData.avatar}
                         alt={userData.username}
-                        className="w-10 h-10 border-0"
+                        className="h-10 w-10 border-0"
                         size={100}
                         hover_effect={true}
                         priority
@@ -183,7 +183,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">
+                      <div className="font-medium text-sm">
                         {message.role === "user" ? userData.username : "Seichi AI"}
                       </div>
                       <div className="text-xs">
@@ -207,14 +207,14 @@ const ChatBox: React.FC<ChatBoxProps> = ({
               </div>
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Seichi AI</div>
+                  <div className="font-medium text-sm">Seichi AI</div>
                   <div className="text-xs">{new Date().toLocaleTimeString()}</div>
                 </div>
                 <div className="flex flex-row items-center gap-2">
                   <p className="text-sm">Thinking</p>
-                  <div className="h-1 w-1 bg-black dark:bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="h-1 w-1 bg-black dark:bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="h-1 w-1 bg-black dark:bg-white rounded-full animate-bounce"></div>
+                  <div className="h-1 w-1 animate-bounce rounded-full bg-black [animation-delay:-0.3s] dark:bg-white"></div>
+                  <div className="h-1 w-1 animate-bounce rounded-full bg-black [animation-delay:-0.15s] dark:bg-white"></div>
+                  <div className="h-1 w-1 animate-bounce rounded-full bg-black dark:bg-white"></div>
                 </div>
               </div>
             </div>
@@ -226,7 +226,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
             <FormField
               control={form.control}
               name="message"
-              render={({}) => (
+              render={() => (
                 <FormItem>
                   <FormControl>
                     <RichInput
@@ -248,7 +248,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
           {/* Feedback section */}
           {showFeedback && messages.length > 2 && (
             <div className="mt-2 flex flex-col items-center">
-              <p className="text-xs text-muted-foreground mb-1">
+              <p className="mb-1 text-muted-foreground text-xs">
                 {feedbackSubmitted
                   ? "Thank you for your feedback!"
                   : "How was your chat experience?"}
@@ -260,7 +260,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                     size="sm"
                     onClick={() => handleFeedback("POSITIVE")}
                     disabled={isSubmittingFeedback}
-                    className="flex items-center gap-1 h-8 px-2 py-1"
+                    className="flex h-8 items-center gap-1 px-2 py-1"
                   >
                     <ThumbsUp className="h-3 w-3" />
                     <span className="text-xs">Good</span>
@@ -270,7 +270,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                     size="sm"
                     onClick={() => handleFeedback("NEUTRAL")}
                     disabled={isSubmittingFeedback}
-                    className="flex items-center gap-1 h-8 px-2 py-1"
+                    className="flex h-8 items-center gap-1 px-2 py-1"
                   >
                     <Meh className="h-3 w-3" />
                     <span className="text-xs">Neutral</span>
@@ -280,7 +280,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                     size="sm"
                     onClick={() => handleFeedback("NEGATIVE")}
                     disabled={isSubmittingFeedback}
-                    className="flex items-center gap-1 h-8 px-2 py-1"
+                    className="flex h-8 items-center gap-1 px-2 py-1"
                   >
                     <ThumbsDown className="h-3 w-3" />
                     <span className="text-xs">Poor</span>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CoreVillages, ClanBoostTypes } from "@/drizzle/constants";
+import { ClanBoostTypes, CoreVillages } from "@/drizzle/constants";
 import type { Clan } from "@/drizzle/schema";
 
 export const clanBoostTypeSchema = z.enum(ClanBoostTypes);
@@ -13,7 +13,7 @@ export const clanCreateSchema = z.object({
     .trim()
     .min(3)
     .max(88)
-    .regex(new RegExp("^[a-zA-Z0-9_]+$"), {
+    .regex(/^[a-zA-Z0-9_]+$/, {
       message: "Alphanumeric, no spaces",
     })
     .refine(

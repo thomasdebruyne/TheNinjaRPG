@@ -1,29 +1,76 @@
-import { z } from "zod";
-import { nanoid, customAlphabet } from "nanoid";
-import { count, eq, ne, sql, gte, and, or, like, asc, desc, isNull } from "drizzle-orm";
-import { inArray, notInArray } from "drizzle-orm";
 import {
-  secondsPassed,
-  secondsFromNow,
-  getTimeOfLastReset,
-  isDifferentDay,
-} from "@/utils/time";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { serverError, baseServerResponse, errorResponse } from "../trpc";
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  like,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
+import { customAlphabet, nanoid } from "nanoid";
+import { z } from "zod";
+import {
+  ACTIVE_VOTING_SITES,
+  ALLIANCEHALL_LAT,
+  ALLIANCEHALL_LONG,
+  BasicElementName,
+  COST_CHANGE_USERNAME,
+  getUserCaps,
+  IMG_AVATAR_DEFAULT,
+  KAGE_MIN_PRESTIGE,
+  KAGE_PRESTIGE_REQUIREMENT,
+  MAX_ATTRIBUTES,
+  MAX_SKILL_POINTS,
+  MAX_SKILL_POINTS_FROM_LEVELING,
+  REGEN_SECONDS,
+  RYO_CAP,
+  SENSEI_MAX_STUDENT_LEVEL,
+  SHRINE_BOOST_TYPES,
+  SKILL_POINT_MAX_LEVEL,
+  SKILL_POINT_MIN_LEVEL,
+  TUTORIAL_STEPS_COUNT,
+  UserRanks,
+  UserRolesWithSkillTreeAccess,
+  VILLAGE_SYNDICATE_ID,
+} from "@/drizzle/constants";
+import type {
+  Bloodline,
+  BloodlineReskin,
+  Clan,
+  Quest,
+  UserData,
+  UserItem,
+  UserJutsu,
+  UserQuest,
+  UserVote,
+  Village,
+  VillageAlliance,
+  VillageStructure,
+} from "@/drizzle/schema";
 import {
   abEvent,
   actionLog,
-  recruitmentRewards,
   battleHistory,
   gameSetting,
+  historicalIp,
+  insertAiSchema,
   item,
   jutsu,
+  mpvpBattleQueue,
   notification,
   poll,
   quest,
   questHistory,
+  recruitmentRewards,
   staffApplication,
   staffApplicationApproval,
+  supportTicket,
   userAttribute,
   userBlackList,
   userData,
@@ -33,102 +80,92 @@ import {
   userPollVote,
   userReport,
   userVote,
-  historicalIp,
   village,
-  supportTicket,
   war,
-  mpvpBattleQueue,
 } from "@/drizzle/schema";
-import { canSeeSecretData, canDeleteUsers, canSeeIps } from "@/utils/permissions";
-import { canChangeContent, canModerateRoles } from "@/utils/permissions";
-import { canInteractWithPolls } from "@/utils/permissions";
-import { canAwardExperience } from "@/utils/permissions";
-import { usernameSchema } from "@/validators/register";
-import { insertNextQuest } from "@/routers/quests";
-import { fetchClan, removeFromClan } from "@/routers/clan";
-import { handleQuestConsequences } from "@/routers/quests";
-import { fetchVillage } from "@/routers/village";
-import { getNewTrackers } from "@/libs/quest";
-import { mockAchievementHistoryEntries } from "@/libs/quest";
-import { mutateContentSchema } from "@/validators/comments";
-import { attributes } from "@/validators/register";
-import { removeFromSquad, fetchSquad } from "@/routers/anbu";
-import { colors, skin_colors } from "@/validators/register";
-import { callDiscordContent } from "@/libs/socials";
-import { scaleUserStats } from "@/libs/profile";
-import { insertAiSchema } from "@/drizzle/schema";
-import { calcLevelRequirements } from "@/libs/profile";
-import { calcHP, calcSP, calcCP } from "@/libs/profile";
-import { COST_CHANGE_USERNAME, SENSEI_MAX_STUDENT_LEVEL } from "@/drizzle/constants";
-import { UserRolesWithSkillTreeAccess } from "@/drizzle/constants";
+import { getReskinnedBloodline } from "@/libs/bloodline";
 import {
-  MAX_ATTRIBUTES,
-  MAX_SKILL_POINTS,
-  SKILL_POINT_MIN_LEVEL,
-  SKILL_POINT_MAX_LEVEL,
-  MAX_SKILL_POINTS_FROM_LEVELING,
-  TUTORIAL_STEPS_COUNT,
-} from "@/drizzle/constants";
-import { REGEN_SECONDS } from "@/drizzle/constants";
-import { createStatSchema } from "@/validators/combat";
-import { isAvailableUserQuests } from "@/libs/quest";
-import {
-  getGameSettingBoost,
   getGameSetting,
+  getGameSettingBoost,
   updateGameSetting,
 } from "@/libs/gamesettings";
-import { updateUserSchema } from "@/validators/user";
-import { updateUserPreferencesSchema } from "@/validators/user";
-import {
-  canChangeUserRolesTo,
-  canEditUsername,
-  canEditCustomTitle,
-  canEditBloodline,
-  canEditVillage,
-  canEditRank,
-  canEditJutsus,
-  canEditItems,
-  canEditStaffAccountFlag,
-  canEditRankedLp,
-  canOnlyEditSelf,
-} from "@/utils/permissions";
-import { UserRanks, BasicElementName } from "@/drizzle/constants";
-import { getRandomElement } from "@/utils/array";
-import { setEmptyStringsToNulls } from "@/utils/typeutils";
-import { capUserStats } from "@/libs/profile";
-import { calcActiveUserRegen } from "@/libs/profile";
-import { getServerPusher } from "@/libs/pusher";
-import { getShrineBoost } from "@/utils/village";
-import { RYO_CAP } from "@/drizzle/constants";
-import { getUserCaps } from "@/drizzle/constants";
-import { getReducedGainsDays } from "@/libs/train";
-import { calculateContentDiff } from "@/utils/diff";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { ACTIVE_VOTING_SITES } from "@/drizzle/constants";
-import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
-import { SHRINE_BOOST_TYPES } from "@/drizzle/constants";
-import { KAGE_MIN_PRESTIGE } from "@/drizzle/constants";
-import { KAGE_PRESTIGE_REQUIREMENT } from "@/drizzle/constants";
-import { ALLIANCEHALL_LONG, ALLIANCEHALL_LAT } from "@/drizzle/constants";
-import { controlShownQuestLocationInformation } from "@/libs/quest";
-import { getPublicUsersSchema } from "@/validators/user";
-import { createThumbnail } from "@/libs/replicate";
-import sanitize from "@/utils/sanitize";
-import { deleteUser } from "@/server/api/routers/staff";
-import { moderateContent } from "@/libs/moderator";
-import { getReskinnedBloodline } from "@/libs/bloodline";
-import { getRaidObjectiveData } from "@/libs/raids";
-import { fetchKageReplacement } from "@/routers/kage";
-import { validateUserUpdateReason } from "@/libs/moderator";
-import type { BloodlineReskin } from "@/drizzle/schema";
-import type { UserVote } from "@/drizzle/schema";
-import type { GetPublicUsersSchema } from "@/validators/user";
-import type { UserJutsu, UserItem } from "@/drizzle/schema";
-import type { UserData, Bloodline } from "@/drizzle/schema";
-import type { Village, VillageAlliance, VillageStructure } from "@/drizzle/schema";
-import type { UserQuest, Clan, Quest } from "@/drizzle/schema";
-import type { DrizzleClient } from "@/server/db";
 import type { NavBarDropdownLink } from "@/libs/menus";
+import { moderateContent, validateUserUpdateReason } from "@/libs/moderator";
+import {
+  calcActiveUserRegen,
+  calcCP,
+  calcHP,
+  calcLevelRequirements,
+  calcSP,
+  capUserStats,
+  scaleUserStats,
+} from "@/libs/profile";
+import { getServerPusher } from "@/libs/pusher";
+import {
+  controlShownQuestLocationInformation,
+  getNewTrackers,
+  isAvailableUserQuests,
+  mockAchievementHistoryEntries,
+} from "@/libs/quest";
+import { getRaidObjectiveData } from "@/libs/raids";
+import { createThumbnail } from "@/libs/replicate";
+import { callDiscordContent } from "@/libs/socials";
+import { getReducedGainsDays } from "@/libs/train";
+import { fetchSquad, removeFromSquad } from "@/routers/anbu";
+import { fetchClan, removeFromClan } from "@/routers/clan";
+import { fetchKageReplacement } from "@/routers/kage";
+import { handleQuestConsequences, insertNextQuest } from "@/routers/quests";
+import { fetchVillage } from "@/routers/village";
+import { deleteUser } from "@/server/api/routers/staff";
+import type { DrizzleClient } from "@/server/db";
+import { getRandomElement } from "@/utils/array";
+import { calculateContentDiff } from "@/utils/diff";
+import {
+  canAwardExperience,
+  canChangeContent,
+  canChangeUserRolesTo,
+  canDeleteUsers,
+  canEditBloodline,
+  canEditCustomTitle,
+  canEditItems,
+  canEditJutsus,
+  canEditRank,
+  canEditRankedLp,
+  canEditStaffAccountFlag,
+  canEditUsername,
+  canEditVillage,
+  canInteractWithPolls,
+  canModerateRoles,
+  canOnlyEditSelf,
+  canSeeIps,
+  canSeeSecretData,
+} from "@/utils/permissions";
+import sanitize from "@/utils/sanitize";
+import {
+  getTimeOfLastReset,
+  isDifferentDay,
+  secondsFromNow,
+  secondsPassed,
+} from "@/utils/time";
+import { setEmptyStringsToNulls } from "@/utils/typeutils";
+import { getShrineBoost } from "@/utils/village";
+import { createStatSchema } from "@/validators/combat";
+import { mutateContentSchema } from "@/validators/comments";
+import { attributes, colors, skin_colors, usernameSchema } from "@/validators/register";
+import type { GetPublicUsersSchema } from "@/validators/user";
+import {
+  getPublicUsersSchema,
+  updateUserPreferencesSchema,
+  updateUserSchema,
+} from "@/validators/user";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "../trpc";
 
 const pusher = getServerPusher();
 
@@ -952,7 +989,7 @@ export const profileRouter = createTRPCRouter({
       if (user.isBanned)
         return errorResponse("You are banned and cannot perform this action");
       const ai = await fetchUser(ctx.drizzle, input.id);
-      if (ai && ai.isAi && canChangeContent(user.role)) {
+      if (ai?.isAi && canChangeContent(user.role)) {
         await deleteUser(ctx.drizzle, ai.userId);
         return { success: true, message: `AI deleted` };
       } else {
@@ -1134,7 +1171,7 @@ export const profileRouter = createTRPCRouter({
             ...(roleChanged ? { role: input.data.role } : {}),
             ...(villageChanged
               ? {
-                  isOutlaw: village.type === "OUTLAW" ? true : false,
+                  isOutlaw: village.type === "OUTLAW",
                   sector: village.sector,
                   longitude: ALLIANCEHALL_LONG,
                   latitude: ALLIANCEHALL_LAT,
@@ -1714,9 +1751,7 @@ export const profileRouter = createTRPCRouter({
       await ctx.drizzle
         .update(userData)
         .set({
-          deletionAt: target.deletionAt
-            ? null
-            : new Date(new Date().getTime() + 2 * 86400000),
+          deletionAt: target.deletionAt ? null : new Date(Date.now() + 2 * 86400000),
         })
         .where(eq(userData.userId, input.userId));
       return { success: true, message: "Deletion timer toggled" };
@@ -2395,7 +2430,7 @@ export const fetchUpdatedUser = async (props: {
       user.regenAt = now;
 
       // Ensure that the user has elements
-      const rankId = UserRanks.findIndex((r) => r === user.rank);
+      const rankId = UserRanks.indexOf(user.rank);
       if (rankId >= 1 && !user.primaryElement) {
         user.primaryElement = getRandomElement(BasicElementName) ?? null;
       }
@@ -2545,17 +2580,13 @@ export const fetchPublicUsers = async (info: {
         ...(input.orderBy === "Staff" ? [notInArray(userData.role, ["USER"])] : []),
         ...(input.orderBy === "Outlaws" ? [eq(userData.isOutlaw, true)] : []),
         ...(input.isAi ? [eq(userData.isAi, true)] : []),
-        ...(input.inArena !== undefined
-          ? [eq(userData.inArena, input.inArena ? true : false)]
-          : []),
-        ...(input.isEvent !== undefined
-          ? [eq(userData.isEvent, input.isEvent ? true : false)]
-          : []),
+        ...(input.inArena !== undefined ? [eq(userData.inArena, !!input.inArena)] : []),
+        ...(input.isEvent !== undefined ? [eq(userData.isEvent, !!input.isEvent)] : []),
         ...(input.isSummon !== undefined
-          ? [eq(userData.isSummon, input.isSummon ? true : false)]
+          ? [eq(userData.isSummon, !!input.isSummon)]
           : []),
         ...(input.inShrines !== undefined
-          ? [eq(userData.inShrines, input.inShrines ? true : false)]
+          ? [eq(userData.inShrines, !!input.inShrines)]
           : []),
       ),
       columns: {
@@ -2638,9 +2669,15 @@ export const fetchPublicUsers = async (info: {
     throw serverError("FORBIDDEN", "You are not allowed to search IPs");
   }
   // Hide stuff
-  users.filter((u) => !u.lastIp).forEach((u) => (u.lastIp = "Proxied"));
+  users
+    .filter((u) => !u.lastIp)
+    .forEach((u) => {
+      u.lastIp = "Proxied";
+    });
   if (!user || !canSeeIps(user.role)) {
-    users.forEach((u) => (u.lastIp = "hidden"));
+    users.forEach((u) => {
+      u.lastIp = "hidden";
+    });
   }
   // Return
   const nextCursor = users.length < input.limit ? null : currentCursor + 1;

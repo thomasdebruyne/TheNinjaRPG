@@ -1,26 +1,32 @@
-import React from "react";
+import { BarChartBig, Box, Copy, SquarePen, Trash2 } from "lucide-react";
 import Link from "next/link";
-import ContentImage from "@/layout/ContentImage";
-import Confirm2 from "@/layout/Confirm2";
-import DurabilityBar from "@/layout/DurabilityBar";
-import { parseHtml } from "@/utils/parse";
-import ElementImage from "@/layout/ElementImage";
-import { canChangeContent } from "@/utils/permissions";
-import { useUserData } from "@/utils/UserContext";
-import { SquarePen, Trash2, BarChartBig, Copy, Box } from "lucide-react";
-import { getTagSchema } from "@/validators/combat";
-import { getPreventTypeName } from "@/libs/combat/util";
-import { capitalizeFirstLetter } from "@/utils/sanitize";
-import { formatBattleUsageType } from "@/utils/string";
-import { showMutationToast } from "@/libs/toast";
+import { useRouter } from "next/navigation";
+import type React from "react";
 import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
-import { useRouter } from "next/navigation";
+import type {
+  Bloodline,
+  GameAsset,
+  Item,
+  ItemRarity,
+  Jutsu,
+  Quest,
+} from "@/drizzle/schema";
+import Confirm2 from "@/layout/Confirm2";
+import ContentImage from "@/layout/ContentImage";
+import DurabilityBar from "@/layout/DurabilityBar";
+import ElementImage from "@/layout/ElementImage";
 import Model3d from "@/layout/Model3d";
-import type { ItemRarity, GameAsset } from "@/drizzle/schema";
-import type { Bloodline, Item, Jutsu, Quest } from "@/drizzle/schema";
-import type { ZodAllTags } from "@/validators/combat";
+import { getPreventTypeName } from "@/libs/combat/util";
 import { getRewardArray } from "@/libs/objectives";
+import { showMutationToast } from "@/libs/toast";
+import { parseHtml } from "@/utils/parse";
+import { canChangeContent } from "@/utils/permissions";
+import { capitalizeFirstLetter } from "@/utils/sanitize";
+import { formatBattleUsageType } from "@/utils/string";
+import { useUserData } from "@/utils/UserContext";
+import type { ZodAllTags } from "@/validators/combat";
+import { getTagSchema } from "@/validators/combat";
 
 export type GenericObject = {
   id: string;
@@ -130,11 +136,13 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
       : []
     ).map((effect) => ({ ...effect, color: "bg-poppopover" })),
     ...("imbuements" in props.item && props.item.imbuements
-      ? props.item.imbuements
-          ?.map((imbuement) =>
-            imbuement.effects?.map((effect) => ({ ...effect, color: "bg-purple-400" })),
-          )
-          .flat()
+      ? props.item.imbuements.flatMap(
+          (imbuement) =>
+            imbuement.effects?.map((effect) => ({
+              ...effect,
+              color: "bg-purple-400",
+            })) ?? [],
+        )
       : []),
   ].filter(Boolean);
 
@@ -174,7 +182,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
   // Define rewards from quests if they are there
   const rewards = "content" in item ? getRewardArray(item.content.reward) : [];
   return (
-    <div className="mb-3 flex flex-row items-center rounded-lg border bg-popover p-2 align-middle shadow-sm ">
+    <div className="mb-3 flex flex-row items-center rounded-lg border bg-popover p-2 align-middle shadow-sm">
       {!hideImage && <div className="mx-3 hidden basis-1/3 md:block">{image}</div>}
 
       <div className={cn("basis-full text-sm", hideImage || "md:basis-2/3")}>
@@ -185,7 +193,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
 
           <div className="relative flex basis-full flex-col pl-5 md:pl-0">
             {!hideTitle ? (
-              <h3 className="text-xl font-bold tracking-tight text-popover-foreground">
+              <h3 className="font-bold text-popover-foreground text-xl tracking-tight">
                 {item.name}
               </h3>
             ) : (
@@ -283,7 +291,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                     <Confirm2
                       title="3d Model"
                       button={
-                        <Box className="h-6 w-6 hover:text-popover-foreground/50 hover:cursor-pointer" />
+                        <Box className="h-6 w-6 hover:cursor-pointer hover:text-popover-foreground/50" />
                       }
                     >
                       <Model3d
@@ -301,7 +309,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                     <Confirm2
                       title="Confirm Deletion"
                       button={
-                        <Trash2 className="h-6 w-6 hover:text-popover-foreground/50 hover:cursor-pointer" />
+                        <Trash2 className="h-6 w-6 hover:cursor-pointer hover:text-popover-foreground/50" />
                       }
                       onAccept={(e) => {
                         e.preventDefault();
@@ -327,7 +335,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
               item.crystalTargetTypes && (
                 <div className="mt-2">
                   <b>Can Imbue: </b>
-                  <span className="text-blue-600 font-medium">
+                  <span className="font-medium text-blue-600">
                     {item.crystalTargetTypes}
                   </span>
                 </div>
@@ -674,7 +682,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                   <b>Retry Delay</b>: {item.retryDelay}
                 </p>
               )}
-              <div className="grid grid-cols-2 col-span-2">
+              <div className="col-span-2 grid grid-cols-2">
                 {"startsAt" in item && item.startsAt && (
                   <p>
                     <b>Starts At</b>: {item.startsAt}
@@ -765,9 +773,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
               return (
                 <div
                   key={effect.type + i.toString()}
-                  className={`my-2 rounded-lg ${
-                    parsedEffect ? effect.color : "bg-red-100"
-                  } p-2`}
+                  className={`my-2 rounded-lg ${parsedEffect ? effect.color : "bg-red-100"} p-2`}
                 >
                   {!parsedEffect && (
                     <div className="pb-1">
@@ -796,8 +802,7 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                         {"blocks" in parsedEffect && parsedEffect.blocks && (
                           <span>
                             <b>Blocks: </b>
-                            {getPreventTypeName(parsedEffect.blocks as string) +
-                              " prevention"}
+                            {`${getPreventTypeName(parsedEffect.blocks as string)} prevention`}
                           </span>
                         )}
                         {"power" in parsedEffect && (
@@ -861,9 +866,9 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                             <span className="row-span-2">
                               <b>Elements: </b>
                               <div className="flex flex-row items-center">
-                                {parsedEffect.elements.map((element, i) => (
+                                {parsedEffect.elements.map((element) => (
                                   <ElementImage
-                                    key={`${element}-${i}`}
+                                    key={element}
                                     element={element}
                                     className="w-8"
                                   />

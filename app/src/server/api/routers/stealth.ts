@@ -1,38 +1,44 @@
-import { eq, and, sql, isNull, inArray } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { serverError, baseServerResponse, errorResponse } from "../trpc";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { userData } from "@/drizzle/schema";
+import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
 import { fetchUpdatedUser } from "@/routers/profile";
 import { secondsFromNow } from "@/utils/time";
-import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  serverError,
+} from "../trpc";
 
 const pusher = getServerPusher();
+
+import type { CovertTrainingType } from "@/drizzle/constants";
 import {
-  calcStealthDuration,
+  STEALTH_POST_COMBAT_COOLDOWN_SECONDS,
+  STEALTH_SENSORY_CAP,
+  STEALTH_TRAIN_GAIN_PER_MINUTE,
+} from "@/drizzle/constants";
+import {
+  calcCovertTrainingGain,
   calcSensoryCooldown,
+  calcStealthDuration,
+  getRemainingSensoryCooldown,
+  getRemainingStealthCooldown,
   isSensoryReady,
   isStealthCooldownExpired,
   isStealthExpired,
-  getRemainingStealthCooldown,
-  getRemainingSensoryCooldown,
   rollSensoryDetection,
   rollStealthKeep,
-  calcCovertTrainingGain,
 } from "@/libs/stealth";
 import {
-  STEALTH_SENSORY_CAP,
-  STEALTH_TRAIN_GAIN_PER_MINUTE,
-  STEALTH_POST_COMBAT_COOLDOWN_SECONDS,
-} from "@/drizzle/constants";
-import {
-  useSensoryInputSchema,
-  trainInputSchema,
   activateStealthDataSchema,
-  useSensoryDataSchema,
   startTrainDataSchema,
   stopTrainDataSchema,
+  trainInputSchema,
+  useSensoryDataSchema,
+  useSensoryInputSchema,
 } from "@/validators/stealth";
-import type { CovertTrainingType } from "@/drizzle/constants";
 
 export const stealthRouter = createTRPCRouter({
   // Activate stealth mode

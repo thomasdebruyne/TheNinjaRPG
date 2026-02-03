@@ -1,44 +1,48 @@
-import { z } from "zod";
+import type { inferRouterOutputs } from "@trpc/server";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, sql, and, gte } from "drizzle-orm";
-import { anbuSquad, userData, historicalAvatar } from "@/drizzle/schema";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { errorResponse, baseServerResponse } from "@/server/api/trpc";
-import { fetchVillage } from "@/routers/village";
+import { z } from "zod";
+import {
+  ANBU_DELAY_SECS,
+  ANBU_ESPIONAGE_BASE_CHANCE_PERC,
+  ANBU_ESPIONAGE_CHANGE_PER_LEVEL,
+  ANBU_ESPIONAGE_POINTS_COST,
+  ANBU_ESPIONAGE_PRESTIGE_COST,
+  ANBU_ESPIONAGE_UPGRADE_COST,
+  ANBU_LEADER_RANK_REQUIREMENT,
+  ANBU_MAX_ESPIONAGE_LEVEL,
+  ANBU_MAX_MEMBERS,
+  ANBU_MAX_STEALTH_LEVEL,
+  ANBU_MEMBER_RANK_REQUIREMENT,
+  ANBU_STEALTH_UPGRADE_COST,
+  IMG_AVATAR_DEFAULT,
+  KAGE_ANBU_DELETE_COST,
+} from "@/drizzle/constants";
+import type { AnbuSquad } from "@/drizzle/schema";
+import { anbuSquad, historicalAvatar, userData } from "@/drizzle/schema";
+import { getServerPusher } from "@/libs/pusher";
+import { hasRequiredRank } from "@/libs/train";
 import { fetchClans } from "@/routers/clan";
 import { createConvo } from "@/routers/comments";
-import { fetchUser, fetchUpdatedUser, updateNindo } from "@/routers/profile";
-import { getServerPusher } from "@/libs/pusher";
-import { anbuCreateSchema } from "@/validators/anbu";
-import { hasRequiredRank } from "@/libs/train";
-import { secondsFromDate } from "@/utils/time";
-import { getEffectiveStructureLevel } from "@/utils/village";
+import type { UserWithRelations } from "@/routers/profile";
+import { fetchUpdatedUser, fetchUser, updateNindo } from "@/routers/profile";
 import {
   fetchRequest,
   fetchRequests,
   insertRequest,
   updateRequestState,
 } from "@/routers/sparring";
-import { ANBU_MEMBER_RANK_REQUIREMENT } from "@/drizzle/constants";
-import { ANBU_LEADER_RANK_REQUIREMENT } from "@/drizzle/constants";
+import { fetchVillage } from "@/routers/village";
 import {
-  ANBU_MAX_MEMBERS,
-  IMG_AVATAR_DEFAULT,
-  ANBU_DELAY_SECS,
-  KAGE_ANBU_DELETE_COST,
-  ANBU_MAX_ESPIONAGE_LEVEL,
-  ANBU_MAX_STEALTH_LEVEL,
-  ANBU_ESPIONAGE_UPGRADE_COST,
-  ANBU_STEALTH_UPGRADE_COST,
-  ANBU_ESPIONAGE_BASE_CHANCE_PERC,
-  ANBU_ESPIONAGE_CHANGE_PER_LEVEL,
-  ANBU_ESPIONAGE_PRESTIGE_COST,
-  ANBU_ESPIONAGE_POINTS_COST,
-} from "@/drizzle/constants";
-import type { UserWithRelations } from "@/routers/profile";
-import type { AnbuSquad } from "@/drizzle/schema";
-import type { inferRouterOutputs } from "@trpc/server";
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
 import type { DrizzleClient } from "@/server/db";
+import { secondsFromDate } from "@/utils/time";
+import { getEffectiveStructureLevel } from "@/utils/village";
+import { anbuCreateSchema } from "@/validators/anbu";
 
 const pusher = getServerPusher();
 

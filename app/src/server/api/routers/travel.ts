@@ -1,46 +1,48 @@
-import { z } from "zod";
+import type { inferRouterOutputs } from "@trpc/server";
+import { and, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, gte, and, or, isNull, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import * as map from "@/data/hexasphere.json";
 import {
-  createTRPCRouter,
-  protectedProcedure,
-  ratelimitMiddleware,
-  hasUserMiddleware,
-} from "../trpc";
-import { serverError, baseServerResponse, errorResponse } from "../trpc";
-import { calcGlobalTravelTime } from "@/libs/travel";
-import { calcIsInVillage } from "@/libs/travel";
-import { isAtEdge, maxDistance } from "@/libs/travel";
-import {
-  SECTOR_HEIGHT,
-  SECTOR_WIDTH,
-  MAP_WAR_TORN_BATTLEGROUND_SECTOR,
-} from "@/drizzle/constants";
-import { secondsFromNow } from "@/utils/time";
-import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
-import { userData, clan, village, actionLog, war } from "@/drizzle/schema";
-import { fetchUser } from "@/routers/profile";
-import { initiateBattle } from "@/routers/combat";
-import { calcLevel } from "@/libs/profile";
-import { fetchSectorVillage } from "@/routers/village";
-import { findRelationship } from "@/utils/alliance";
-import { getStrucBoost } from "@/utils/village";
-import { groupBy } from "@/utils/grouping";
-import {
-  ROBBING_SUCCESS_CHANCE,
-  ROBBING_STOLLEN_AMOUNT,
-  ROBBING_VILLAGE_PRESTIGE_GAIN,
-  ROBBING_IMMUNITY_DURATION,
   ANBU_STEALTH_BASE_CHANCE_PERC,
   ANBU_STEALTH_CHANGE_PER_LEVEL,
+  MAP_WAR_TORN_BATTLEGROUND_SECTOR,
+  ROBBING_IMMUNITY_DURATION,
+  ROBBING_STOLLEN_AMOUNT,
+  ROBBING_SUCCESS_CHANCE,
+  ROBBING_VILLAGE_PRESTIGE_GAIN,
+  SECTOR_HEIGHT,
+  SECTOR_WIDTH,
+  UserStatuses,
 } from "@/drizzle/constants";
+import { actionLog, clan, userData, village, war } from "@/drizzle/schema";
+import { calcLevel } from "@/libs/profile";
+import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
 import { isUserCurrentlyStealthed } from "@/libs/stealth";
-import { breakStealth } from "@/routers/stealth";
-import { fetchSector } from "@/routers/village";
-import * as map from "@/data/hexasphere.json";
-import { UserStatuses } from "@/drizzle/constants";
-import type { inferRouterOutputs } from "@trpc/server";
 import type { GlobalMapData } from "@/libs/threejs/types";
+import {
+  calcGlobalTravelTime,
+  calcIsInVillage,
+  isAtEdge,
+  maxDistance,
+} from "@/libs/travel";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUser } from "@/routers/profile";
+import { breakStealth } from "@/routers/stealth";
+import { fetchSector, fetchSectorVillage } from "@/routers/village";
+import { findRelationship } from "@/utils/alliance";
+import { groupBy } from "@/utils/grouping";
+import { secondsFromNow } from "@/utils/time";
+import { getStrucBoost } from "@/utils/village";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  hasUserMiddleware,
+  protectedProcedure,
+  ratelimitMiddleware,
+  serverError,
+} from "../trpc";
 
 // const redis = Redis.fromEnv();
 

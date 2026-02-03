@@ -1,30 +1,41 @@
-import { z } from "zod";
+import { and, asc, eq, gte, isNull, like, lt, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, and, sql, like, gte, lt, asc, isNull } from "drizzle-orm";
-import { skillTree, userSkill, userData, skillTreeFolder } from "@/drizzle/schema";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/api/trpc";
-import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
-import { fetchUpdatedUser } from "@/routers/profile";
-import { canChangeContent } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/socials";
-import { calculateContentDiff } from "@/utils/diff";
-import { IMG_AVATAR_DEFAULT, COST_SKILL_RESET } from "@/drizzle/constants";
-import { SkillTreeValidator } from "@/validators/combat";
-import { canUnequipAllUsers } from "@/utils/permissions";
-import { actionLog } from "@/drizzle/schema";
-import { getUserFederalStatus } from "@/utils/paypal";
+import { z } from "zod";
 import {
-  skillTreeFilteringSchema,
-  skillTreeFolderSchema,
-  type SkillTreeFilteringSchema,
-} from "@/validators/skillTree";
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "@/api/trpc";
 import {
+  COST_SKILL_RESET,
+  IMG_AVATAR_DEFAULT,
   SKILL_TREE_RESET_FREE_GOLD,
   SKILL_TREE_RESET_FREE_NORMAL,
   SKILL_TREE_RESET_FREE_SILVER,
 } from "@/drizzle/constants";
 import type { UserData } from "@/drizzle/schema";
+import {
+  actionLog,
+  skillTree,
+  skillTreeFolder,
+  userData,
+  userSkill,
+} from "@/drizzle/schema";
+import { callDiscordContent } from "@/libs/socials";
+import { fetchUpdatedUser } from "@/routers/profile";
 import type { DrizzleClient } from "@/server/db";
+import { calculateContentDiff } from "@/utils/diff";
+import { getUserFederalStatus } from "@/utils/paypal";
+import { canChangeContent, canUnequipAllUsers } from "@/utils/permissions";
+import { SkillTreeValidator } from "@/validators/combat";
+import {
+  type SkillTreeFilteringSchema,
+  skillTreeFilteringSchema,
+  skillTreeFolderSchema,
+} from "@/validators/skillTree";
 
 export const skillTreeRouter = createTRPCRouter({
   // Get all skill names for selectors
@@ -350,39 +361,37 @@ export const skillTreeRouter = createTRPCRouter({
       // Perform the reset (parallel operations)
       await Promise.all([
         // Delete all user skills (skill points remain, just reset used skills)
-        ctx.drizzle.delete(userSkill).where(eq(userSkill.userId, ctx.userId)),
+        ctx.drizzle
+          .delete(userSkill)
+          .where(eq(userSkill.userId, ctx.userId)),
         // Log the reset for monthly tracking
-        ctx.drizzle.insert(actionLog).values({
-          id: nanoid(),
-          userId: ctx.userId,
-          tableName: "skillReset",
-          changes: [
-            isFreeReset
+        ctx.drizzle
+          .insert(actionLog)
+          .values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "skillReset",
+            changes: [
+              isFreeReset
+                ? canChangeContent(user.role)
+                  ? "Skill tree reset (free for staff)"
+                  : "Skill tree reset (free GOLD monthly)"
+                : `Skill tree reset (-${COST_SKILL_RESET} reps)`,
+            ],
+            relatedId: null,
+            relatedMsg: isFreeReset
               ? canChangeContent(user.role)
-                ? "Skill tree reset (free for staff)"
-                : "Skill tree reset (free GOLD monthly)"
-              : `Skill tree reset (-${COST_SKILL_RESET} reps)`,
-          ],
-          relatedId: null,
-          relatedMsg: isFreeReset
-            ? canChangeContent(user.role)
-              ? "Free reset for staff member"
-              : "Free monthly reset for GOLD supporter"
-            : `Charged ${COST_SKILL_RESET} reputation points`,
-          relatedImage: user.avatarLight,
-          relatedValue: isFreeReset ? 0 : COST_SKILL_RESET,
-        }),
+                ? "Free reset for staff member"
+                : "Free monthly reset for GOLD supporter"
+              : `Charged ${COST_SKILL_RESET} reputation points`,
+            relatedImage: user.avatarLight,
+            relatedValue: isFreeReset ? 0 : COST_SKILL_RESET,
+          }),
       ]);
 
       return {
         success: true,
-        message: `Skills points reset!${
-          isFreeReset
-            ? canChangeContent(user.role)
-              ? " (Free for staff member)"
-              : " (Free for GOLD supporter)"
-            : ""
-        }`,
+        message: `Skills points reset!${isFreeReset ? (canChangeContent(user.role) ? " (Free for staff member)" : " (Free for GOLD supporter)") : ""}`,
       };
     }),
 

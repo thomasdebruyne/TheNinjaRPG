@@ -1,34 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import {
+  ChevronDown,
+  ChevronUp,
+  EyeOff,
+  FilePlus,
+  Folder,
+  Loader2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { nanoid } from "nanoid";
 import Image from "next/image";
-import ContentBox from "@/layout/ContentBox";
-import Loader from "@/layout/Loader";
-import Modal2 from "@/layout/Modal2";
-import ContentImageSelector from "@/layout/ContentImageSelector";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { api } from "@/app/_trpc/client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import {
-  FilePlus,
-  Pencil,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  Folder,
-  EyeOff,
-  Loader2,
-} from "lucide-react";
-import { nanoid } from "nanoid";
-import { api } from "@/app/_trpc/client";
+import { Textarea } from "@/components/ui/textarea";
+import type { SkillTreeFolder } from "@/drizzle/schema";
+import ContentBox from "@/layout/ContentBox";
+import ContentImageSelector from "@/layout/ContentImageSelector";
+import Loader from "@/layout/Loader";
+import Modal2 from "@/layout/Modal2";
 import { showMutationToast } from "@/libs/toast";
 import { canChangeContent } from "@/utils/permissions";
 import { useRequiredUserData } from "@/utils/UserContext";
-import type { SkillTreeFolder } from "@/drizzle/schema";
 
 /** Increment used when assigning order to new folders */
 const FOLDER_ORDER_INCREMENT = 10;
@@ -226,14 +226,12 @@ export default function ManualSkillTreeFolder() {
             {folders.map((folder, index) => (
               <div
                 key={folder.id}
-                className={`flex items-center gap-4 p-4 border rounded-lg ${
-                  folder.hidden ? "opacity-60 bg-muted" : "bg-card"
-                }`}
+                className={`flex items-center gap-4 rounded-lg border p-4 ${folder.hidden ? "bg-muted opacity-60" : "bg-card"}`}
               >
                 {/* Folder image */}
                 <div className="shrink-0">
                   {folder.image ? (
-                    <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                    <div className="relative h-12 w-12 overflow-hidden rounded-lg">
                       <Image
                         src={folder.image}
                         alt={folder.name}
@@ -243,31 +241,31 @@ export default function ManualSkillTreeFolder() {
                       />
                     </div>
                   ) : (
-                    <Folder className="w-12 h-12 text-muted-foreground" />
+                    <Folder className="h-12 w-12 text-muted-foreground" />
                   )}
                 </div>
 
                 {/* Folder info */}
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold truncate">{folder.name}</h3>
+                    <h3 className="truncate font-semibold">{folder.name}</h3>
                     {folder.hidden && (
                       <Badge variant="secondary" className="text-xs">
-                        <EyeOff className="w-3 h-3 mr-1" />
+                        <EyeOff className="mr-1 h-3 w-3" />
                         Hidden
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className="truncate text-muted-foreground text-sm">
                     {folder.description || "No description"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {getSkillCount(folder.id)} skill(s)
                   </p>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex shrink-0 items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -314,7 +312,7 @@ export default function ManualSkillTreeFolder() {
             ))}
 
             {folders.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="py-8 text-center text-muted-foreground">
                 No folders created yet. Create one to start organizing skills.
               </div>
             )}
@@ -395,8 +393,8 @@ export default function ManualSkillTreeFolder() {
             <strong>{deleteFolder?.name}</strong>?
           </p>
           {deleteFolder && getSkillCount(deleteFolder.id) > 0 && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-              <p className="text-sm text-destructive">
+            <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+              <p className="text-destructive text-sm">
                 Warning: This folder contains {getSkillCount(deleteFolder.id)} skill(s).
                 You must move or delete these skills before deleting the folder.
               </p>

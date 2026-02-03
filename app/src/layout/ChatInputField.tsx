@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { SiOpenai } from "@icons-pack/react-simple-icons";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { cn } from "src/libs/shadui";
+import { Button } from "@/components/ui/button";
 import ChatBox from "@/layout/ChatBox";
 
 interface ToolCall<NAME extends string, ARGS> {
@@ -28,7 +28,7 @@ const ChatInputField: React.FC<ChatInputFieldProps> = ({ aiProps, onToolCall }) 
   // Render
   return (
     <>
-      <div className="pl-3 w-full flex flex-row justify-end">
+      <div className="flex w-full flex-row justify-end pl-3">
         <Button
           className={!isOpen ? "bg-green-600" : ""}
           type="submit"

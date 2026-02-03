@@ -1,16 +1,13 @@
-import { calculateContentDiff } from "@/utils/diff";
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
-import { ElementNames, UserRanks, GeneralTypes, StatTypes } from "@/drizzle/constants";
-import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
+import { ElementNames, GeneralTypes, StatTypes, UserRanks } from "@/drizzle/constants";
+import type { InsertAiSchema, UserData, UserItem, UserJutsu } from "@/drizzle/schema";
 import { insertAiSchema } from "@/drizzle/schema";
-import type { InsertAiSchema } from "@/drizzle/schema";
-import type { UserData } from "@/drizzle/schema";
-import type { UserJutsu } from "@/drizzle/schema";
-import type { UserItem } from "@/drizzle/schema";
-import type { ZodAllTags } from "@/validators/combat";
 import type { FormEntry } from "@/layout/EditContent";
+import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
+import { calculateContentDiff } from "@/utils/diff";
+import type { ZodAllTags } from "@/validators/combat";
 
 /**
  * Hook used when creating frontend forms for editing AIs

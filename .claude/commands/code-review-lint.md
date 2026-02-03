@@ -1,9 +1,9 @@
 ---
-description: Runs ESLint
+description: Runs Biome
 allowed-tools: Bash(make lint:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
-Run ESLint and report results.
+Run Biome linting and report results.
 
 **Arguments**: `$ARGUMENTS` should contain `<IDENTIFIER>`
 
@@ -15,7 +15,7 @@ Run ESLint and report results.
 
 **BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-1. Run ESLint (`make lint`)
+1. Run biome linting (`make lint`)
 2. Parse errors/warnings from output
 3. Write findings or return PASS
 
@@ -35,7 +35,7 @@ Use TaskUpdate to mark each task `in_progress` when starting and `completed` whe
 1. **Save detailed findings** to `.claude/review/$IDENTIFIER/lint.md` using Write tool (replace `$IDENTIFIER` with actual identifier from arguments):
 
    ```
-   # ESLint Results
+   # Biome Linting Results
 
    Stats: X errors, Y warnings
 

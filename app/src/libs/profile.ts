@@ -1,23 +1,25 @@
-import type {
-  UserData,
-  Bloodline,
-  Village,
-  VillageStructure,
-  GameSetting,
-  Clan,
-} from "@/drizzle/schema";
-import { HP_PER_LVL, SP_PER_LVL, CP_PER_LVL } from "@/drizzle/constants";
+import type { UserRank } from "@/drizzle/constants";
 import {
   CLAN_BOOST_MAX_LEVEL,
   CLAN_BOOST_PERCENT_PER_LEVEL,
+  CP_PER_LVL,
   getUserCaps,
+  HomeTypeDetails,
+  HP_PER_LVL,
+  SP_PER_LVL,
 } from "@/drizzle/constants";
+import type {
+  Bloodline,
+  Clan,
+  GameSetting,
+  UserData,
+  Village,
+  VillageStructure,
+} from "@/drizzle/schema";
+import { getGameSettingBoost } from "@/libs/gamesettings";
+import { getReducedGainsDays } from "@/libs/train";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import { getStrucBoost } from "@/utils/village";
-import { getReducedGainsDays } from "@/libs/train";
-import { getGameSettingBoost } from "@/libs/gamesettings";
-import { HomeTypeDetails } from "@/drizzle/constants";
-import type { UserRank } from "@/drizzle/constants";
 import type { StatSchemaType } from "@/validators/combat";
 
 /**

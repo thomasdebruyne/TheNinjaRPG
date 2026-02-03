@@ -1,11 +1,15 @@
-import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { errorResponse, baseServerResponse } from "../trpc";
-import { fetchUser } from "@/routers/profile";
-import { eq, or, and, gte, sql, desc } from "drizzle-orm";
+import { and, desc, eq, gte, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
-import { userData, bankTransfers, dailyBankInterest } from "@/drizzle/schema";
+import { z } from "zod";
 import { RYO_CAP } from "@/drizzle/constants";
+import { bankTransfers, dailyBankInterest, userData } from "@/drizzle/schema";
+import { fetchUser } from "@/routers/profile";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "../trpc";
 
 export const bankRouter = createTRPCRouter({
   toBank: protectedProcedure

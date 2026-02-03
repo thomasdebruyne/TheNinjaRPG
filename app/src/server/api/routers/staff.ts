@@ -1,9 +1,13 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { baseServerResponse, errorResponse } from "@/server/api/trpc";
-import { fetchBadge } from "@/routers/badge";
+import { Client as PlanetScaleClient } from "@planetscale/database";
+import * as Sentry from "@sentry/nextjs";
+import type { inferRouterOutputs } from "@trpc/server";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { after } from "next/server";
-import { fetchAttributes } from "@/routers/profile";
-import { eq, ne, and, desc, sql } from "drizzle-orm";
+import { z } from "zod";
+import type { UserStatus } from "@/drizzle/constants";
+import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
 import {
   actionLog,
   aiProfile,
@@ -12,6 +16,7 @@ import {
   bloodlineRolls,
   captcha,
   conceptImage,
+  contentBackup,
   conversation,
   conversationComment,
   damageSimulation,
@@ -22,23 +27,25 @@ import {
   jutsuLoadout,
   kageDefendedChallenges,
   linkPromotion,
-  mpvpBattleUser,
   mpvpBattleQueue,
+  mpvpBattleUser,
   notification,
   paypalSubscription,
   paypalTransaction,
   poll,
-  staffApplication,
   pollOption,
   questHistory,
+  raidParticipation,
   rankedPvpQueue,
   rankedUserRewards,
   reportLog,
   ryoTrade,
   sector,
+  staffApplication,
   supportReview,
   trainingLog,
   user2conversation,
+  userActivityEvent,
   userAttribute,
   userBadge,
   userBlackList,
@@ -48,46 +55,41 @@ import {
   userLikes,
   userNindo,
   userPollVote,
+  userRaidBuff,
   userReport,
   userReportComment,
   userRequest,
   userReview,
   userRewards,
+  userSkill,
   userUpload,
   userVote,
-  userSkill,
   village,
-  userActivityEvent,
   warKill,
-  raidParticipation,
-  userRaidBuff,
 } from "@/drizzle/schema";
-import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
+import { fetchBadge } from "@/routers/badge";
+import { fetchAttributes, fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import { fetchVillages } from "@/routers/village";
-import { z } from "zod";
-import { nanoid } from "nanoid";
 import {
-  canUnstuckVillage,
-  canModifyUserBadges,
-  canSeeIps,
-  canSeeActivityEvents,
-  canUnequipAllUsers,
-  canUseMonitoringTests,
-  canDeleteReferral,
-  canControlBackups,
-} from "@/utils/permissions";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { canCloneUser, canClearSectors } from "@/utils/permissions";
-import { TRPCError } from "@trpc/server";
-import * as Sentry from "@sentry/nextjs";
-import type { inferRouterOutputs } from "@trpc/server";
-import type { UserStatus } from "@/drizzle/constants";
-
-import { Client as PlanetScaleClient } from "@planetscale/database";
-import { contentBackup } from "@/drizzle/schema";
-
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
 import type { DrizzleClient } from "@/server/db";
+import {
+  canClearSectors,
+  canCloneUser,
+  canControlBackups,
+  canDeleteReferral,
+  canModifyUserBadges,
+  canSeeActivityEvents,
+  canSeeIps,
+  canUnequipAllUsers,
+  canUnstuckVillage,
+  canUseMonitoringTests,
+} from "@/utils/permissions";
 import { fetchSector } from "./village";
 
 export const staffRouter = createTRPCRouter({
@@ -161,9 +163,7 @@ export const staffRouter = createTRPCRouter({
         .map((r) => `(${columns.map((c) => toSqlVal(r[c])).join(", ")})`)
         .join(",\n");
 
-      const insertSql = `INSERT INTO \`${tableName}\` (${columns
-        .map((c) => `\`${c}\``)
-        .join(", ")}) VALUES\n${valuesSql};`;
+      const insertSql = `INSERT INTO \`${tableName}\` (${columns.map((c) => `\`${c}\``).join(", ")}) VALUES\n${valuesSql};`;
 
       await ctx.drizzle.insert(contentBackup).values({
         id: nanoid(),

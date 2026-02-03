@@ -1,30 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import type { z } from "zod";
+import { api } from "@/app/_trpc/client";
+import { Button } from "@/components/ui/button";
+import { GAME_SETTING_GAINS_MULTIPLIER } from "@/drizzle/constants";
+import AvatarImage from "@/layout/Avatar";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
-import RichInput from "@/layout/RichInput";
 import Post from "@/layout/Post";
-import AvatarImage from "@/layout/Avatar";
-import { parseHtml } from "@/utils/parse";
-import UserSearchSelect from "@/layout/UserSearchSelect";
+import RichInput from "@/layout/RichInput";
 import SliderField from "@/layout/SliderField";
-import { Button } from "@/components/ui/button";
-import { showMutationToast } from "@/libs/toast";
-import { getSearchValidator } from "@/validators/register";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { api } from "@/app/_trpc/client";
-import { useRequiredUserData } from "@/utils/UserContext";
-import { canSubmitNotification } from "@/utils/permissions";
-import { canModifyEventGains } from "@/utils/permissions";
-import { mutateContentSchema, type MutateContentSchema } from "@/validators/comments";
-import { changeSettingSchema, type ChangeSettingSchema } from "@/validators/misc";
-import { canUseMonitoringTests } from "@/utils/permissions";
+import UserSearchSelect from "@/layout/UserSearchSelect";
 import { useInfinitePagination } from "@/libs/pagination";
-import { GAME_SETTING_GAINS_MULTIPLIER } from "@/drizzle/constants";
+import { showMutationToast } from "@/libs/toast";
+import { parseHtml } from "@/utils/parse";
+import {
+  canModifyEventGains,
+  canSubmitNotification,
+  canUseMonitoringTests,
+} from "@/utils/permissions";
 import { secondsPassed } from "@/utils/time";
-import type { z } from "zod";
+import { useRequiredUserData } from "@/utils/UserContext";
+import { type MutateContentSchema, mutateContentSchema } from "@/validators/comments";
+import { type ChangeSettingSchema, changeSettingSchema } from "@/validators/misc";
+import { getSearchValidator } from "@/validators/register";
 
 export default function NotifyUsers() {
   return (
@@ -62,7 +64,7 @@ const TestErrorMonitoring: React.FC = () => {
       initialBreak={true}
     >
       <div className="flex flex-col gap-2">
-        <span className="hidden">{state!.toString()}</span>
+        <span className="hidden">{state?.toString()}</span>
         <div className="flex flex-row gap-2">
           <Button
             className="basis-1/2"
@@ -157,7 +159,7 @@ const RegenGainSystem: React.FC = () => {
             {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
-                className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
+                className={`w-full ${setting?.value === parseInt(multiplier, 10) ? "bg-green-700" : ""}`}
                 key={`${multiplier}-multiplier-button`}
                 onClick={() =>
                   setEventGameSetting({
@@ -249,7 +251,7 @@ const TrainingGainSystem: React.FC = () => {
             {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
-                className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
+                className={`w-full ${setting?.value === parseInt(multiplier, 10) ? "bg-green-700" : ""}`}
                 key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
@@ -341,7 +343,7 @@ const BattleArenaExpSystem: React.FC = () => {
             {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
-                className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
+                className={`w-full ${setting?.value === parseInt(multiplier, 10) ? "bg-green-700" : ""}`}
                 key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
@@ -433,7 +435,7 @@ const MissionExpSystem: React.FC = () => {
             {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
-                className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
+                className={`w-full ${setting?.value === parseInt(multiplier, 10) ? "bg-green-700" : ""}`}
                 key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
@@ -525,7 +527,7 @@ const JutsuExpSystem: React.FC = () => {
             {GAME_SETTING_GAINS_MULTIPLIER.map((multiplier) => (
               <Button
                 id={`multiply-${multiplier}`}
-                className={`w-full ${setting?.value === parseInt(multiplier) ? "bg-green-700" : ""}`}
+                className={`w-full ${setting?.value === parseInt(multiplier, 10) ? "bg-green-700" : ""}`}
                 key={multiplier}
                 onClick={() =>
                   setEventGameSetting({
@@ -569,7 +571,7 @@ const NotificationSystem: React.FC = () => {
       placeholderData: (previousData) => previousData,
     },
   );
-  const notifications = data?.pages.map((page) => page.data).flat();
+  const notifications = data?.pages.flatMap((page) => page.data);
 
   // Mutations
   const { mutate: submitNotification, isPending: l2 } =
@@ -613,7 +615,7 @@ const NotificationSystem: React.FC = () => {
   const targetUser = watchedUsers?.[0];
 
   useEffect(() => {
-    if (userData && userData.username && watchedUsers.length === 0) {
+    if (userData?.username && watchedUsers.length === 0) {
       userSearchMethods.setValue("users", [userData]);
     }
   }, [userData, userSearchMethods, watchedUsers]);
@@ -681,7 +683,7 @@ const NotificationSystem: React.FC = () => {
                 >
                   <Post align_middle={true}>
                     <div className="flex flex-row">
-                      <div className="w-20 grow-0 shrink-0">
+                      <div className="w-20 shrink-0 grow-0">
                         {entry.user && (
                           <AvatarImage
                             href={entry.user.avatar}

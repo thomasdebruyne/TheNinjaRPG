@@ -1,26 +1,28 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { baseServerResponse, errorResponse } from "@/server/api/trpc";
-import { z } from "zod";
+import { and, desc, eq, inArray, like } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, and, desc, inArray, like } from "drizzle-orm";
-import { userData, staffApplication, staffApplicationApproval } from "@/drizzle/schema";
-import { StaffApplicationTargetRoles } from "@/drizzle/constants";
-import type { StaffApprovalGroup } from "@/drizzle/constants";
+import { z } from "zod";
+import type { StaffApplicationState, StaffApprovalGroup } from "@/drizzle/constants";
+import { StaffApplicationTargetRoles, StaffApprovalGroups } from "@/drizzle/constants";
+import { staffApplication, staffApplicationApproval, userData } from "@/drizzle/schema";
+import { createConvo } from "@/routers/comments";
+import { fetchUser } from "@/routers/profile";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
+import type { DrizzleClient } from "@/server/db";
+import {
+  canApproveApplications,
+  canDeleteStaffApplication,
+  canViewAllApplications,
+  getApprovalGroup,
+} from "@/utils/permissions";
 import {
   createApplicationSchema,
   listApplicationsInfiniteSchema,
 } from "@/validators/applications";
-import type { StaffApplicationState } from "@/drizzle/constants";
-import type { DrizzleClient } from "@/server/db";
-import { StaffApprovalGroups } from "@/drizzle/constants";
-import { createConvo } from "@/routers/comments";
-import { fetchUser } from "@/routers/profile";
-import {
-  canDeleteStaffApplication,
-  canViewAllApplications,
-  canApproveApplications,
-  getApprovalGroup,
-} from "@/utils/permissions";
 
 export const applicationsRouter = createTRPCRouter({
   create: protectedProcedure

@@ -1,19 +1,19 @@
 "use client";
 
-import ContentBox from "@/layout/ContentBox";
-import Loader from "@/layout/Loader";
-import { api } from "@/app/_trpc/client";
-import { useUserData } from "@/utils/UserContext";
-import Table from "@/layout/Table";
 import { useState } from "react";
-import { useInfinitePagination } from "@/libs/pagination";
+import { api } from "@/app/_trpc/client";
+import { Button } from "@/components/ui/button";
 import ApplicationsFiltering, {
   getApplicationsFilter,
   useApplicationsFiltering,
 } from "@/layout/ApplicationsFiltering";
-import { canDeleteStaffApplication } from "@/utils/permissions";
 import Confirm2 from "@/layout/Confirm2";
-import { Button } from "@/components/ui/button";
+import ContentBox from "@/layout/ContentBox";
+import Loader from "@/layout/Loader";
+import Table from "@/layout/Table";
+import { useInfinitePagination } from "@/libs/pagination";
+import { canDeleteStaffApplication } from "@/utils/permissions";
+import { useUserData } from "@/utils/UserContext";
 
 export default function ApplicationsPage() {
   const { data: me } = useUserData();
@@ -34,7 +34,7 @@ export default function ApplicationsPage() {
       staleTime: 1000 * 60 * 5,
     },
   );
-  const apps = appsPages?.pages.map((p) => p.data).flat();
+  const apps = appsPages?.pages.flatMap((p) => p.data);
   useInfinitePagination({ fetchNextPage, hasNextPage, lastElement });
   const utils = api.useUtils();
   const deleteMutation = api.applications.delete.useMutation({

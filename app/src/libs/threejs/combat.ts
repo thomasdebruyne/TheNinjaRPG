@@ -1,85 +1,92 @@
+import type { Grid } from "honeycomb-grid";
+import { ring } from "honeycomb-grid";
+import { createNoise2D } from "simplex-noise";
+import type { Object3D } from "three";
 import {
+  type BufferGeometry,
   Color,
   DoubleSide,
-  Group,
-  LineBasicMaterial,
-  LinearFilter,
-  Mesh,
-  SpriteMaterial,
-  Sprite,
-  Line,
-  LineSegments,
   EdgesGeometry,
-  type BufferGeometry,
+  Group,
+  Line,
+  LinearFilter,
+  LineBasicMaterial,
+  LineSegments,
+  Mesh,
+  Sprite,
+  SpriteMaterial,
 } from "three";
 import {
-  loadTexture,
-  createTexture,
-  createSpriteMaterial,
-  createShadowTexture,
-  drawStatusBar,
-  updateStatusBar,
-  showAnimation,
-  profiler,
-} from "@/libs/threejs/util";
-import { playPreloadedAudio } from "@/utils/audio";
-import { getPossibleActionTiles, findHex, PathCalculator } from "../hexgrid";
+  ASSETS_LAYER,
+  DIRT_LAYER,
+  EFFECTS_LAYER,
+  HEX_STACKING_DISPLACEMENT,
+  ID_SFX_MOVE,
+  IMG_AVATAR_DEFAULT,
+  IMG_BATTLEFIELD_STAR,
+  IMG_BATTLEFIELD_TOMBSTONE,
+  IMG_SECTOR_USER_MARKER,
+  IMG_SECTOR_USER_SPRITE_MASK,
+  STATUS_LAYER,
+  TILES_LAYER,
+  USER_LAYER,
+} from "@/drizzle/constants";
+import type { GameAsset, UserData } from "@/drizzle/schema";
+import type { BattleMaps } from "@/hooks/combat";
 import {
+  actionPointsAfterAction,
+  calcActiveUser,
+  stillInBattle,
+} from "@/libs/combat/actions";
+import {
+  COMBAT_BORDER_BOTTOM,
   COMBAT_BORDER_LEFT,
   COMBAT_BORDER_RIGHT,
   COMBAT_BORDER_TOP,
-  COMBAT_BORDER_BOTTOM,
 } from "@/libs/combat/constants";
-import { getAffectedTiles, getVillage, getClan } from "@/libs/combat/util";
-import { actionPointsAfterAction } from "@/libs/combat/actions";
-import { calcActiveUser } from "@/libs/combat/actions";
-import { stillInBattle } from "@/libs/combat/actions";
+import type {
+  CachedIntersections,
+  CombatAction,
+  GroundEffect,
+  ReturnedBattle,
+  ReturnedUserState,
+  UserEffect,
+} from "@/libs/combat/types";
 import {
+  getAffectedTiles,
   getBattleGrid,
+  getClan,
   getEffectiveCurPool,
   getEffectiveMaxPool,
+  getVillage,
 } from "@/libs/combat/util";
 import { getTileInfo } from "@/libs/threejs/biome";
-import { applyWaveShader } from "@/libs/threejs/shaders";
 import {
-  getHexPoints,
   calculateHexUVCoordinates,
   calculateTileOffset,
   createGroundCorners,
-  createTileGeometry,
-  createGroundGeometry,
   createGroundEdges,
+  createGroundGeometry,
+  createTileGeometry,
+  getHexPoints,
   mergeBufferGeometries,
 } from "@/libs/threejs/hexgrid";
-import { createNoise2D } from "simplex-noise";
-import { ring } from "honeycomb-grid";
-import type { Grid } from "honeycomb-grid";
-import {
-  IMG_SECTOR_USER_MARKER,
-  IMG_SECTOR_USER_SPRITE_MASK,
-  IMG_BATTLEFIELD_TOMBSTONE,
-  IMG_BATTLEFIELD_STAR,
-  IMG_AVATAR_DEFAULT,
-  HEX_STACKING_DISPLACEMENT,
-} from "@/drizzle/constants";
-import {
-  ID_SFX_MOVE,
-  STATUS_LAYER,
-  USER_LAYER,
-  ASSETS_LAYER,
-  EFFECTS_LAYER,
-  TILES_LAYER,
-  DIRT_LAYER,
-} from "@/drizzle/constants";
-import type { GameAsset, UserData } from "@/drizzle/schema";
-import type { Object3D } from "three";
-import type { TerrainHex, HexagonalFaceMesh } from "../hexgrid";
-import type { BarrierTagType } from "@/validators/combat";
-import type { GroundEffect, UserEffect } from "@/libs/combat/types";
-import type { ReturnedUserState, CombatAction } from "@/libs/combat/types";
-import type { ReturnedBattle, CachedIntersections } from "@/libs/combat/types";
-import type { BattleMaps } from "@/hooks/combat";
 import type { SpriteMixer } from "@/libs/threejs/SpriteMixer";
+import { applyWaveShader } from "@/libs/threejs/shaders";
+import {
+  createShadowTexture,
+  createSpriteMaterial,
+  createTexture,
+  drawStatusBar,
+  loadTexture,
+  profiler,
+  showAnimation,
+  updateStatusBar,
+} from "@/libs/threejs/util";
+import { playPreloadedAudio } from "@/utils/audio";
+import type { BarrierTagType } from "@/validators/combat";
+import type { HexagonalFaceMesh, TerrainHex } from "../hexgrid";
+import { findHex, getPossibleActionTiles, PathCalculator } from "../hexgrid";
 
 // Queue for non-movement SFX that should play after movement completes
 type PendingSfx = { url: string; volume: number };
@@ -805,7 +812,7 @@ export const createUserSprite = (
         alphaMap: alphaMap,
       });
       const clanBorderSprite = new Sprite(clanBorderMaterial);
-      clanBorderSprite.material.color.setHex(parseInt("FFD700", 16));
+      clanBorderSprite.material.color.setHex(0xffd700);
       clanBorderSprite.scale.set(-1 * h * 0.3 - 2, h * 0.3 + 2, 1);
       clanBorderSprite.position.set(0.9 * w, h * 1.4, USER_LAYER);
       group.add(clanBorderSprite);
@@ -1068,7 +1075,8 @@ const stepAlongPath = (
   const path = meshData.movement?.path;
   let index = meshData.movement?.index ?? 0;
   if (path && index < path.length) {
-    const nextTile = path[index]!;
+    const nextTile = path[index];
+    if (!nextTile) return;
     const { x, y } = nextTile.center;
     // Compute progress along current segment for easing
     const startCenter = meshData.hex?.center ?? nextTile.center;
@@ -1179,8 +1187,16 @@ export const drawCombatUsers = (info: {
   const endMark = profiler.mark("drawCombatUsers");
 
   // Destruct
-  const { users, group_users, grid, playerId, userData, group_assets, usersEffects, battle } =
-    info;
+  const {
+    users,
+    group_users,
+    grid,
+    playerId,
+    userData,
+    group_assets,
+    usersEffects,
+    battle,
+  } = info;
   // Cache or create a pathfinder for this group
   const pathFinder = getOrCreatePathFinder(group_users, grid);
 
@@ -1385,9 +1401,10 @@ const getPooledEdgeMesh = (
 ): LineSegments => {
   let edgeMesh: LineSegments;
 
-  if (pool.activeCount < pool.meshes.length) {
+  const existingMesh = pool.meshes[pool.activeCount];
+  if (pool.activeCount < pool.meshes.length && existingMesh) {
     // Reuse existing mesh from pool
-    edgeMesh = pool.meshes[pool.activeCount]!;
+    edgeMesh = existingMesh;
     edgeMesh.geometry = geometry;
     edgeMesh.material = material;
     edgeMesh.visible = true;
@@ -1604,7 +1621,7 @@ export const highlightTiles = (info: {
     const isSelected = newSelection.has(name);
     const mesh = group_tiles.getObjectByName(name) as HexagonalFaceMesh;
 
-    if (mesh && mesh.userData.originalColor) {
+    if (mesh?.userData.originalColor) {
       // Update states
       mesh.userData.highlight = isHighlighted;
       if (!isSelected) {

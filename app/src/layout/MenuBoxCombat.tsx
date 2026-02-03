@@ -1,17 +1,16 @@
-import React from "react";
+import { useAtomValue } from "jotai";
+import { Dna, Gem, Link2 } from "lucide-react";
 import Link from "next/link";
-import StatusBar from "@/layout/StatusBar";
+import type React from "react";
+import { SideBannerTitle } from "@/components/layout/core4_default";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useEffectivePools } from "@/hooks/useEffectivePools";
 import AvatarImage from "@/layout/Avatar";
 import ItemWithEffects from "@/layout/ItemWithEffects";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dna, Link2, Gem } from "lucide-react";
-import { useUserData } from "@/utils/UserContext";
-import { useAtomValue } from "jotai";
-import { userBattleAtom } from "@/utils/UserContext";
-import { SideBannerTitle } from "@/components/layout/core4_default";
 import { VisualizeEffects } from "@/layout/MenuBoxProfile";
-import { getKeystoneItem, getBloodline } from "@/libs/combat/util";
-import { useEffectivePools } from "@/hooks/useEffectivePools";
+import StatusBar from "@/layout/StatusBar";
+import { getBloodline, getKeystoneItem } from "@/libs/combat/util";
+import { userBattleAtom, useUserData } from "@/utils/UserContext";
 
 const MenuBoxCombat: React.FC = () => {
   // State
@@ -37,12 +36,12 @@ const MenuBoxCombat: React.FC = () => {
       <SideBannerTitle>
         <Link
           href={`/userid/${battleUser.userId}`}
-          className="inline-block hover:text-orange-500 flex flex-row"
+          className="inline-block flex flex-row hover:text-orange-500"
         >
           {battleUser.username} <Link2 className="inline-block h-5 w-5" />
         </Link>
       </SideBannerTitle>
-      <div className="grid grid-cols-2 md:grid-cols-1 items-center justify-center">
+      <div className="grid grid-cols-2 items-center justify-center md:grid-cols-1">
         <Link href="/profile">
           <AvatarImage
             href={battleUser.avatar}
@@ -104,8 +103,8 @@ const MenuBoxCombat: React.FC = () => {
         return (
           <Popover>
             <PopoverTrigger>
-              <div className="flex flex-row items-center hover:text-orange-500 hover:cursor-pointer">
-                <Dna className="h-6 w-6 mr-2" /> {bloodline.name ?? "??"}
+              <div className="flex flex-row items-center hover:cursor-pointer hover:text-orange-500">
+                <Dna className="mr-2 h-6 w-6" /> {bloodline.name ?? "??"}
               </div>
             </PopoverTrigger>
             <PopoverContent>
@@ -123,8 +122,8 @@ const MenuBoxCombat: React.FC = () => {
         return (
           <Popover>
             <PopoverTrigger>
-              <div className="flex flex-row items-center hover:text-orange-500 hover:cursor-pointer">
-                <Gem className="h-6 w-6 mr-2" /> {battleUser.keystoneName}
+              <div className="flex flex-row items-center hover:cursor-pointer hover:text-orange-500">
+                <Gem className="mr-2 h-6 w-6" /> {battleUser.keystoneName}
               </div>
             </PopoverTrigger>
             <PopoverContent className="w-[320px]">

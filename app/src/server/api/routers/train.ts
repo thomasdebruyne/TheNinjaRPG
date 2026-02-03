@@ -1,24 +1,27 @@
+import { and, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import { eq, sql, gt, and, isNull, isNotNull } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { serverError, baseServerResponse, errorResponse } from "../trpc";
+import {
+  MAX_DAILY_TRAININGS,
+  TrainingSpeeds,
+  UserStatNames,
+} from "@/drizzle/constants";
 import { trainingLog, userData } from "@/drizzle/schema";
-import { getNewTrackers } from "@/libs/quest";
-import { energyPerSecond } from "@/libs/train";
-import { trainingMultiplier } from "@/libs/train";
-import { trainEfficiency } from "@/libs/train";
-import { calcIsInVillage } from "@/libs/travel";
-import { UserStatNames } from "@/drizzle/constants";
-import { TrainingSpeeds } from "@/drizzle/constants";
-import { getGameSettingBoost } from "@/libs/gamesettings";
 import { showTrainingCapcha } from "@/libs/captcha";
-import { getStrucBoost } from "@/utils/village";
+import { getGameSettingBoost } from "@/libs/gamesettings";
+import { getNewTrackers } from "@/libs/quest";
+import { energyPerSecond, trainEfficiency, trainingMultiplier } from "@/libs/train";
+import { calcIsInVillage } from "@/libs/travel";
 import { validateCaptcha } from "@/routers/misc";
 import { fetchUpdatedUser } from "@/routers/profile";
+import { getShrineBoost, getStrucBoost } from "@/utils/village";
 import { QuestTracker } from "@/validators/objectives";
-
-import { MAX_DAILY_TRAININGS } from "@/drizzle/constants";
-import { getShrineBoost } from "@/utils/village";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  serverError,
+} from "../trpc";
 
 export const trainRouter = createTRPCRouter({
   // Start training of a specific attribute

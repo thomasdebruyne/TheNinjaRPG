@@ -1,74 +1,79 @@
-import { publicState, allState } from "./constants";
-import { getPower } from "./tags";
-import { randomInt } from "@/utils/math";
-import { secondsPassed } from "@/utils/time";
-import { availableUserActions } from "./actions";
-import { calcActiveUser } from "./actions";
-import { stillInBattle } from "./actions";
-import { checkFriendlyFire } from "./process";
 import {
-  KAGE_PRESTIGE_COST,
-  FRIENDLY_PRESTIGE_COST,
-  MAP_WAR_TORN_BATTLEGROUND_SECTOR,
-  WAR_TORN_SECTOR_BASE_MONEY,
-} from "@/drizzle/constants";
+  Direction,
+  fromCoordinates,
+  Grid,
+  line,
+  Orientation,
+  rectangle,
+  ring,
+  spiral,
+} from "honeycomb-grid";
 import type { BattleType, PoolType } from "@/drizzle/constants";
-import { KAGE_CHALLENGE_WIN_PRESTIGE } from "@/drizzle/constants";
-import { CLAN_BATTLE_REWARD_POINTS } from "@/drizzle/constants";
-import { getUserCaps } from "@/drizzle/constants";
-import { Orientation, Grid, rectangle } from "honeycomb-grid";
-import { defineHex } from "../hexgrid";
-import { actionPointsAfterAction } from "@/libs/combat/actions";
-import { KILLING_NOTORIETY_GAIN } from "@/drizzle/constants";
-import { findWarsWithUser } from "@/libs/war";
-import { STREAK_LEVEL_DIFF } from "@/drizzle/constants";
-import { getShrineBoost, getEffectiveStructureLevel } from "@/utils/village";
-import { spiral, line, ring, fromCoordinates, Direction } from "honeycomb-grid";
 import {
-  SHARED_COOLDOWN_TAGS,
-  WAR_HEALTH_REMOVE,
-  WAR_HEALTH_RECOVER,
-  WAR_HEALTH_ANBU_REMOVE,
-  WAR_HEALTH_ANBU_RECOVER,
-  WAR_HEALTH_ASSASSIN_REMOVE,
-  WAR_HEALTH_ASSASSIN_RECOVER,
-  WAR_HEALTH_ELDER_REMOVE,
-  WAR_HEALTH_ELDER_RECOVER,
-  WAR_HEALTH_COLEADER_REMOVE,
-  WAR_HEALTH_COLEADER_RECOVER,
-  WAR_HEALTH_KAGE_REMOVE,
-  WAR_HEALTH_KAGE_RECOVER,
-  WAR_HEALTH_KAGEDEATH_REMOVE,
-  WAR_SECTORWAR_AI_SHRINE_REDUCE,
-  WAR_SECTORWAR_AI_SHRINE_RECOVER,
-  WAR_SECTORWAR_PVP_SHRINE_REDUCE,
-  WAR_SECTORWAR_PVP_SHRINE_RECOVER,
-  PVP_KILL_TOKEN_REWARD,
-  PVP_KILL_TOKEN_REWARD_ANBU,
-  PVP_KILL_TOKEN_REWARD_ASSASSIN,
+  CLAN_BATTLE_REWARD_POINTS,
+  FRIENDLY_PRESTIGE_COST,
+  getUserCaps,
+  HEX_ASPECT_RATIO,
+  KAGE_CHALLENGE_WIN_PRESTIGE,
+  KAGE_PRESTIGE_COST,
+  KILLING_NOTORIETY_GAIN,
+  MAP_WAR_TORN_BATTLEGROUND_SECTOR,
+  PVP_KILL_ANBU_POINTS_REWARD,
   PVP_KILL_PRESTIGE_REWARD,
   PVP_KILL_PRESTIGE_REWARD_ANBU,
   PVP_KILL_PRESTIGE_REWARD_ASSASSIN,
-  PVP_KILL_ANBU_POINTS_REWARD,
-  HEX_ASPECT_RATIO,
+  PVP_KILL_TOKEN_REWARD,
+  PVP_KILL_TOKEN_REWARD_ANBU,
+  PVP_KILL_TOKEN_REWARD_ASSASSIN,
+  SHARED_COOLDOWN_TAGS,
+  STREAK_LEVEL_DIFF,
+  WAR_HEALTH_ANBU_RECOVER,
+  WAR_HEALTH_ANBU_REMOVE,
+  WAR_HEALTH_ASSASSIN_RECOVER,
+  WAR_HEALTH_ASSASSIN_REMOVE,
+  WAR_HEALTH_COLEADER_RECOVER,
+  WAR_HEALTH_COLEADER_REMOVE,
+  WAR_HEALTH_ELDER_RECOVER,
+  WAR_HEALTH_ELDER_REMOVE,
+  WAR_HEALTH_KAGE_RECOVER,
+  WAR_HEALTH_KAGE_REMOVE,
+  WAR_HEALTH_KAGEDEATH_REMOVE,
+  WAR_HEALTH_RECOVER,
+  WAR_HEALTH_REMOVE,
+  WAR_SECTORWAR_AI_SHRINE_RECOVER,
+  WAR_SECTORWAR_AI_SHRINE_REDUCE,
+  WAR_SECTORWAR_PVP_SHRINE_RECOVER,
+  WAR_SECTORWAR_PVP_SHRINE_REDUCE,
+  WAR_TORN_SECTOR_BASE_MONEY,
 } from "@/drizzle/constants";
+import type { Battle, GameSetting, UserItem, VillageAlliance } from "@/drizzle/schema";
+import { actionPointsAfterAction } from "@/libs/combat/actions";
+import type { BattleEffect, GroundEffect, UserEffect } from "@/libs/combat/types";
 import { calculateLpEloChange } from "@/libs/ranked_pvp";
-import { checkCoLeader, checkAssassin } from "@/validators/clan";
-import type { PathCalculator } from "../hexgrid";
-import type { TerrainHex } from "../hexgrid";
-import type { CombatResult, CompleteBattle, ReturnedBattle } from "./types";
-import type {
-  ReturnedUserState,
-  Consequence,
-  BattleWar,
-  ReturnedBattleDynamic,
-} from "./types";
-import type { CombatAction, BattleUserState } from "./types";
+import { findWarsWithUser } from "@/libs/war";
+import { randomInt } from "@/utils/math";
+import { secondsPassed } from "@/utils/time";
+import { getEffectiveStructureLevel, getShrineBoost } from "@/utils/village";
+import { checkAssassin, checkCoLeader } from "@/validators/clan";
 import type { ZodAllTags } from "@/validators/combat";
-import type { GroundEffect, UserEffect, BattleEffect } from "@/libs/combat/types";
-import type { Battle, UserItem } from "@/drizzle/schema";
-import type { GameSetting, VillageAlliance } from "@/drizzle/schema";
-import type { DroppedItem } from "./types";
+import type { PathCalculator, TerrainHex } from "../hexgrid";
+import { defineHex } from "../hexgrid";
+import { availableUserActions, calcActiveUser, stillInBattle } from "./actions";
+import { allState, publicState } from "./constants";
+import { checkFriendlyFire } from "./process";
+import { getPower } from "./tags";
+import type {
+  BattleUserState,
+  BattleWar,
+  CombatAction,
+  CombatResult,
+  CompleteBattle,
+  Consequence,
+  DroppedItem,
+  ReturnedBattle,
+  ReturnedBattleDynamic,
+  ReturnedUserState,
+} from "./types";
 
 // =============================================================================
 // STATIC DATA LOOKUP FUNCTIONS
@@ -425,7 +430,7 @@ export const getEffectiveMaxPool = (
  */
 export const getEffectiveCurPool = (
   user: ReturnedUserState,
-  effects: UserEffect[] | undefined,
+  _effects: UserEffect[] | undefined,
   pool: PoolType,
 ): number => {
   const { cur } = getPoolKeys(pool);
@@ -598,8 +603,7 @@ export const getBattleGrid = (
     .filter((tile) => {
       try {
         return tile.width !== 0;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch (_e) {
         return false;
       }
     })
@@ -1496,55 +1500,83 @@ export const calcBattleResult = (
                 if (didWin) {
                   if (village?.kageId === user.userId) {
                     warHealthChange += WAR_HEALTH_KAGE_RECOVER;
-                    warHealthInfo[userVillageName]! += WAR_HEALTH_KAGE_RECOVER;
-                    warHealthInfo[targetVillageName]! -= WAR_HEALTH_KAGE_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) + WAR_HEALTH_KAGE_RECOVER;
+                    warHealthInfo[targetVillageName] =
+                      (warHealthInfo[targetVillageName] ?? 0) - WAR_HEALTH_KAGE_REMOVE;
                   } else if (user.rank === "ELDER") {
                     warHealthChange += WAR_HEALTH_ELDER_RECOVER;
-                    warHealthInfo[userVillageName]! += WAR_HEALTH_ELDER_RECOVER;
-                    warHealthInfo[targetVillageName]! -= WAR_HEALTH_ELDER_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) + WAR_HEALTH_ELDER_RECOVER;
+                    warHealthInfo[targetVillageName] =
+                      (warHealthInfo[targetVillageName] ?? 0) - WAR_HEALTH_ELDER_REMOVE;
                   } else if (isUserFactionColeader) {
                     warHealthChange += WAR_HEALTH_COLEADER_RECOVER;
-                    warHealthInfo[userVillageName]! += WAR_HEALTH_COLEADER_RECOVER;
-                    warHealthInfo[targetVillageName]! -= WAR_HEALTH_COLEADER_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) +
+                      WAR_HEALTH_COLEADER_RECOVER;
+                    warHealthInfo[targetVillageName] =
+                      (warHealthInfo[targetVillageName] ?? 0) -
+                      WAR_HEALTH_COLEADER_REMOVE;
                   } else if (user.anbuId) {
                     warHealthChange += WAR_HEALTH_ANBU_RECOVER;
-                    warHealthInfo[userVillageName]! += WAR_HEALTH_ANBU_RECOVER;
-                    warHealthInfo[targetVillageName]! -= WAR_HEALTH_ANBU_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) + WAR_HEALTH_ANBU_RECOVER;
+                    warHealthInfo[targetVillageName] =
+                      (warHealthInfo[targetVillageName] ?? 0) - WAR_HEALTH_ANBU_REMOVE;
                   } else if (isUserAssassin) {
                     warHealthChange += WAR_HEALTH_ASSASSIN_RECOVER;
-                    warHealthInfo[userVillageName]! += WAR_HEALTH_ASSASSIN_RECOVER;
-                    warHealthInfo[targetVillageName]! -= WAR_HEALTH_ASSASSIN_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) +
+                      WAR_HEALTH_ASSASSIN_RECOVER;
+                    warHealthInfo[targetVillageName] =
+                      (warHealthInfo[targetVillageName] ?? 0) -
+                      WAR_HEALTH_ASSASSIN_REMOVE;
                   } else {
                     warHealthChange += WAR_HEALTH_RECOVER;
-                    warHealthInfo[userVillageName]! += WAR_HEALTH_RECOVER;
-                    warHealthInfo[targetVillageName]! -= WAR_HEALTH_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) + WAR_HEALTH_RECOVER;
+                    warHealthInfo[targetVillageName] =
+                      (warHealthInfo[targetVillageName] ?? 0) - WAR_HEALTH_REMOVE;
                   }
                   if (targetVillage?.kageId === target.userId) {
-                    warHealthInfo[targetVillageName]! -= WAR_HEALTH_KAGEDEATH_REMOVE;
+                    warHealthInfo[targetVillageName] =
+                      (warHealthInfo[targetVillageName] ?? 0) -
+                      WAR_HEALTH_KAGEDEATH_REMOVE;
                   }
                 } else {
                   if (targetVillage?.kageId === target.userId) {
                     warHealthChange -= WAR_HEALTH_KAGE_REMOVE;
-                    warHealthInfo[userVillageName]! -= WAR_HEALTH_KAGE_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) - WAR_HEALTH_KAGE_REMOVE;
                   } else if (target.rank === "ELDER") {
                     warHealthChange -= WAR_HEALTH_ELDER_REMOVE;
-                    warHealthInfo[userVillageName]! -= WAR_HEALTH_ELDER_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) - WAR_HEALTH_ELDER_REMOVE;
                   } else if (isTargetFactionColeader) {
                     warHealthChange -= WAR_HEALTH_COLEADER_REMOVE;
-                    warHealthInfo[userVillageName]! -= WAR_HEALTH_COLEADER_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) -
+                      WAR_HEALTH_COLEADER_REMOVE;
                   } else if (target.anbuId) {
                     warHealthChange -= WAR_HEALTH_ANBU_REMOVE;
-                    warHealthInfo[userVillageName]! -= WAR_HEALTH_ANBU_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) - WAR_HEALTH_ANBU_REMOVE;
                   } else if (isTargetAssassin) {
                     warHealthChange -= WAR_HEALTH_ASSASSIN_REMOVE;
-                    warHealthInfo[userVillageName]! -= WAR_HEALTH_ASSASSIN_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) -
+                      WAR_HEALTH_ASSASSIN_REMOVE;
                   } else {
                     warHealthChange -= WAR_HEALTH_REMOVE;
-                    warHealthInfo[userVillageName]! -= WAR_HEALTH_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) - WAR_HEALTH_REMOVE;
                   }
                   if (village?.kageId === user.userId) {
                     warHealthChange -= WAR_HEALTH_KAGEDEATH_REMOVE;
-                    warHealthInfo[userVillageName]! -= WAR_HEALTH_KAGEDEATH_REMOVE;
+                    warHealthInfo[userVillageName] =
+                      (warHealthInfo[userVillageName] ?? 0) -
+                      WAR_HEALTH_KAGEDEATH_REMOVE;
                   }
                 }
               }
@@ -1560,10 +1592,12 @@ export const calcBattleResult = (
                     (!didWin && war.defenderVillageId === vilId)
                   ) {
                     shrineChangeHp -= WAR_SECTORWAR_AI_SHRINE_REDUCE;
-                    shrineInfo[sector]! -= WAR_SECTORWAR_AI_SHRINE_REDUCE;
+                    shrineInfo[sector] =
+                      (shrineInfo[sector] ?? 0) - WAR_SECTORWAR_AI_SHRINE_REDUCE;
                   } else {
                     shrineChangeHp += WAR_SECTORWAR_AI_SHRINE_RECOVER;
-                    shrineInfo[sector]! += WAR_SECTORWAR_AI_SHRINE_RECOVER;
+                    shrineInfo[sector] =
+                      (shrineInfo[sector] ?? 0) + WAR_SECTORWAR_AI_SHRINE_RECOVER;
                   }
                 }
                 if (battleType === "COMBAT") {
@@ -1572,10 +1606,12 @@ export const calcBattleResult = (
                     (!didWin && war.defenderVillageId === vilId)
                   ) {
                     if (didWin) shrineChangeHp -= WAR_SECTORWAR_PVP_SHRINE_REDUCE;
-                    shrineInfo[sector]! -= WAR_SECTORWAR_PVP_SHRINE_REDUCE;
+                    shrineInfo[sector] =
+                      (shrineInfo[sector] ?? 0) - WAR_SECTORWAR_PVP_SHRINE_REDUCE;
                   } else {
                     if (didWin) shrineChangeHp += WAR_SECTORWAR_PVP_SHRINE_RECOVER;
-                    shrineInfo[sector]! += WAR_SECTORWAR_PVP_SHRINE_RECOVER;
+                    shrineInfo[sector] =
+                      (shrineInfo[sector] ?? 0) + WAR_SECTORWAR_PVP_SHRINE_RECOVER;
                   }
                 }
               }
@@ -1611,51 +1647,45 @@ export const calcBattleResult = (
 
                 // AI shrine battles (SHRINE_WAR) - attacking the shrine directly
                 if (battleType === "SHRINE_WAR") {
-                  if (didWin) {
+                  const warInfo = villageWarShrineInfo[war.id];
+                  if (didWin && warInfo) {
                     if (isUserOnAttackerSide && atDefenderVillage) {
                       // Attacker wins at defender's shrine: defender shrine HP down
-                      villageWarShrineInfo[war.id]!.defender -=
-                        WAR_SECTORWAR_AI_SHRINE_REDUCE;
+                      warInfo.defender -= WAR_SECTORWAR_AI_SHRINE_REDUCE;
                     } else if (isUserOnAttackerSide && atAttackerVillage) {
                       // Attacker wins defending own shrine: attacker shrine HP up
-                      villageWarShrineInfo[war.id]!.attacker +=
-                        WAR_SECTORWAR_AI_SHRINE_RECOVER;
+                      warInfo.attacker += WAR_SECTORWAR_AI_SHRINE_RECOVER;
                     } else if (isUserOnDefenderSide && atAttackerVillage) {
                       // Defender wins at attacker's shrine: attacker shrine HP down
-                      villageWarShrineInfo[war.id]!.attacker -=
-                        WAR_SECTORWAR_AI_SHRINE_REDUCE;
+                      warInfo.attacker -= WAR_SECTORWAR_AI_SHRINE_REDUCE;
                     } else if (isUserOnDefenderSide && atDefenderVillage) {
                       // Defender wins defending own shrine: defender shrine HP up
-                      villageWarShrineInfo[war.id]!.defender +=
-                        WAR_SECTORWAR_AI_SHRINE_RECOVER;
+                      warInfo.defender += WAR_SECTORWAR_AI_SHRINE_RECOVER;
                     }
                   }
                 }
 
                 // PvP battles (COMBAT) - affect shrine based on where battle occurred
                 if (battleType === "COMBAT") {
-                  if (didWin) {
+                  const warInfo = villageWarShrineInfo[war.id];
+                  if (didWin && warInfo) {
                     if (atDefenderVillage) {
                       // Battle at defender village affects defender shrine
                       if (isUserOnAttackerSide) {
                         // Attacker kills defender at defender village: defender shrine HP down
-                        villageWarShrineInfo[war.id]!.defender -=
-                          WAR_SECTORWAR_PVP_SHRINE_REDUCE;
+                        warInfo.defender -= WAR_SECTORWAR_PVP_SHRINE_REDUCE;
                       } else if (isUserOnDefenderSide) {
                         // Defender kills attacker at own village: defender shrine HP up
-                        villageWarShrineInfo[war.id]!.defender +=
-                          WAR_SECTORWAR_PVP_SHRINE_RECOVER;
+                        warInfo.defender += WAR_SECTORWAR_PVP_SHRINE_RECOVER;
                       }
                     } else if (atAttackerVillage) {
                       // Battle at attacker village affects attacker shrine
                       if (isUserOnDefenderSide) {
                         // Defender kills attacker at attacker village: attacker shrine HP down
-                        villageWarShrineInfo[war.id]!.attacker -=
-                          WAR_SECTORWAR_PVP_SHRINE_REDUCE;
+                        warInfo.attacker -= WAR_SECTORWAR_PVP_SHRINE_REDUCE;
                       } else if (isUserOnAttackerSide) {
                         // Attacker kills defender at own village: attacker shrine HP up
-                        villageWarShrineInfo[war.id]!.attacker +=
-                          WAR_SECTORWAR_PVP_SHRINE_RECOVER;
+                        warInfo.attacker += WAR_SECTORWAR_PVP_SHRINE_RECOVER;
                       }
                     }
                   }
@@ -1706,14 +1736,15 @@ export const calcBattleResult = (
               }
 
               // Apply shrine HP recovery for defend
-              if (isUserOnAttackerSide && atAttackerVillage) {
-                // Attacker wins defending own shrine: attacker shrine HP up
-                villageWarShrineInfo[war.id]!.attacker +=
-                  WAR_SECTORWAR_AI_SHRINE_RECOVER;
-              } else if (isUserOnDefenderSide && atDefenderVillage) {
-                // Defender wins defending own shrine: defender shrine HP up
-                villageWarShrineInfo[war.id]!.defender +=
-                  WAR_SECTORWAR_AI_SHRINE_RECOVER;
+              const warInfo = villageWarShrineInfo[war.id];
+              if (warInfo) {
+                if (isUserOnAttackerSide && atAttackerVillage) {
+                  // Attacker wins defending own shrine: attacker shrine HP up
+                  warInfo.attacker += WAR_SECTORWAR_AI_SHRINE_RECOVER;
+                } else if (isUserOnDefenderSide && atDefenderVillage) {
+                  // Defender wins defending own shrine: defender shrine HP up
+                  warInfo.defender += WAR_SECTORWAR_AI_SHRINE_RECOVER;
+                }
               }
             });
         }
@@ -1723,14 +1754,24 @@ export const calcBattleResult = (
       shrineChangeHp *= battle.rewardScaling;
       warHealthChange *= battle.rewardScaling;
       Object.keys(shrineInfo).forEach((sector) => {
-        shrineInfo[sector as unknown as number]! *= battle.rewardScaling;
+        const sectorNum = sector as unknown as number;
+        const val = shrineInfo[sectorNum];
+        if (val !== undefined) {
+          shrineInfo[sectorNum] = val * battle.rewardScaling;
+        }
       });
       Object.keys(warHealthInfo).forEach((name) => {
-        warHealthInfo[name]! *= battle.rewardScaling;
+        const val = warHealthInfo[name];
+        if (val !== undefined) {
+          warHealthInfo[name] = val * battle.rewardScaling;
+        }
       });
       Object.keys(villageWarShrineInfo).forEach((warId) => {
-        villageWarShrineInfo[warId]!.attacker *= battle.rewardScaling;
-        villageWarShrineInfo[warId]!.defender *= battle.rewardScaling;
+        const info = villageWarShrineInfo[warId];
+        if (info) {
+          info.attacker *= battle.rewardScaling;
+          info.defender *= battle.rewardScaling;
+        }
       });
 
       // Adjust shrine & townhall datamage based on level different
@@ -1755,18 +1796,28 @@ export const calcBattleResult = (
             warHealthChange /= Math.abs(warHealthChange);
           }
           Object.keys(shrineInfo).forEach((sector) => {
-            const abs = Math.abs(shrineInfo[sector as unknown as number]!);
-            if (abs !== 0) shrineInfo[sector as unknown as number]! /= abs;
+            const sectorNum = sector as unknown as number;
+            const val = shrineInfo[sectorNum];
+            if (val !== undefined) {
+              const abs = Math.abs(val);
+              if (abs !== 0) shrineInfo[sectorNum] = val / abs;
+            }
           });
           Object.keys(warHealthInfo).forEach((name) => {
-            const abs = Math.abs(warHealthInfo[name]!);
-            if (abs !== 0) warHealthInfo[name]! /= abs;
+            const val = warHealthInfo[name];
+            if (val !== undefined) {
+              const abs = Math.abs(val);
+              if (abs !== 0) warHealthInfo[name] = val / abs;
+            }
           });
           Object.keys(villageWarShrineInfo).forEach((warId) => {
-            const absAttacker = Math.abs(villageWarShrineInfo[warId]!.attacker);
-            const absDefender = Math.abs(villageWarShrineInfo[warId]!.defender);
-            if (absAttacker !== 0) villageWarShrineInfo[warId]!.attacker /= absAttacker;
-            if (absDefender !== 0) villageWarShrineInfo[warId]!.defender /= absDefender;
+            const info = villageWarShrineInfo[warId];
+            if (info) {
+              const absAttacker = Math.abs(info.attacker);
+              const absDefender = Math.abs(info.defender);
+              if (absAttacker !== 0) info.attacker /= absAttacker;
+              if (absDefender !== 0) info.defender /= absDefender;
+            }
           });
         }
       }
@@ -1775,8 +1826,10 @@ export const calcBattleResult = (
       // Combine attacker and defender changes for display purposes
       Object.keys(villageWarShrineInfo).forEach((warId) => {
         const displayName = warIdToDisplayName[warId] ?? warId;
-        const info = villageWarShrineInfo[warId]!;
-        villageWarShrineDisplay[displayName] = info.attacker + info.defender;
+        const info = villageWarShrineInfo[warId];
+        if (info) {
+          villageWarShrineDisplay[displayName] = info.attacker + info.defender;
+        }
       });
 
       // Determine if pvpStreak should be adjusted
@@ -2357,7 +2410,7 @@ export const getAffectedTiles = (info: {
   const green = new Set<TerrainHex>();
   const red = new Set<TerrainHex>();
   const user = users.find((u) => u.userId === userId);
-  let tiles: Grid<TerrainHex> | undefined = undefined;
+  let tiles: Grid<TerrainHex> | undefined;
 
   // Get all ground effects which are barriers
   const barriers = info.ground.filter((g) => g.type === "barrier");

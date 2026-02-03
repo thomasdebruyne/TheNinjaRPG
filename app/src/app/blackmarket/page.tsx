@@ -1,41 +1,13 @@
 "use client";
 
-import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Dices, ReceiptJapaneseYen, ShoppingCart, Waypoints, X } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { round } from "@/utils/math";
-import ContentBox from "@/layout/ContentBox";
-import Shop from "@/layout/Shop";
-import Loader from "@/layout/Loader";
-import NavTabs from "@/layout/NavTabs";
-import Confirm2 from "@/layout/Confirm2";
-import AvatarImage from "@/layout/Avatar";
-import UserSearchSelect from "@/layout/UserSearchSelect";
-import Table, { type ColumnDefinitionType } from "@/layout/Table";
 import { Label } from "src/components/ui/label";
-import { getSearchValidator } from "@/validators/register";
-import { ReceiptJapaneseYen, ShoppingCart, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { CurrentBloodline, PurchaseBloodline } from "@/layout/Bloodline";
-import { useRequiredUserData } from "@/utils/UserContext";
+import { z } from "zod";
 import { api } from "@/app/_trpc/client";
-import { secondsFromDate } from "@/utils/time";
-import { showMutationToast } from "@/libs/toast";
-import { useInfinitePagination } from "@/libs/pagination";
-import { filterRollableBloodlines } from "@/libs/bloodline";
-import { RYO_FOR_REP_DAYS_FROZEN } from "@/drizzle/constants";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import GraphBlackmarketLedger from "@/layout/GraphBlackmarketLedger";
-import { Waypoints, Dices } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -44,10 +16,40 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  PITY_BLOODLINE_ROLLS,
+  PITY_SYSTEM_ENABLED,
+  RYO_FOR_REP_DAYS_FROZEN,
+} from "@/drizzle/constants";
 import { useLocalStorage } from "@/hooks/localstorage";
-import { PITY_BLOODLINE_ROLLS, PITY_SYSTEM_ENABLED } from "@/drizzle/constants";
-import type { ArrayElement } from "@/utils/typeutils";
+import AvatarImage from "@/layout/Avatar";
+import { CurrentBloodline, PurchaseBloodline } from "@/layout/Bloodline";
+import Confirm2 from "@/layout/Confirm2";
+import ContentBox from "@/layout/ContentBox";
+import GraphBlackmarketLedger from "@/layout/GraphBlackmarketLedger";
+import Loader from "@/layout/Loader";
+import NavTabs from "@/layout/NavTabs";
+import Shop from "@/layout/Shop";
+import Table, { type ColumnDefinitionType } from "@/layout/Table";
+import UserSearchSelect from "@/layout/UserSearchSelect";
+import { filterRollableBloodlines } from "@/libs/bloodline";
+import { useInfinitePagination } from "@/libs/pagination";
+import { showMutationToast } from "@/libs/toast";
 import type { UserWithRelations } from "@/routers/profile";
+import { round } from "@/utils/math";
+import { secondsFromDate } from "@/utils/time";
+import type { ArrayElement } from "@/utils/typeutils";
+import { useRequiredUserData } from "@/utils/UserContext";
+import { getSearchValidator } from "@/validators/register";
 
 export default function BlackMarket() {
   // Tab selection
@@ -128,9 +130,9 @@ export default function BlackMarket() {
  * @param param0
  * @returns
  */
-const PityBloodlineRoll: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
-  userData,
-}) => {
+const PityBloodlineRoll: React.FC<{
+  userData: NonNullable<UserWithRelations>;
+}> = ({ userData }) => {
   // tRPC utils
   const utils = api.useUtils();
 
@@ -212,7 +214,7 @@ const PityBloodlineRoll: React.FC<{ userData: NonNullable<UserWithRelations> }> 
       padding={false}
     >
       <Table data={itemRolls} columns={columns} />
-      <p className="italic text-xs p-3">
+      <p className="p-3 text-xs italic">
         Once you have have rolled {PITY_BLOODLINE_ROLLS} times for a given rank
         bloodline using items, you get 1 free roll, which is guarenteed to give you a
         random bloodline of the given rank. <b>Note:</b> Pity system will be disabled
@@ -344,8 +346,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
       },
     );
   const allOffers = data?.pages
-    .map((page) => page.data)
-    .flat()
+    .flatMap((page) => page.data)
     .map((offer) => {
       const hasRyo = userData.money >= offer.requestedRyo;
       const owner = offer.creatorUserId === userData.userId;
@@ -396,7 +397,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
           <div className="flex flex-row gap-1">
             {showActive && hasRyo && !owner && (
               <Button onClick={() => accept({ offerId: offer.id })}>
-                <ShoppingCart className="h-5 w-5 mr-2" />
+                <ShoppingCart className="mr-2 h-5 w-5" />
                 Buy
               </Button>
             )}
@@ -473,7 +474,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
                 <Waypoints className="h-5 w-5" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="min-w-[99%] min-h-[99%]">
+            <DialogContent className="min-h-[99%] min-w-[99%]">
               <DialogHeader>
                 <DialogTitle>Black Market Ledger</DialogTitle>
                 <DialogDescription asChild>
@@ -497,7 +498,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
             points given on your account.
           </p>
           {!showActive && (
-            <div className="px-3 flex flex-row gap-2">
+            <div className="flex flex-row gap-2 px-3">
               <div className="w-full">
                 <Label>Creator</Label>
                 <UserSearchSelect
@@ -577,7 +578,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
                       }
                       button={
                         <Button type="submit" className="w-full" decoration="gold">
-                          <ReceiptJapaneseYen className="w-5 h-5 mr-2" />
+                          <ReceiptJapaneseYen className="mr-2 h-5 w-5" />
                           Create offer
                         </Button>
                       }
@@ -621,7 +622,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
         </div>
       )}
       {!allOffers?.length && (
-        <p className="p-3 bg-popover mt-3 border-t-2 border-dashed">
+        <p className="mt-3 border-t-2 border-dashed bg-popover p-3">
           No offers currently listed.
         </p>
       )}

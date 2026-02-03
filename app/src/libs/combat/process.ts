@@ -1,65 +1,100 @@
-import { dmgConfig as config, damageModifierTypes } from "./constants";
-import { VisualTag } from "@/validators/combat";
-import { findUser, findBarrier, getItem, applyPoolAdjustmentsToBase } from "./util";
-import { collapseConsequences, sortEffects, getEffectStage } from "./util";
-import { calcApplyRatio } from "./util";
-import { calcEffectRoundInfo, isEffectActive } from "./util";
 import { nanoid } from "nanoid";
-import { clone, move, heal, damageBarrier, damageUser, calcDmgModifier } from "./tags";
-import {
-  absorb,
-  reflect,
-  wound,
-  recoil,
-  afterburn,
-  lifesteal,
-  drain,
-  shield,
-  immunity,
-  poison,
-  finalStand,
-  increaseRange,
-  increaseCooldown,
-  decreaseCooldown,
-} from "./tags";
-import {
-  increaseStats,
-  decreaseStats,
-  copy,
-  mirror,
-  increaseMaxPools,
-  decreaseMaxPools,
-} from "./tags";
-import { increaseDamageGiven, decreaseDamageGiven } from "./tags";
-import { increaseDamageTaken, decreaseDamageTaken } from "./tags";
-import { increaseHealGiven, decreaseHealGiven } from "./tags";
-import { increasepoolcost, decreasepoolcost } from "./tags";
-import { flee, fleePrevent } from "./tags";
-import { stun, stunPrevent, onehitkill, onehitkillPrevent, movePrevent } from "./tags";
-import { seal, sealPrevent, sealCheck, rob, robPrevent, stealth } from "./tags";
-import {
-  clear,
-  cleanse,
-  summon,
-  summonPrevent,
-  buffPrevent,
-  weakness,
-  timeCompression,
-  timeDilation,
-  redirection,
-} from "./tags";
-import { cleansePrevent, clearPrevent, healPrevent, debuffPrevent } from "./tags";
-import { updateStatUsage, injectjutsus, elementalseal } from "./tags";
 import {
   BATTLE_TAG_STACKING,
-  ID_ANIMATION_SMOKE,
   DURABILITY_USABILITY_THR,
+  ID_ANIMATION_SMOKE,
   NO_DURABILITY_LOSS_COMBATS,
 } from "@/drizzle/constants";
-import type { BattleUserState } from "./types";
-import type { GroundEffect, UserEffect, ActionEffect, BattleEffect } from "./types";
-import type { CompleteBattle, Consequence, CombatAction } from "./types";
 import type { ShieldTagType } from "@/validators/combat";
+import { VisualTag } from "@/validators/combat";
+import { dmgConfig as config, damageModifierTypes } from "./constants";
+import {
+  absorb,
+  afterburn,
+  buffPrevent,
+  calcDmgModifier,
+  cleanse,
+  cleansePrevent,
+  clear,
+  clearPrevent,
+  clone,
+  copy,
+  damageBarrier,
+  damageUser,
+  debuffPrevent,
+  decreaseCooldown,
+  decreaseDamageGiven,
+  decreaseDamageTaken,
+  decreaseHealGiven,
+  decreaseMaxPools,
+  decreasepoolcost,
+  decreaseStats,
+  drain,
+  elementalseal,
+  finalStand,
+  flee,
+  fleePrevent,
+  heal,
+  healPrevent,
+  immunity,
+  increaseCooldown,
+  increaseDamageGiven,
+  increaseDamageTaken,
+  increaseHealGiven,
+  increaseMaxPools,
+  increasepoolcost,
+  increaseRange,
+  increaseStats,
+  injectjutsus,
+  lifesteal,
+  mirror,
+  move,
+  movePrevent,
+  onehitkill,
+  onehitkillPrevent,
+  poison,
+  recoil,
+  redirection,
+  reflect,
+  rob,
+  robPrevent,
+  seal,
+  sealCheck,
+  sealPrevent,
+  shield,
+  stealth,
+  stun,
+  stunPrevent,
+  summon,
+  summonPrevent,
+  timeCompression,
+  timeDilation,
+  updateStatUsage,
+  weakness,
+  wound,
+} from "./tags";
+import type {
+  ActionEffect,
+  BattleEffect,
+  BattleUserState,
+  CombatAction,
+  CompleteBattle,
+  Consequence,
+  GroundEffect,
+  UserEffect,
+} from "./types";
+import {
+  applyPoolAdjustmentsToBase,
+  calcApplyRatio,
+  calcEffectRoundInfo,
+  collapseConsequences,
+  findBarrier,
+  findUser,
+  getEffectStage,
+  getItem,
+  isEffectActive,
+  sortEffects,
+} from "./util";
 
 /**
  * Minimal user type for checkFriendlyFire
@@ -167,7 +202,7 @@ export const applyEffects = (
     const { startRound, curRound } = calcEffectRoundInfo(e, battle);
     e.castThisRound = startRound === curRound;
     // Process special effects
-    let info: ActionEffect | undefined = undefined;
+    let info: ActionEffect | undefined;
     if (e.type === "move") {
       move(e, usersEffects, newUsersState, newGroundEffects);
     } else {
@@ -429,12 +464,14 @@ export const applyEffects = (
         }
 
         // Apply final stand if active
-        const finalStandEffect = usersEffects.find(
-          (e) =>
-            e.type === "finalstand" &&
-            e.targetId === target.userId &&
-            (e.fromType === "bloodline" ? ((e.rounds = 1), true) : (e.rounds ?? 0) > 0),
-        );
+        const finalStandEffect = usersEffects.find((e) => {
+          if (e.type !== "finalstand" || e.targetId !== target.userId) return false;
+          if (e.fromType === "bloodline") {
+            e.rounds = 1;
+            return true;
+          }
+          return (e.rounds ?? 0) > 0;
+        });
         if (finalStandEffect && target.curHealth - remainingDamage < 1) {
           const preventedDamage = remainingDamage - (target.curHealth - 1);
           remainingDamage = target.curHealth - 1;
@@ -626,9 +663,7 @@ export const applyEffects = (
           target.curHealth += absorbAmount;
           target.curHealth = Math.min(target.maxHealth, target.curHealth);
           actionEffects.push({
-            txt: `${target.username} absorbs ${absorbAmount.toFixed(
-              2,
-            )} damage and converts it to health`,
+            txt: `${target.username} absorbs ${absorbAmount.toFixed(2)} damage and converts it to health`,
             color: "green",
           });
         }
@@ -636,9 +671,7 @@ export const applyEffects = (
           target.curStamina += c.absorb_sp;
           target.curStamina = Math.min(target.maxHealth, target.curStamina);
           actionEffects.push({
-            txt: `${target.username} absorbs ${c.absorb_sp.toFixed(
-              2,
-            )} damage and converts it to stamina`,
+            txt: `${target.username} absorbs ${c.absorb_sp.toFixed(2)} damage and converts it to stamina`,
             color: "green",
           });
         }
@@ -646,9 +679,7 @@ export const applyEffects = (
           target.curChakra += c.absorb_cp;
           target.curChakra = Math.min(target.maxHealth, target.curChakra);
           actionEffects.push({
-            txt: `${target.username} absorbs ${c.absorb_cp.toFixed(
-              2,
-            )} damage and converts it to chakra`,
+            txt: `${target.username} absorbs ${c.absorb_cp.toFixed(2)} damage and converts it to chakra`,
             color: "green",
           });
         }
@@ -780,9 +811,9 @@ export const applySingleEffect = (
     (e) => e.type === "seal" && !e.isNew && isEffectActive(e),
   );
   // Bookkeeping
-  let longitude: number | undefined = undefined;
-  let latitude: number | undefined = undefined;
-  let info: ActionEffect | undefined = undefined;
+  let longitude: number | undefined;
+  let latitude: number | undefined;
+  let info: ActionEffect | undefined;
   // Get user now and next
   const curUser = usersState.find((u) => u.userId === effect.creatorId);
   const newUser = newUsersState.find((u) => u.userId === effect.creatorId);

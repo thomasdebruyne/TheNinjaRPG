@@ -1,59 +1,67 @@
-import { z } from "zod";
+import { and, desc, eq, gte, like, lte, ne, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, sql, gte, lte, and, like, desc, or, ne } from "drizzle-orm";
+import { z } from "zod";
 import {
-  item,
-  userItem,
-  userItemImbuement,
-  userData,
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "@/api/trpc";
+import type { ItemSlot } from "@/drizzle/constants";
+import {
+  ANBU_ITEMSHOP_DISCOUNT_PERC,
+  IMG_AVATAR_DEFAULT,
+  ItemSlots,
+  ItemTypes,
+  MAX_EXTRA_RESKIN_SLOTS,
+  MEDNIN_HEAL_ITEM_DISCOUNT_PERC,
+  TUTORIAL_ITEM_ID,
+} from "@/drizzle/constants";
+import type { ItemLoadout, UserData, UserItemWithRelations } from "@/drizzle/schema";
+import {
   actionLog,
   bloodlineRolls,
   craftingRequirement,
+  item,
   itemLoadout,
-  userSkill,
   quest,
+  userData,
+  userItem,
+  userItemImbuement,
+  userSkill,
 } from "@/drizzle/schema";
-import { ItemTypes, ItemSlots } from "@/drizzle/constants";
-import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
-import { fetchStructures } from "@/routers/village";
-import { fetchItemBloodlineRolls } from "@/routers/bloodline";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/api/trpc";
-import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
-import { ItemValidator } from "@/validators/combat";
-import { canChangeContent, canAwardReputation } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/socials";
-import { getStrucBoost } from "@/utils/village";
-import { calcItemSellingPrice, calcItemRepairCost } from "@/libs/item";
-import {
-  ANBU_ITEMSHOP_DISCOUNT_PERC,
-  MEDNIN_HEAL_ITEM_DISCOUNT_PERC,
-  TUTORIAL_ITEM_ID,
-  MAX_EXTRA_RESKIN_SLOTS,
-} from "@/drizzle/constants";
-import { nonCombatConsume } from "@/libs/item";
-import { getRandomElement } from "@/utils/array";
-import { calcMaxItems, calcMaxEventItems, calcMaxMaterials } from "@/libs/item";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { calculateContentDiff } from "@/utils/diff";
-import { fetchUserSkills } from "@/routers/skillTree";
-import { HealTag, NonCombatGainSkill } from "@/validators/combat";
-import { itemFilteringSchema } from "@/validators/item";
 import { filterRollableBloodlines } from "@/libs/bloodline";
-import { fetchBloodlines } from "@/routers/bloodline";
-import { setEmptyStringsToNulls } from "@/utils/typeutils";
-import { fedItemLoadouts } from "@/utils/paypal";
-import type { UserItemWithRelations, UserData } from "@/drizzle/schema";
-import type { ItemSlot } from "@/drizzle/constants";
-import type { ZodAllTags } from "@/validators/combat";
+import {
+  calcItemRepairCost,
+  calcItemSellingPrice,
+  calcMaxEventItems,
+  calcMaxItems,
+  calcMaxMaterials,
+  nonCombatConsume,
+} from "@/libs/item";
+import { collapseRewards, postProcessRewards } from "@/libs/quest";
+import { callDiscordContent } from "@/libs/socials";
+import { fetchBloodlines, fetchItemBloodlineRolls } from "@/routers/bloodline";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import { fetchUserSkills } from "@/routers/skillTree";
+import { fetchStructures } from "@/routers/village";
 import type { DrizzleClient } from "@/server/db";
-import type { ItemLoadout } from "@/drizzle/schema";
-import type { ItemFilteringSchema } from "@/validators/item";
+import { getRandomElement } from "@/utils/array";
+import { calculateContentDiff } from "@/utils/diff";
+import { fedItemLoadouts } from "@/utils/paypal";
+import { canAwardReputation, canChangeContent } from "@/utils/permissions";
 import type { QueryCondition } from "@/utils/typeutils";
-import { postProcessRewards } from "@/libs/quest";
+import { setEmptyStringsToNulls } from "@/utils/typeutils";
+import { getStrucBoost } from "@/utils/village";
+import type { ZodAllTags } from "@/validators/combat";
+import { HealTag, ItemValidator, NonCombatGainSkill } from "@/validators/combat";
+import type { ItemFilteringSchema } from "@/validators/item";
+import { itemFilteringSchema } from "@/validators/item";
 import type { PostProcessedRewards } from "@/validators/rewards";
-import { updateRewards } from "./quests";
-import { collapseRewards } from "@/libs/quest";
 import { ObjectiveReward, type ObjectiveRewardType } from "@/validators/rewards";
+import { updateRewards } from "./quests";
 
 export const itemRouter = createTRPCRouter({
   getAllNames: publicProcedure.query(async ({ ctx }) => {
@@ -340,16 +348,14 @@ export const itemRouter = createTRPCRouter({
         ...(newRequirements && newRequirements?.length > 0
           ? [
               ctx.drizzle.insert(craftingRequirement).values(
-                newRequirements
-                  .map((req) =>
-                    req.ids?.map((id) => ({
-                      id: nanoid(),
-                      craftItemId: input.id,
-                      requirementItemId: id,
-                      quantity: req.number,
-                    })),
-                  )
-                  .flat(),
+                newRequirements.flatMap((req) =>
+                  req.ids?.map((id) => ({
+                    id: nanoid(),
+                    craftItemId: input.id,
+                    requirementItemId: id,
+                    quantity: req.number,
+                  })),
+                ),
               ),
             ]
           : []),
@@ -760,7 +766,7 @@ export const itemRouter = createTRPCRouter({
           const poolsAffects = parsedEffect.poolsAffected || ["Health"];
           poolsAffects.forEach((pool) => {
             switch (pool) {
-              case "Health":
+              case "Health": {
                 const oldHp = updates.curHealth;
                 updates.curHealth = Math.min(
                   user.curHealth +
@@ -771,7 +777,8 @@ export const itemRouter = createTRPCRouter({
                 );
                 messages.push(`You healed ${Math.ceil(updates.curHealth - oldHp)} HP`);
                 break;
-              case "Chakra":
+              }
+              case "Chakra": {
                 const oldCp = updates.curChakra;
                 updates.curChakra = Math.min(
                   user.curChakra +
@@ -782,7 +789,8 @@ export const itemRouter = createTRPCRouter({
                 );
                 messages.push(`You healed ${Math.ceil(updates.curChakra - oldCp)} CP`);
                 break;
-              case "Stamina":
+              }
+              case "Stamina": {
                 const oldSp = updates.curStamina;
                 updates.curStamina = Math.min(
                   user.curStamina +
@@ -793,6 +801,7 @@ export const itemRouter = createTRPCRouter({
                 );
                 messages.push(`You healed ${Math.ceil(updates.curStamina - oldSp)} SP`);
                 break;
+              }
             }
           });
         }
@@ -1119,7 +1128,7 @@ export const itemRouter = createTRPCRouter({
         if (!kitsByPower.has(kit.repairAmount)) {
           kitsByPower.set(kit.repairAmount, []);
         }
-        kitsByPower.get(kit.repairAmount)!.push({
+        kitsByPower.get(kit.repairAmount)?.push({
           kitId: kit.userItem.id,
           available,
           power: kit.repairAmount,
@@ -1134,7 +1143,8 @@ export const itemRouter = createTRPCRouter({
       for (const power of sortedPowers) {
         if (remainingDurability <= 0) break;
 
-        const kitsWithThisPower = kitsByPower.get(power)!;
+        const kitsWithThisPower = kitsByPower.get(power);
+        if (!kitsWithThisPower) continue;
         const totalAvailable = kitsWithThisPower.reduce(
           (sum, k) => sum + k.available,
           0,

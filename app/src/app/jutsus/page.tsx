@@ -1,66 +1,65 @@
 "use client";
 
-import { useState, useMemo, useCallback, memo } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Trash2,
-  CircleFadingArrowUp,
   ArrowRightLeft,
-  Palette,
   ChevronsDown,
+  CircleFadingArrowUp,
+  OctagonX,
+  Palette,
+  SquareChevronLeft,
+  SquareChevronRight,
+  Trash2,
 } from "lucide-react";
-import ItemWithEffects from "@/layout/ItemWithEffects";
-import ContentBox from "@/layout/ContentBox";
-import Modal2 from "@/layout/Modal2";
-import Loader from "@/layout/Loader";
-import JutsuLoadoutSelector from "@/layout/JutsuLoadoutSelector";
-import Confirm2 from "@/layout/Confirm2";
-import { SquareChevronRight, SquareChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { OctagonX } from "lucide-react";
-import { ActionSelector } from "@/layout/CombatActions";
-import { calcJutsuEquipLimit } from "@/libs/train";
-import {
-  checkJutsuElements,
-  checkJutsuBloodline,
-  checkJutsuVillage,
-  checkJutsuRank,
-  checkJutsuItems,
-  hasRequiredRank,
-  hasRequiredLevel,
-} from "@/libs/train";
-import { useRequiredUserData } from "@/utils/UserContext";
+import { memo, useCallback, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
-import { getUserElements } from "@/validators/user";
-import { showMutationToast } from "@/libs/toast";
-import { JUTSU_XP_TO_LEVEL } from "@/drizzle/constants";
-import { COST_EXTRA_JUTSU_SLOT } from "@/drizzle/constants";
-import { MAX_EXTRA_JUTSU_SLOTS } from "@/drizzle/constants";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { ElementName } from "@/drizzle/constants";
 import {
+  COST_EXTRA_JUTSU_SLOT,
+  COST_RESKIN_JUTSU,
   JUTSU_TRANSFER_COST,
+  JUTSU_TRANSFER_DAYS,
   JUTSU_TRANSFER_MAX_LEVEL,
   JUTSU_TRANSFER_MINIMUM_LEVEL,
-  JUTSU_TRANSFER_DAYS,
+  JUTSU_XP_TO_LEVEL,
+  MAX_EXTRA_JUTSU_SLOTS,
+  RESKIN_LIMIT,
 } from "@/drizzle/constants";
-import { getFreeTransfers } from "@/libs/jutsu";
-import JutsuFiltering, { useFiltering, getFilter } from "@/layout/JutsuFiltering";
-import { canTransferJutsu } from "@/utils/permissions";
-import Countdown from "@/layout/Countdown";
-import { secondsFromDate, DAY_S } from "@/utils/time";
-
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { COST_RESKIN_JUTSU, RESKIN_LIMIT } from "@/drizzle/constants";
-import { canReskinFreely } from "@/utils/permissions";
-import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { jutsuReskinCreateSchema } from "@/validators/jutsu";
-import type { JutsuReskinCreateSchema } from "@/validators/jutsu";
-import type { UserJutsuWithRelations } from "@/drizzle/schema";
-import { Label } from "@/components/ui/label";
-import { UploadButton } from "@/utils/uploadthing";
+import type { UserItemWithItem, UserJutsuWithRelations } from "@/drizzle/schema";
 import AvatarImage from "@/layout/Avatar";
-import type { UserItemWithItem } from "@/drizzle/schema";
-import type { ElementName } from "@/drizzle/constants";
+import { ActionSelector } from "@/layout/CombatActions";
+import Confirm2 from "@/layout/Confirm2";
+import ContentBox from "@/layout/ContentBox";
+import Countdown from "@/layout/Countdown";
+import ItemWithEffects from "@/layout/ItemWithEffects";
+import JutsuFiltering, { getFilter, useFiltering } from "@/layout/JutsuFiltering";
+import JutsuLoadoutSelector from "@/layout/JutsuLoadoutSelector";
+import Loader from "@/layout/Loader";
+import Modal2 from "@/layout/Modal2";
+import { getFreeTransfers } from "@/libs/jutsu";
+import { showMutationToast } from "@/libs/toast";
+import {
+  calcJutsuEquipLimit,
+  checkJutsuBloodline,
+  checkJutsuElements,
+  checkJutsuItems,
+  checkJutsuRank,
+  checkJutsuVillage,
+  hasRequiredLevel,
+  hasRequiredRank,
+} from "@/libs/train";
+import { canReskinFreely, canTransferJutsu } from "@/utils/permissions";
+import { DAY_S, secondsFromDate } from "@/utils/time";
+import { useRequiredUserData } from "@/utils/UserContext";
+import { UploadButton } from "@/utils/uploadthing";
+import type { JutsuReskinCreateSchema } from "@/validators/jutsu";
+import { jutsuReskinCreateSchema } from "@/validators/jutsu";
+import { getUserElements } from "@/validators/user";
 
 export default function MyJutsu() {
   // tRPC utility
@@ -376,7 +375,7 @@ export default function MyJutsu() {
         subtitle={subtitle}
         bottomRightContent={
           <Button onClick={() => unequipAll()} disabled={isUnequipping}>
-            <OctagonX className="h-6 w-6 mr-2" />
+            <OctagonX className="mr-2 h-6 w-6" />
             {isUnequipping ? "Unequipping..." : "Unequip All"}
           </Button>
         }
@@ -420,7 +419,7 @@ export default function MyJutsu() {
         {/* Equipped Section - Always Visible */}
         {categorizedJutsus && (
           <div className="mb-4">
-            <h3 className="font-bold text-lg px-3 py-2">
+            <h3 className="px-3 py-2 font-bold text-lg">
               Equipped Jutsu ({categorizedJutsus.equipped.length}/{maxEquip})
             </h3>
             <ActionSelector
@@ -520,7 +519,7 @@ export default function MyJutsu() {
         {!isFetching &&
           categorizedJutsus &&
           Object.values(categorizedJutsus).every((arr) => arr.length === 0) && (
-            <p className="text-muted-foreground text-center py-4">
+            <p className="py-4 text-center text-muted-foreground">
               You have not learned any jutsu. Go to the training grounds in your village
               to learn some.
             </p>
@@ -568,19 +567,19 @@ export default function MyJutsu() {
                 {userReskins?.find((r) => r.jutsuId === userjutsu.jutsuId) &&
                   !userjutsu.activeReskin &&
                   !userjutsu.activeReskin && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        <Palette className="h-4 w-4 inline mr-1" />
+                    <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-2">
+                      <p className="text-blue-700 text-sm">
+                        <Palette className="mr-1 inline h-4 w-4" />
                         This jutsu has been previously reskinned. You can create a new
                         reskin for free.
                       </p>
                     </div>
                   )}
-                <div className="flex flex-row gap-3 items-center">
+                <div className="flex flex-row items-center gap-3">
                   {userData.loadout?.jutsuIds.includes(userjutsu.jutsuId) && (
                     <>
                       <SquareChevronLeft
-                        className="h-8 w-8 hover:text-orange-300 hover:cursor-pointer"
+                        className="h-8 w-8 hover:cursor-pointer hover:text-orange-300"
                         onClick={() =>
                           updateOrder({
                             jutsuId: userjutsu.jutsuId,
@@ -591,7 +590,7 @@ export default function MyJutsu() {
                       />
                       <p>Order</p>
                       <SquareChevronRight
-                        className="h-8 w-8 hover:text-orange-300 hover:cursor-pointer"
+                        className="h-8 w-8 hover:cursor-pointer hover:text-orange-300"
                         onClick={() =>
                           updateOrder({
                             jutsuId: userjutsu.jutsuId,
@@ -644,7 +643,7 @@ export default function MyJutsu() {
                                 )}
                                 value={transferValue}
                                 onChange={(e) =>
-                                  setTransferValue(parseInt(e.target.value) || 1)
+                                  setTransferValue(parseInt(e.target.value, 10) || 1)
                                 }
                                 style={{
                                   width: "50px",
@@ -662,7 +661,8 @@ export default function MyJutsu() {
                               This will subtract {transferValue} level
                               {transferValue > 1 ? "s" : ""} from {userjutsu.jutsu.name}{" "}
                               (new level: {userjutsu.level - transferValue}) and add{" "}
-                              {transferValue} level{transferValue > 1 ? "s" : ""} to{" "}
+                              {transferValue} level
+                              {transferValue > 1 ? "s" : ""} to{" "}
                               {transferTarget.jutsu.name} (new level:{" "}
                               {transferTarget.level + transferValue}).
                             </p>
@@ -785,7 +785,7 @@ export default function MyJutsu() {
             setIsOpen={setIsReskinOpen}
             proceed_label={userjutsu.activeReskin ? "Update Reskin" : "Create Reskin"}
             isValid={reskinForm.formState.isValid}
-            className="w-[800px] max-w-[99%] max-h-[99%]"
+            className="max-h-[99%] w-[800px] max-w-[99%]"
             onAccept={() => {
               if (!isReskinning && userjutsu) {
                 const data = reskinForm.getValues();
@@ -807,13 +807,13 @@ export default function MyJutsu() {
                       setIsConfirmOpen(true);
                     }
                   }}
-                  className="space-y-4 grid grid-cols-3 gap-4"
+                  className="grid grid-cols-3 gap-4 space-y-4"
                 >
-                  <div className="space-y-2 row-span-3">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="row-span-3 space-y-2">
+                    <p className="text-muted-foreground text-sm">
                       Optional: upload a new image for this reskin
                     </p>
-                    <div className="flex items-center gap-3 flex-col">
+                    <div className="flex flex-col items-center gap-3">
                       <AvatarImage
                         href={watchedReskinImage || userjutsu.jutsu.image}
                         alt={userjutsu.jutsu.name}
@@ -825,11 +825,16 @@ export default function MyJutsu() {
                         onClientUploadComplete={(res) => {
                           const url = res?.[0]?.url;
                           if (url) {
-                            reskinForm.setValue("image", url, { shouldValidate: true });
+                            reskinForm.setValue("image", url, {
+                              shouldValidate: true,
+                            });
                           }
                         }}
                         onUploadError={(error: Error) => {
-                          showMutationToast({ success: false, message: error.message });
+                          showMutationToast({
+                            success: false,
+                            message: error.message,
+                          });
                         }}
                       />
                     </div>
@@ -885,12 +890,9 @@ export default function MyJutsu() {
                   <strong>What You Can Change:</strong>
                   <br />
                   You are allowed to modify only the following:
-                  <br />
-                  - Jutsu Name
-                  <br />
-                  - Jutsu Description (what shows outside of combat)
-                  <br />
-                  - Battle Description (what appears in combat, e.g., &quot;%user
+                  <br />- Jutsu Name
+                  <br />- Jutsu Description (what shows outside of combat)
+                  <br />- Battle Description (what appears in combat, e.g., &quot;%user
                   attacks %target&quot;)
                   <br />
                   <br />
@@ -931,16 +933,13 @@ export default function MyJutsu() {
                 </div>
                 <div>
                   <strong>Tone & Content Restrictions:</strong>
-                  <br />
-                  - No hostile, mocking, or negative wording toward other players,
+                  <br />- No hostile, mocking, or negative wording toward other players,
                   clans, villages, bloodlines, or jutsu.
-                  <br />
-                  - No profanity, slurs, or real-world political/religious references.
-                  <br />
-                  - No inappropriate humor or immersion-breaking language.
-                  <br />
-                  - No subtle digs or sarcasm aimed at others. If it could be taken
-                  negatively, it&apos;s not allowed.
+                  <br />- No profanity, slurs, or real-world political/religious
+                  references.
+                  <br />- No inappropriate humor or immersion-breaking language.
+                  <br />- No subtle digs or sarcasm aimed at others. If it could be
+                  taken negatively, it&apos;s not allowed.
                   <br />
                   <br />
                   <strong>Example:</strong>
@@ -985,7 +984,7 @@ export default function MyJutsu() {
             }}
           >
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 By clicking &quot;Confirm&quot;, you acknowledge that you are{" "}
                 {userjutsu.activeReskin ? "updating" : "creating"} a reskin{" "}
                 {userjutsu.activeReskin
@@ -1010,13 +1009,13 @@ export default function MyJutsu() {
             subtitle="Free transfers will reset"
             initialBreak={true}
           >
-            <div className="text-center space-y-2">
+            <div className="space-y-2 text-center">
               <p className="text-muted-foreground">
                 You have used {usedTransfers}/{freeTransfers} free transfers.
                 {usedTransfers >= freeTransfers &&
                   " You must wait for transfers to reset or pay reputation points."}
               </p>
-              <p className="text-lg font-semibold">
+              <p className="font-semibold text-lg">
                 Next free transfer available:{" "}
                 <Countdown targetDate={freeTransferResetTime} />
               </p>
@@ -1053,18 +1052,19 @@ const JutsuCategorySection = memo((props: JutsuCategorySectionProps) => {
 
   return (
     <div className="border-b-2 px-3 py-1">
-      <div
-        className="flex flex-row items-center cursor-pointer hover:bg-popover"
+      <button
+        type="button"
+        className="flex w-full cursor-pointer flex-row items-center hover:bg-popover"
         onClick={onToggle}
       >
-        <h2 className="font-bold mt-2">
+        <h2 className="mt-2 font-bold">
           {title} ({jutsus.length})
         </h2>
         <div className="grow"></div>
         <ChevronsDown
-          className={`h-6 w-6 hover:text-orange-500 ${isOpen ? "transform rotate-180" : ""}`}
+          className={`h-6 w-6 hover:text-orange-500 ${isOpen ? "rotate-180 transform" : ""}`}
         />
-      </div>
+      </button>
       {isOpen && (
         <div className="py-2">
           <ActionSelector

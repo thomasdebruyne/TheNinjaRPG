@@ -1,15 +1,20 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
 import { TRPCError } from "@trpc/server";
 import { eq, inArray, sql } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { baseServerResponse, errorResponse } from "../trpc";
-import { aiProfile, userData, jutsu, item, quest } from "@/drizzle/schema";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { AI_PROFILE_MAX_RULES } from "@/drizzle/constants";
+import { aiProfile, item, jutsu, quest, userData } from "@/drizzle/schema";
 import { fetchUser } from "@/routers/profile";
+import type { DrizzleClient } from "@/server/db";
 import { canChangeContent, canChangeDefaultAiProfile } from "@/utils/permissions";
 import { AiRule } from "@/validators/ai";
-import { AI_PROFILE_MAX_RULES } from "@/drizzle/constants";
-import type { DrizzleClient } from "@/server/db";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+} from "../trpc";
 
 export const aiRouter = createTRPCRouter({
   getAiProfile: protectedProcedure

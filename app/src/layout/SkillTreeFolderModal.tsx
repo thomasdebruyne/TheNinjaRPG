@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Check, ChevronLeft, ExternalLink, Lock, X } from "lucide-react";
 import Image from "next/image";
-import Modal2 from "@/layout/Modal2";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Lock, X, ChevronLeft, ExternalLink } from "lucide-react";
-import { parseHtml } from "@/utils/parse";
 import type { SkillTree, SkillTreeFolder, UserSkill } from "@/drizzle/schema";
+import Modal2 from "@/layout/Modal2";
+import { parseHtml } from "@/utils/parse";
 
 interface SkillTreeFolderModalProps {
   isOpen: boolean;
@@ -65,7 +65,7 @@ export const SkillTreeFolderModal: React.FC<SkillTreeFolderModalProps> = ({
   const skillsByTier: Record<number, SkillTree[]> = {};
   folderSkills.forEach((skill) => {
     if (!skillsByTier[skill.tier]) skillsByTier[skill.tier] = [];
-    skillsByTier[skill.tier]!.push(skill);
+    skillsByTier[skill.tier]?.push(skill);
   });
   const tiers = Object.keys(skillsByTier)
     .map(Number)
@@ -160,7 +160,7 @@ export const SkillTreeFolderModal: React.FC<SkillTreeFolderModalProps> = ({
           onClick={selectedSkill ? () => setSelectedSkill(null) : handleBack}
           className="mb-4"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" />
+          <ChevronLeft className="mr-1 h-4 w-4" />
           {selectedSkill ? "Back to folder" : "Back"}
         </Button>
       )}
@@ -183,7 +183,7 @@ export const SkillTreeFolderModal: React.FC<SkillTreeFolderModalProps> = ({
           {/* Folder header */}
           {folder.image && (
             <div className="flex justify-center">
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden">
+              <div className="relative h-20 w-20 overflow-hidden rounded-lg">
                 <Image
                   src={folder.image}
                   alt={folder.name}
@@ -196,7 +196,7 @@ export const SkillTreeFolderModal: React.FC<SkillTreeFolderModalProps> = ({
           )}
 
           {folder.description && (
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-center text-muted-foreground text-sm">
               {folder.description}
             </p>
           )}
@@ -204,10 +204,10 @@ export const SkillTreeFolderModal: React.FC<SkillTreeFolderModalProps> = ({
           {/* Skills grouped by tier */}
           {tiers.map((tier) => (
             <div key={tier}>
-              <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+              <h4 className="mb-2 font-semibold text-muted-foreground text-sm">
                 Tier {tier}
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {skillsByTier[tier]?.map((skill) => {
                   const status = getSkillStatus(skill);
                   return (
@@ -224,7 +224,7 @@ export const SkillTreeFolderModal: React.FC<SkillTreeFolderModalProps> = ({
           ))}
 
           {folderSkills.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="py-8 text-center text-muted-foreground">
               {selectedEffects.length > 0
                 ? "No skills in this folder match the selected effects."
                 : "No skills in this folder yet."}
@@ -260,37 +260,34 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, status, onClick }) => {
       type="button"
       onClick={onClick}
       aria-disabled={isLocked || isUnaffordable}
-      className={`
-        relative cursor-pointer rounded-lg border-2 p-3 transition-all duration-200
-        hover:shadow-md text-left w-full
-        ${
-          effectivelyOwned
-            ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-            : isAvailable
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-              : isUnaffordable
-                ? "border-red-500 bg-red-50 dark:bg-red-950/30"
-                : "border-border bg-card"
-        }
+      className={`relative w-full cursor-pointer rounded-lg border-2 p-3 text-left transition-all duration-200 hover:shadow-md ${
+        effectivelyOwned
+          ? "border-green-500 bg-green-50 dark:bg-green-950/30"
+          : isAvailable
+            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+            : isUnaffordable
+              ? "border-red-500 bg-red-50 dark:bg-red-950/30"
+              : "border-border bg-card"
+      }
       `}
     >
       {/* Status icon */}
       <div className="absolute -top-2 -right-2">
         {effectivelyOwned && (
-          <Check className="w-5 h-5 p-0.5 text-white bg-green-500 rounded-full" />
+          <Check className="h-5 w-5 rounded-full bg-green-500 p-0.5 text-white" />
         )}
         {isLocked && (
-          <Lock className="w-5 h-5 p-1 text-white bg-muted-foreground rounded-full" />
+          <Lock className="h-5 w-5 rounded-full bg-muted-foreground p-1 text-white" />
         )}
         {isUnaffordable && (
-          <X className="w-5 h-5 p-0.5 text-white bg-red-500 rounded-full" />
+          <X className="h-5 w-5 rounded-full bg-red-500 p-0.5 text-white" />
         )}
       </div>
 
       {/* Skill image */}
-      <div className="flex justify-center mb-2">
+      <div className="mb-2 flex justify-center">
         <div
-          className={`relative w-12 h-12 rounded-full overflow-hidden ${isLocked || isUnaffordable ? "opacity-60 grayscale" : ""}`}
+          className={`relative h-12 w-12 overflow-hidden rounded-full ${isLocked || isUnaffordable ? "opacity-60 grayscale" : ""}`}
         >
           <Image
             src={skill.image}
@@ -303,14 +300,14 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, status, onClick }) => {
       </div>
 
       {/* Skill name */}
-      <p className="text-xs font-medium text-center truncate">{skill.name}</p>
+      <p className="truncate text-center font-medium text-xs">{skill.name}</p>
 
       {/* Badges */}
-      <div className="flex justify-center gap-1 mt-1">
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+      <div className="mt-1 flex justify-center gap-1">
+        <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
           T{skill.tier}
         </Badge>
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
           {skill.costSkillPoints} SP
         </Badge>
       </div>
@@ -350,7 +347,7 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
     <div className="space-y-4">
       {/* Skill image and badges */}
       <div className="flex items-center gap-4">
-        <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0">
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full">
           <Image
             src={skill.image}
             alt={skill.name}
@@ -364,13 +361,13 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
           <Badge variant="outline">{skill.costSkillPoints} Skill Points</Badge>
           {status.isOwned && status.isActivated && (
             <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-              <Check className="w-3 h-3 mr-1" />
+              <Check className="mr-1 h-3 w-3" />
               Activated
             </Badge>
           )}
           {status.isOwned && !status.isActivated && (
             <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              <Lock className="w-3 h-3 mr-1" />
+              <Lock className="mr-1 h-3 w-3" />
               Owned (Inactive)
             </Badge>
           )}
@@ -378,14 +375,14 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
       </div>
 
       {/* Description */}
-      <div className="text-sm text-muted-foreground prose prose-sm dark:prose-invert max-w-none">
+      <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground text-sm">
         {parseHtml(skill.description)}
       </div>
 
       {/* Prerequisites */}
       {skill.requiredSkillIds.length > 0 && (
         <div>
-          <h5 className="font-semibold text-sm mb-2">Prerequisites:</h5>
+          <h5 className="mb-2 font-semibold text-sm">Prerequisites:</h5>
           <ul className="space-y-1">
             {skill.requiredSkillIds.map((reqId) => {
               const prereq = allSkills.find((s) => s.id === reqId);
@@ -398,16 +395,12 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
               return (
                 <li
                   key={reqId}
-                  className={`flex items-center gap-2 text-sm ${
-                    isPrereqActivated
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-muted-foreground"
-                  }`}
+                  className={`flex items-center gap-2 text-sm ${isPrereqActivated ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
                 >
                   {isPrereqActivated ? (
-                    <Check className="w-4 h-4" />
+                    <Check className="h-4 w-4" />
                   ) : (
-                    <X className="w-4 h-4" />
+                    <X className="h-4 w-4" />
                   )}
                   <span>{prereq?.name || reqId}</span>
                   {isInDifferentFolder && prereqFolder && (
@@ -417,7 +410,7 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
                       className="h-6 px-2 text-xs"
                       onClick={() => onNavigateToPrereq(reqId)}
                     >
-                      <ExternalLink className="w-3 h-3 mr-1" />
+                      <ExternalLink className="mr-1 h-3 w-3" />
                       {prereqFolder?.name ?? "Uncategorized"}
                     </Button>
                   )}
@@ -430,9 +423,9 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
 
       {/* Purchase blockers */}
       {!status.isOwned && !status.isActivated && !status.canPurchase && (
-        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-          <Lock className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 rounded-lg bg-muted p-3">
+          <Lock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground text-sm">
             {userSkillPoints < skill.costSkillPoints
               ? `Not enough skill points (need ${skill.costSkillPoints}, have ${userSkillPoints})`
               : "Prerequisites not met"}

@@ -1,32 +1,36 @@
+import { and, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { and, eq, sql, gte, desc, inArray, or, isNull } from "drizzle-orm";
-import {
-  bounty,
-  bountySignup,
-  bountyContribution,
-  userData,
-  actionLog,
-} from "@/drizzle/schema";
+import { z } from "zod";
 import {
   BOUNTY_MAX_HUNTERS,
-  RANKS_RESTRICTED_FROM_PVP,
   BOUNTY_MIN_AMOUNT,
+  RANKS_RESTRICTED_FROM_PVP,
   VILLAGE_SYNDICATE_ID,
 } from "@/drizzle/constants";
 import {
-  createBountySchema,
-  signupBountySchema,
-  resignBountySchema,
-  retractBountySchema,
-  bountyBoardFilterSchema,
-  collectBountySchema,
-  addBountyMoneySchema,
-} from "@/validators/bounty";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { baseServerResponse, errorResponse } from "../trpc";
+  actionLog,
+  bounty,
+  bountyContribution,
+  bountySignup,
+  userData,
+} from "@/drizzle/schema";
 import { fetchUser } from "@/routers/profile";
 import { canSeeHiddenBountyInfo } from "@/utils/permissions";
-import { z } from "zod";
+import {
+  addBountyMoneySchema,
+  bountyBoardFilterSchema,
+  collectBountySchema,
+  createBountySchema,
+  resignBountySchema,
+  retractBountySchema,
+  signupBountySchema,
+} from "@/validators/bounty";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "../trpc";
 
 export const bountyRouter = createTRPCRouter({
   // Get open bounty board
@@ -354,7 +358,9 @@ export const bountyRouter = createTRPCRouter({
           .set({ collectedAt: new Date() })
           .where(eq(bounty.id, bountyId)),
         // Update hunter signup as fulfilled
-        ctx.drizzle.delete(bountySignup).where(eq(bountySignup.bountyId, bountyId)),
+        ctx.drizzle
+          .delete(bountySignup)
+          .where(eq(bountySignup.bountyId, bountyId)),
         // Award the bounty money to the hunter
         ctx.drizzle
           .update(userData)
@@ -395,13 +401,15 @@ export const bountyRouter = createTRPCRouter({
           .set({ money: sql`${userData.money} - ${input.amountRyo}` })
           .where(eq(userData.userId, ctx.userId)),
         // Track the contribution
-        ctx.drizzle.insert(bountyContribution).values({
-          id: nanoid(),
-          bountyId: input.bountyId,
-          contributorUserId: ctx.userId,
-          amountRyo: input.amountRyo,
-          createdAt: new Date(),
-        }),
+        ctx.drizzle
+          .insert(bountyContribution)
+          .values({
+            id: nanoid(),
+            bountyId: input.bountyId,
+            contributorUserId: ctx.userId,
+            amountRyo: input.amountRyo,
+            createdAt: new Date(),
+          }),
       ]);
 
       return {
@@ -506,14 +514,16 @@ export const bountyRouter = createTRPCRouter({
           .where(eq(bountySignup.bountyId, input.bountyId)),
 
         // Log the action
-        ctx.drizzle.insert(actionLog).values({
-          id: nanoid(),
-          userId: ctx.userId,
-          tableName: "bounty",
-          changes: [`Removed ${hunters.length} hunters from bounty tracking`],
-          relatedId: input.bountyId,
-          relatedMsg: `Staff removed all trackers from bounty: ${hunters.length} hunters removed`,
-        }),
+        ctx.drizzle
+          .insert(actionLog)
+          .values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "bounty",
+            changes: [`Removed ${hunters.length} hunters from bounty tracking`],
+            relatedId: input.bountyId,
+            relatedMsg: `Staff removed all trackers from bounty: ${hunters.length} hunters removed`,
+          }),
       ]);
 
       return {

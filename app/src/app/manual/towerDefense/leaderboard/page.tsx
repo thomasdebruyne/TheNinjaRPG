@@ -1,13 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { api } from "@/app/_trpc/client";
+import AvatarImage from "@/layout/Avatar";
 import ContentBox from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 import Table, { type ColumnDefinitionType } from "@/layout/Table";
-import AvatarImage from "@/layout/Avatar";
-import Link from "next/link";
-import { useUserData } from "@/utils/UserContext";
 import type { ArrayElement } from "@/utils/typeutils";
+import { useUserData } from "@/utils/UserContext";
 
 export default function TowerDefenseLeaderboard() {
   const { data: userData } = useUserData();
@@ -34,7 +34,7 @@ export default function TowerDefenseLeaderboard() {
           <Link href={`/username/${run.user.username}`} className="font-bold">
             {run.user.username}
           </Link>
-          <p className="text-xs text-muted-foreground">{run.user.rank}</p>
+          <p className="text-muted-foreground text-xs">{run.user.rank}</p>
         </div>
       </div>
     ),
@@ -62,7 +62,7 @@ export default function TowerDefenseLeaderboard() {
         <Table data={tableData} columns={columns} />
       )}
       {!isPending && tableData && tableData.length === 0 && (
-        <p className="p-4 text-muted-foreground text-center">
+        <p className="p-4 text-center text-muted-foreground">
           No completed runs found on the leaderboard yet.
         </p>
       )}

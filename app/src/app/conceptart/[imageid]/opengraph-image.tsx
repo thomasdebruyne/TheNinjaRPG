@@ -1,7 +1,7 @@
-import { ImageResponse } from "next/og";
-import { drizzleDB } from "@/server/db";
 import { eq } from "drizzle-orm";
+import { ImageResponse } from "next/og";
 import { conceptImage } from "@/drizzle/schema";
+import { drizzleDB } from "@/server/db";
 
 // Route segment config
 export const runtime = "nodejs";
@@ -43,8 +43,10 @@ export default async function Image({
       }}
     >
       {url ? (
+        /* biome-ignore lint/performance/noImgElement: img is required for OpenGraph image generation */
         <img width={width} height={height} src={url} alt="Concept Art" />
       ) : (
+        /* biome-ignore lint/performance/noImgElement: img is required for OpenGraph image generation */
         <img
           width={width}
           height={height}

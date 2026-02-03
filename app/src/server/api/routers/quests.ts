@@ -1,97 +1,113 @@
-import { z } from "zod";
+import {
+  and,
+  asc,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  isNull,
+  like,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { serverError, baseServerResponse, errorResponse } from "@/api/trpc";
+import { z } from "zod";
+import { baseServerResponse, errorResponse, serverError } from "@/api/trpc";
+import type { QuestType } from "@/drizzle/constants";
 import {
-  secondsFromNow,
-  secondsFromDate,
-  getTimeLeftStr,
-  secondsPassed,
-  getDaysHoursMinutesSeconds,
-  DAY_S,
-  WEEK_S,
-  MONTH_S,
-} from "@/utils/time";
-import { inArray, lte, isNull, sql, asc, gte } from "drizzle-orm";
-import { like, eq, or, and, getTableColumns } from "drizzle-orm";
+  ERRANDS_PER_DAY,
+  IMG_AVATAR_DEFAULT,
+  LetterRanks,
+  MAX_SKILL_POINTS,
+  MEDICAL_MISSIONS_PER_DAY,
+  MEDNIN_EXP_CAP,
+  PVP_MISSIONS_PER_DAY,
+  QUESTS_CONCURRENT_LIMIT,
+  QuestTypes,
+  SENSEI_STUDENT_RYO_PER_MISSION,
+  TUTORIAL_GENIN_EXAM_QUEST_ID,
+  TUTORIAL_STARTER_QUEST_ID,
+  VILLAGE_SYNDICATE_ID,
+} from "@/drizzle/constants";
+import type { Quest, UserData } from "@/drizzle/schema";
 import {
+  actionLog,
   anbuSquad,
-  item,
-  jutsu,
   badge,
   bankTransfers,
-  clan,
   bloodline,
   bloodlineRolls,
+  clan,
+  item,
+  jutsu,
+  quest,
+  questHistory,
+  raidDamageThreshold,
+  raidParticipation,
   recruitmentRewards,
+  userBadge,
+  userData,
+  userItem,
+  userJutsu,
+  userRaidBuff,
+  userRewards,
+  village,
+  war,
 } from "@/drizzle/schema";
-import { combineTrackerResults } from "@/libs/quest";
-import { getHuntingItemDrops } from "@/libs/hunting";
 import { getGatheringItemDrops } from "@/libs/gathering";
-import { userJutsu, userItem, userData, userBadge } from "@/drizzle/schema";
-import { quest, questHistory, actionLog, village, userRewards } from "@/drizzle/schema";
-import { raidParticipation, raidDamageThreshold, userRaidBuff } from "@/drizzle/schema";
-import { QuestValidator } from "@/validators/objectives";
-import { fetchUser, fetchUpdatedUser } from "@/routers/profile";
+import { getHuntingItemDrops } from "@/libs/hunting";
+import type { GetRewardResult, QuestConsequence } from "@/libs/quest";
 import {
+  combineTrackerResults,
+  controlShownQuestLocationInformation,
+  fallbackQuestsFilter,
+  getActiveObjectives,
+  getMissionHallSettings,
+  getNewTrackers,
+  getReward,
+  isAvailableUserQuests,
+  verifyQuestObjectiveFlow,
+} from "@/libs/quest";
+import { callDiscordContent } from "@/libs/socials";
+import { availableQuestLetterRanks, availableRanks } from "@/libs/train";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUserItems } from "@/routers/item";
+import type { UserWithRelations } from "@/routers/profile";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import { deleteRequests } from "@/routers/sensei";
+import { fetchSectorVillage } from "@/routers/village";
+import { fetchActiveWars } from "@/routers/war";
+import type { DrizzleClient } from "@/server/db";
+import { getRandomElement } from "@/utils/array";
+import { calculateContentDiff } from "@/utils/diff";
+import {
+  canAwardReputation,
   canChangeContent,
   canEditQuests,
   canEditStarterQuests,
-  canPlayHiddenQuests,
   canOnlyEditSelf,
-  canAwardReputation,
+  canPlayHiddenQuests,
 } from "@/utils/permissions";
-import { callDiscordContent } from "@/libs/socials";
-import { LetterRanks } from "@/drizzle/constants";
-import { PostProcessedRewardSchema } from "@/validators/rewards";
-import { calculateContentDiff } from "@/utils/diff";
-import { initiateBattle } from "@/routers/combat";
-import { availableQuestLetterRanks, availableRanks } from "@/libs/train";
 import {
-  getNewTrackers,
-  getReward,
-  verifyQuestObjectiveFlow,
-  fallbackQuestsFilter,
-} from "@/libs/quest";
-import { getActiveObjectives } from "@/libs/quest";
-import { setEmptyStringsToNulls } from "@/utils/typeutils";
-import { getMissionHallSettings } from "@/libs/quest";
-import { canAccessStructure } from "@/utils/village";
-import { fetchSectorVillage } from "@/routers/village";
-import { deleteRequests } from "@/routers/sensei";
-import { getQuestCounterFieldName } from "@/validators/user";
-import { getRandomElement } from "@/utils/array";
-import { fetchUserItems } from "@/routers/item";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { SENSEI_STUDENT_RYO_PER_MISSION } from "@/drizzle/constants";
-import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
-import { QUESTS_CONCURRENT_LIMIT } from "@/drizzle/constants";
-import {
-  ERRANDS_PER_DAY,
-  MEDICAL_MISSIONS_PER_DAY,
-  PVP_MISSIONS_PER_DAY,
-  MEDNIN_EXP_CAP,
-  MAX_SKILL_POINTS,
-  TUTORIAL_STARTER_QUEST_ID,
-  TUTORIAL_GENIN_EXAM_QUEST_ID,
-} from "@/drizzle/constants";
-import { questFilteringSchema } from "@/validators/quest";
-import type { QuestConsequence } from "@/libs/quest";
-import {
-  controlShownQuestLocationInformation,
-  isAvailableUserQuests,
-} from "@/libs/quest";
-import { QuestTypes } from "@/drizzle/constants";
-import { QuestTracker } from "@/validators/objectives";
-import { war } from "@/drizzle/schema";
-import { fetchActiveWars } from "@/routers/war";
-import type { QuestCounterFieldName } from "@/validators/user";
-import type { QuestType } from "@/drizzle/constants";
-import type { UserData, Quest } from "@/drizzle/schema";
-import type { UserWithRelations } from "@/routers/profile";
-import type { DrizzleClient } from "@/server/db";
-import type { GetRewardResult } from "@/libs/quest";
+  DAY_S,
+  getDaysHoursMinutesSeconds,
+  getTimeLeftStr,
+  MONTH_S,
+  secondsFromDate,
+  secondsFromNow,
+  secondsPassed,
+  WEEK_S,
+} from "@/utils/time";
 import type { QueryCondition } from "@/utils/typeutils";
+import { setEmptyStringsToNulls } from "@/utils/typeutils";
+import { canAccessStructure } from "@/utils/village";
+import { QuestTracker, QuestValidator } from "@/validators/objectives";
+import { questFilteringSchema } from "@/validators/quest";
+import { PostProcessedRewardSchema } from "@/validators/rewards";
+import type { QuestCounterFieldName } from "@/validators/user";
+import { getQuestCounterFieldName } from "@/validators/user";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 export const questsRouter = createTRPCRouter({
   getAllNames: publicProcedure.query(async ({ ctx }) => {
     const results = await ctx.drizzle.query.quest.findMany({
@@ -133,15 +149,15 @@ export const questsRouter = createTRPCRouter({
                 lte(quest.requiredLevel, input.userLevel),
               ]
             : []),
-          ...(input?.hidden !== undefined
-            ? [eq(quest.hidden, input.hidden ? true : false)]
-            : []),
+          ...(input?.hidden !== undefined ? [eq(quest.hidden, !!input.hidden)] : []),
         ),
         offset: skip,
         limit: input.limit,
         ...(input?.questType === "tier" ? { orderBy: asc(quest.tierLevel) } : {}),
       });
-      results.forEach((r) => controlShownQuestLocationInformation(r));
+      results.forEach((r) => {
+        controlShownQuestLocationInformation(r);
+      });
       const nextCursor = results.length < input.limit ? null : currentCursor + 1;
       return {
         data: results,
@@ -211,7 +227,9 @@ export const questsRouter = createTRPCRouter({
           .orderBy(asc(quest.name)),
       ]);
       if (!user) throw serverError("NOT_FOUND", "User not found");
-      events.forEach((r) => controlShownQuestLocationInformation(r));
+      events.forEach((r) => {
+        controlShownQuestLocationInformation(r);
+      });
       return events.filter((e) => isAvailableUserQuests(e, user, true).check);
     }),
   missionHall: protectedProcedure
@@ -261,7 +279,9 @@ export const questsRouter = createTRPCRouter({
           .orderBy(asc(quest.name)),
       ]);
       if (!user) throw serverError("NOT_FOUND", "User not found");
-      missions.forEach((r) => controlShownQuestLocationInformation(r));
+      missions.forEach((r) => {
+        controlShownQuestLocationInformation(r);
+      });
       return missions.filter((e) => isAvailableUserQuests(e, user, true).check);
     }),
   specificQuests: protectedProcedure
@@ -293,7 +313,9 @@ export const questsRouter = createTRPCRouter({
           .orderBy(asc(quest.name)),
       ]);
       if (!user) throw serverError("NOT_FOUND", "User not found");
-      quests.forEach((r) => controlShownQuestLocationInformation(r));
+      quests.forEach((r) => {
+        controlShownQuestLocationInformation(r);
+      });
       return quests.filter((e) => isAvailableUserQuests(e, user, true).check);
     }),
   startRandom: protectedProcedure
@@ -567,9 +589,7 @@ export const questsRouter = createTRPCRouter({
         );
         if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
           return errorResponse(
-            `Already ${QUESTS_CONCURRENT_LIMIT} active story quests; ${current
-              .map((c) => c.quest.name)
-              .join(", ")}. Abandon one to start this quest.`,
+            `Already ${QUESTS_CONCURRENT_LIMIT} active story quests; ${current.map((c) => c.quest.name).join(", ")}. Abandon one to start this quest.`,
           );
         }
       } else if (questData.questType === "hunting") {
@@ -581,9 +601,7 @@ export const questsRouter = createTRPCRouter({
         }
         if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
           return errorResponse(
-            `Already ${QUESTS_CONCURRENT_LIMIT} active hunting quests; ${current
-              .map((c) => c.quest.name)
-              .join(", ")}. Abandon one to start this quest.`,
+            `Already ${QUESTS_CONCURRENT_LIMIT} active hunting quests; ${current.map((c) => c.quest.name).join(", ")}. Abandon one to start this quest.`,
           );
         }
       } else if (questData.questType === "battlepyramid") {
@@ -613,9 +631,7 @@ export const questsRouter = createTRPCRouter({
         }
         if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
           return errorResponse(
-            `Already ${QUESTS_CONCURRENT_LIMIT} active gathering quests; ${current
-              .map((c) => c.quest.name)
-              .join(", ")}. Abandon one to start this quest.`,
+            `Already ${QUESTS_CONCURRENT_LIMIT} active gathering quests; ${current.map((c) => c.quest.name).join(", ")}. Abandon one to start this quest.`,
           );
         }
       } else if (questData.questType === "anbu") {
@@ -630,9 +646,7 @@ export const questsRouter = createTRPCRouter({
         );
         if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
           return errorResponse(
-            `Already ${QUESTS_CONCURRENT_LIMIT} active anbu quests; ${current
-              .map((c) => c.quest.name)
-              .join(", ")}. Abandon one to start this quest.`,
+            `Already ${QUESTS_CONCURRENT_LIMIT} active anbu quests; ${current.map((c) => c.quest.name).join(", ")}. Abandon one to start this quest.`,
           );
         }
       } else if (questData.questType === "event") {
@@ -644,9 +658,7 @@ export const questsRouter = createTRPCRouter({
         );
         if (current && current.length >= QUESTS_CONCURRENT_LIMIT) {
           return errorResponse(
-            `Already ${QUESTS_CONCURRENT_LIMIT} active event quests; ${current
-              .map((c) => c.quest.name)
-              .join(", ")}. Abandon one to start this quest.`,
+            `Already ${QUESTS_CONCURRENT_LIMIT} active event quests; ${current.map((c) => c.quest.name).join(", ")}. Abandon one to start this quest.`,
           );
         }
       } else if (["mission", "crime", "medical", "pvp"].includes(questData.questType)) {
@@ -1473,7 +1485,9 @@ export const updateRewards = async (info: {
           )
       : [],
     // Fetch active wars if user has war rewards
-    hasWarRewards ? fetchActiveWars(client, user.villageId!) : undefined,
+    hasWarRewards && user.villageId
+      ? fetchActiveWars(client, user.villageId)
+      : undefined,
   ]);
 
   // If we are rewarding hunter items, only select based on hunter rank
@@ -2011,20 +2025,17 @@ export const handleQuestConsequences = async (
   // Quests ended
   const endedQuestIds = consequences
     .filter((c) => c.type === "fail_quest")
-    .map((c) => c.ids)
-    .flat();
+    .flatMap((c) => c.ids);
   // Quests started
   const startedQuestIds = consequences
     .filter((c) => c.type === "start_quest")
-    .map((c) => c.ids)
-    .flat();
+    .flatMap((c) => c.ids);
   // Items collected
   const collected = consequences.filter((c) => c.type === "add_item");
   // Items removed
   const removed = consequences.filter((c) => c.type === "remove_item");
   const removedUserItemIds = removed
-    .map((c) => c.ids)
-    .flat()
+    .flatMap((c) => c.ids)
     .map((id) => user.items.find((ui) => ui.itemId === id)?.id)
     .filter(Boolean) as string[];
   // Opponents to attack
@@ -2036,8 +2047,7 @@ export const handleQuestConsequences = async (
       if ("attackers" in objective && objective.attackers.length > 0) {
         let opponents = objective.attackers
           .filter((ai) => Math.random() * 100 < ai.number)
-          .map((ai) => ai.ids)
-          .flat();
+          .flatMap((ai) => ai.ids);
         // See if we should limit the number of attackers
         if (
           "attackers_max_per_battle" in objective &&
@@ -2107,7 +2117,7 @@ export const handleQuestConsequences = async (
     if (result.rowsAffected > 0) {
       // Update user timestamp for any future updates
       user.updatedAt = now;
-      const collectedItems = collected.map(({ ids }) => ids).flat();
+      const collectedItems = collected.flatMap(({ ids }) => ids);
       await Promise.all([
         // Update started quests if needed
         ...(startedQuestIds.length > 0
@@ -2172,7 +2182,7 @@ export const handleQuestConsequences = async (
                     userIds: [user.userId],
                     targetIds: opponent.ids,
                     client: client,
-                    scaleTarget: opponent.scaleStats ? true : false,
+                    scaleTarget: !!opponent.scaleStats,
                     biome: "default",
                     forceKeepPools: opponent.forceKeepPools ?? false,
                   },

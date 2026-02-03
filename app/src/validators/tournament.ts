@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { ObjectiveReward } from "@/validators/rewards";
 import { TournamentTypes } from "@/drizzle/constants";
+import { ObjectiveReward } from "@/validators/rewards";
 
 export const tournamentCreateSchema = z.object({
   id: z.string(),

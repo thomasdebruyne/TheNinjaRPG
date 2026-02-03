@@ -1,36 +1,44 @@
-import { z } from "zod";
-import path from "path";
-import TextToSVG from "text-to-svg";
-import { randomString } from "@/libs/random";
-import { sql, and, desc, eq, inArray, gte, like, gt, lt } from "drizzle-orm";
-import {
-  notification,
-  userData,
-  gameSetting,
-  gameAsset,
-  captcha,
-  userRewards,
-  emailReminder,
-  supportReview,
-  visitorLog,
-  abEvent,
-  conversation,
-} from "@/drizzle/schema";
-import { canAwardReputation, canEnableGlobalTavern } from "@/utils/permissions";
+import path from "node:path";
+import { and, desc, eq, gt, gte, inArray, like, lt, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { awardSchema, awardsFilteringSchema } from "@/validators/reputation";
-import { canSubmitNotification, canModifyEventGains } from "@/utils/permissions";
-import { fetchUser } from "@/routers/profile";
-import { secondsFromNow, DAY_S } from "@/utils/time";
-import { baseServerResponse, errorResponse } from "../trpc";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { ratelimitMiddleware, hasUserMiddleware } from "../trpc";
-import { updateGameSetting } from "@/libs/gamesettings";
-import { changeSettingSchema } from "@/validators/misc";
-import { getGameSetting } from "@/libs/gamesettings";
-
+import TextToSVG from "text-to-svg";
+import { z } from "zod";
 import { Sentiment } from "@/drizzle/constants";
+import {
+  abEvent,
+  captcha,
+  conversation,
+  emailReminder,
+  gameAsset,
+  gameSetting,
+  notification,
+  supportReview,
+  userData,
+  userRewards,
+  visitorLog,
+} from "@/drizzle/schema";
+import { getGameSetting, updateGameSetting } from "@/libs/gamesettings";
+import { randomString } from "@/libs/random";
+import { fetchUser } from "@/routers/profile";
 import type { DrizzleClient } from "@/server/db";
+import {
+  canAwardReputation,
+  canEnableGlobalTavern,
+  canModifyEventGains,
+  canSubmitNotification,
+} from "@/utils/permissions";
+import { DAY_S, secondsFromNow } from "@/utils/time";
+import { changeSettingSchema } from "@/validators/misc";
+import { awardSchema, awardsFilteringSchema } from "@/validators/reputation";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  hasUserMiddleware,
+  protectedProcedure,
+  publicProcedure,
+  ratelimitMiddleware,
+} from "../trpc";
 
 export const miscRouter = createTRPCRouter({
   trackVisitor: publicProcedure
@@ -212,7 +220,7 @@ export const miscRouter = createTRPCRouter({
       await updateGameSetting(
         ctx.drizzle,
         input.setting,
-        parseInt(input.multiplier),
+        parseInt(input.multiplier, 10),
         secondsFromNow(input.days * 24 * 3600),
       );
       return { success: true, message: `Setting set to: ${input.multiplier}X` };
@@ -252,7 +260,9 @@ export const miscRouter = createTRPCRouter({
       // Execute both operations in parallel
       await Promise.all([
         // Batch insert all rewards
-        ctx.drizzle.insert(userRewards).values(rewardsToInsert),
+        ctx.drizzle
+          .insert(userRewards)
+          .values(rewardsToInsert),
 
         // Update all users in a single query
         ctx.drizzle

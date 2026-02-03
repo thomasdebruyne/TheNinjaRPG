@@ -1,17 +1,17 @@
-import { calculateContentDiff } from "@/utils/diff";
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
-import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
-import {
-  insertTowerDefenseCharacterSchema,
-  characterAnimationStates,
-  type InsertTowerDefenseCharacter,
-  type CharacterAssetConfig,
-  type CharacterAnimationState,
-} from "@/validators/towerDefense";
 import type { TowerDefenseCharacterDb } from "@/drizzle/schema";
 import type { FormEntry } from "@/layout/EditContent";
+import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
+import { calculateContentDiff } from "@/utils/diff";
+import {
+  type CharacterAnimationState,
+  type CharacterAssetConfig,
+  characterAnimationStates,
+  type InsertTowerDefenseCharacter,
+  insertTowerDefenseCharacterSchema,
+} from "@/validators/towerDefense";
 
 /**
  * Hook used when creating frontend forms for editing Tower Defense characters

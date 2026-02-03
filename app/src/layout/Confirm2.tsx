@@ -2,7 +2,8 @@
  * This is a confirmation modal that is used to display a modal.
  * This is a replacement for the Confirm component, which will be deprecated.
  */
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import Modal2 from "./Modal2";
 
 interface Confirm2Props {
@@ -28,7 +29,8 @@ const Confirm2: React.FC<Confirm2Props> = (props) => {
 
   return (
     <>
-      <span
+      <button
+        type="button"
         onClick={(e) => {
           if (props.disabled) return;
           e.preventDefault();
@@ -36,9 +38,10 @@ const Confirm2: React.FC<Confirm2Props> = (props) => {
           setShowModal(true);
         }}
         className={props.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+        disabled={props.disabled}
       >
         {props.button}
-      </span>
+      </button>
 
       <Modal2
         id={props.id}

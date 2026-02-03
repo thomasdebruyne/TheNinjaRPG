@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from "react";
-import Loader from "@/layout/Loader";
-import NavTabs from "@/layout/NavTabs";
-import ContentBox from "@/layout/ContentBox";
+import { FilePlus, Save, SquareArrowDown, SquareArrowUp, Trash2 } from "lucide-react";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { api } from "@/app/_trpc/client";
 import Toggle from "@/components/control/Toggle";
-import Accordion from "@/layout/Accordion";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { FilePlus, Trash2, Save } from "lucide-react";
-import { SquareArrowUp, SquareArrowDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Select,
   SelectContent,
@@ -17,19 +15,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Accordion from "@/layout/Accordion";
+import ContentBox from "@/layout/ContentBox";
+import Loader from "@/layout/Loader";
+import NavTabs from "@/layout/NavTabs";
 import { showMutationToast } from "@/libs/toast";
-import { api } from "@/app/_trpc/client";
-import { getConditionSchema, getActionSchema } from "@/validators/ai";
-import { AiActionTypes, AiConditionTypes, AvailableEffectTypes } from "@/validators/ai";
-import { ActionMoveTowardsOpponent } from "@/validators/ai";
-import { getBackupRules, enforceExtraRules } from "@/validators/ai";
 import { canChangeContent } from "@/utils/permissions";
-import { AvailableTargets } from "@/validators/ai";
-import { tagTypes } from "@/validators/combat";
 import { useRequiredUserData } from "@/utils/UserContext";
-import { MultiSelect } from "@/components/ui/multi-select";
-import type { AiRuleType, ZodAllAiCondition } from "@/validators/ai";
-import type { AiConditionType, AiActionType } from "@/validators/ai";
+import type {
+  AiActionType,
+  AiConditionType,
+  AiRuleType,
+  ZodAllAiCondition,
+} from "@/validators/ai";
+import {
+  ActionMoveTowardsOpponent,
+  AiActionTypes,
+  AiConditionTypes,
+  AvailableEffectTypes,
+  AvailableTargets,
+  enforceExtraRules,
+  getActionSchema,
+  getBackupRules,
+  getConditionSchema,
+} from "@/validators/ai";
+import { tagTypes } from "@/validators/combat";
 
 interface AiProfileEditProps {
   userData: {
@@ -109,7 +119,6 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
       setRules(copyRules);
       setActiveElement(`Rule ${profile.rules.length}`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeDefault, isDefault]);
 
   // Convenience method for updating rules
@@ -166,16 +175,17 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
         )
       }
     >
-      {rules.map((rule, i) => {
+      {rules.map((rule, ruleIndex) => {
         const currentActionType = rule.action.type;
         const actionSchema = getActionSchema(currentActionType);
-        const isLastTwo = i >= rules.length - backupRules.length;
-        const isLastThree = i >= rules.length - backupRules.length - 1;
+        const isLastTwo = ruleIndex >= rules.length - backupRules.length;
+        const isLastThree = ruleIndex >= rules.length - backupRules.length - 1;
+        const ruleKey = `ai-rule-${ruleIndex}-${rule.action.type}-${rule.conditions.map((c) => c.type).join("-")}`;
         return (
           <Accordion
-            key={`rule-${i}`}
+            key={ruleKey}
             className={includeDefault && isLastTwo ? "opacity-50" : ""}
-            title={`Rule ${i + 1}`}
+            title={`Rule ${ruleIndex + 1}`}
             titlePostfix={`: ${rule.conditions.map((c) => c.type).join(", ")} -> ${rule.action.type}`}
             selectedTitle={activeElement}
             onClick={setActiveElement}
@@ -183,15 +193,17 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
               <>
                 {canEdit && (!includeDefault || !isLastTwo) && (
                   <SquareArrowUp
-                    className="w-6 h-6 hover:cursor-pointer hover:text-orange-500"
+                    className="h-6 w-6 hover:cursor-pointer hover:text-orange-500"
                     onClick={() => {
                       setRules((prevRules) => {
-                        if (i < 1) return prevRules;
+                        if (ruleIndex < 1) return prevRules;
                         const newRules = [...prevRules];
-                        const a = newRules[i]!;
-                        const b = newRules[i - 1]!;
-                        newRules[i] = b;
-                        newRules[i - 1] = a;
+                        const a = newRules[ruleIndex];
+                        const b = newRules[ruleIndex - 1];
+                        if (a && b) {
+                          newRules[ruleIndex] = b;
+                          newRules[ruleIndex - 1] = a;
+                        }
                         return newRules;
                       });
                     }}
@@ -199,15 +211,17 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                 )}
                 {canEdit && (!includeDefault || !isLastThree) && (
                   <SquareArrowDown
-                    className="w-6 h-6 hover:cursor-pointer hover:text-orange-500"
+                    className="h-6 w-6 hover:cursor-pointer hover:text-orange-500"
                     onClick={() => {
                       setRules((prevRules) => {
-                        if (i + 1 >= prevRules.length) return prevRules;
+                        if (ruleIndex + 1 >= prevRules.length) return prevRules;
                         const newRules = [...prevRules];
-                        const a = newRules[i]!;
-                        const b = newRules[i + 1]!;
-                        newRules[i] = b;
-                        newRules[i + 1] = a;
+                        const a = newRules[ruleIndex];
+                        const b = newRules[ruleIndex + 1];
+                        if (a && b) {
+                          newRules[ruleIndex] = b;
+                          newRules[ruleIndex + 1] = a;
+                        }
                         return newRules;
                       });
                     }}
@@ -215,16 +229,18 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                 )}
                 {canEdit && (!includeDefault || !isLastTwo) && (
                   <Trash2
-                    className="w-6 h-6 hover:cursor-pointer hover:text-orange-500"
+                    className="h-6 w-6 hover:cursor-pointer hover:text-orange-500"
                     onClick={() => {
-                      setRules((prevRules) => prevRules.filter((_, j) => j !== i));
+                      setRules((prevRules) =>
+                        prevRules.filter((_, j) => j !== ruleIndex),
+                      );
                     }}
                   />
                 )}
               </>
             }
           >
-            <div className="w-full grid grid-cols-2 gap-2">
+            <div className="grid w-full grid-cols-2 gap-2">
               {/* ******************** */}
               {/*     CONDITIONS       */}
               {/* ******************** */}
@@ -236,7 +252,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                     setRules((prevRules) => {
                       const schema = getConditionSchema(e as AiConditionType);
                       const newRules = [...prevRules];
-                      newRules?.[i]?.conditions.push(schema.parse({}));
+                      newRules?.[ruleIndex]?.conditions.push(schema.parse({}));
                       return newRules;
                     })
                   }
@@ -246,30 +262,32 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                     <SelectValue placeholder={`None`} />
                   </SelectTrigger>
                   <SelectContent id="available_conditions">
-                    {AiConditionTypes.map((condition, j) => (
-                      <SelectItem key={`available-condition-${j}`} value={condition}>
+                    {AiConditionTypes.map((condition) => (
+                      <SelectItem key={condition} value={condition}>
                         {condition}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Label htmlFor="available_conditions">Active Conditions</Label>
-                {rule.conditions.map((condition, j) => (
+                {rule.conditions.map((condition, conditionIndex) => (
                   <div
-                    className="relative w-full rounded-lg border p-2 flex flex-col text-xs bg-popover"
-                    key={`added-condition-${j}`}
+                    className="relative flex w-full flex-col rounded-lg border bg-popover p-2 text-xs"
+                    key={`ai-condition-${ruleIndex}-${condition.type}-${conditionIndex}`}
                   >
                     <b>{condition.type}</b>
                     <i>{condition.description}</i>
                     <Trash2
-                      className="absolute top-2 right-2 w-6 h-6 hover:cursor-pointer hover:text-orange-500"
+                      className="absolute top-2 right-2 h-6 w-6 hover:cursor-pointer hover:text-orange-500"
                       onClick={() => {
                         setRules((prevRules) =>
                           prevRules.map((rule, k) => {
-                            if (k === i) {
+                            if (k === ruleIndex) {
                               return {
                                 ...rule,
-                                conditions: rule.conditions.filter((_, l) => l !== j),
+                                conditions: rule.conditions.filter(
+                                  (_, l) => l !== conditionIndex,
+                                ),
                               };
                             }
                             return rule;
@@ -283,7 +301,12 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         type="input"
                         value={condition.value}
                         onChange={(e) => {
-                          updateCondition(i, j, "value", e.target.value);
+                          updateCondition(
+                            ruleIndex,
+                            conditionIndex,
+                            "value",
+                            e.target.value,
+                          );
                         }}
                       />
                     )}
@@ -291,15 +314,20 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                       <Select
                         value={condition.effectType}
                         onValueChange={(value) => {
-                          updateCondition(i, j, "effectType", value);
+                          updateCondition(
+                            ruleIndex,
+                            conditionIndex,
+                            "effectType",
+                            value,
+                          );
                         }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select effect type" />
                         </SelectTrigger>
                         <SelectContent>
-                          {AvailableEffectTypes.map((effectType, k) => (
-                            <SelectItem key={`effect-type-${k}`} value={effectType}>
+                          {AvailableEffectTypes.map((effectType) => (
+                            <SelectItem key={effectType} value={effectType}>
                               {effectType}
                             </SelectItem>
                           ))}
@@ -315,10 +343,10 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         value={condition.threshold}
                         onChange={(e) => {
                           updateCondition(
-                            i,
-                            j,
+                            ruleIndex,
+                            conditionIndex,
                             "threshold",
-                            (parseInt(e.target.value) || 0).toString(),
+                            (parseInt(e.target.value, 10) || 0).toString(),
                           );
                         }}
                         placeholder="Effect threshold (0-100)"
@@ -328,15 +356,15 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                       <Select
                         value={condition.target}
                         onValueChange={(value) => {
-                          updateCondition(i, j, "target", value);
+                          updateCondition(ruleIndex, conditionIndex, "target", value);
                         }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select target" />
                         </SelectTrigger>
                         <SelectContent>
-                          {AvailableTargets.map((target, k) => (
-                            <SelectItem key={`target-${k}`} value={target}>
+                          {AvailableTargets.map((target) => (
+                            <SelectItem key={target} value={target}>
                               {target}
                             </SelectItem>
                           ))}
@@ -359,7 +387,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                   onValueChange={(e) =>
                     setRules((prevRules) =>
                       prevRules.map((rule, k) => {
-                        if (k === i) {
+                        if (k === ruleIndex) {
                           return {
                             ...rule,
                             action: getActionSchema(e as AiActionType).parse({}),
@@ -375,15 +403,15 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                     <SelectValue placeholder={`None`} />
                   </SelectTrigger>
                   <SelectContent id="available_action">
-                    {AiActionTypes.map((action, j) => (
-                      <SelectItem key={`available-action-${j}`} value={action}>
+                    {AiActionTypes.map((action) => (
+                      <SelectItem key={action} value={action}>
                         {action}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Label htmlFor="available_conditions">Action Settings</Label>
-                <div className="w-full rounded-lg border p-2 flex flex-col text-xs bg-popover gap-2">
+                <div className="flex w-full flex-col gap-2 rounded-lg border bg-popover p-2 text-xs">
                   <div className="flex flex-col">
                     <b>{currentActionType}</b>
                     <i>{rule.action.description}</i>
@@ -395,7 +423,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                       onValueChange={(e) =>
                         setRules((prevRules) =>
                           prevRules.map((rule, k) => {
-                            if (k === i) {
+                            if (k === ruleIndex) {
                               return {
                                 ...rule,
                                 action: actionSchema.parse({
@@ -413,11 +441,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         <SelectValue placeholder={`None`} />
                       </SelectTrigger>
                       <SelectContent id="available_action">
-                        {props.userData?.jutsus?.map((userjutsu, j) => (
-                          <SelectItem
-                            key={`rule-${i}-jutsuid-${j}`}
-                            value={userjutsu.jutsuId}
-                          >
+                        {props.userData?.jutsus?.map((userjutsu) => (
+                          <SelectItem key={userjutsu.jutsuId} value={userjutsu.jutsuId}>
                             {userjutsu.jutsu.name}
                           </SelectItem>
                         ))}
@@ -431,7 +456,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                       onValueChange={(e) =>
                         setRules((prevRules) =>
                           prevRules.map((rule, k) => {
-                            if (k === i) {
+                            if (k === ruleIndex) {
                               return {
                                 ...rule,
                                 action: actionSchema.parse({
@@ -449,11 +474,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         <SelectValue placeholder={`None`} />
                       </SelectTrigger>
                       <SelectContent id="available_action">
-                        {props.userData?.items?.map((useritem, j) => (
-                          <SelectItem
-                            key={`rule-${i}-itemid-${j}`}
-                            value={useritem.itemId}
-                          >
+                        {props.userData?.items?.map((useritem) => (
+                          <SelectItem key={useritem.itemId} value={useritem.itemId}>
                             {useritem.item.name}
                           </SelectItem>
                         ))}
@@ -464,19 +486,19 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                     <MultiSelect
                       selected={rule.action.comboIds}
                       options={[
-                        ...props.userData?.items?.map((ui) => ({
+                        ...(props.userData?.items?.map((ui) => ({
                           value: ui.itemId,
                           label: ui.item.name,
-                        })),
-                        ...props.userData?.jutsus?.map((uj) => ({
+                        })) ?? []),
+                        ...(props.userData?.jutsus?.map((uj) => ({
                           value: uj.jutsuId,
                           label: uj.jutsu.name,
-                        })),
+                        })) ?? []),
                       ]}
                       onChange={(e) => {
                         setRules((prevRules) =>
                           prevRules.map((rule, k) => {
-                            if (k === i) {
+                            if (k === ruleIndex) {
                               return {
                                 ...rule,
                                 action: actionSchema.parse({
@@ -498,7 +520,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                       onValueChange={(e) =>
                         setRules((prevRules) =>
                           prevRules.map((rule, k) => {
-                            if (k === i) {
+                            if (k === ruleIndex) {
                               return {
                                 ...rule,
                                 action: actionSchema.parse({
@@ -516,8 +538,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         <SelectValue placeholder={`None`} />
                       </SelectTrigger>
                       <SelectContent id="available_action">
-                        {AvailableTargets?.map((target, j) => (
-                          <SelectItem key={`rule-${i}-target-${j}`} value={target}>
+                        {AvailableTargets?.map((target) => (
+                          <SelectItem key={target} value={target}>
                             {target}
                           </SelectItem>
                         ))}
@@ -531,7 +553,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                       onValueChange={(e) =>
                         setRules((prevRules) =>
                           prevRules.map((rule, k) => {
-                            if (k === i) {
+                            if (k === ruleIndex) {
                               return {
                                 ...rule,
                                 action: actionSchema.parse({
@@ -549,8 +571,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         <SelectValue placeholder={`None`} />
                       </SelectTrigger>
                       <SelectContent id="available_action">
-                        {tagTypes?.map((effect, j) => (
-                          <SelectItem key={`rule-${i}-effect-${j}`} value={effect}>
+                        {tagTypes?.map((effect) => (
+                          <SelectItem key={effect} value={effect}>
                             {effect}
                           </SelectItem>
                         ))}
@@ -566,7 +588,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
 
       {!includeDefault && (
         <div>
-          <Badge className="bg-red-500 m-3 p-3 animate-pulse">
+          <Badge className="m-3 animate-pulse bg-red-500 p-3">
             WARNING: Not including the default rules allow you to seriously shoot
             yourself in the foot, with AIs just standing around not doing anything, or
             worse resulting in battle errors. Be careful, and note that usually it is
@@ -574,7 +596,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
           </Badge>
         </div>
       )}
-      <div className="p-3 flex flex-row items-center gap-2">
+      <div className="flex flex-row items-center gap-2 p-3">
         {rules.length === 0 && <p>No rules added to this AI profile yet</p>}
         <div className="grow"></div>
         {isStaff && (
@@ -601,7 +623,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
               setActiveElement(`Rule ${1}`);
             }}
           >
-            <FilePlus className="h-6 w-6 mr-2" /> Add Rule
+            <FilePlus className="mr-2 h-6 w-6" /> Add Rule
           </Button>
         )}
         {!isSaving && canEdit && rules.length > 0 && (
@@ -614,7 +636,7 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
               });
             }}
           >
-            <Save className="h-6 w-6 mr-2" /> Save Profile
+            <Save className="mr-2 h-6 w-6" /> Save Profile
           </Button>
         )}
         {isSaving && <Loader />}

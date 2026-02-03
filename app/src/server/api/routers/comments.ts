@@ -1,47 +1,54 @@
+import { format } from "date-fns";
+import { and, asc, desc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { eq, or, and, sql, desc, asc, inArray, isNull, notInArray } from "drizzle-orm";
-import { alias } from "drizzle-orm/mysql-core";
-import { format } from "date-fns";
+import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
 import {
-  village,
-  userBlackList,
   conversation,
-  userReportComment,
+  conversationComment,
   forumPost,
   forumThread,
+  user2conversation,
+  userBlackList,
   userData,
+  userReportComment,
+  village,
 } from "@/drizzle/schema";
-import { user2conversation, conversationComment } from "@/drizzle/schema";
+import { resolveSenderId } from "@/libs/comments";
+import { moderateContent } from "@/libs/moderator";
+import { getServerPusher } from "@/libs/pusher";
+import { fetchThread } from "@/routers/forum";
+import { fetchUser } from "@/routers/profile";
+import { fetchUserReport } from "@/routers/reports";
 import {
+  baseServerResponse,
   createTRPCRouter,
+  errorResponse,
+  hasUserMiddleware,
   protectedProcedure,
   publicProcedure,
   ratelimitMiddleware,
-  hasUserMiddleware,
+  serverError,
 } from "@/server/api/trpc";
+import type { DrizzleClient } from "@/server/db";
 import { getNewReactions, processMentions } from "@/utils/chat";
-import { serverError, baseServerResponse, errorResponse } from "@/server/api/trpc";
-import { mutateCommentSchema } from "@/validators/comments";
-import { reportCommentSchema } from "@/validators/reports";
-import { deleteCommentSchema } from "@/validators/comments";
-import { canPostReportComment } from "@/utils/permissions";
-import { canSeeReport } from "@/utils/permissions";
-import { canDeleteComment } from "@/utils/permissions";
-import { canModerateRoles } from "@/utils/permissions";
-import { canSeeSecretData } from "@/utils/permissions";
-import { createConversationSchema } from "@/validators/comments";
-import { getServerPusher } from "@/libs/pusher";
-import { fetchUserReport } from "@/routers/reports";
-import { fetchThread } from "@/routers/forum";
-import { fetchUser } from "@/routers/profile";
-import { canViewConversation } from "@/utils/permissions";
-import { moderateContent } from "@/libs/moderator";
-import { IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
+import {
+  canDeleteComment,
+  canModerateRoles,
+  canPostReportComment,
+  canSeeReport,
+  canSeeSecretData,
+  canViewConversation,
+} from "@/utils/permissions";
 import { checkForBadWords } from "@/utils/profanity";
 import sanitize from "@/utils/sanitize";
-import { resolveSenderId } from "@/libs/comments";
-import type { DrizzleClient } from "@/server/db";
+import {
+  createConversationSchema,
+  deleteCommentSchema,
+  mutateCommentSchema,
+} from "@/validators/comments";
+import { reportCommentSchema } from "@/validators/reports";
 
 export const commentsRouter = createTRPCRouter({
   /**
@@ -344,7 +351,7 @@ export const commentsRouter = createTRPCRouter({
         )
         .map((c) => ({
           ...c.conversation,
-          users: c.conversation!.users.filter((u) => u.userData),
+          users: c.conversation?.users.filter((u) => u.userData),
         }))
         .sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1));
       // Return filtered conversations
@@ -703,13 +710,15 @@ export const commentsRouter = createTRPCRouter({
       // Database mutations first (must complete before Pusher notifications)
       await Promise.all([
         // Insert into DB
-        ctx.drizzle.insert(conversationComment).values({
-          id: commentId,
-          content: sanitized,
-          userId: effectiveUserId,
-          authorId: ctx.userId,
-          conversationId: convo.id,
-        }),
+        ctx.drizzle
+          .insert(conversationComment)
+          .values({
+            id: commentId,
+            content: sanitized,
+            userId: effectiveUserId,
+            authorId: ctx.userId,
+            conversationId: convo.id,
+          }),
         // Update conversation
         ctx.drizzle
           .update(conversation)

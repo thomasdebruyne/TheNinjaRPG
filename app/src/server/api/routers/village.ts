@@ -1,39 +1,61 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
+import {
+  and,
+  count,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
-import { getTableColumns } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/api/trpc";
-import { baseServerResponse, serverError, errorResponse } from "@/api/trpc";
-import { village, villageStructure, userData, notification } from "@/drizzle/schema";
-import { villageAlliance, kageDefendedChallenges, war, sector } from "@/drizzle/schema";
-import { eq, sql, gte, and, or, inArray, ne, count } from "drizzle-orm";
-import { ramenOptions } from "@/utils/ramen";
-import { getRamenHealPercentage, calcRamenCost } from "@/utils/ramen";
-import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
-import { fetchRequests } from "@/routers/sparring";
-import { insertRequest, updateRequestState } from "@/routers/sparring";
-import { createConvo } from "@/routers/comments";
-import { canAccessStructure } from "@/utils/village";
-import { getStrucBoost } from "@/utils/village";
-import { isKage } from "@/utils/kage";
-import { findRelationship } from "@/utils/alliance";
-import { canAlly, canEnemy, canSurrender } from "@/utils/alliance";
-import { COST_SWAP_VILLAGE, IMG_AVATAR_DEFAULT } from "@/drizzle/constants";
-import { ALLIANCEHALL_LONG, ALLIANCEHALL_LAT } from "@/drizzle/constants";
-import { KAGE_WAR_DECLARE_COST } from "@/drizzle/constants";
-import { UserRequestTypes } from "@/drizzle/constants";
-import { WAR_FUNDS_COST } from "@/drizzle/constants";
-import { deleteRequests } from "@/routers/sensei";
-import { hasRequiredRank } from "@/libs/train";
-import { canAdministrateWars } from "@/utils/permissions";
-import { canSwapVillage } from "@/utils/permissions";
-import { VILLAGE_LEAVE_REQUIRED_RANK } from "@/drizzle/constants";
-import { VILLAGE_SYNDICATE_ID } from "@/drizzle/constants";
-import { ALLIANCE_VILLAGE_TYPES } from "@/drizzle/constants";
-import { actionLog } from "@/drizzle/schema";
-import type { DrizzleClient } from "@/server/db";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  publicProcedure,
+  serverError,
+} from "@/api/trpc";
 import type { AllianceState, AllianceVillageType } from "@/drizzle/constants";
+import {
+  ALLIANCE_VILLAGE_TYPES,
+  ALLIANCEHALL_LAT,
+  ALLIANCEHALL_LONG,
+  COST_SWAP_VILLAGE,
+  IMG_AVATAR_DEFAULT,
+  KAGE_WAR_DECLARE_COST,
+  UserRequestTypes,
+  VILLAGE_LEAVE_REQUIRED_RANK,
+  VILLAGE_SYNDICATE_ID,
+  WAR_FUNDS_COST,
+} from "@/drizzle/constants";
 import type { VillageAlliance } from "@/drizzle/schema";
+import {
+  actionLog,
+  kageDefendedChallenges,
+  notification,
+  sector,
+  userData,
+  village,
+  villageAlliance,
+  villageStructure,
+  war,
+} from "@/drizzle/schema";
+import { hasRequiredRank } from "@/libs/train";
+import { createConvo } from "@/routers/comments";
+import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import { deleteRequests } from "@/routers/sensei";
+import { fetchRequests, insertRequest, updateRequestState } from "@/routers/sparring";
+import type { DrizzleClient } from "@/server/db";
+import { canAlly, canEnemy, canSurrender, findRelationship } from "@/utils/alliance";
+import { isKage } from "@/utils/kage";
+import { canAdministrateWars, canSwapVillage } from "@/utils/permissions";
+import { calcRamenCost, getRamenHealPercentage, ramenOptions } from "@/utils/ramen";
+import { canAccessStructure, getStrucBoost } from "@/utils/village";
 
 const availRequests = ["SURRENDER", "ALLIANCE"];
 
@@ -351,7 +373,7 @@ export const villageRouter = createTRPCRouter({
           .set({
             villageId: village.id,
             reputationPoints: user.reputationPoints - cost,
-            isOutlaw: village.type === "OUTLAW" ? true : false,
+            isOutlaw: village.type === "OUTLAW",
             sector: village.sector,
             longitude: ALLIANCEHALL_LONG,
             latitude: ALLIANCEHALL_LAT,

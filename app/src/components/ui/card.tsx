@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "src/libs/shadui";
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -38,7 +38,7 @@ CardTitle.displayName = "CardTitle";
 const CardDescription = ({ ref, className, ...props }: CardProps) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-muted-foreground text-sm", className)}
     {...props}
   />
 );

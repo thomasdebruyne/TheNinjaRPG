@@ -1,13 +1,13 @@
-import { calculateContentDiff } from "@/utils/diff";
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SkillTreeValidator } from "@/validators/combat";
+import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
-import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
+import { SkillTreeEntryTypes, SkillTreeTargets } from "@/drizzle/constants";
 import type { SkillTree } from "@/drizzle/schema";
-import type { ZodAllTags, ZodSkillTreeType } from "@/validators/combat";
-import { SkillTreeTargets, SkillTreeEntryTypes } from "@/drizzle/constants";
 import type { FormEntry } from "@/layout/EditContent";
+import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
+import { calculateContentDiff } from "@/utils/diff";
+import type { ZodAllTags, ZodSkillTreeType } from "@/validators/combat";
+import { SkillTreeValidator } from "@/validators/combat";
 
 /**
  * Hook used when creating frontend forms for editing skills

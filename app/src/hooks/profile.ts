@@ -1,13 +1,13 @@
-import { calculateContentDiff } from "@/utils/diff";
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
-import { UserRanks } from "@/drizzle/constants";
-import { showMutationToast, showFormErrorsToast } from "@/libs/toast";
-import { updateUserSchema } from "@/validators/user";
-import type { UpdateUserSchema } from "@/validators/user";
-import type { FormEntry } from "@/layout/EditContent";
 import type { UserRole } from "@/drizzle/constants";
+import { UserRanks } from "@/drizzle/constants";
+import type { FormEntry } from "@/layout/EditContent";
+import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
+import { calculateContentDiff } from "@/utils/diff";
+import type { UpdateUserSchema } from "@/validators/user";
+import { updateUserSchema } from "@/validators/user";
 
 export interface EditUserPermissions {
   canEditUsername?: boolean;

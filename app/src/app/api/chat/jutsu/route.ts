@@ -1,10 +1,10 @@
-import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { checkContentAiAuth } from "@/libs/llm";
-import { JutsuValidatorRawSchema } from "@/validators/combat";
 import type { CoreMessage } from "ai";
+import { streamText } from "ai";
 import { OPENAI_CONTENT_MODEL } from "@/drizzle/constants";
+import { checkContentAiAuth } from "@/libs/llm";
 import { convertToOpenaiCompatibleSchema } from "@/libs/zod_utils";
+import { JutsuValidatorRawSchema } from "@/validators/combat";
 
 export async function POST(req: Request) {
   // Auth guard
@@ -13,7 +13,11 @@ export async function POST(req: Request) {
   // Call LLM
   const { messages } = (await req.json()) as { messages: CoreMessage[] };
   const schema = convertToOpenaiCompatibleSchema(
-    JutsuValidatorRawSchema.omit({ effects: true, villageId: true, bloodlineId: true }),
+    JutsuValidatorRawSchema.omit({
+      effects: true,
+      villageId: true,
+      bloodlineId: true,
+    }),
   );
   const result = streamText({
     model: openai(OPENAI_CONTENT_MODEL),

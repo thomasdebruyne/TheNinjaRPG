@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserRanks, STARTER_VILLAGES } from "@/drizzle/constants";
+import { STARTER_VILLAGES, UserRanks } from "@/drizzle/constants";
 import { idsWithNumberField } from "@/validators/base";
 
 export const rewardFields = {

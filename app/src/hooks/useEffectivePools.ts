@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { getEffectiveCurPool, getEffectiveMaxPool } from "@/libs/combat/util";
 import type { ReturnedUserState, UserEffect } from "@/libs/combat/types";
+import { getEffectiveCurPool, getEffectiveMaxPool } from "@/libs/combat/util";
 
 interface UserDataPools {
   curHealth?: number;

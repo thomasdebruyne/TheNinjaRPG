@@ -34,7 +34,7 @@ export type Gender = (typeof genders)[number];
 export const usernameSchema = z
   .string()
   .trim()
-  .regex(new RegExp("^[a-zA-Z0-9_]+$"), {
+  .regex(/^[a-zA-Z0-9_]+$/, {
     message: "Alphanumeric, no spaces",
   })
   .min(2)
@@ -44,7 +44,7 @@ export const utmSourceSchema = z
   .string()
   .trim()
   .max(64, "UTM source too long")
-  .regex(/^[a-zA-Z0-9_\-\.]+$/, {
+  .regex(/^[a-zA-Z0-9_\-.]+$/, {
     message:
       "UTM source can only contain letters, numbers, dashes, underscores, and dots",
   })

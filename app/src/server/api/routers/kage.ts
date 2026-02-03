@@ -1,47 +1,51 @@
-import { z } from "zod";
+import { and, desc, eq, gte, isNull, ne, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, or, and, ne, sql, gte, isNull, desc } from "drizzle-orm";
+import { z } from "zod";
 import {
+  KAGE_CHALLENGE_ACCEPT_PRESTIGE,
+  KAGE_CHALLENGE_MAX_DAILY_LOCKED_HOURS,
+  KAGE_CHALLENGE_OPEN_FOR_SECONDS,
+  KAGE_CHALLENGE_REJECT_COST,
+  KAGE_CHALLENGE_SECS,
+  KAGE_DEFAULT_PRESTIGE,
+  KAGE_DELAY_SECS,
+  KAGE_MAX_DAILIES,
+  KAGE_MAX_WEEKLY_PRESTIGE_SEND,
+  KAGE_PRESTIGE_REQUIREMENT,
+  KAGE_REQUESTS_SHOW_SECONDS,
+  KAGE_UNACCEPTED_CHALLENGE_COST,
+} from "@/drizzle/constants";
+import {
+  actionLog,
   clan,
+  kageDefendedChallenges,
   userData,
   village,
   villageStructure,
-  kageDefendedChallenges,
-  actionLog,
 } from "@/drizzle/schema";
-import { canTakeKage } from "@/utils/permissions";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { errorResponse, baseServerResponse } from "@/server/api/trpc";
-import { initiateBattle } from "@/routers/combat";
-import { fetchVillage } from "@/routers/village";
-import { fetchUser, fetchUpdatedUser, updateNindo } from "@/routers/profile";
-import { canChallengeKage, calculateDailyLockedTime } from "@/utils/kage";
-import { calcStructureUpgrade } from "@/utils/village";
-import {
-  KAGE_MAX_DAILIES,
-  KAGE_DELAY_SECS,
-  KAGE_PRESTIGE_REQUIREMENT,
-  KAGE_DEFAULT_PRESTIGE,
-  KAGE_CHALLENGE_SECS,
-  KAGE_REQUESTS_SHOW_SECONDS,
-  KAGE_CHALLENGE_ACCEPT_PRESTIGE,
-  KAGE_CHALLENGE_OPEN_FOR_SECONDS,
-  KAGE_MAX_WEEKLY_PRESTIGE_SEND,
-  KAGE_UNACCEPTED_CHALLENGE_COST,
-  KAGE_CHALLENGE_REJECT_COST,
-  KAGE_CHALLENGE_MAX_DAILY_LOCKED_HOURS,
-} from "@/drizzle/constants";
-import {
-  fetchRequests,
-  fetchRequest,
-  updateRequestState,
-  insertRequest,
-} from "@/routers/sparring";
 import { getServerPusher } from "@/libs/pusher";
-import type { DrizzleClient } from "@/server/db";
-import { secondsFromDate, secondsPassed } from "@/utils/time";
 import { fetchClan } from "@/routers/clan";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUpdatedUser, fetchUser, updateNindo } from "@/routers/profile";
+import {
+  fetchRequest,
+  fetchRequests,
+  insertRequest,
+  updateRequestState,
+} from "@/routers/sparring";
+import { fetchVillage } from "@/routers/village";
 import { fetchActiveWars } from "@/routers/war";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/server/api/trpc";
+import type { DrizzleClient } from "@/server/db";
+import { calculateDailyLockedTime, canChallengeKage } from "@/utils/kage";
+import { canTakeKage } from "@/utils/permissions";
+import { secondsFromDate, secondsPassed } from "@/utils/time";
+import { calcStructureUpgrade } from "@/utils/village";
 
 const pusher = getServerPusher();
 
@@ -599,8 +603,9 @@ export const kageRouter = createTRPCRouter({
         return errorResponse("Cannot toggle while there are pending challenges");
       }
 
-      if (lastToggle.length > 0) {
-        const secondsSinceLastToggle = secondsPassed(lastToggle[0]!.createdAt);
+      const lastToggleEntry = lastToggle[0];
+      if (lastToggleEntry?.createdAt) {
+        const secondsSinceLastToggle = secondsPassed(lastToggleEntry.createdAt);
         if (secondsSinceLastToggle < KAGE_CHALLENGE_OPEN_FOR_SECONDS) {
           return errorResponse(
             `Please wait ${Math.floor(KAGE_CHALLENGE_OPEN_FOR_SECONDS - secondsSinceLastToggle)} seconds before toggling`,

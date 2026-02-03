@@ -1,36 +1,46 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure } from "@/api/trpc";
-import { eq, gte, gt, sql, and, inArray, lte, desc, asc } from "drizzle-orm";
-import { item, jutsu, rankedLoadout, rankedPvpQueue, userData } from "@/drizzle/schema";
 import { TRPCError } from "@trpc/server";
+import { and, asc, desc, eq, gt, gte, inArray, lte, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import {
-  rankedSeason,
-  rankedUserRewards,
-  logQueueLengths,
-  logRankedPicks,
-} from "@/drizzle/schema";
-import { canChangeContent, canAwardReputation } from "@/utils/permissions";
-import { rankedLoadoutSchema, rankedSeasonSchema } from "@/validators/pvpRank";
-import { baseServerResponse, errorResponse } from "@/api/trpc";
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+} from "@/api/trpc";
 import {
-  RANKED_SANNIN_TOP_PLAYERS,
-  RANKED_PVP_STATS,
-  RANKED_REQUIRED_RANK,
   RANKED_ENTRY_COST,
   RANKED_LEGEND_LP_REQUIREMENT,
+  RANKED_PVP_STATS,
+  RANKED_REQUIRED_RANK,
+  RANKED_SANNIN_TOP_PLAYERS,
 } from "@/drizzle/constants";
-import { validateJutsuLoadout, validateItemLoadout } from "@/libs/ranked_pvp";
-import { initiateBattle } from "@/routers/combat";
-import { secondsPassed } from "@/utils/time";
-import { fetchUser } from "@/routers/profile";
-import { collapseRewards } from "@/libs/quest";
-import { updateRewards } from "@/server/api/routers/quests";
-import { postProcessRewards } from "@/libs/quest";
-import type { DrizzleClient } from "@/server/db";
-import { getRankedRank } from "@/libs/ranked_pvp";
+import {
+  item,
+  jutsu,
+  logQueueLengths,
+  logRankedPicks,
+  rankedLoadout,
+  rankedPvpQueue,
+  rankedSeason,
+  rankedUserRewards,
+  userData,
+} from "@/drizzle/schema";
+import { collapseRewards, postProcessRewards } from "@/libs/quest";
+import {
+  getRankedRank,
+  validateItemLoadout,
+  validateJutsuLoadout,
+} from "@/libs/ranked_pvp";
 import { hasRequiredRank } from "@/libs/train";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUser } from "@/routers/profile";
+import { updateRewards } from "@/server/api/routers/quests";
+import type { DrizzleClient } from "@/server/db";
+import { canAwardReputation, canChangeContent } from "@/utils/permissions";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
+import { secondsPassed } from "@/utils/time";
+import { rankedLoadoutSchema, rankedSeasonSchema } from "@/validators/pvpRank";
 
 export const pvpRankRouter = createTRPCRouter({
   // Get the user's season rewards
@@ -51,7 +61,9 @@ export const pvpRankRouter = createTRPCRouter({
     }
     // Collect rewards from each entry
     const collapsedRewards = collapseRewards(
-      rewards.map((r) => r.seasonRewards!).filter((r) => r !== undefined),
+      rewards
+        .map((r) => r.seasonRewards)
+        .filter((r): r is NonNullable<typeof r> => r !== undefined && r !== null),
     );
     const processedRewards = postProcessRewards(collapsedRewards);
     await Promise.all([

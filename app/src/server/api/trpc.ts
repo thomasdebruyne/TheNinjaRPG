@@ -7,6 +7,19 @@
  * The pieces you will need to use are documented accordingly near the end
  */
 
+import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/node";
+import { initTRPC, TRPCError } from "@trpc/server";
+import type { TRPC_ERROR_CODE_KEY } from "@trpc/server/rpc";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { eq, sql } from "drizzle-orm";
+import type { ReadonlyHeaders } from "next/dist/server/web/spec-extension/adapters/headers";
+import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
+import type { NextRequest } from "next/server";
+import superjson from "superjson";
+import { ZodError, z } from "zod";
+import { userData } from "@/drizzle/schema";
 /**
  * 1. CONTEXT
  *
@@ -17,20 +30,6 @@
  *
  */
 import { drizzleDB } from "@/server/db";
-import * as Sentry from "@sentry/node";
-import { initTRPC, TRPCError } from "@trpc/server";
-import { auth } from "@clerk/nextjs/server";
-import { z } from "zod";
-import { ZodError } from "zod";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-import { eq, sql } from "drizzle-orm";
-import { userData } from "@/drizzle/schema";
-import superjson from "superjson";
-import type { NextRequest } from "next/server";
-import type { ReadonlyHeaders } from "next/dist/server/web/spec-extension/adapters/headers";
-import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
-import type { TRPC_ERROR_CODE_KEY } from "@trpc/server/rpc";
 
 /**
  * This is the actual context you will use in your router. It will be used to process every request

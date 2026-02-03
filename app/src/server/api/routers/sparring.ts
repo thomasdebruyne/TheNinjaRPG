@@ -1,17 +1,23 @@
-import { z } from "zod";
+import { and, eq, gt, inArray, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { createTRPCRouter, errorResponse, protectedProcedure } from "@/server/api/trpc";
-import { serverError, baseServerResponse } from "@/server/api/trpc";
-import { eq, or, and, gt, inArray } from "drizzle-orm";
-import { SPAR_EXPIRY_SECONDS } from "@/libs/combat/constants";
-import { secondsFromNow } from "@/utils/time";
-import { userRequest, rankedLoadout } from "@/drizzle/schema";
-import { getServerPusher } from "@/libs/pusher";
-import { fetchUser } from "@/routers/profile";
-import { initiateBattle } from "@/routers/combat";
-import { RANKED_PVP_STATS } from "@/drizzle/constants";
+import { z } from "zod";
 import type { UserRequestState, UserRequestType } from "@/drizzle/constants";
+import { RANKED_PVP_STATS } from "@/drizzle/constants";
+import type { RankedLoadout } from "@/drizzle/schema";
+import { rankedLoadout, userRequest } from "@/drizzle/schema";
+import { SPAR_EXPIRY_SECONDS } from "@/libs/combat/constants";
+import { getServerPusher } from "@/libs/pusher";
+import { initiateBattle } from "@/routers/combat";
+import { fetchUser } from "@/routers/profile";
+import {
+  baseServerResponse,
+  createTRPCRouter,
+  errorResponse,
+  protectedProcedure,
+  serverError,
+} from "@/server/api/trpc";
 import type { DrizzleClient } from "@/server/db";
+import { secondsFromNow } from "@/utils/time";
 
 const pusher = getServerPusher();
 
@@ -80,7 +86,7 @@ export const sparringRouter = createTRPCRouter({
       const battleType = useRankedRules ? "RANKED_SPARRING" : "SPARRING";
 
       // Get ranked loadouts if using ranked rules
-      let forceLoadouts = undefined;
+      let forceLoadouts: RankedLoadout[] | undefined;
       if (useRankedRules) {
         const [senderLoadout, receiverLoadout] = await Promise.all([
           ctx.drizzle.query.rankedLoadout.findFirst({
