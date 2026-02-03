@@ -32,6 +32,7 @@ import {
 } from "@/drizzle/constants";
 import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import { initiateBattle } from "@/routers/combat";
+import { fetchActiveUserMpvpBattles } from "@/routers/clan";
 import { updateRewards } from "@/routers/quests";
 import { ObjectiveReward } from "@/validators/rewards";
 import type { RaidObjectiveType } from "@/validators/objectives";
@@ -624,7 +625,7 @@ export const raidsRouter = createTRPCRouter({
     .output(baseServerResponse.extend({ teamId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       // Query - parallel fetch all required data upfront
-      const [{ user }, raid, teamData] = await Promise.all([
+      const [{ user }, raid, teamData, existingQueueEntries] = await Promise.all([
         fetchUpdatedUser({ client: ctx.drizzle, userId: ctx.userId }),
         ctx.drizzle.query.quest.findFirst({
           where: and(eq(quest.id, input.questId), eq(quest.questType, "raid")),
@@ -641,11 +642,16 @@ export const raidsRouter = createTRPCRouter({
               with: { queue: true },
             })
           : Promise.resolve(null),
+        // Check if user is already in any active battle queue
+        fetchActiveUserMpvpBattles(ctx.drizzle, ctx.userId),
       ]);
 
       // Guard - basic validations
       if (!user) return errorResponse("User not found");
       if (!raid) return errorResponse("Raid not found");
+      if (existingQueueEntries.length > 0) {
+        return errorResponse("Already in a battle queue");
+      }
       if (user.status !== "AWAKE") {
         return errorResponse("You cannot join a raid queue in your current status");
       }

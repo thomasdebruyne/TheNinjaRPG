@@ -1,6 +1,6 @@
 ---
 description: Reviews code for CLAUDE.md compliance
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Guidelines Review
@@ -13,31 +13,39 @@ Review code changes for compliance with project guidelines.
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Read CLAUDE.md for project guidelines
-- [ ] Get changed files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check TypeScript strict mode - No `any` types
-- [ ] Check functional patterns - No unnecessary classes
-- [ ] Check arrow functions - Arrow functions over function declarations
-- [ ] Check naming conventions - Descriptive names with auxiliary verbs
-- [ ] Check component structure - exported → subcomponents → helpers → types
-- [ ] Check DRY principles - No code duplication
-- [ ] Check for over-engineering
-- [ ] Write findings or return PASS
+1. Read CLAUDE.md for project guidelines
+2. Get changed files
+3. Read full file contents (not just diffs)
+4. Check TypeScript strict mode - No `any` types
+5. Check functional patterns - No unnecessary classes
+6. Check arrow functions - Arrow functions over function declarations
+7. Check naming conventions - Descriptive names with auxiliary verbs
+8. Check component structure - exported → subcomponents → helpers → types
+9. Check DRY principles - No code duplication
+10. Check reuse over creation - Check if new code overlaps with existing functionality
+11. Check JSX string literals - No hardcoded strings using {"string"} syntax
+12. Check for over-engineering - No unnecessary abstractions, features, or error handling
+13. Check comments - No unnatural tracking markers or unnecessary comments
+14. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
 1. Read `CLAUDE.md` for project guidelines
-2. Get changed `.ts` and `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+2. Get ALL changed `.ts` and `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.(ts|tsx)$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.(ts|tsx)$' | awk '{print $NF}'`
 3. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 4. **Locate the changed code within the file**, then examine the ENTIRE function/block containing those changes
 5. For each changed file, check:

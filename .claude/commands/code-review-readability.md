@@ -1,6 +1,6 @@
 ---
 description: Reviews code for readability, clarity, and maintainability
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Code Readability Review
@@ -13,27 +13,34 @@ Review code for readability and clarity, ensuring code is easy to understand and
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check function length - Flag functions over 50 lines
-- [ ] Check nesting depth - Flag nesting over 3 levels
-- [ ] Check naming clarity - Verify variable/function names are descriptive
-- [ ] Check magic values - Flag unexplained literal values
-- [ ] Check complex expressions - Flag complex ternaries and boolean expressions
-- [ ] Write findings or return PASS
+1. Get changed files
+2. Read full file contents (not just diffs)
+3. Check function length - Flag functions over 50 lines
+4. Check nesting depth - Flag nesting over 3 levels
+5. Check naming clarity - Verify variable/function names are descriptive, not misleading
+6. Check magic values - Flag unexplained literal values
+7. Check complex expressions - Flag complex/nested ternaries and long boolean expressions
+8. Check callback patterns - Flag deeply nested callbacks instead of async/await
+9. Check consistency - Flag similar operations done differently in the same file
+10. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.ts` and `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.ts` and `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.(ts|tsx)$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.(ts|tsx)$' | awk '{print $NF}'`
 2. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 3. **Locate the changed code within the file**, then examine the ENTIRE function/block containing those changes
 4. **For every function over 50 lines (mandatory):**
@@ -78,7 +85,7 @@ Mark each todo as completed after performing it.
 - Variable/function names that don't match their purpose
 - Boolean names that don't read naturally
 
-### Warnings
+### Issues (Must Check)
 
 **1. Overly Long Functions**
 

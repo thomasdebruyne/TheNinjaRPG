@@ -1,6 +1,6 @@
 ---
 description: Runs CodeRabbit analysis
-allowed-tools: Bash(coderabbit review:*), Write, TodoWrite
+allowed-tools: Bash(coderabbit review:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 Run CodeRabbit and summarize findings.
@@ -11,16 +11,18 @@ Run CodeRabbit and summarize findings.
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Run CodeRabbit (`coderabbit review --plain`)
-- [ ] Extract actionable findings
-- [ ] Categorize issues (critical, warning, suggestion)
-- [ ] Write findings or return PASS
+1. Run CodeRabbit (`coderabbit review --plain`)
+2. Extract actionable findings
+3. Categorize issues (critical, warning, suggestion)
+4. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 

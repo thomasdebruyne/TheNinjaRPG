@@ -1,6 +1,6 @@
 ---
 description: Runs ESLint
-allowed-tools: Bash(make lint:*), Write, TodoWrite
+allowed-tools: Bash(make lint:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 Run ESLint and report results.
@@ -11,15 +11,17 @@ Run ESLint and report results.
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Run ESLint (`make lint`)
-- [ ] Parse errors/warnings from output
-- [ ] Write findings or return PASS
+1. Run ESLint (`make lint`)
+2. Parse errors/warnings from output
+3. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 

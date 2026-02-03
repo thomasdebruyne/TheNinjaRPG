@@ -1,6 +1,6 @@
 ---
 description: Reviews code for redundant additions, duplicate fields/schemas, AND orphaned code (unused constants, functions, components) that may have become dead code after changes
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Redundancy Code Review
@@ -16,27 +16,35 @@ You are a senior developer focused on keeping the codebase clean and DRY at an a
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed files
-- [ ] Get diff content - See what was added AND removed
-- [ ] Read full file contents (not just diffs)
-- [ ] Check for duplicate fields - Search for similar fields/schemas elsewhere
-- [ ] Check spread syntax bases - Read and compare base objects in spread syntax
-- [ ] Check semantic duplicates - Look for different names with same meaning
-- [ ] Check orphaned code - Verify removed references don't leave dead code
-- [ ] Write findings or return PASS
+1. Get changed files
+2. Get diff content - See what was added AND removed
+3. Read full file contents (not just diffs)
+4. Check for duplicate fields - Search for similar fields/schemas elsewhere
+5. Check spread syntax bases - Read and compare base objects in spread syntax
+6. Check semantic duplicates - Look for different names with same meaning
+7. Check orphaned code - Verify removed references don't leave dead code
+8. Check API response redundancy - Verify response doesn't include duplicate data
+9. Check derived state - Verify new state isn't derivable from existing state/props
+10. Check duplicate constants - Verify constants aren't defined in multiple places
+11. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.ts` and `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.ts` and `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.(ts|tsx)$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.(ts|tsx)$' | awk '{print $NF}'`
 2. Get the actual diff content: `git diff main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` to see what was added AND removed
 3. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 4. **For additions** (new fields, schemas, types, functions):
@@ -101,7 +109,7 @@ Fields that store the same data but use different naming conventions:
 - `user` vs `userId` vs `ownerId`
 - `count` vs `quantity` vs `amount`
 
-### Warnings (Should Fix)
+### Issues (Must Check)
 
 #### Redundant API Response Fields
 

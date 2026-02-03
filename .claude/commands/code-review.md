@@ -1,6 +1,6 @@
 ---
 description: Review code for quality and guideline compliance. Use /code-review <IDENTIFIER>
-allowed-tools: Task, TaskCreate, TaskUpdate, TaskList, TaskGet, TodoWrite, Write
+allowed-tools: Task, TaskCreate, TaskUpdate, TaskList, TaskGet, Write
 ---
 
 # Code Review
@@ -72,7 +72,7 @@ Each sub-skill will either return:
 
 ### Step 3: Track Results and Compile Summary
 
-As each agent completes, mark the corresponding todo as completed using TodoWrite with `merge: true`.
+As each agent completes, mark the corresponding task as completed using TaskUpdate with `status: "completed"`.
 
 After all complete, compile into a summary (replace `<IDENTIFIER>` with the actual identifier from arguments):
 

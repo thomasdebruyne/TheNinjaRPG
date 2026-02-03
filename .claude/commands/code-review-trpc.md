@@ -1,6 +1,6 @@
 ---
 description: Reviews tRPC routers for performance and pattern compliance
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # tRPC Router Review
@@ -13,27 +13,36 @@ Review tRPC router files in `app/src/server/api/routers/` for compliance with pr
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed router files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check sequential queries - Look for await statements that should be parallelized
-- [ ] Check Promise.all usage - Verify awaits ABOVE Promise.all are merged in
-- [ ] Check mutation outputs - Verify .output(baseServerResponse) on mutations
-- [ ] Check error handling - Verify errorResponse() instead of throw new Error()
-- [ ] Check for transactions - Flag any database transaction usage
-- [ ] Write findings or return PASS
+1. Get changed router files
+2. Read full file contents (not just diffs)
+3. Check sequential queries - Look for await statements that should be parallelized
+4. Check Promise.all usage - Verify awaits ABOVE Promise.all are merged in
+5. Check mutation outputs - Verify .output(baseServerResponse) on mutations
+6. Check error handling - Verify errorResponse() instead of throw new Error()
+7. Check for transactions - Flag any database transaction usage
+8. Check inline validators - Flag large Zod schemas (>5 fields) not in @/validators/
+9. Check guard clauses - Verify mutations validate user/permissions before modifying data
+10. Check naming conventions - Verify queries use get*/getAll*/fetch*, mutations use action verbs
+11. Check helper exports - Verify fetch functions at bottom of file are exported
+12. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.ts` files in routers (excluding migrations):
-   - `git diff --name-only main...HEAD -- 'app/src/server/api/routers/*.ts' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- 'app/src/server/api/routers/*.ts' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- 'app/src/server/api/routers/*.ts' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.ts` files in routers (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- 'app/src/server/api/routers/*.ts' ':!**/migrations/**' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep 'app/src/server/api/routers/.*\.ts$' | awk '{print $NF}'`
 2. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 3. **Locate the changed code within the file**, then examine the ENTIRE procedure containing those changes
 4. **For every `Promise.all` in the function:**
@@ -113,7 +122,7 @@ const [user, village] = await Promise.all([fetchUser(ctx.drizzle, userId), fetch
 - BAD: `throw new Error("User not found")` for validation
 - GOOD: `return errorResponse("User not found")`
 
-### Warnings
+### Issues (Must Check)
 
 **1. Complex Inline Validators**
 

@@ -1,6 +1,6 @@
 ---
 description: Reviews that backend endpoints are actually consumed by frontend components and vice versa
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Fullstack Link Review
@@ -16,29 +16,37 @@ Review code to ensure that backend endpoints (tRPC procedures, API routes) are p
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed backend files - Get list of changed router/API files
-- [ ] Identify new/modified procedures - Extract procedure names from changes
-- [ ] Search for frontend consumers - Check if procedures are called from frontend
-- [ ] Check API route consumers - Verify API routes have fetch calls
-- [ ] Verify input/output compatibility - Check frontend passes correct data
-- [ ] Get changed frontend files - Get list of changed frontend components
-- [ ] Identify removed endpoint usages - Find removed api.x.y calls in frontend
-- [ ] Check if removed endpoints are used elsewhere - Search codebase for other consumers
-- [ ] Flag dead backend code - Report unused backend endpoints for removal
-- [ ] Write findings or return PASS
+1. Get changed backend files - Get list of changed router/API files
+2. Identify new/modified procedures - Extract procedure names from changes
+3. Search for frontend consumers - Check if procedures are called from frontend
+4. Check API route consumers - Verify API routes have fetch calls
+5. Verify input/output compatibility - Check frontend passes correct data
+6. Get changed frontend files - Get list of changed frontend components
+7. Identify removed endpoint usages - Find removed api.x.y calls in frontend
+8. Check if removed endpoints are used elsewhere - Search codebase for other consumers
+9. Flag dead backend code - Report unused backend endpoints for removal
+10. Check error handling - Verify frontend handles error states from endpoints
+11. Check loading states - Verify frontend shows loading indicator while waiting
+12. Check stale references - Verify frontend doesn't reference renamed/removed procedures
+13. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review (New Backend → Frontend Check)
 
-1. Get changed backend files (excluding migrations):
-   - `git diff --name-only main...HEAD -- 'app/src/server/api/routers/*.ts' 'app/src/app/api/**/*.ts' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- 'app/src/server/api/routers/*.ts' 'app/src/app/api/**/*.ts' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- 'app/src/server/api/routers/*.ts' 'app/src/app/api/**/*.ts' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed backend files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- 'app/src/server/api/routers/*.ts' 'app/src/app/api/**/*.ts' ':!**/migrations/**' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '(app/src/server/api/routers/.*\.ts|app/src/app/api/.*\.ts)$' | awk '{print $NF}'`
 2. Get the actual diff content to identify added/modified procedures
 3. **Read the FULL file content** for each changed backend file
 4. **Extract new/modified procedure names:**
@@ -53,10 +61,13 @@ Mark each todo as completed after performing it.
 
 ### Step 3: Execute Review (Removed Frontend → Dead Backend Check)
 
-1. Get changed frontend files:
-   - `git diff --name-only main...HEAD -- 'app/src/app/**/*.tsx' 'app/src/layout/**/*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- 'app/src/app/**/*.tsx' 'app/src/layout/**/*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- 'app/src/app/**/*.tsx' 'app/src/layout/**/*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed frontend files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- 'app/src/app/**/*.tsx' 'app/src/layout/**/*.tsx' ':!**/migrations/**' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '(app/src/app/.*\.tsx|app/src/layout/.*\.tsx)$' | awk '{print $NF}'`
 2. Get the actual diff content to identify **removed** endpoint usages (lines starting with `-`)
 3. **Extract removed procedure calls:**
    - Look for removed lines containing `api.{routerName}.{procedureName}` patterns
@@ -172,7 +183,7 @@ If no other usage exists but the backend procedure `rotateElders` still exists i
 - Frontend expects response fields the procedure doesn't return
 - Procedure returns new structure that frontend doesn't handle
 
-### Warnings (Should Fix)
+### Issues (Must Check)
 
 **1. Incomplete Error Handling**
 

@@ -1,6 +1,6 @@
 ---
 description: Reviews code for overly broad error ignores, exception handlers, and filters that could mask real issues
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Specific Ignores Review
@@ -13,27 +13,34 @@ Review code for overly broad error ignores, exception handlers, and filter patte
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check error message ignores - Verify ignores are specific, not generic
-- [ ] Check catch-all handlers - Verify unexpected errors are re-thrown
-- [ ] Check regex patterns - Verify patterns don't over-match
-- [ ] Check silent failures - Verify errors are logged or tracked
-- [ ] Check stack trace usage - Prefer stack-based filtering over message-only
-- [ ] Write findings or return PASS
+1. Get changed files
+2. Read full file contents (not just diffs)
+3. Check error message ignores - Verify ignores are specific, not generic
+4. Check catch-all handlers - Verify unexpected errors are re-thrown
+5. Check regex patterns - Verify patterns don't over-match
+6. Check silent failures - Verify errors are logged or tracked
+7. Check stack trace usage - Prefer stack-based filtering over message-only
+8. Check similar ignores - Flag multiple ignores that could be consolidated
+9. Check empty catch blocks - Flag catch blocks with empty handlers
+10. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.ts` and `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.ts` and `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.(ts|tsx)$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.(ts|tsx)$' | awk '{print $NF}'`
 2. Filter to relevant files containing error handling patterns
 3. **IMPORTANT: Read the FULL file content** for each changed file
 4. **Analyze the specificity** of each error handling pattern:
@@ -121,7 +128,7 @@ try {
 
 - Ignoring errors without any indication they occurred
 
-### Warnings (Should Fix)
+### Issues (Must Check)
 
 **Message-Only Filtering When Stack Available**
 

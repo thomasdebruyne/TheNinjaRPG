@@ -1,6 +1,6 @@
 ---
 description: Runs TypeScript type checking
-allowed-tools: Bash(make typecheck:*), Write, TodoWrite
+allowed-tools: Bash(make typecheck:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 Run TypeScript type checking and report results.
@@ -11,15 +11,17 @@ Run TypeScript type checking and report results.
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Run typecheck (`make typecheck`)
-- [ ] Parse type errors from output
-- [ ] Write findings or return PASS
+1. Run typecheck (`make typecheck`)
+2. Parse type errors from output
+3. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 

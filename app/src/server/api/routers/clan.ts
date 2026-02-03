@@ -1099,7 +1099,7 @@ export const clanRouter = createTRPCRouter({
         fetchUser(ctx.drizzle, ctx.userId),
         fetchClan(ctx.drizzle, input.challengerClanId),
         fetchClan(ctx.drizzle, input.targetClanId),
-        fetchActiveUserClanBattles(ctx.drizzle, ctx.userId),
+        fetchActiveUserMpvpBattles(ctx.drizzle, ctx.userId),
       ]);
       const groupLabel = user?.isOutlaw ? "faction" : "clan";
       // Derived
@@ -1162,7 +1162,7 @@ export const clanRouter = createTRPCRouter({
       const [user, clanBattleData, queries] = await Promise.all([
         fetchUser(ctx.drizzle, ctx.userId),
         fetchClanBattle(ctx.drizzle, input.clanBattleId),
-        fetchActiveUserClanBattles(ctx.drizzle, ctx.userId),
+        fetchActiveUserMpvpBattles(ctx.drizzle, ctx.userId),
       ]);
       const groupLabel = user?.isOutlaw ? "faction" : "clan";
       // Guards
@@ -1682,7 +1682,7 @@ export const fetchClanBattles = async (client: DrizzleClient, clanId: string) =>
  * @param userId - The ID of the user.
  * @returns - A promise that resolves to an array of clan battle queue items.
  */
-export const fetchActiveUserClanBattles = async (
+export const fetchActiveUserMpvpBattles = async (
   client: DrizzleClient,
   userId: string,
 ) => {

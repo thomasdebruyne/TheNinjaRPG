@@ -1,6 +1,6 @@
 ---
 description: Reviews game logic for correctness, safety, and consistency
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Game Logic Review
@@ -13,28 +13,39 @@ Review code for game logic correctness, ensuring attribution, transfers, ownersh
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check attribution - Verify rewards/XP go to correct user
-- [ ] Check resource transfers - Verify balance checks before deductions
-- [ ] Check ownership verification - Verify user owns items before modifying
-- [ ] Check self-targeting - Verify actions can't inappropriately self-target
-- [ ] Check double-spend - Verify actions can't be exploited for multiple rewards
-- [ ] Check race conditions - Verify atomic guards on read-then-write patterns
-- [ ] Write findings or return PASS
+1. Get changed files
+2. Read full file contents (not just diffs)
+3. Check attribution - Verify rewards/XP go to correct user
+4. Check resource transfers - Verify balance checks before deductions
+5. Check ownership verification - Verify user owns items before modifying
+6. Check self-targeting - Verify actions can't inappropriately self-target
+7. Check double-spend - Verify actions can't be exploited for multiple rewards
+8. Check race conditions - Verify atomic guards on read-then-write patterns
+9. Check permission checks - Verify village/role membership for restricted actions
+10. Check input validation - Verify user-provided IDs are validated, numeric values bounded
+11. Check state consistency - Verify related data updated together remains consistent
+12. Check cooldowns/rate limits - Verify cooldowns can't be bypassed
+13. Check status requirements - Verify actions check user/entity state validity
+14. Check boundary conditions - Verify off-by-one, zero/max values, division by zero
+15. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.ts` and `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.ts` and `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.(ts|tsx)$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.(ts|tsx)$' | awk '{print $NF}'`
 2. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 3. **Locate the changed code within the file**, then examine the ENTIRE function containing those changes
 4. **For every database update that modifies resources (money, XP, items):**
@@ -117,7 +128,7 @@ if (result.rowsAffected === 0) {
 
 - Read-then-write patterns without atomic guards
 
-### Warnings
+### Issues (Must Check)
 
 **1. Missing Permission Checks**
 

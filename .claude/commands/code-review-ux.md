@@ -1,6 +1,6 @@
 ---
 description: Reviews code for UX quality including loading states, error handling, user feedback, and interaction patterns
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # UX Code Review
@@ -13,29 +13,40 @@ You are a UX-focused senior developer reviewing code changes for user experience
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check loading states - Verify async operations show loading feedback
-- [ ] Check error handling - Verify errors are shown to users (not just console)
-- [ ] Check error messages - Verify messages are user-friendly, not technical
-- [ ] Check destructive actions - Verify confirmation dialogs exist
-- [ ] Check disabled states - Verify disabled buttons explain why
-- [ ] Check empty states - Verify lists handle empty/null gracefully
-- [ ] Check theme colors - Verify new components use theme classes (bg-background, bg-card, etc.) not hardcoded colors
-- [ ] Write findings or return PASS
+1. Get changed files
+2. Read full file contents (not just diffs)
+3. Check loading states - Verify async operations show loading feedback (not page-wide loaders for mutations)
+4. Check error handling - Verify errors are shown to users (not just console)
+5. Check error messages - Verify messages are user-friendly, not technical
+6. Check destructive actions - Verify confirmation dialogs exist
+7. Check disabled states - Verify disabled buttons explain why
+8. Check empty states - Verify lists handle empty/null gracefully
+9. Check success feedback - Verify successful actions confirm completion to user
+10. Check optimistic updates - Verify toggle actions update UI immediately
+11. Check form validation - Verify forms validate inline, not just on submit
+12. Check progress indicators - Verify long operations show progress
+13. Check unsaved changes - Verify forms warn before navigation with unsaved changes
+14. Check theme colors - Verify new components use theme classes (bg-background, bg-card, etc.) not hardcoded colors
+15. Check game-specific UX - Verify resource costs shown upfront, cooldowns visible, requirements explained
+16. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.tsx$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.tsx$' | awk '{print $NF}'`
 2. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 3. **Locate the changed code within the file**, then examine the ENTIRE function/block containing those changes
 4. **For every async handler (onClick, onSubmit, mutation):**
@@ -126,7 +137,7 @@ toast.error("This username is already taken. Please choose another.");
 
 Delete, reset, or irreversible actions need confirmation dialogs.
 
-### UX Warnings (Should Fix)
+### UX Issues (Must Check)
 
 #### Missing Success Feedback
 

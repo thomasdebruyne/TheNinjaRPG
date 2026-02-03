@@ -173,6 +173,7 @@ export default function Travel() {
   const quickTravelForm = useForm<z.infer<typeof quickTravelSchema>>({
     mode: "all",
     resolver: zodResolver(quickTravelSchema),
+    defaultValues: { sector: undefined },
   });
   const quickTravelSector = useWatch({
     control: quickTravelForm.control,

@@ -1,6 +1,6 @@
 ---
 description: Runs test suite
-allowed-tools: Bash(make test:*), Write, TodoWrite
+allowed-tools: Bash(make test:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 Run tests and report results.
@@ -11,15 +11,17 @@ Run tests and report results.
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Run tests (`make test`)
-- [ ] Parse pass/fail counts
-- [ ] Write findings or return PASS
+1. Run tests (`make test`)
+2. Parse pass/fail counts
+3. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 

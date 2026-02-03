@@ -1,6 +1,6 @@
 ---
 description: Reviews code for security vulnerabilities
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Security Review
@@ -13,27 +13,32 @@ Review changed files for security vulnerabilities including permission checks, i
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check permission guards - Verify ownership/permission checks on mutations
-- [ ] Check injection risks - Look for SQL/Drizzle injection vulnerabilities
-- [ ] Check data exposure - Ensure no sensitive data in API responses
-- [ ] Check procedure types - Verify protectedProcedure vs publicProcedure
-- [ ] Check input validation - Verify Zod validation on user inputs
-- [ ] Write findings or return PASS
+1. Get changed files
+2. Read full file contents (not just diffs)
+3. Check permission guards - Verify ownership/permission checks on mutations
+4. Check injection risks - Look for SQL/Drizzle injection vulnerabilities
+5. Check data exposure - Ensure no sensitive data in API responses
+6. Check procedure types - Verify protectedProcedure vs publicProcedure
+7. Check input validation - Verify Zod validation on user inputs
+8. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.ts` and `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.ts` and `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.(ts|tsx)$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.(ts|tsx)$' | awk '{print $NF}'`
 2. Focus on files in `routers/`, `app/`, `libs/`
 3. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 4. **Locate the changed code within the file**, then examine the ENTIRE function containing those changes
@@ -85,7 +90,7 @@ Mark each todo as completed after performing it.
 - Logging sensitive information (passwords, tokens, API keys)
 - Hardcoded credentials or API keys in code
 
-### Warnings (Should Fix)
+### Issues (Must Check)
 
 **Incomplete Permission Checks**
 

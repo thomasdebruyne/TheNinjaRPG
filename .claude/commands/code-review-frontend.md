@@ -1,6 +1,6 @@
 ---
 description: Reviews React/TSX components for best practices, performance, and hook correctness
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # Frontend React Code Review
@@ -15,28 +15,35 @@ You are a senior frontend developer expert specializing in React 19, Next.js 15,
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed TSX files
-- [ ] Read full file contents (not just diffs)
-- [ ] Check hook ordering - Verify all hooks are before early returns
-- [ ] Check conditional hooks - Verify no hooks inside conditions/loops
-- [ ] Check key props - Verify array.map() has unique keys
-- [ ] Check useEffect deps - Verify dependency arrays are correct
-- [ ] Check watch vs useWatch - Verify react-hook-form uses useWatch
-- [ ] Check HTML nesting - Verify no block elements inside inline/paragraph elements
-- [ ] Write findings or return PASS
+1. Get changed TSX files
+2. Read full file contents (not just diffs)
+3. Check hook ordering - Verify all hooks are before early returns
+4. Check conditional hooks - Verify no hooks inside conditions/loops
+5. Check key props - Verify array.map() has unique keys (no index keys for dynamic lists)
+6. Check useEffect deps - Verify dependency arrays are correct, no stale closures
+7. Check watch vs useWatch - Verify react-hook-form uses useWatch
+8. Check HTML nesting - Verify no block elements inside inline/paragraph elements
+9. Check component definitions - Verify no components defined inside other components
+10. Check 'use client' directive - Verify components using hooks have the directive
+11. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.tsx$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.tsx$' | awk '{print $NF}'`
 2. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 3. **Locate the changed code within the file**, then examine the ENTIRE component containing those changes
 4. **For every component:**
@@ -107,7 +114,7 @@ Common violations:
 - `<span>` containing `<div>` - use `<div>` for both or `<span>` for child
 - Functions returning `<div>` that get rendered inside `<p>` or `<span>`
 
-### Performance Issues (Warnings)
+### Performance Issues (Must Check)
 
 > **React Compiler Note:** The React Compiler handles most memoization. Only flag when there's a clear performance issue the compiler cannot optimize.
 
@@ -119,7 +126,7 @@ Flag code that adds unnecessary manual memoization - the React Compiler makes th
 
 This codebase uses React Compiler which requires useWatch hook.
 
-### State Management Issues (Warnings)
+### State Management Issues (Must Check)
 
 #### Derived State That Should Be Computed
 
@@ -129,7 +136,7 @@ State that can be derived from other state/props should not be stored.
 
 Async operations should handle loading and error states.
 
-### Dependency Array Issues (Warnings)
+### Dependency Array Issues (Must Check)
 
 #### Missing Dependencies in useEffect/useMemo/useCallback
 
@@ -145,7 +152,7 @@ Using state inside useEffect without including it in dependencies causes stale v
 
 Inner component definitions cause unmounting/remounting on every parent render.
 
-### Next.js Specific Issues (Warnings)
+### Next.js Specific Issues (Must Check)
 
 #### Client Components Without 'use client' Directive
 

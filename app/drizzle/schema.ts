@@ -792,6 +792,8 @@ export const mpvpBattleUser = mysqlTable(
         table.side,
         table.slot,
       ),
+      // Unique constraint to prevent user being in multiple battles at once
+      userKey: uniqueIndex("MpvpBattleUser_userId_key").on(table.userId),
     };
   },
 );
@@ -2135,7 +2137,10 @@ export const userData = mysqlTable(
     lastSensoryAt: datetime("lastSensoryAt", { mode: "date", fsp: 3 }),
     // Covert training (timer-based like jutsu training)
     covertTrainingType: mysqlEnum("covertTrainingType", consts.CovertTrainingTypes),
-    covertTrainingStartedAt: datetime("covertTrainingStartedAt", { mode: "date", fsp: 3 }),
+    covertTrainingStartedAt: datetime("covertTrainingStartedAt", {
+      mode: "date",
+      fsp: 3,
+    }),
     covertTrainingMinutes: smallint("covertTrainingMinutes", { unsigned: true }),
   },
   (table) => {
@@ -3295,12 +3300,15 @@ export const raidDamageThreshold = mysqlTable(
 );
 export type RaidDamageThreshold = InferSelectModel<typeof raidDamageThreshold>;
 
-export const raidDamageThresholdRelations = relations(raidDamageThreshold, ({ one }) => ({
-  quest: one(quest, {
-    fields: [raidDamageThreshold.questId],
-    references: [quest.id],
+export const raidDamageThresholdRelations = relations(
+  raidDamageThreshold,
+  ({ one }) => ({
+    quest: one(quest, {
+      fields: [raidDamageThreshold.questId],
+      references: [quest.id],
+    }),
   }),
-}));
+);
 
 export const userRaidBuff = mysqlTable(
   "UserRaidBuff",

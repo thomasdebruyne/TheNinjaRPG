@@ -32,6 +32,7 @@ import {
 import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import { fetchActiveWars } from "./war";
 import { fetchAlliances } from "./village";
+import { fetchActiveUserMpvpBattles } from "./clan";
 import { findRelationship } from "@/utils/alliance";
 import { secondsFromDate, secondsFromNow, formatDateTimeShort } from "@/utils/time";
 import { initiateBattle } from "@/routers/combat";
@@ -796,10 +797,10 @@ export const shrineRouter = createTRPCRouter({
       const [
         { user },
         targetSector,
-        existingQueues,
         activeWars,
         relationships,
         isHome,
+        existingUserBattles,
       ] = await Promise.all([
         fetchUpdatedUser({
           client: ctx.drizzle,
@@ -811,21 +812,13 @@ export const shrineRouter = createTRPCRouter({
             village: true,
           },
         }),
-        ctx.drizzle.query.mpvpBattleQueue.findMany({
-          where: and(
-            eq(mpvpBattleQueue.battleType, "SHRINE_BATTLE"),
-            eq(mpvpBattleQueue.sector, input.sectorNumber),
-            isNull(mpvpBattleQueue.battleId),
-          ),
-          with: {
-            queue: true,
-          },
-        }),
         fetchActiveWars(ctx.drizzle),
         fetchAlliances(ctx.drizzle),
         ctx.drizzle.query.village.findFirst({
           where: eq(village.sector, input.sectorNumber),
         }),
+        // Check if user is already in any active battle queue
+        fetchActiveUserMpvpBattles(ctx.drizzle, ctx.userId),
       ]);
 
       // Helper to check if user is on attacker side (including allies)
@@ -909,11 +902,10 @@ export const shrineRouter = createTRPCRouter({
         );
       }
 
-      // Check if user is already in a queue
-      const alreadyQueued = existingQueues.some((q) =>
-        q.queue.some((u) => u.userId === user.userId),
-      );
-      if (alreadyQueued) return errorResponse("Already in a shrine battle queue");
+      // Check if user is already in any battle queue
+      if (existingUserBattles.length > 0) {
+        return errorResponse("Already in a battle queue");
+      }
 
       // Create new shrine battle queue with rollback on failure
       const shrineBattleId = nanoid();
@@ -985,7 +977,7 @@ export const shrineRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Fetch user and battle data
-      const [{ user }, shrineBattle] = await Promise.all([
+      const [{ user }, shrineBattle, existingUserBattles] = await Promise.all([
         fetchUpdatedUser({
           client: ctx.drizzle,
           userId: ctx.userId,
@@ -1008,6 +1000,8 @@ export const shrineRouter = createTRPCRouter({
             },
           },
         }),
+        // Check if user is already in any active battle queue
+        fetchActiveUserMpvpBattles(ctx.drizzle, ctx.userId),
       ]);
 
       // Guards
@@ -1017,9 +1011,10 @@ export const shrineRouter = createTRPCRouter({
       if (!shrineBattle) return errorResponse("Shrine battle not found");
       if (shrineBattle.battleId) return errorResponse("Shrine battle already started");
 
-      // Check if user is already in queue
-      const alreadyQueued = shrineBattle.queue.some((q) => q.userId === user.userId);
-      if (alreadyQueued) return errorResponse("Already in this shrine battle queue");
+      // Check if user is already in any battle queue
+      if (existingUserBattles.length > 0) {
+        return errorResponse("Already in a battle queue");
+      }
 
       // Validate side based on village
       if (input.side === "ATTACKER") {

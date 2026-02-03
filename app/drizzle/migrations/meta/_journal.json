@@ -2346,6 +2346,13 @@
       "when": 1769937169930,
       "tag": "0334_sticky_sleeper",
       "breakpoints": false
+    },
+    {
+      "idx": 335,
+      "version": "5",
+      "when": 1770100534127,
+      "tag": "0335_acoustic_iceman",
+      "breakpoints": false
     }
   ]
 }

@@ -1,6 +1,6 @@
 ---
 description: Reviews code for duplication and opportunities to generalize shared logic
-allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Task, Write, TodoWrite
+allowed-tools: Read, Grep, Glob, Bash(git diff:*, git status:*), Task, Write, TaskCreate, TaskUpdate, TaskList
 ---
 
 # DRY (Don't Repeat Yourself) Review
@@ -13,25 +13,33 @@ Review code for duplication, searching the entire codebase to find similar patte
 
 ## Process
 
-### Step 1: Create Todo Checklist
+### Step 1: Create Task Checklist
 
-**BEFORE starting, create a todo list with all checks.** Use TodoWrite:
+**BEFORE starting, create tasks for all checks.** Use TaskCreate for each:
 
-- [ ] Get changed files
-- [ ] Read diff content - Understand what code was changed
-- [ ] Read full file contents (not just diffs)
-- [ ] Search for utility duplicates - Check utils/, libs/, hooks/ for similar code
-- [ ] Search for query duplicates - Check routers for similar database queries
-- [ ] Write findings or return PASS
+1. Get changed files
+2. Read diff content - Understand what code was changed
+3. Read full file contents (not just diffs)
+4. Search for utility duplicates - Check utils/, libs/, hooks/ for similar code
+5. Search for query duplicates - Check routers for similar database queries
+6. Search for UI component duplicates - Check layout/ for similar form structures/patterns
+7. Search for validation schema duplicates - Check validators/ for overlapping Zod schemas
+8. Check for inconsistent approaches - Flag same problem solved differently across codebase
+9. Write findings or return PASS
 
-Mark each todo as completed after performing it.
+Use TaskUpdate to mark each task `in_progress` when starting and `completed` when done.
+
+**All checks above are MANDATORY. Every task must be completed before returning PASS or NEEDS FIXES.**
 
 ### Step 2: Execute Review
 
-1. Get changed `.ts` and `.tsx` files (excluding migrations):
-   - `git diff --name-only main...HEAD -- '*.ts' '*.tsx' ':!**/migrations/**'` (branch commits)
-   - `git diff --name-only --cached -- '*.ts' '*.tsx' ':!**/migrations/**'` (staged)
-   - `git diff --name-only -- '*.ts' '*.tsx' ':!**/migrations/**'` (unstaged)
+1. Get ALL changed `.ts` and `.tsx` files (committed + staged + unstaged):
+   ```bash
+   git diff main --name-only -- ':!**/migrations/**' | grep -E '\.(ts|tsx)$' | sort -u
+   ```
+   This compares the working tree against main, capturing all branch commits, staged, and unstaged changes.
+
+   **If the command returns empty, fallback to:** `git status --short | grep -E '\.(ts|tsx)$' | awk '{print $NF}'`
 2. Read the diff to identify new/modified code blocks
 3. **Read the FULL file content** for each changed file - you MUST read the entire file, not just the diff
 4. For each significant code pattern (functions, calculations, queries, UI patterns), search for similar code elsewhere in the codebase
@@ -119,7 +127,7 @@ When you see new utility logic, you MUST search the codebase for similar impleme
 
 - Similar code where one instance has a bug fix the others lack
 
-### Warnings
+### Issues (Must Check)
 
 **1. Similar Logic, Different Implementation**
 
