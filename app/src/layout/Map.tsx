@@ -539,7 +539,11 @@ const Map: React.FC<MapProps> = (props) => {
                   : highlight.type === "focus"
                     ? focusTweenColor
                     : questTweenColor;
-              (mesh as HexagonalFaceMesh).material.color.setRGB(color.r, color.g, color.b);
+              (mesh as HexagonalFaceMesh).material.color.setRGB(
+                color.r,
+                color.g,
+                color.b,
+              );
             }
           });
         }

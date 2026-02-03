@@ -78,7 +78,7 @@ export const getUserElements = (user: UserWithRelations) => {
 
 export const getBloodlineElements = (user: UserWithRelations) => {
   const bloodlineElements: ElementName[] = [];
-  user?.bloodline?.effects.map((effect) => {
+  user?.bloodline?.effects.forEach((effect) => {
     if ("elements" in effect && effect.elements) {
       if (isBloodlineEffectBeneficial(effect)) {
         bloodlineElements.push(...effect.elements);

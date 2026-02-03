@@ -255,8 +255,8 @@ export const handleWarEnd = async (activeWar: FetchActiveWarsReturnType) => {
 
   // Run all mutations in parallel
   await Promise.all([
-      // General updates
-      drizzleDB
+    // General updates
+    drizzleDB
       .update(war)
       .set({ status, endedAt })
       .where(and(eq(war.id, activeWar.id), isNull(war.endedAt))),
@@ -563,4 +563,3 @@ export const isVillageInvolvedInAnyWar = (
     return war.warAllies.some((ally) => ally.villageId === villageId);
   });
 };
-

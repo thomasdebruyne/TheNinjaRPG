@@ -142,9 +142,7 @@ export const homeRouter = createTRPCRouter({
     const upgrades = HomeTypes.map((homeType, i) => {
       const details = HomeTypeDetails[homeType];
       const isUpgrade = i > currentHomeIndex;
-      const upgradeCost = isUpgrade
-        ? Math.max(0, details.cost - currentHomeCost)
-        : 0;
+      const upgradeCost = isUpgrade ? Math.max(0, details.cost - currentHomeCost) : 0;
       const downgradeRefund = !isUpgrade
         ? Math.floor((currentHomeCost - details.cost) * 0.75)
         : 0;
@@ -216,9 +214,7 @@ export const homeRouter = createTRPCRouter({
             `You need to remove some materials from storage first (max ${calcMaxHouseMaterials(user, targetHome.storage)})`,
           );
         }
-        const downgradeRefund = Math.floor(
-          (currentHomeCost - targetHome.cost) * 0.75,
-        );
+        const downgradeRefund = Math.floor((currentHomeCost - targetHome.cost) * 0.75);
         const result = await ctx.drizzle
           .update(userData)
           .set({
@@ -226,10 +222,7 @@ export const homeRouter = createTRPCRouter({
             money: sql`${userData.money} + ${downgradeRefund}`,
           })
           .where(
-            and(
-              eq(userData.userId, ctx.userId),
-              eq(userData.homeType, user.homeType),
-            ),
+            and(eq(userData.userId, ctx.userId), eq(userData.homeType, user.homeType)),
           );
         if (result.rowsAffected === 0) {
           return errorResponse("Home type changed during transaction");

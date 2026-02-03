@@ -1,8 +1,7 @@
 import * as React from "react";
 import { cn } from "src/libs/shadui";
 
-export interface ToastActionProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ToastActionProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** Accessible label for screen readers */
   altText?: string;
   ref?: React.Ref<HTMLButtonElement>;

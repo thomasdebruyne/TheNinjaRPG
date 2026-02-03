@@ -966,8 +966,10 @@ interface ContentBaseValidatorType {
   effects: ZodAllTags[];
 }
 
-interface ItemValidatorType
-  extends Omit<Item, "id" | "createdAt" | "updatedAt" | "hidden"> {
+interface ItemValidatorType extends Omit<
+  Item,
+  "id" | "createdAt" | "updatedAt" | "hidden"
+> {
   effects: ZodAllTags[];
 }
 

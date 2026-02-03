@@ -39,8 +39,7 @@ function useCarousel() {
 }
 
 interface CarouselComponentProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    CarouselProps {
+  extends React.HTMLAttributes<HTMLDivElement>, CarouselProps {
   ref?: React.Ref<HTMLDivElement>;
 }
 

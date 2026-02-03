@@ -1797,9 +1797,7 @@ const ChangeGender: React.FC = () => {
                 <div>
                   <div className="text-7xl basis-full flex-row">
                     {watchGender === "Male" && <p className="text-blue-500 p-2">♂</p>}
-                    {watchGender === "Female" && (
-                      <p className="text-pink-500 p-2">♀</p>
-                    )}
+                    {watchGender === "Female" && <p className="text-pink-500 p-2">♀</p>}
                     {watchGender === "Other" && <p className="text-slate-500 p-2">⚥</p>}
                   </div>
                 </div>

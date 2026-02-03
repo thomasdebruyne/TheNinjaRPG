@@ -474,17 +474,27 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({ userData }) => {
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
             {activatedSkills.length}
           </div>
-          <div className="text-sm text-green-700 dark:text-green-300">Skills Activated</div>
+          <div className="text-sm text-green-700 dark:text-green-300">
+            Skills Activated
+          </div>
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalSkillPoints}</div>
-          <div className="text-sm text-blue-700 dark:text-blue-300">Total Skill Points</div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {totalSkillPoints}
+          </div>
+          <div className="text-sm text-blue-700 dark:text-blue-300">
+            Total Skill Points
+          </div>
         </div>
 
         <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totalSkillPoints - usedSkillPoints}</div>
-          <div className="text-sm text-yellow-700 dark:text-yellow-300">Available SP</div>
+          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+            {totalSkillPoints - usedSkillPoints}
+          </div>
+          <div className="text-sm text-yellow-700 dark:text-yellow-300">
+            Available SP
+          </div>
         </div>
       </div>
 

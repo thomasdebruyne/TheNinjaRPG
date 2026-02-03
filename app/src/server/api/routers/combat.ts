@@ -3076,7 +3076,7 @@ export const processUsersForBattle = async (
       ...rest
     } = user;
     // Suppress unused variable warnings
-    void _jutsus,
+    (void _jutsus,
       _items,
       _village,
       _anbuSquad,
@@ -3090,7 +3090,7 @@ export const processUsersForBattle = async (
       _questData,
       _bounties,
       _bountySignups,
-      _activeReskin;
+      _activeReskin);
 
     // Construct BattleUserState with slim references
     const battleUserState: BattleUserState = {

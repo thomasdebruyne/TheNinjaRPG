@@ -10,7 +10,15 @@ import NavTabs from "@/layout/NavTabs";
 import UserRequestSystem from "@/layout/UserRequestSystem";
 import Building from "@/layout/Building";
 import Table from "@/layout/Table";
-import { Handshake, Info, LandPlot, Swords, Trophy, Trash2, Locate } from "lucide-react";
+import {
+  Handshake,
+  Info,
+  LandPlot,
+  Swords,
+  Trophy,
+  Trash2,
+  Locate,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showMutationToast } from "@/libs/toast";
 import { DoorClosed } from "lucide-react";

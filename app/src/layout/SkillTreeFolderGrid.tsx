@@ -77,7 +77,8 @@ export const SkillTreeFolderGrid: React.FC<SkillTreeFolderGridProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {filteredFolders.map((folder) => {
           const stats = getStats(folder.id);
-          const isComplete = stats.ownedSkills === stats.totalSkills && stats.totalSkills > 0;
+          const isComplete =
+            stats.ownedSkills === stats.totalSkills && stats.totalSkills > 0;
 
           return (
             <div
@@ -86,9 +87,11 @@ export const SkillTreeFolderGrid: React.FC<SkillTreeFolderGridProps> = ({
               className={`
                 relative cursor-pointer rounded-lg border-2 p-4 transition-all duration-200
                 hover:shadow-lg hover:scale-105
-                ${isComplete
-                  ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-                  : "border-border bg-card hover:border-primary"}
+                ${
+                  isComplete
+                    ? "border-green-500 bg-green-50 dark:bg-green-950/30"
+                    : "border-border bg-card hover:border-primary"
+                }
               `}
             >
               {/* Folder image or icon */}
@@ -109,10 +112,14 @@ export const SkillTreeFolderGrid: React.FC<SkillTreeFolderGridProps> = ({
               </div>
 
               {/* Folder name */}
-              <h3 className="text-center font-semibold text-sm truncate">{folder.name}</h3>
+              <h3 className="text-center font-semibold text-sm truncate">
+                {folder.name}
+              </h3>
 
               {/* Skill count */}
-              <p className={`text-center text-xs mt-1 ${isComplete ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+              <p
+                className={`text-center text-xs mt-1 ${isComplete ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+              >
                 {stats.ownedSkills}/{stats.totalSkills} skills
               </p>
 
@@ -121,7 +128,9 @@ export const SkillTreeFolderGrid: React.FC<SkillTreeFolderGridProps> = ({
                 <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-300 ${isComplete ? "bg-green-500" : "bg-primary"}`}
-                    style={{ width: `${(stats.ownedSkills / stats.totalSkills) * 100}%` }}
+                    style={{
+                      width: `${(stats.ownedSkills / stats.totalSkills) * 100}%`,
+                    }}
                   />
                 </div>
               )}

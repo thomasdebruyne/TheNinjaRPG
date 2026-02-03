@@ -7,7 +7,11 @@ import type {
   Clan,
 } from "@/drizzle/schema";
 import { HP_PER_LVL, SP_PER_LVL, CP_PER_LVL } from "@/drizzle/constants";
-import { CLAN_BOOST_MAX_LEVEL, CLAN_BOOST_PERCENT_PER_LEVEL, getUserCaps } from "@/drizzle/constants";
+import {
+  CLAN_BOOST_MAX_LEVEL,
+  CLAN_BOOST_PERCENT_PER_LEVEL,
+  getUserCaps,
+} from "@/drizzle/constants";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import { getStrucBoost } from "@/utils/village";
 import { getReducedGainsDays } from "@/libs/train";

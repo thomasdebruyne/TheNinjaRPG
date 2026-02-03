@@ -7,8 +7,10 @@ import ConceptImage from "@/layout/ConceptImage";
 import ContentBox, { type ContentBoxProps } from "@/layout/ContentBox";
 import Loader from "@/layout/Loader";
 
-interface ConceptBox_ConceptImageProps
-  extends Omit<ContentBoxProps, "title" | "subtitle" | "children"> {
+interface ConceptBox_ConceptImageProps extends Omit<
+  ContentBoxProps,
+  "title" | "subtitle" | "children"
+> {
   imageid?: string;
 }
 
