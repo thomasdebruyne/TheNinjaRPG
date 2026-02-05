@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { use, useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import type { GameAsset } from "@/drizzle/schema";
 import { useAssetEditForm } from "@/hooks/asset";
@@ -10,6 +11,7 @@ import { EditContent } from "@/layout/EditContent";
 import Loader from "@/layout/Loader";
 import { canChangeContent } from "@/utils/permissions";
 import { useRequiredUserData } from "@/utils/UserContext";
+import type { ZodGameAssetType } from "@/validators/asset";
 import { gameAssetValidator } from "@/validators/asset";
 
 export default function AssetEdit(props: { params: Promise<{ assetid: string }> }) {
@@ -63,7 +65,7 @@ const SingleEditAsset: React.FC<SingleEditAssetProps> = (props) => {
       {asset && (
         <EditContent
           schema={gameAssetValidator}
-          form={form}
+          form={form as unknown as UseFormReturn<ZodGameAssetType, unknown>}
           formData={formData}
           showSubmit={true}
           buttonTxt="Save to Database"

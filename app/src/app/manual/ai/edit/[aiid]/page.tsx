@@ -3,7 +3,9 @@
 import { FileMinus, FilePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
+import type { InsertAiSchema } from "@/drizzle/schema";
 import { insertAiSchema } from "@/drizzle/schema";
 import AiProfileEdit from "@/layout/AiProfileEdit";
 import ContentBox from "@/layout/ContentBox";
@@ -18,7 +20,7 @@ import type { AiWithRelations } from "@/routers/profile";
 import { canChangeContent } from "@/utils/permissions";
 import { setNullsToEmptyStrings } from "@/utils/typeutils";
 import { useRequiredUserData } from "@/utils/UserContext";
-import { tagTypes, WeaknessTag } from "@/validators/combat";
+import { tagTypes, WeaknessTag, type ZodAllTags } from "@/validators/combat";
 
 export default function ManualAisEdit(props: { params: Promise<{ aiid: string }> }) {
   const params = use(props.params);
@@ -82,13 +84,17 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
       },
     });
 
+  // Filter out any undefined effects from useWatch
+  const validEffects = (effects?.filter((e): e is ZodAllTags => e !== undefined) ??
+    []) as ZodAllTags[];
+
   // Icon for adding tag
   const AddTagIcon = (
     <FilePlus
       className="h-6 w-6 cursor-pointer hover:text-orange-500"
       onClick={() => {
         setEffects([
-          ...effects,
+          ...validEffects,
           WeaknessTag.parse({
             rounds: 100,
             residualModifier: 0,
@@ -150,7 +156,7 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
             />
             <EditContent
               schema={insertAiSchema}
-              form={form}
+              form={form as unknown as UseFormReturn<InsertAiSchema, any>}
               formData={formData}
               showSubmit={true}
               buttonTxt="Save to Database"
@@ -163,7 +169,7 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
         )}
       </ContentBox>
 
-      {effects.length === 0 && (
+      {validEffects.length === 0 && (
         <ContentBox
           title="AI Tags"
           initialBreak={true}
@@ -172,7 +178,7 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
           Please add effects to this item
         </ContentBox>
       )}
-      {effects.map((tag, i) => {
+      {validEffects.map((tag, i) => {
         return (
           <ContentBox
             key={`${tag.type}-${i}`}
@@ -185,7 +191,7 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
                 <FileMinus
                   className="h-6 w-6 cursor-pointer hover:text-orange-500"
                   onClick={() => {
-                    const newEffects = [...effects];
+                    const newEffects = [...validEffects];
                     newEffects.splice(i, 1);
                     setEffects(newEffects);
                   }}
@@ -198,7 +204,7 @@ const SingleEditUser: React.FC<SingleEditUserProps> = (props) => {
               type="item"
               tag={tag}
               availableTags={tagTypes}
-              effects={effects}
+              effects={validEffects}
               setEffects={setEffects}
             />
           </ContentBox>

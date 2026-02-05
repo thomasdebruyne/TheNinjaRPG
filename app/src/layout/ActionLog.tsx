@@ -44,8 +44,8 @@ const ActionLogs: React.FC<ActionLogsProps> = (props) => {
           <div>
             <h3>{entry.relatedMsg}</h3>
             {entry.changes.length > 0 &&
-              entry.changes.map((change) => {
-                return <li key={change}>{change}</li>;
+              entry.changes.map((change, i) => {
+                return <li key={`${change}-${i}`}>{change}</li>;
               })}
             {entry.changes.length === 0 && <li>No changes</li>}
             <p className="mt-2 font-bold italic">

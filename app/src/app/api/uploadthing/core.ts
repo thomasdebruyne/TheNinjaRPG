@@ -191,7 +191,7 @@ const avatarMiddleware = async (fedRequirement?: (typeof FederalStatuses)[number
   if (user.isBanned) throw new UploadThingError("You are banned");
   // Limit
   const avatars = await drizzleDB
-    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .select({ count: sql`count(*)`.mapWith(Number) })
     .from(historicalAvatar)
     .where(
       and(

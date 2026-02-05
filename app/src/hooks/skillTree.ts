@@ -6,7 +6,11 @@ import type { SkillTree } from "@/drizzle/schema";
 import type { FormEntry } from "@/layout/EditContent";
 import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
 import { calculateContentDiff } from "@/utils/diff";
-import type { ZodAllTags, ZodSkillTreeType } from "@/validators/combat";
+import type {
+  ZodAllTags,
+  ZodSkillTreeInput,
+  ZodSkillTreeType,
+} from "@/validators/combat";
 import { SkillTreeValidator } from "@/validators/combat";
 
 /**
@@ -21,11 +25,11 @@ export const useSkillTreeEditForm = (data: SkillTree, refetch: () => void) => {
   const skillTree = { ...data, effects: data.effects };
 
   // Form handling
-  const form = useForm<ZodSkillTreeType>({
+  const form = useForm<ZodSkillTreeInput, unknown, ZodSkillTreeType>({
     mode: "all",
     criteriaMode: "all",
-    values: skillTree as ZodSkillTreeType,
-    defaultValues: skillTree as ZodSkillTreeType,
+    values: skillTree as ZodSkillTreeInput,
+    defaultValues: skillTree as ZodSkillTreeInput,
     resolver: zodResolver(SkillTreeValidator),
   });
 
@@ -90,7 +94,7 @@ export const useSkillTreeEditForm = (data: SkillTree, refetch: () => void) => {
   // Get available prerequisite skills (lower tier than current)
   const allSkillsFlat = allSkills?.pages.flatMap((p) => p.data) ?? [];
   const availablePrereqSkills = allSkillsFlat.filter(
-    (s) => s.id !== skillTree.id && s.tier < form.watch("tier"),
+    (s) => s.id !== skillTree.id && s.tier < (form.watch("tier") as number),
   );
 
   // Object for form values

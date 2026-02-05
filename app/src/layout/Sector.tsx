@@ -9,11 +9,10 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { Label } from "src/components/ui/label";
 import { Group, OrthographicCamera, Vector2 } from "three";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   HEX_ASPECT_RATIO,
   HEX_STACKING_DISPLACEMENT,
@@ -72,6 +71,7 @@ import { findVillageUserRelationship, getAllyStatus } from "@/utils/alliance";
 import { round } from "@/utils/math";
 import { sleep } from "@/utils/time";
 import { useRequiredUserData } from "@/utils/UserContext";
+import { type LevelSliderSchema, levelSliderSchema } from "@/validators/travel";
 
 interface SectorProps {
   sector: number;
@@ -1225,12 +1225,6 @@ const SorroundingUsers: React.FC<SorroundingUsersProps> = (props) => {
 
   // Query
   const { data } = api.village.getAll.useQuery(undefined);
-
-  // Form schema
-  const levelSliderSchema = z.object({
-    value: z.number().min(0).max(100),
-  });
-  type LevelSliderSchema = z.infer<typeof levelSliderSchema>;
 
   // Form control
   const {

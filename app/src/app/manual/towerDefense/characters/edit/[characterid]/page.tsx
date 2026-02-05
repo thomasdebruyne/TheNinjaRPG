@@ -3,6 +3,7 @@
 import { Image as ImageIcon, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,11 @@ import { canChangeContent } from "@/utils/permissions";
 import { setNullsToEmptyStrings } from "@/utils/typeutils";
 import { useRequiredUserData } from "@/utils/UserContext";
 import { useUploadThing } from "@/utils/uploadthing";
-import type { CharacterAnimationState } from "@/validators/towerDefense";
+import type {
+  CharacterAnimationState,
+  CharacterAssetConfig,
+  InsertTowerDefenseCharacter,
+} from "@/validators/towerDefense";
 import { insertTowerDefenseCharacterSchema } from "@/validators/towerDefense";
 
 export default function TowerDefenseCharacterEdit(props: {
@@ -94,7 +99,7 @@ const SingleEditCharacter: React.FC<SingleEditCharacterProps> = ({
       >
         <EditContent
           schema={insertTowerDefenseCharacterSchema}
-          form={form}
+          form={form as unknown as UseFormReturn<InsertTowerDefenseCharacter, unknown>}
           formData={formData}
           showSubmit={true}
           buttonTxt="Save to Database"
@@ -112,7 +117,7 @@ const SingleEditCharacter: React.FC<SingleEditCharacterProps> = ({
       >
         <CharacterAssetManager
           characterId={character.id}
-          assetConfig={assetConfig}
+          assetConfig={assetConfig as CharacterAssetConfig | null}
           setAssetConfig={setAssetConfig}
           updateAnimationState={updateAnimationState}
           updateAnimationSettings={updateAnimationSettings}
@@ -247,8 +252,8 @@ const CharacterAssetManager: React.FC<CharacterAssetManagerProps> = ({
           <div>
             <h4 className="mb-2 font-medium">Static Rotations</h4>
             <div className="grid grid-cols-4 gap-2 md:grid-cols-8">
-              {Object.entries(assetConfig.rotations).map(([direction, url]) => (
-                <div key={direction} className="text-center">
+              {Object.entries(assetConfig.rotations).map(([direction, url], i) => (
+                <div key={`${direction}-${i}`} className="text-center">
                   <div className="flex aspect-square items-center justify-center overflow-hidden rounded bg-muted">
                     {url ? (
                       <Image
@@ -297,8 +302,8 @@ const CharacterAssetManager: React.FC<CharacterAssetManagerProps> = ({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {characterAnimationStates.map((state) => (
-                              <SelectItem key={state} value={state}>
+                            {characterAnimationStates.map((state, i) => (
+                              <SelectItem key={`${state}-${i}`} value={state}>
                                 {state}
                               </SelectItem>
                             ))}

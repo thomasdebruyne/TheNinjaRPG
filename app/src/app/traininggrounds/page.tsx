@@ -18,7 +18,6 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { cn } from "src/libs/shadui";
 import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
@@ -74,6 +73,7 @@ import UserRequestSystem from "@/layout/UserRequestSystem";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import { showTrainingCapcha } from "@/libs/captcha";
 import { useInfinitePagination } from "@/libs/pagination";
+import { cn } from "@/libs/shadui";
 import { getStealthStatus } from "@/libs/stealth";
 import { showMutationToast } from "@/libs/toast";
 import {
@@ -147,6 +147,7 @@ const SenseiSystem: React.FC<TrainingProps> = (props) => {
   const userSearchSchema = getSearchValidator({ max: maxUsers });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
     resolver: zodResolver(userSearchSchema),
+    defaultValues: { username: "", users: [] },
   });
   const targetUser = useWatch({
     control: userSearchMethods.control,
@@ -487,7 +488,7 @@ const StatsTraining: React.FC<TrainingProps> = (props) => {
       }
     >
       <div className="grid grid-cols-4 text-center font-bold">
-        {UserStatNames.map((stat) => {
+        {UserStatNames.map((stat, i) => {
           const part = stat.match(/[a-z]+/g)?.[0] ?? "";
           const label = part.charAt(0).toUpperCase() + part.slice(1);
           const { stats_cap, gens_cap } = getUserCaps(userData.rank);
@@ -506,7 +507,7 @@ const StatsTraining: React.FC<TrainingProps> = (props) => {
             <button
               type="button"
               id={`tutorial-traininggrounds-${stat.toLowerCase()}`}
-              key={stat}
+              key={`${stat}-${i}`}
               onClick={() =>
                 overCap
                   ? showMutationToast({ success: false, message: "Already capped" })

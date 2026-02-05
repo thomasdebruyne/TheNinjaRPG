@@ -10,7 +10,6 @@ import {
   UserX,
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +32,7 @@ import Loader from "@/layout/Loader";
 import { availableUserActions } from "@/libs/combat/actions";
 import type { ActionEffect, ReturnedBattle } from "@/libs/combat/types";
 import { getItem, getJutsu } from "@/libs/combat/util";
+import { cn } from "@/libs/shadui";
 import { parseHtml } from "@/utils/parse";
 
 type UserFilter = "all" | "user" | "opponents";
@@ -224,13 +224,13 @@ const CombatTimeline: React.FC<CombatTimelineProps> = ({
           onMouseEnter={() => setFilterExpanded(true)}
           onMouseLeave={() => setFilterExpanded(false)}
         >
-          {filterOptions.map(({ value, icon: Icon, label }) => {
+          {filterOptions.map(({ value, icon: Icon, label }, i) => {
             const isActive = userFilter === value;
             const isVisible = isActive || filterExpanded;
             return (
               <button
                 type="button"
-                key={value}
+                key={`${value}-${i}`}
                 onClick={() => {
                   if (!filterExpanded) {
                     setFilterExpanded(true);

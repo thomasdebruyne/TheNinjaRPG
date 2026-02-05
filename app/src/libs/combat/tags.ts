@@ -30,7 +30,7 @@ import {
   isNegativeUserEffect,
   isPositiveUserEffect,
 } from "@/validators/combat";
-import type { DmgConfig, GenNames, StatNames } from "./constants";
+import type { DmgConfig, GenName, GenNames, StatNames } from "./constants";
 import type {
   ActionEffect,
   BattleEffect,
@@ -1200,11 +1200,11 @@ export const updateStatUsage = (
   if ("generalTypes" in effect) {
     effect.generalTypes?.forEach((general: GeneralType) => {
       if (general === "Highest") {
-        user.highestGenerals.forEach((gen: (typeof GenNames)[number]) => {
+        user.highestGenerals.forEach((gen: GenName) => {
           user.usedGenerals[gen] += 1;
         });
       } else {
-        user.usedGenerals[general.toLowerCase() as (typeof GenNames)[number]] += 1;
+        user.usedGenerals[general.toLowerCase() as GenName] += 1;
       }
     });
   }

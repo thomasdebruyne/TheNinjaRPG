@@ -4,8 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Dices, ReceiptJapaneseYen, ShoppingCart, Waypoints, X } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { Label } from "src/components/ui/label";
-import { z } from "zod";
+import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   PITY_BLOODLINE_ROLLS,
   PITY_SYSTEM_ENABLED,
@@ -49,6 +49,11 @@ import { round } from "@/utils/math";
 import { secondsFromDate } from "@/utils/time";
 import type { ArrayElement } from "@/utils/typeutils";
 import { useRequiredUserData } from "@/utils/UserContext";
+import {
+  type BlackMarketOfferSchema,
+  type BlackMarketOfferSchemaInput,
+  blackMarketOfferSchema,
+} from "@/validators/auction";
 import { getSearchValidator } from "@/validators/register";
 
 export default function BlackMarket() {
@@ -301,6 +306,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
   const creatorSearchSchema = getSearchValidator({ max: maxUsers });
   const creatorSearchMethods = useForm<z.infer<typeof creatorSearchSchema>>({
     resolver: zodResolver(creatorSearchSchema),
+    defaultValues: { username: "", users: [] },
   });
   const creatorUser = useWatch({
     control: creatorSearchMethods.control,
@@ -312,6 +318,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
   const buyerSearchSchema = getSearchValidator({ max: maxUsers });
   const buyerSearchMethods = useForm<z.infer<typeof buyerSearchSchema>>({
     resolver: zodResolver(buyerSearchSchema),
+    defaultValues: { username: "", users: [] },
   });
   const buyerUser = useWatch({
     control: buyerSearchMethods.control,
@@ -323,6 +330,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
   const allowedSearchSchema = getSearchValidator({ max: maxUsers });
   const allowedSearchMethods = useForm<z.infer<typeof allowedSearchSchema>>({
     resolver: zodResolver(allowedSearchSchema),
+    defaultValues: { username: "", users: [] },
   });
   const allowedUser = useWatch({
     control: allowedSearchMethods.control,
@@ -435,17 +443,12 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
   }
 
   // New offer form
-  const FormSchema = z.object({
-    reps: z.coerce.number().int().min(1),
-    ryo: z.coerce.number().int().min(1),
-  });
-  type FormSchemaType = z.infer<typeof FormSchema>;
-  const form = useForm<FormSchemaType>({
-    resolver: zodResolver(FormSchema),
+  const form = useForm<BlackMarketOfferSchemaInput, unknown, BlackMarketOfferSchema>({
+    resolver: zodResolver(blackMarketOfferSchema),
     defaultValues: { reps: 0, ryo: 0 },
   });
-  const offerReps = useWatch({ control: form.control, name: "reps" });
-  const offerRyo = useWatch({ control: form.control, name: "ryo" });
+  const offerReps = useWatch({ control: form.control, name: "reps" }) as number;
+  const offerRyo = useWatch({ control: form.control, name: "ryo" }) as number;
   const onSubmit = form.handleSubmit((data) =>
     create({ ...data, allowedUser: allowedUser?.userId }),
   );
@@ -534,7 +537,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
                       <FormItem className="w-full">
                         <FormLabel>Reps to Sell</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value as number} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -547,7 +550,7 @@ const RyoShop: React.FC<{ userData: NonNullable<UserWithRelations> }> = ({
                       <FormItem className="w-full">
                         <FormLabel>Ryo Request</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value as number} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

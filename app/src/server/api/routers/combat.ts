@@ -197,6 +197,7 @@ const pusher = getServerPusher();
 
 export const combatRouter = createTRPCRouter({
   getBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get current battle state" } })
     .input(z.object({ battleId: z.string().optional().nullable() }))
     .query(async ({ ctx, input }) => {
       // No battle ID
@@ -326,6 +327,7 @@ export const combatRouter = createTRPCRouter({
       }
     }),
   getBattleEntries: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get battle action log entries" } })
     .input(
       z.object({
         battleId: z.string(),
@@ -376,6 +378,7 @@ export const combatRouter = createTRPCRouter({
       return entries;
     }),
   getGraph: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get battle history graph data" } })
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
       const attacker = alias(userData, "attacker");
@@ -445,6 +448,7 @@ export const combatRouter = createTRPCRouter({
       return topFights;
     }),
   getBattleHistoryEntry: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get specific battle history entry" } })
     .input(z.object({ battleId: z.string() }))
     .query(async ({ ctx, input }) => {
       const result = await ctx.drizzle.query.battleHistory.findFirst({
@@ -479,6 +483,7 @@ export const combatRouter = createTRPCRouter({
       return result ?? null;
     }),
   getBattleHistory: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user battle history" } })
     .input(
       z.object({
         userId: z.string().optional(),
@@ -511,6 +516,7 @@ export const combatRouter = createTRPCRouter({
     }),
 
   performAction: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Perform action in battle" } })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
     .input(performActionSchema)
@@ -755,6 +761,7 @@ export const combatRouter = createTRPCRouter({
       }
     }),
   battleArenaHeal: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Heal in battle arena for ryo" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Query
@@ -779,6 +786,9 @@ export const combatRouter = createTRPCRouter({
       }
     }),
   startArenaBattle: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Start battle arena fight against AI" },
+    })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
     .input(z.object({ aiId: z.string(), stats: statSchema.nullish() }))
@@ -828,21 +838,22 @@ export const combatRouter = createTRPCRouter({
       }
     }),
   attackUser: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Attack another user to initiate combat" },
+    })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
     .input(
       z.object({
         longitude: z
-          .number()
           .int()
           .min(0)
           .max(SECTOR_WIDTH - 1),
         latitude: z
-          .number()
           .int()
           .min(0)
           .max(SECTOR_HEIGHT - 1),
-        sector: z.number().int(),
+        sector: z.int(),
         userId: z.string(),
         asset: z.enum(HEXTILE_BIOMES).optional(),
       }),
@@ -863,6 +874,9 @@ export const combatRouter = createTRPCRouter({
       );
     }),
   updateCombatLoadout: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Update jutsu/item loadout in combat lobby" },
+    })
     .input(
       z.object({
         battleId: z.string(),
@@ -1105,6 +1119,7 @@ export const combatRouter = createTRPCRouter({
       }
     }),
   iAmHere: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Mark ready in combat lobby" } })
     .input(z.object({ battleId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       // Maximum number of retry attempts
@@ -1186,9 +1201,10 @@ export const combatRouter = createTRPCRouter({
       return errorResponse("Failed to update battle state after multiple attempts");
     }),
   startShrineBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Start battle at war shrine" } })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
-    .input(z.object({ sector: z.number().int() }))
+    .input(z.object({ sector: z.int() }))
     .output(baseServerResponse.extend({ battleId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       // Get information (use fetchActiveWars to get village relations with sectors)
@@ -1318,9 +1334,9 @@ export const combatRouter = createTRPCRouter({
   listOngoingBattles: protectedProcedure
     .input(
       z.object({
-        battleType: z.enum(BattleTypes).default("RANKED_PVP"),
-        limit: z.number().min(1).max(100).default(20),
-        offset: z.number().min(0).default(0),
+        battleType: z.enum(BattleTypes).prefault("RANKED_PVP"),
+        limit: z.number().min(1).max(100).prefault(20),
+        offset: z.number().min(0).prefault(0),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -1516,7 +1532,7 @@ export const initiateBattle = async (
     }),
     PvpBattleTypes.includes(battleType)
       ? client
-          .select({ count: sql<number>`count(*)`.mapWith(Number) })
+          .select({ count: sql`count(*)`.mapWith(Number) })
           .from(battleHistory)
           .where(
             and(
@@ -3179,13 +3195,9 @@ export const fetchBattleEssentials = async (client: DrizzleClient) => {
           inArray(gameSetting.name, ["battleExpMultiplier", "regenGainMultiplier"]),
         ),
       // Fetch villages
-      client
-        .select()
-        .from(village),
+      client.select().from(village),
       // Fetch village alliances
-      client
-        .select()
-        .from(villageAlliance),
+      client.select().from(villageAlliance),
     ],
   );
   return { defaultProfile, activeWars, settings, villages, relations };

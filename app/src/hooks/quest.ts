@@ -22,7 +22,7 @@ import { canAwardReputation } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
 import type {
   AllObjectivesType,
-  QuestContentType,
+  ZodQuestFormInput,
   ZodQuestFormType,
 } from "@/validators/objectives";
 import { QuestFormSchema } from "@/validators/objectives";
@@ -57,11 +57,11 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
   const parsedStart = schema.safeParse(initialData);
   const start = parsedStart.success ? parsedStart.data : initialData;
 
-  const form = useForm<ZodCombinedQuest>({
+  const form = useForm<ZodQuestFormInput, unknown, ZodCombinedQuest>({
     mode: "all",
     criteriaMode: "all",
-    values: start,
-    defaultValues: start,
+    values: start as ZodQuestFormInput,
+    defaultValues: start as ZodQuestFormInput,
     resolver: zodResolver(schema),
   });
 
@@ -175,16 +175,21 @@ export const useQuestEditForm = (quest: Quest, refetch: () => void) => {
     control: form.control,
     name: "content",
   });
-  const objectives = content.objectives ?? [];
+  // Cast to output type - z.coerce fields have unknown in input type but proper types in output
+  const objectives = (content.objectives ?? []) as AllObjectivesType[];
 
-  // Watch the entire thing
+  // Watch the entire thing - cast to output type for proper typing with z.coerce fields
   const currentValues = useWatch({
     control: form.control,
-  });
+  }) as ZodCombinedQuest;
 
   // Handle updating of effects
   const setObjectives = (values: AllObjectivesType[]) => {
-    const newContent: QuestContentType = { ...content, objectives: values };
+    // Cast content to output type for proper typing
+    const newContent = {
+      ...(content as ZodCombinedQuest["content"]),
+      objectives: values,
+    };
     form.setValue("content", newContent, { shouldDirty: true });
   };
 

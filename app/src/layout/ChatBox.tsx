@@ -1,12 +1,11 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
+import { type UIMessage, useChat } from "@ai-sdk/react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DefaultChatTransport, getToolName, isTextUIPart, isToolUIPart } from "ai";
 import { BrainCircuit, Meh, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { cn } from "src/libs/shadui";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +17,10 @@ import {
 } from "@/components/ui/form";
 import AvatarImage from "@/layout/Avatar";
 import RichInput from "@/layout/RichInput";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { useUserData } from "@/utils/UserContext";
+import { type ChatMessageSchema, chatMessageSchema } from "@/validators/chat";
 
 interface ToolCall<NAME extends string, ARGS> {
   toolCallId: string;
@@ -42,6 +43,20 @@ export interface ChatBoxProps {
   onToolCall: (toolCall: ToolCall<string, unknown>) => void;
 }
 
+const getMessageText = (message: UIMessage): string => {
+  const textParts = message.parts.filter(isTextUIPart);
+  if (textParts.length > 0) {
+    return textParts.map((p) => p.text).join("");
+  }
+
+  const toolParts = message.parts.filter(isToolUIPart);
+  if (toolParts.length > 0) {
+    return toolParts.map((tool) => `Calling ${getToolName(tool)}`).join(", ");
+  }
+
+  return "";
+};
+
 const ChatBox: React.FC<ChatBoxProps> = ({
   className,
   position = "fixed",
@@ -58,21 +73,40 @@ const ChatBox: React.FC<ChatBoxProps> = ({
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
-  const { messages, append, isLoading } = useChat({
-    api: aiProps.apiEndpoint,
-    initialMessages: [
-      ...(aiProps.systemMessage
-        ? [{ id: "system", role: "system" as const, content: aiProps.systemMessage }]
-        : []),
-      { id: "initial", role: "assistant", content: "Hello! How can I help you today?" },
-    ],
-    onToolCall: ({ toolCall }) => onToolCall(toolCall),
+  const initialMessages: UIMessage[] = [
+    ...(aiProps.systemMessage
+      ? [
+          {
+            id: "system",
+            role: "system" as const,
+            parts: [{ type: "text" as const, text: aiProps.systemMessage }],
+          },
+        ]
+      : []),
+    {
+      id: "initial",
+      role: "assistant" as const,
+      parts: [{ type: "text" as const, text: "Hello! How can I help you today?" }],
+    },
+  ];
+
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({ api: aiProps.apiEndpoint }),
+    messages: initialMessages,
+    onToolCall: ({ toolCall }) => {
+      onToolCall({
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        args: toolCall.input,
+      });
+    },
     onError: (error) => {
       const message = error?.message || "Error sending message. Not allowed?";
       showMutationToast({ success: false, message: message });
     },
-    maxSteps: 1,
   });
+
+  const isLoading = status === "streaming" || status === "submitted";
 
   // Feedback mutation
   const { mutate: submitFeedback, isPending: isSubmittingFeedback } =
@@ -103,16 +137,14 @@ const ChatBox: React.FC<ChatBoxProps> = ({
   }, [messages]);
 
   // Input form
-  const FormSchema = z.object({ message: z.string() });
-  type FormSchemaType = z.infer<typeof FormSchema>;
-  const form = useForm<FormSchemaType>({
-    resolver: zodResolver(FormSchema),
+  const form = useForm<ChatMessageSchema>({
+    resolver: zodResolver(chatMessageSchema),
     defaultValues: { message: "" },
   });
 
   // Submissions handle
   const handleSubmit = form.handleSubmit((data) => {
-    void append({ role: "user", content: data.message });
+    void sendMessage({ text: data.message });
     form.setValue("message", "");
   });
 
@@ -152,12 +184,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({
           {messages
             .filter((message) => message.role !== "system")
             .map((message, i) => {
-              let content = message.content ? message.content : "";
-              if (!content && message.toolInvocations) {
-                content = message.toolInvocations
-                  .map((tool) => `Calling ${tool.toolName}`)
-                  .join(", ");
-              }
+              const content = getMessageText(message);
+              const isUser = message.role === "user";
 
               return (
                 <div
@@ -168,7 +196,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                   key={message.id}
                 >
                   <div className="shrink-0">
-                    {message.role === "user" ? (
+                    {isUser ? (
                       <AvatarImage
                         href={userData.avatar}
                         alt={userData.username}
@@ -184,11 +212,9 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
                       <div className="font-medium text-sm">
-                        {message.role === "user" ? userData.username : "Seichi AI"}
+                        {isUser ? userData.username : "Seichi AI"}
                       </div>
-                      <div className="text-xs">
-                        {message.createdAt?.toLocaleTimeString()}
-                      </div>
+                      <div className="text-xs">{new Date().toLocaleTimeString()}</div>
                     </div>
                     <p className="text-sm">{content}</p>
                   </div>

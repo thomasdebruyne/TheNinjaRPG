@@ -1,7 +1,7 @@
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { Circle } from "lucide-react";
 import type * as React from "react";
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 const RadioGroup = ({
   ref,

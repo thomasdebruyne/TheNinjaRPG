@@ -74,19 +74,24 @@ import { QuestTracker } from "@/validators/objectives";
 import { fetchUpdatedUser, fetchUser } from "./profile";
 
 export const jutsuRouter = createTRPCRouter({
-  getRecentTransfers: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.actionLog.findMany({
-      where: and(
-        eq(actionLog.userId, ctx.userId),
-        eq(actionLog.relatedMsg, "JutsuLevelTransfer"),
-        gte(
-          actionLog.createdAt,
-          secondsFromDate(-JUTSU_TRANSFER_DAYS * DAY_S, new Date()),
+  getRecentTransfers: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get user's recent jutsu level transfers" },
+    })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.actionLog.findMany({
+        where: and(
+          eq(actionLog.userId, ctx.userId),
+          eq(actionLog.relatedMsg, "JutsuLevelTransfer"),
+          gte(
+            actionLog.createdAt,
+            secondsFromDate(-JUTSU_TRANSFER_DAYS * DAY_S, new Date()),
+          ),
         ),
-      ),
-    });
-  }),
+      });
+    }),
   transferLevel: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Transfer levels between jutsus" } })
     .input(
       z.object({
         fromJutsuId: z.string(),
@@ -205,14 +210,17 @@ export const jutsuRouter = createTRPCRouter({
       };
     }),
 
-  getAllNames: publicProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.jutsu.findMany({
-      columns: { id: true, name: true, image: true, injectableInBattle: true },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    });
-  }),
+  getAllNames: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all jutsu names and images" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.jutsu.findMany({
+        columns: { id: true, name: true, image: true, injectableInBattle: true },
+        orderBy: (table, { asc }) => [asc(table.name)],
+      });
+    }),
 
   get: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get a specific jutsu by ID" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const result = await fetchJutsu(ctx.drizzle, input.id);
@@ -223,6 +231,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   getAll: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get paginated jutsus with filters" } })
     .input(
       jutsuFilteringSchema.extend({
         cursor: z.number().nullish(),
@@ -266,39 +275,42 @@ export const jutsuRouter = createTRPCRouter({
       };
     }),
 
-  getLoadouts: protectedProcedure.query(async ({ ctx }) => {
-    const [loadouts, user] = await Promise.all([
-      fetchJutsuLoadouts(ctx.drizzle, ctx.userId),
-      fetchUser(ctx.drizzle, ctx.userId),
-    ]);
-    const maxLoadouts = fedJutsuLoadouts(user);
+  getLoadouts: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's jutsu loadouts" } })
+    .query(async ({ ctx }) => {
+      const [loadouts, user] = await Promise.all([
+        fetchJutsuLoadouts(ctx.drizzle, ctx.userId),
+        fetchUser(ctx.drizzle, ctx.userId),
+      ]);
+      const maxLoadouts = fedJutsuLoadouts(user);
 
-    // Create missing loadouts if needed
-    if (loadouts.length < maxLoadouts) {
-      for (let i = loadouts.length; i < maxLoadouts; i++) {
-        const loadout = {
-          id: nanoid(),
-          userId: ctx.userId,
-          jutsuIds: [],
-          createdAt: new Date(),
-        };
-        await ctx.drizzle.insert(jutsuLoadout).values(loadout);
-        loadouts.push(loadout);
+      // Create missing loadouts if needed
+      if (loadouts.length < maxLoadouts) {
+        for (let i = loadouts.length; i < maxLoadouts; i++) {
+          const loadout = {
+            id: nanoid(),
+            userId: ctx.userId,
+            jutsuIds: [],
+            createdAt: new Date(),
+          };
+          await ctx.drizzle.insert(jutsuLoadout).values(loadout);
+          loadouts.push(loadout);
+        }
       }
-    }
 
-    // If more than one loadout, and no user loadout, set it to the first
-    if (loadouts?.[0] && !user.jutsuLoadout) {
-      await ctx.drizzle
-        .update(userData)
-        .set({ jutsuLoadout: loadouts[0].id })
-        .where(eq(userData.userId, ctx.userId));
-    }
+      // If more than one loadout, and no user loadout, set it to the first
+      if (loadouts?.[0] && !user.jutsuLoadout) {
+        await ctx.drizzle
+          .update(userData)
+          .set({ jutsuLoadout: loadouts[0].id })
+          .where(eq(userData.userId, ctx.userId));
+      }
 
-    return maxLoadouts < loadouts.length ? loadouts.slice(0, maxLoadouts) : loadouts;
-  }),
+      return maxLoadouts < loadouts.length ? loadouts.slice(0, maxLoadouts) : loadouts;
+    }),
 
   selectJutsuLoadout: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Select a jutsu loadout" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -391,6 +403,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   forget: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Forget a learned jutsu" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -496,6 +509,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   getUserJutsus: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get current user's jutsus" } })
     .input(jutsuFilteringSchema)
     .query(async ({ ctx, input }) => {
       return await fetchUserJutsus(ctx.drizzle, ctx.userId, input);
@@ -604,6 +618,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
   // Start training a given jutsu
   startTraining: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Start training a jutsu" } })
     .input(z.object({ jutsuId: z.string() }))
     .output(
       baseServerResponse.extend({
@@ -733,6 +748,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   stopTraining: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Stop training current jutsu" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       const userjutsus = await fetchUserJutsus(ctx.drizzle, ctx.userId);
@@ -760,6 +776,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   unequipAll: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Unequip all jutsus" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       const [data, loadouts] = await Promise.all([
@@ -791,6 +808,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   toggleEquip: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Toggle jutsu equip status" } })
     .input(z.object({ userJutsuId: z.string() }))
     .output(
       baseServerResponse.extend({
@@ -917,6 +935,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   updateUserJutsuOrder: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Reorder jutsu in loadout" } })
     .input(
       z.object({
         jutsuId: z.string(),
@@ -954,6 +973,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   createReskin: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create a jutsu reskin" } })
     .input(jutsuReskinCreateSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1128,6 +1148,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   getAllReskins: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get paginated jutsu reskins" } })
     .input(
       jutsuFilteringSchema.extend({
         cursor: z.number().nullish(),
@@ -1182,12 +1203,15 @@ export const jutsuRouter = createTRPCRouter({
       };
     }),
 
-  getUserReskins: protectedProcedure.query(async ({ ctx }) => {
-    return await fetchUserReskins(ctx.drizzle, ctx.userId);
-  }),
+  getUserReskins: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's jutsu reskins" } })
+    .query(async ({ ctx }) => {
+      return await fetchUserReskins(ctx.drizzle, ctx.userId);
+    }),
 
   // List all reskins available for a given base jutsu
   getReskinsForJutsu: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get all reskins for a jutsu" } })
     .input(z.object({ jutsuId: z.string() }))
     .query(async ({ ctx, input }) => {
       const reskins = await ctx.drizzle.query.jutsuReskin.findMany({
@@ -1203,6 +1227,7 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   getReskin: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get a specific jutsu reskin" } })
     .input(z.object({ reskinId: z.string() }))
     .query(async ({ ctx, input }) => {
       // Query
@@ -1216,6 +1241,7 @@ export const jutsuRouter = createTRPCRouter({
       return reskin;
     }),
   removeReskin: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Remove reskin from a jutsu" } })
     .input(z.object({ userJutsuId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Query
@@ -1253,6 +1279,9 @@ export const jutsuRouter = createTRPCRouter({
     }),
 
   getJutsuRelations: publicProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get jutsu relations and dependencies" },
+    })
     .input(z.object({ jutsuId: z.string() }))
     .query(async ({ ctx, input }) => {
       const results = await getJutsuRelations(ctx.drizzle, input.jutsuId);

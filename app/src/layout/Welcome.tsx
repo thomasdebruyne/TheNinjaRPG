@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type React from "react";
 import { Suspense, useEffect } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,8 +16,10 @@ import {
   IMG_FRONTPAGE_SCREENSHOT_VILLAGE,
   IMG_LAYOUT_WELCOME_IMG,
 } from "@/drizzle/constants";
+import { env } from "@/env/client.mjs";
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from "@/hooks/localstorage";
 import Image from "@/layout/Image";
+import { cn } from "@/libs/shadui";
 
 const Welcome: React.FC = () => {
   // Snap container for full-height sections
@@ -110,6 +111,94 @@ const Welcome: React.FC = () => {
           )} */}
         </div>
       </div>
+      {env.NEXT_PUBLIC_MCP_ENABLED === "true" && (
+        <div className="mb-4 flex flex-col gap-4">
+          <div
+            className={cn(backgroundClass, "pl-3 font-bold text-5xl text-foreground")}
+          >
+            AI Agent Instructions
+          </div>
+          <div className={backgroundClass}>
+            <div className={contentClass}>
+              <div className="w-full p-3">
+                <div className="flex flex-col gap-4">
+                  <h2 className="font-bold text-2xl">Play with AI Assistants</h2>
+                  <p>
+                    TheNinja-RPG supports the Model Context Protocol (MCP), allowing AI
+                    assistants like Claude, ChatGPT, and Cursor to interact with the
+                    game on your behalf. Train your ninja, manage your village, engage
+                    in combat, and more - all through natural language conversations
+                    with your AI assistant.
+                  </p>
+
+                  <div className="rounded-lg border border-border bg-muted/50 p-4">
+                    <h3 className="mb-2 font-bold text-lg">MCP Server URL</h3>
+                    <code className="block rounded bg-background p-3 font-mono text-sm">
+                      {env.NEXT_PUBLIC_BASE_URL}/api/mcp
+                    </code>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <h3 className="font-bold text-xl">Setup Instructions</h3>
+
+                    <div className="rounded-lg border border-border p-4">
+                      <h4 className="mb-2 font-bold">Claude Code (CLI)</h4>
+                      <p className="mb-2 text-sm">
+                        Add the MCP server using the Claude Code settings command:
+                      </p>
+                      <code className="block rounded bg-background p-3 font-mono text-xs">
+                        claude mcp add --transport http theninja-rpg{" "}
+                        {env.NEXT_PUBLIC_BASE_URL}/api/mcp
+                      </code>
+                    </div>
+
+                    <div className="rounded-lg border border-border p-4">
+                      <h4 className="mb-2 font-bold">Claude Desktop</h4>
+                      <p className="mb-2 text-sm">
+                        Add to your Claude Desktop configuration file
+                        (claude_desktop_config.json):
+                      </p>
+                      <pre className="overflow-x-auto rounded bg-background p-3 font-mono text-xs">
+                        {`{
+  "mcpServers": {
+    "theninja-rpg": {
+      "url": "${env.NEXT_PUBLIC_BASE_URL}/api/mcp"
+    }
+  }
+}`}
+                      </pre>
+                    </div>
+
+                    <div className="rounded-lg border border-border p-4">
+                      <h4 className="mb-2 font-bold">Cursor / VS Code</h4>
+                      <p className="mb-2 text-sm">
+                        Add to your MCP settings in the editor&apos;s configuration:
+                      </p>
+                      <pre className="overflow-x-auto rounded bg-background p-3 font-mono text-xs">
+                        {`{
+  "mcp": {
+    "servers": {
+      "theninja-rpg": {
+        "url": "${env.NEXT_PUBLIC_BASE_URL}/api/mcp"
+      }
+    }
+  }
+}`}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <p className="text-muted-foreground text-sm">
+                    When you first connect, you&apos;ll be prompted to authenticate with
+                    your TheNinja-RPG account via Clerk OAuth. This allows the AI
+                    assistant to perform actions on your behalf securely.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={cn(backgroundClass, "pl-3 font-bold text-5xl text-foreground")}>
         Game Features
       </div>
@@ -267,6 +356,7 @@ const Welcome: React.FC = () => {
           </div>
         </div>
       </div>
+
       <div className={backgroundClass}>
         <div className={cn(contentClass, "p-3")}>{textSEO}</div>
       </div>

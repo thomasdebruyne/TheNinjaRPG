@@ -33,20 +33,23 @@ import { formatSecondsToTimeDisplay } from "@/utils/time";
 import { getShrineBoost } from "@/utils/village";
 
 export const occupationRouter = createTRPCRouter({
-  getCraftableItems: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.item.findMany({
-      where: sql`${item.canBeCrafted} = true AND ${item.hidden} = false`,
-      with: {
-        craftingRequirements: {
-          with: {
-            requirementItem: true,
+  getCraftableItems: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get all craftable items" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.item.findMany({
+        where: sql`${item.canBeCrafted} = true AND ${item.hidden} = false`,
+        with: {
+          craftingRequirements: {
+            with: {
+              requirementItem: true,
+            },
           },
         },
-      },
-    });
-  }),
+      });
+    }),
 
   selectOccupation: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Select a crafting occupation" } })
     .input(z.object({ occupation: z.enum(OCCUPATIONS) }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -80,10 +83,11 @@ export const occupationRouter = createTRPCRouter({
     }),
 
   craftItem: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Craft an item using materials" } })
     .input(
       z.object({
         itemId: z.string(),
-        quantity: z.number().int().min(1).max(10).default(1),
+        quantity: z.int().min(1).max(10).prefault(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -277,6 +281,7 @@ export const occupationRouter = createTRPCRouter({
     }),
 
   imbueItem: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Imbue an item with a crystal" } })
     .input(
       z.object({
         userItemId: z.string(),
@@ -492,6 +497,7 @@ export const occupationRouter = createTRPCRouter({
     }),
 
   removeImbuement: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Remove an imbuement from an item" } })
     .input(z.object({ userItemImbuementId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {

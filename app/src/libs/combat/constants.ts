@@ -114,6 +114,7 @@ export const StatNames = [
 ] as const;
 
 export const GenNames = ["strength", "intelligence", "willpower", "speed"] as const;
+export type GenName = (typeof GenNames)[number];
 
 /**
  * Damage modifier effect types that require staged processing

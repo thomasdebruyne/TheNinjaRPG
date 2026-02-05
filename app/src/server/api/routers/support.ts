@@ -157,7 +157,7 @@ export const supportRouter = createTRPCRouter({
 
   // Update a support ticket
   updateTicket: protectedProcedure
-    .input(z.object({ ticketId: z.string() }).merge(updateSupportTicketSchema))
+    .input(z.object({ ticketId: z.string() }).extend(updateSupportTicketSchema.shape))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Destructure

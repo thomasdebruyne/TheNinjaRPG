@@ -395,8 +395,8 @@ export default function TicketDetail(props: { params: Promise<{ ticketId: string
             {/* Tags with add functionality */}
             <div className="flex flex-wrap items-center gap-1">
               <Tag className="h-3 w-3 text-gray-500" />
-              {ticket.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
+              {ticket.tags.map((tag, i) => (
+                <Badge key={`${tag}-${i}`} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
               ))}

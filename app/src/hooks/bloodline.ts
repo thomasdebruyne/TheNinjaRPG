@@ -10,7 +10,11 @@ import type { Bloodline } from "@/drizzle/schema";
 import type { FormEntry } from "@/layout/EditContent";
 import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
 import { calculateContentDiff } from "@/utils/diff";
-import type { ZodAllTags, ZodBloodlineType } from "@/validators/combat";
+import type {
+  ZodAllTags,
+  ZodBloodlineInput,
+  ZodBloodlineType,
+} from "@/validators/combat";
 import { BloodlineValidator } from "@/validators/combat";
 
 /**
@@ -22,11 +26,11 @@ export const useBloodlineEditForm = (data: Bloodline, refetch: () => void) => {
   const bloodline = { ...data, effects: data.effects };
 
   // Form handling
-  const form = useForm<ZodBloodlineType>({
+  const form = useForm<ZodBloodlineInput, unknown, ZodBloodlineType>({
     mode: "all",
     criteriaMode: "all",
-    values: bloodline as ZodBloodlineType,
-    defaultValues: bloodline as ZodBloodlineType,
+    values: bloodline as ZodBloodlineInput,
+    defaultValues: bloodline as ZodBloodlineInput,
     resolver: zodResolver(BloodlineValidator),
   });
 

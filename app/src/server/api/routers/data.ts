@@ -746,7 +746,7 @@ export const dataRouter = createTRPCRouter({
       const rows = await ctx.drizzle
         .select({
           source: visitorLog.utmSource,
-          totalUsd: sql<number>`SUM(${paypalTransaction.amount})`.mapWith(Number),
+          totalUsd: sql`SUM(${paypalTransaction.amount})`.mapWith(Number),
         })
         .from(paypalTransaction)
         .innerJoin(userData, eq(paypalTransaction.createdById, userData.userId))
@@ -879,7 +879,7 @@ export const dataRouter = createTRPCRouter({
               .select({
                 source: referralSource.source,
                 level: clampedExpr,
-                count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+                count: sql`COUNT(${userData.userId})`.mapWith(Number),
               })
               .from(userData)
               .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
@@ -914,7 +914,7 @@ export const dataRouter = createTRPCRouter({
             ? ctx.drizzle
                 .select({
                   level: clampedExpr,
-                  count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+                  count: sql`COUNT(${userData.userId})`.mapWith(Number),
                 })
                 .from(userData)
                 .where(and(...dynamicWhere))
@@ -944,7 +944,7 @@ export const dataRouter = createTRPCRouter({
             ? ctx.drizzle
                 .select({
                   level: clampedExpr,
-                  count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+                  count: sql`COUNT(${userData.userId})`.mapWith(Number),
                 })
                 .from(userData)
                 .where(and(...recruitedWhere))
@@ -1021,9 +1021,9 @@ export const dataRouter = createTRPCRouter({
       const rows = await ctx.drizzle
         .select({
           day: dayExpr,
-          mean: sql<number>`AVG(${userData.level})`.mapWith(Number),
-          std: sql<number>`STDDEV_SAMP(${userData.level})`.mapWith(Number),
-          count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+          mean: sql`AVG(${userData.level})`.mapWith(Number),
+          std: sql`STDDEV_SAMP(${userData.level})`.mapWith(Number),
+          count: sql`COUNT(${userData.userId})`.mapWith(Number),
         })
         .from(userData)
         .leftJoin(referralSource, eq(referralSource.userId, userData.userId))
@@ -1111,7 +1111,7 @@ export const dataRouter = createTRPCRouter({
             .select({
               day: dayExpr,
               source: referralSource.source,
-              count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+              count: sql`COUNT(${userData.userId})`.mapWith(Number),
             })
             .from(userData)
             .innerJoin(referralSource, eq(referralSource.userId, userData.userId))
@@ -1128,7 +1128,7 @@ export const dataRouter = createTRPCRouter({
           ? ctx.drizzle
               .select({
                 day: dayExpr,
-                count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+                count: sql`COUNT(${userData.userId})`.mapWith(Number),
               })
               .from(userData)
               .where(
@@ -1153,7 +1153,7 @@ export const dataRouter = createTRPCRouter({
           ? ctx.drizzle
               .select({
                 day: dayExpr,
-                count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+                count: sql`COUNT(${userData.userId})`.mapWith(Number),
               })
               .from(userData)
               .where(
@@ -1343,7 +1343,7 @@ export const dataRouter = createTRPCRouter({
             name: bloodline.name,
             bloodlineId: bloodline.id,
             battleWon: dataBattleAction.battleWon,
-            count: sql<number>`SUM(${dataBattleAction.count})`.mapWith(Number),
+            count: sql`SUM(${dataBattleAction.count})`.mapWith(Number),
           })
           .from(dataBattleAction)
           .innerJoin(bloodline, eq(dataBattleAction.contentId, bloodline.id))
@@ -1462,7 +1462,7 @@ export const dataRouter = createTRPCRouter({
             name: jutsu.name,
             jutsuId: jutsu.id,
             battleWon: dataBattleAction.battleWon,
-            count: sql<number>`SUM(${dataBattleAction.count})`.mapWith(Number),
+            count: sql`SUM(${dataBattleAction.count})`.mapWith(Number),
           })
           .from(dataBattleAction)
           .innerJoin(jutsu, eq(dataBattleAction.contentId, jutsu.id))
@@ -1662,7 +1662,7 @@ export const dataRouter = createTRPCRouter({
         ctx.drizzle
           .select({
             skillId: userSkill.skillId,
-            userCount: sql<number>`COUNT(${userSkill.userId})`.mapWith(Number),
+            userCount: sql`COUNT(${userSkill.userId})`.mapWith(Number),
           })
           .from(userSkill)
           .groupBy(userSkill.skillId),
@@ -1770,7 +1770,7 @@ export const dataRouter = createTRPCRouter({
             name: item.name,
             itemId: item.id,
             battleWon: dataBattleAction.battleWon,
-            count: sql<number>`SUM(${dataBattleAction.count})`.mapWith(Number),
+            count: sql`SUM(${dataBattleAction.count})`.mapWith(Number),
           })
           .from(dataBattleAction)
           .innerJoin(item, eq(dataBattleAction.contentId, item.id))
@@ -1840,7 +1840,7 @@ export const dataRouter = createTRPCRouter({
             name: sql<string>`CONCAT(${userData.username}, ' - lvl', ${userData.level})`,
             aiUserId: userData.userId,
             battleWon: dataBattleAction.battleWon,
-            count: sql<number>`SUM(${dataBattleAction.count})`.mapWith(Number),
+            count: sql`SUM(${dataBattleAction.count})`.mapWith(Number),
           })
           .from(dataBattleAction)
           .innerJoin(userData, eq(dataBattleAction.contentId, userData.userId))
@@ -1857,6 +1857,9 @@ export const dataRouter = createTRPCRouter({
       return usage;
     }),
   getBattleLengthStatistics: publicProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get battle length distribution data" },
+    })
     .input(
       z.object({
         battleTypes: z.array(z.enum(BattleTypes)).optional(),
@@ -1900,7 +1903,7 @@ export const dataRouter = createTRPCRouter({
         .select({
           battleType: logBattleLengths.battleType,
           rounds: logBattleLengths.rounds,
-          count: sql<number>`SUM(${logBattleLengths.count})`.mapWith(Number),
+          count: sql`SUM(${logBattleLengths.count})`.mapWith(Number),
         })
         .from(logBattleLengths)
         .groupBy(logBattleLengths.battleType, logBattleLengths.rounds)
@@ -1951,7 +1954,7 @@ export const dataRouter = createTRPCRouter({
         .select({
           rankedRank: logQueueLengths.rankedRank,
           ceiledMinutes: logQueueLengths.ceiledMinutes,
-          count: sql<number>`SUM(${logQueueLengths.count})`.mapWith(Number),
+          count: sql`SUM(${logQueueLengths.count})`.mapWith(Number),
         })
         .from(logQueueLengths)
         .groupBy(logQueueLengths.rankedRank, logQueueLengths.ceiledMinutes)
@@ -2038,7 +2041,7 @@ export const dataRouter = createTRPCRouter({
             type: logRankedPicks.type,
             contentId: logRankedPicks.contentId,
             battleType: logRankedPicks.battleType,
-            count: sql<number>`SUM(${logRankedPicks.count})`.mapWith(Number),
+            count: sql`SUM(${logRankedPicks.count})`.mapWith(Number),
             name: jutsu.name,
           })
           .from(logRankedPicks)
@@ -2061,7 +2064,7 @@ export const dataRouter = createTRPCRouter({
             type: logRankedPicks.type,
             contentId: logRankedPicks.contentId,
             battleType: logRankedPicks.battleType,
-            count: sql<number>`SUM(${logRankedPicks.count})`.mapWith(Number),
+            count: sql`SUM(${logRankedPicks.count})`.mapWith(Number),
             name: item.name,
           })
           .from(logRankedPicks)
@@ -2084,7 +2087,7 @@ export const dataRouter = createTRPCRouter({
             type: logRankedPicks.type,
             contentId: logRankedPicks.contentId,
             battleType: logRankedPicks.battleType,
-            count: sql<number>`SUM(${logRankedPicks.count})`.mapWith(Number),
+            count: sql`SUM(${logRankedPicks.count})`.mapWith(Number),
             name: item.name,
           })
           .from(logRankedPicks)
@@ -2233,7 +2236,7 @@ export const dataRouter = createTRPCRouter({
         .select({
           battleWon: dataBattleAction.battleWon,
           battleType: dataBattleAction.battleType,
-          count: sql<number>`COUNT(${dataBattleAction.id})`.mapWith(Number),
+          count: sql`COUNT(${dataBattleAction.id})`.mapWith(Number),
         })
         .from(dataBattleAction)
         .groupBy(dataBattleAction.battleWon, dataBattleAction.battleType)
@@ -2258,14 +2261,14 @@ export const dataRouter = createTRPCRouter({
         const levelDistribution = await ctx.drizzle
           .select({
             level: userJutsu.level,
-            count: sql<number>`COUNT(${userJutsu.userId})`.mapWith(Number),
+            count: sql`COUNT(${userJutsu.userId})`.mapWith(Number),
           })
           .from(userJutsu)
           .groupBy(userJutsu.level)
           .where(eq(userJutsu.jutsuId, input.id))
           .orderBy(asc(userJutsu.level));
         const total = await ctx.drizzle
-          .select({ count: sql<number>`count(*)`.mapWith(Number) })
+          .select({ count: sql`count(*)`.mapWith(Number) })
           .from(userJutsu)
           .where(eq(userJutsu.jutsuId, input.id));
         const totalUsers = total?.[0]?.count || 0;
@@ -2276,14 +2279,14 @@ export const dataRouter = createTRPCRouter({
         const levelDistribution = await ctx.drizzle
           .select({
             level: userData.level,
-            count: sql<number>`COUNT(${userData.userId})`.mapWith(Number),
+            count: sql`COUNT(${userData.userId})`.mapWith(Number),
           })
           .from(userData)
           .groupBy(userData.level)
           .where(eq(userData.bloodlineId, input.id))
           .orderBy(asc(userData.level));
         const total = await ctx.drizzle
-          .select({ count: sql<number>`count(*)`.mapWith(Number) })
+          .select({ count: sql`count(*)`.mapWith(Number) })
           .from(userData)
           .where(eq(userData.bloodlineId, input.id));
         const totalUsers = total?.[0]?.count || 0;
@@ -2292,7 +2295,7 @@ export const dataRouter = createTRPCRouter({
         // Item Statistics
         const info = await fetchItem(ctx.drizzle, input.id);
         const total = await ctx.drizzle
-          .select({ count: sql<number>`count(*)`.mapWith(Number) })
+          .select({ count: sql`count(*)`.mapWith(Number) })
           .from(userItem)
           .where(eq(userItem.id, input.id));
         const totalUsers = total?.[0]?.count || 0;

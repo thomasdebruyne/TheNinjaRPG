@@ -23,6 +23,7 @@ import {
   COST_CHANGE_USERNAME,
   getUserCaps,
   IMG_AVATAR_DEFAULT,
+  isStaffApprovalGroup,
   KAGE_MIN_PRESTIGE,
   KAGE_PRESTIGE_REQUIREMENT,
   MAX_ATTRIBUTES,
@@ -172,6 +173,9 @@ const pusher = getServerPusher();
 export const profileRouter = createTRPCRouter({
   // Update battle description setting
   updateBattleDescription: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Toggle battle description visibility" },
+    })
     .input(z.object({ showBattleDescription: z.boolean() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -192,6 +196,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Update tutorial step
   updateTutorialStep: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Update user's tutorial progress step" },
+    })
     .input(z.object({ step: z.number() }))
     .output(
       baseServerResponse.extend({
@@ -243,6 +250,7 @@ export const profileRouter = createTRPCRouter({
     }),
   // Update user preferences
   updatePreferences: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Update user game preferences" } })
     .input(updateUserPreferencesSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -275,15 +283,20 @@ export const profileRouter = createTRPCRouter({
       };
     }),
   // Get user blacklist
-  getBlacklist: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.userBlackList.findMany({
-      where: eq(userBlackList.creatorUserId, ctx.userId),
-      with: {
-        target: { columns: { username: true, userId: true, avatar: true } },
-      },
-    });
-  }),
+  getBlacklist: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's blocked players list" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.userBlackList.findMany({
+        where: eq(userBlackList.creatorUserId, ctx.userId),
+        with: {
+          target: { columns: { username: true, userId: true, avatar: true } },
+        },
+      });
+    }),
   toggleBlacklistEntry: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Add or remove a player from blacklist" },
+    })
     .input(z.object({ userId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -321,566 +334,587 @@ export const profileRouter = createTRPCRouter({
       }
     }),
   // Get all AI names
-  getAllAiNames: publicProcedure.query(async ({ ctx }) => {
-    return ctx.drizzle.query.userData.findMany({
-      where: and(eq(userData.isAi, true), ne(userData.rank, "ELDER")),
-      columns: {
-        userId: true,
-        username: true,
-        level: true,
-        avatar: true,
-        isSummon: true,
-        inArena: true,
-        aiProfileId: true,
-      },
-      orderBy: asc(userData.level),
-    });
-  }),
+  getAllAiNames: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get list of all AI character names" } })
+    .query(async ({ ctx }) => {
+      return ctx.drizzle.query.userData.findMany({
+        where: and(eq(userData.isAi, true), ne(userData.rank, "ELDER")),
+        columns: {
+          userId: true,
+          username: true,
+          level: true,
+          avatar: true,
+          isSummon: true,
+          inArena: true,
+          aiProfileId: true,
+        },
+        orderBy: asc(userData.level),
+      });
+    }),
   // Update user with new level
-  levelUp: protectedProcedure.output(baseServerResponse).mutation(async ({ ctx }) => {
-    // Query
-    const { user } = await fetchUpdatedUser({
-      client: ctx.drizzle,
-      userId: ctx.userId,
-    });
-    // Guard
-    if (!user) return errorResponse("User not found");
-    const expRequired = calcLevelRequirements(user.level) - user.experience;
-    const { lvl_cap } = getUserCaps(user.rank);
-    if (user.level >= lvl_cap) return errorResponse("User at max level for this rank!");
-    if (expRequired > 0) return errorResponse("No enough experience for level");
-    if (user.village?.name === "Horizon" && user.level > 9) {
-      return errorResponse(
-        "Horizon users cannot level beyond level 9. To progress, go to the academy to take a quest for joining one of the main villages.",
-      );
-    }
-    // Mutate
-    const newLevel = user.level + 1;
-    const { trackers } = getNewTrackers(user, [
-      { task: "user_level", value: newLevel },
-    ]);
-    // Calculate skill points reward for chunin+ ranks - levels 21-40 give 1 skill point each
-    const isChunin = UserRolesWithSkillTreeAccess.includes(user.rank);
-    // Calculate how many skillpoints they should have from leveling (max 20)
-    // Chunin+ ranks get 1 skillpoint per level from levels 21-40
-    const expectedSkillPointsFromLeveling =
-      isChunin && newLevel >= SKILL_POINT_MIN_LEVEL
-        ? Math.min(newLevel - SKILL_POINT_MIN_LEVEL + 1, MAX_SKILL_POINTS_FROM_LEVELING)
-        : 0;
-    // Only give skillpoints if they haven't received all their leveling skillpoints yet
-    const skillPointsGain =
-      isChunin &&
-      newLevel >= SKILL_POINT_MIN_LEVEL &&
-      newLevel <= SKILL_POINT_MAX_LEVEL &&
-      expectedSkillPointsFromLeveling <= MAX_SKILL_POINTS_FROM_LEVELING
-        ? 1
-        : 0;
-
-    const result = await ctx.drizzle
-      .update(userData)
-      .set({
-        level: newLevel,
-        maxHealth: calcHP(newLevel),
-        maxStamina: calcSP(newLevel),
-        maxChakra: calcCP(newLevel),
-        questData: trackers,
-        ...(skillPointsGain > 0
-          ? {
-              skillPoints: sql`LEAST(${userData.skillPoints} + 1, ${MAX_SKILL_POINTS})`,
-            }
-          : {}),
-        ...(newLevel > SENSEI_MAX_STUDENT_LEVEL && user.senseiId
-          ? { senseiId: null }
-          : {}),
-      })
-      .where(and(eq(userData.userId, ctx.userId), eq(userData.level, user.level)));
-    if (result.rowsAffected > 0 && user.recruiterId) {
-      const amount = 10 * newLevel * newLevel * newLevel;
-      await Promise.all([
-        ctx.drizzle
-          .update(userData)
-          .set({ bank: sql`${userData.bank} + ${amount}` })
-          .where(eq(userData.userId, user.recruiterId)),
-        ctx.drizzle.insert(recruitmentRewards).values({
-          id: nanoid(),
-          userId: user.recruiterId,
-          recruitedUserId: ctx.userId,
-          amount: amount,
-          type: "MONEY",
-        }),
+  levelUp: protectedProcedure
+    .meta({
+      mcp: {
+        enabled: true,
+        description: "Level up user when experience threshold met",
+      },
+    })
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      // Query
+      const { user } = await fetchUpdatedUser({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+      });
+      // Guard
+      if (!user) return errorResponse("User not found");
+      const expRequired = calcLevelRequirements(user.level) - user.experience;
+      const { lvl_cap } = getUserCaps(user.rank);
+      if (user.level >= lvl_cap)
+        return errorResponse("User at max level for this rank!");
+      if (expRequired > 0) return errorResponse("No enough experience for level");
+      if (user.village?.name === "Horizon" && user.level > 9) {
+        return errorResponse(
+          "Horizon users cannot level beyond level 9. To progress, go to the academy to take a quest for joining one of the main villages.",
+        );
+      }
+      // Mutate
+      const newLevel = user.level + 1;
+      const { trackers } = getNewTrackers(user, [
+        { task: "user_level", value: newLevel },
       ]);
-    }
-    // Return response
-    if (result.rowsAffected === 0) return errorResponse("Could not update level");
-    const skillPointMessage =
-      skillPointsGain > 0 ? ` and gained ${skillPointsGain} skill point!` : "";
-    return {
-      success: true,
-      message: `User leveled up to ${newLevel}${skillPointMessage}`,
-    };
-  }),
-  // Get all information on logged in user
-  getUser: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const { user, settings, toastMessages, hasUnvotedPolls } = await fetchUpdatedUser({
-      client: ctx.drizzle,
-      userId: ctx.userId,
-      userIp: ctx.userIp,
-      // forceRegen: true, // This should be disabled in prod to save on DB calls
-    });
-    // Figure out notifications
-    const notifications: NavBarDropdownLink[] = [];
+      // Calculate skill points reward for chunin+ ranks - levels 21-40 give 1 skill point each
+      const isChunin = UserRolesWithSkillTreeAccess.includes(user.rank);
+      // Calculate how many skillpoints they should have from leveling (max 20)
+      // Chunin+ ranks get 1 skillpoint per level from levels 21-40
+      const expectedSkillPointsFromLeveling =
+        isChunin && newLevel >= SKILL_POINT_MIN_LEVEL
+          ? Math.min(
+              newLevel - SKILL_POINT_MIN_LEVEL + 1,
+              MAX_SKILL_POINTS_FROM_LEVELING,
+            )
+          : 0;
+      // Only give skillpoints if they haven't received all their leveling skillpoints yet
+      const skillPointsGain =
+        isChunin &&
+        newLevel >= SKILL_POINT_MIN_LEVEL &&
+        newLevel <= SKILL_POINT_MAX_LEVEL &&
+        expectedSkillPointsFromLeveling <= MAX_SKILL_POINTS_FROM_LEVELING
+          ? 1
+          : 0;
 
-    // Add any notifications from fetching user to toasts
-    toastMessages.forEach((msg) => {
-      notifications.push({ name: msg, color: "toast", href: "/profile" });
-    });
-
-    // Shrine notifications (use Set to avoid duplicate sectors)
-    const userWithRelations = user as UserWithRelations;
-    const shrineDefenseSectors = [
-      ...new Set(
-        userWithRelations?.shrineBattles
-          ?.filter((b) => b.defenderEntityId === user?.villageId)
-          .map((b) => b.sector)
-          .filter(Boolean) ?? [],
-      ),
-    ];
-    const shrineOffenseSectors = [
-      ...new Set(
-        userWithRelations?.shrineBattles
-          ?.filter((b) => b.attackerEntityId === user?.villageId)
-          .map((b) => b.sector)
-          .filter(Boolean) ?? [],
-      ),
-    ];
-
-    if (shrineDefenseSectors.length > 0) {
-      notifications.push({
-        href: "/travel",
-        name: `${shrineDefenseSectors.length > 1 ? "Shrines" : "Shrine"} under attack (${shrineDefenseSectors.length > 1 ? "Sectors" : "Sector"} ${shrineDefenseSectors.join(", ")})`,
-        color: "red",
-        alwaysShow: true,
-      });
-    }
-    if (shrineOffenseSectors.length > 0) {
-      notifications.push({
-        href: "/travel",
-        name: `We are attacking ${shrineOffenseSectors.length > 1 ? "Shrines" : "Shrine"} (${shrineOffenseSectors.length > 1 ? "Sectors" : "Sector"} ${shrineOffenseSectors.join(", ")})`,
-        color: "blue",
-        alwaysShow: true,
-      });
-    }
-
-    // Gather sectors under war attack for this user's village (use Set to avoid duplicate sectors)
-    const warDefenseSectors = [
-      ...new Set(
-        userWithRelations?.activeWars
-          ?.filter((w) => {
-            const isDefender = w.defenderVillageId === user?.villageId;
-            const isDefenderAlly = w.warAllies?.some(
-              (a) =>
-                a.villageId === user?.villageId &&
-                a.supportVillageId === w.defenderVillageId,
-            );
-            return (isDefender || isDefenderAlly) && w.sector;
-          })
-          .map((w) => w.sector)
-          .filter(Boolean) ?? [],
-      ),
-    ];
-
-    const warOffenseSectors = [
-      ...new Set(
-        userWithRelations?.activeWars
-          ?.filter((w) => {
-            const isAttacker = w.attackerVillageId === user?.villageId;
-            const isAttackerAlly = w.warAllies?.some(
-              (a) =>
-                a.villageId === user?.villageId &&
-                a.supportVillageId === w.attackerVillageId,
-            );
-            return (isAttacker || isAttackerAlly) && w.sector;
-          })
-          .map((w) => w.sector)
-          .filter(Boolean) ?? [],
-      ),
-    ];
-
-    if (warDefenseSectors.length > 0) {
-      notifications.push({
-        href: "/travel",
-        name: `${warDefenseSectors.length > 1 ? "Sectors" : "Sector"} under attack (${warDefenseSectors.length > 1 ? "Sectors" : "Sector"} ${warDefenseSectors.join(", ")})`,
-        color: "red",
-        alwaysShow: true,
-      });
-    }
-    if (warOffenseSectors.length > 0) {
-      notifications.push({
-        href: "/travel",
-        name: `We are attacking ${warOffenseSectors.length > 1 ? "Sectors" : "Sector"} (${warOffenseSectors.length > 1 ? "Sectors" : "Sector"} ${warOffenseSectors.join(", ")})`,
-        color: "blue",
-        alwaysShow: true,
-      });
-    }
-
-    // Raid notifications
-    const openRaids =
-      userWithRelations?.activeRaids?.filter((r) => r.raidType === "open") ?? [];
-    const exclusiveRaids =
-      userWithRelations?.activeRaids?.filter((r) => r.raidType === "exclusive") ?? [];
-
-    // Group by sector to avoid duplicate sector mentions
-    const openRaidSectors = [...new Set(openRaids.map((r) => r.sector))];
-    const exclusiveRaidSectors = [...new Set(exclusiveRaids.map((r) => r.sector))];
-
-    if (openRaidSectors.length > 0) {
-      notifications.push({
-        href: "/travel",
-        name: `Open ${openRaidSectors.length > 1 ? "Raids" : "Raid"} available (${openRaidSectors.length > 1 ? "Sectors" : "Sector"} ${openRaidSectors.join(", ")})`,
-        color: "red",
-        alwaysShow: true,
-      });
-    }
-
-    if (exclusiveRaidSectors.length > 0) {
-      notifications.push({
-        href: "/travel",
-        name: `Village ${exclusiveRaidSectors.length > 1 ? "Raids" : "Raid"} active (${exclusiveRaidSectors.length > 1 ? "Sectors" : "Sector"} ${exclusiveRaidSectors.join(", ")})`,
-        color: "red",
-        alwaysShow: true,
-      });
-    }
-
-    // Add notification for unvoted polls
-    if (
-      user &&
-      hasUnvotedPolls &&
-      hasUnvotedPolls.length > 0 &&
-      canInteractWithPolls(user.rank)
-    ) {
-      notifications.push({
-        href: "/manual/polls",
-        name: "Unvoted Polls",
-        color: "blue",
-      });
-    }
-    // Add a voting link
-    let hasVoted = true;
-    ACTIVE_VOTING_SITES.forEach((site) => {
-      if (!user?.votes || user.votes[site] !== true) {
-        hasVoted = false;
-      }
-    });
-    if (!hasVoted) {
-      notifications.push({
-        href: "/profile/recruit",
-        name: `Vote for Us`,
-        color: "hidden",
-        notificationCount: 1,
-      });
-    }
-    // Settings
-    const trainingBoost = getGameSettingBoost("trainingGainMultiplier", settings);
-    if (trainingBoost) {
-      notifications.push({
-        href: "/traininggrounds",
-        name: `Global: ${trainingBoost.value}X gains | ${trainingBoost.daysLeft} days`,
-        color: "green",
-        group: "Active boosts",
-      });
-    }
-    const regenBoost = getGameSettingBoost("regenGainMultiplier", settings);
-    if (regenBoost) {
-      notifications.push({
-        href: "/profile",
-        name: `Global: ${regenBoost.value}X regen | ${regenBoost.daysLeft} days`,
-        color: "green",
-        group: "Active boosts",
-      });
-    }
-    const battleExpBoost = getGameSettingBoost("battleExpMultiplier", settings);
-    if (battleExpBoost) {
-      notifications.push({
-        href: "/battlearena",
-        name: `Global: ${battleExpBoost.value}X battle exp | ${battleExpBoost.daysLeft} days`,
-        color: "green",
-        group: "Active boosts",
-      });
-    }
-    const missionExpBoost = getGameSettingBoost("missionExpMultiplier", settings);
-    if (missionExpBoost) {
-      notifications.push({
-        href: "/missionhall",
-        name: `Global: ${missionExpBoost.value}X mission exp | ${missionExpBoost.daysLeft} days`,
-        color: "green",
-        group: "Active boosts",
-      });
-    }
-    const jutsuExpBoost = getGameSettingBoost("jutsuExpMultiplier", settings);
-    if (jutsuExpBoost) {
-      notifications.push({
-        href: "/jutsus",
-        name: `Global: ${jutsuExpBoost.value}X jutsu exp | ${jutsuExpBoost.daysLeft} days`,
-        color: "green",
-        group: "Active boosts",
-      });
-    }
-    // User specific
-    if (user) {
-      // War-time regen boost
-      const warRegenName = `war-${user.village?.id}-regen`;
-      const warRegenSetting = settings.find((s) => s.name === warRegenName);
-      const warRegenBoost = getGameSettingBoost(warRegenName, settings);
-      if (warRegenBoost) {
-        notifications.push({
-          href: "/profile",
-          name: `War: +${warRegenBoost.value}% regen | ${warRegenBoost.daysLeft} days`,
-          color: "green",
-          group: "Active boosts",
-        });
-      }
-      if (!warRegenSetting) {
-        await ctx.drizzle.insert(gameSetting).values({
-          id: nanoid(),
-          name: warRegenName,
-          value: 0,
-          time: new Date(),
-        });
-      }
-
-      // War-time training boost
-      const warTrainingName = `war-${user.village?.id}-train`;
-      const warTrainingSetting = settings.find((s) => s.name === warTrainingName);
-      const warTrainingBoost = getGameSettingBoost(warTrainingName, settings);
-      if (warTrainingBoost) {
-        notifications.push({
-          href: "/profile",
-          name: `War: +${warTrainingBoost.value}% gains | ${warTrainingBoost.daysLeft} days`,
-          color: "green",
-          group: "Active boosts",
-        });
-      }
-      if (!warTrainingSetting) {
-        await ctx.drizzle.insert(gameSetting).values({
-          id: nanoid(),
-          name: warTrainingName,
-          value: 0,
-          time: new Date(),
-        });
-      }
-
-      // Shrine boosts
-      const shrineBoosts = user.village?.shrineSettings?.activeBoosts;
-      if (shrineBoosts) {
-        const sectors = user.village?.sectors?.length ?? 0;
-        SHRINE_BOOST_TYPES.forEach((boostType) => {
-          const boost = getShrineBoost(sectors, boostType, user.village) * 100;
-          if (boost > 0) {
-            notifications.push({
-              href: "/shrine",
-              name: `Shrine: +${boost}% ${boostType} gains`,
-              color: "green",
-              group: "Active boosts",
-            });
-          }
-        });
-      }
-
-      // Get number of un-resolved user reports and staff application counts in parallel
-      if (canModerateRoles.includes(user.role)) {
-        const [reportCounts, ticketCounts, applicationCounts] = await Promise.all([
-          canModerateRoles.includes(user.role)
-            ? ctx.drizzle
-                .select({ count: sql<number>`count(*)`.mapWith(Number) })
-                .from(userReport)
-                .innerJoin(userData, eq(userData.userId, userReport.reportedUserId))
-                .where(inArray(userReport.status, ["UNVIEWED", "BAN_ESCALATED"]))
-            : null,
-          canModerateRoles.includes(user.role)
-            ? ctx.drizzle
-                .select({ count: sql<number>`count(*)`.mapWith(Number) })
-                .from(supportTicket)
-                .where(
-                  inArray(supportTicket.status, [
-                    "OPEN",
-                    "IN_PROGRESS",
-                    "WAITING_FOR_STAFF",
-                  ]),
-                )
-            : null,
-          user.role.includes("ADMIN")
-            ? ctx.drizzle
-                .select({ count: sql<number>`count(*)`.mapWith(Number) })
-                .from(staffApplication)
-                .leftJoin(
-                  staffApplicationApproval,
-                  and(
-                    eq(staffApplication.id, staffApplicationApproval.applicationId),
-                    eq(staffApplicationApproval.group, user.role as any),
-                    eq(staffApplicationApproval.approverUserId, user.userId),
-                  ),
-                )
-                .where(
-                  and(
-                    eq(staffApplication.state, "PENDING"),
-                    isNull(staffApplicationApproval.applicationId),
-                  ),
-                )
-            : null,
-        ]);
-
-        const userReports = reportCounts?.[0]?.count ?? 0;
-        if (userReports > 0) {
-          notifications.push({
-            href: "/reports",
-            name: `${userReports} waiting!`,
-            color: "hidden",
-            notificationCount: userReports,
-          });
-        }
-        const userTickets = ticketCounts?.[0]?.count ?? 0;
-        if (userTickets > 0) {
-          notifications.push({
-            href: "/support",
-            name: `${userTickets} waiting!`,
-            color: "hidden",
-            notificationCount: userTickets,
-          });
-        }
-
-        const adminAppCount = applicationCounts?.[0]?.count ?? 0;
-        if (adminAppCount > 0) {
-          notifications.push({
-            href: "/manual/staff/applications",
-            name: `Applications (${adminAppCount})`,
-            color: "blue",
-            notificationCount: adminAppCount,
-          });
-        }
-      }
-      // Check if user is banned
-      if (user.isBanned) {
-        notifications.push({
-          href: "/reports",
-          name: "Banned!",
-          color: "red",
-        });
-      }
-      // Check if user is trade banned
-      if (user.isTradeBanned) {
-        notifications.push({
-          href: "/reports",
-          name: "Trade Banned!",
-          color: "red",
-        });
-      }
-      // Unused experience points - only show if not all stats are capped
-      if (user.earnedExperience > 0) {
-        const { stats_cap, gens_cap } = getUserCaps(user.rank);
-        const allStatsCapped =
-          user.ninjutsuOffence >= stats_cap &&
-          user.ninjutsuDefence >= stats_cap &&
-          user.genjutsuOffence >= stats_cap &&
-          user.genjutsuDefence >= stats_cap &&
-          user.taijutsuOffence >= stats_cap &&
-          user.taijutsuDefence >= stats_cap &&
-          user.bukijutsuOffence >= stats_cap &&
-          user.bukijutsuDefence >= stats_cap &&
-          user.strength >= gens_cap &&
-          user.speed >= gens_cap &&
-          user.intelligence >= gens_cap &&
-          user.willpower >= gens_cap;
-
-        if (!allStatsCapped) {
-          notifications.push({
-            id: "tutorial-unassigned-stats",
-            href: "/profile/experience",
-            name: "Assign XP",
-            color: "blue",
-          });
-        }
-      }
-      // Check if reduced gains
-      const reducedDays = getReducedGainsDays(user);
-      if (reducedDays > 0) {
-        notifications.push({
-          href: "/village",
-          name: `Slowed ${Math.ceil(reducedDays)} days`,
-          color: "red",
-        });
-      }
-      // Add deletion timer to notifications
-      if (user?.deletionAt) {
-        notifications?.push({
-          href: "/profile",
-          name: "Being deleted",
-          color: "red",
-        });
-      }
-      // Is in combat
-      if (user.status === "BATTLE") {
-        notifications?.push({
-          href: "/combat",
-          name: "In combat",
-          color: "red",
-        });
-      }
-      // Is in hospital
-      if (user.status === "HOSPITALIZED") {
-        notifications?.push({
-          href: "/hospital",
-          name: "In hospital",
-          color: "red",
-        });
-      }
-      // Stuff in inbox
-      if (user.inboxNews > 0) {
-        notifications?.push({
-          href: "/inbox",
-          name: `${user.inboxNews} messages`,
-          color: "hidden",
-          notificationCount: user.inboxNews,
-        });
-      }
-      // Stuff in news
-      if (user.unreadNews > 0) {
-        notifications?.push({
-          href: "/news",
-          name: `${user.unreadNews} news`,
-          color: "hidden",
-          notificationCount: user.unreadNews,
-        });
-      }
-      if (user.unreadNotifications > 0) {
-        const [unread] = await Promise.all([
-          ctx.drizzle.query.notification.findMany({
-            limit: user.unreadNotifications,
-            orderBy: desc(notification.createdAt),
-          }),
+      const result = await ctx.drizzle
+        .update(userData)
+        .set({
+          level: newLevel,
+          maxHealth: calcHP(newLevel),
+          maxStamina: calcSP(newLevel),
+          maxChakra: calcCP(newLevel),
+          questData: trackers,
+          ...(skillPointsGain > 0
+            ? {
+                skillPoints: sql`LEAST(${userData.skillPoints} + 1, ${MAX_SKILL_POINTS})`,
+              }
+            : {}),
+          ...(newLevel > SENSEI_MAX_STUDENT_LEVEL && user.senseiId
+            ? { senseiId: null }
+            : {}),
+        })
+        .where(and(eq(userData.userId, ctx.userId), eq(userData.level, user.level)));
+      if (result.rowsAffected > 0 && user.recruiterId) {
+        const amount = 10 * newLevel * newLevel * newLevel;
+        await Promise.all([
           ctx.drizzle
             .update(userData)
-            .set({ unreadNotifications: 0 })
-            .where(eq(userData.userId, ctx.userId)),
+            .set({ bank: sql`${userData.bank} + ${amount}` })
+            .where(eq(userData.userId, user.recruiterId)),
+          ctx.drizzle.insert(recruitmentRewards).values({
+            id: nanoid(),
+            userId: user.recruiterId,
+            recruitedUserId: ctx.userId,
+            amount: amount,
+            type: "MONEY",
+          }),
         ]);
-        unread?.forEach((n) => {
-          notifications?.push({
-            href: "/news",
-            name: n.content,
-            color: "toast",
-          });
+      }
+      // Return response
+      if (result.rowsAffected === 0) return errorResponse("Could not update level");
+      const skillPointMessage =
+        skillPointsGain > 0 ? ` and gained ${skillPointsGain} skill point!` : "";
+      return {
+        success: true,
+        message: `User leveled up to ${newLevel}${skillPointMessage}`,
+      };
+    }),
+  // Get all information on logged in user
+  getUser: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get current user's full profile data" },
+    })
+    .query(async ({ ctx }) => {
+      // Query
+      const { user, settings, toastMessages, hasUnvotedPolls } = await fetchUpdatedUser(
+        {
+          client: ctx.drizzle,
+          userId: ctx.userId,
+          userIp: ctx.userIp,
+          // forceRegen: true, // This should be disabled in prod to save on DB calls
+        },
+      );
+      // Figure out notifications
+      const notifications: NavBarDropdownLink[] = [];
+
+      // Add any notifications from fetching user to toasts
+      toastMessages.forEach((msg) => {
+        notifications.push({ name: msg, color: "toast", href: "/profile" });
+      });
+
+      // Shrine notifications (use Set to avoid duplicate sectors)
+      const userWithRelations = user as UserWithRelations;
+      const shrineDefenseSectors = [
+        ...new Set(
+          userWithRelations?.shrineBattles
+            ?.filter((b) => b.defenderEntityId === user?.villageId)
+            .map((b) => b.sector)
+            .filter(Boolean) ?? [],
+        ),
+      ];
+      const shrineOffenseSectors = [
+        ...new Set(
+          userWithRelations?.shrineBattles
+            ?.filter((b) => b.attackerEntityId === user?.villageId)
+            .map((b) => b.sector)
+            .filter(Boolean) ?? [],
+        ),
+      ];
+
+      if (shrineDefenseSectors.length > 0) {
+        notifications.push({
+          href: "/travel",
+          name: `${shrineDefenseSectors.length > 1 ? "Shrines" : "Shrine"} under attack (${shrineDefenseSectors.length > 1 ? "Sectors" : "Sector"} ${shrineDefenseSectors.join(", ")})`,
+          color: "red",
+          alwaysShow: true,
         });
       }
-    }
-    return {
-      userData: user,
-      notifications: notifications,
-      serverTime: Date.now(),
-      userAgent: ctx.userAgent,
-    };
-  }),
+      if (shrineOffenseSectors.length > 0) {
+        notifications.push({
+          href: "/travel",
+          name: `We are attacking ${shrineOffenseSectors.length > 1 ? "Shrines" : "Shrine"} (${shrineOffenseSectors.length > 1 ? "Sectors" : "Sector"} ${shrineOffenseSectors.join(", ")})`,
+          color: "blue",
+          alwaysShow: true,
+        });
+      }
+
+      // Gather sectors under war attack for this user's village (use Set to avoid duplicate sectors)
+      const warDefenseSectors = [
+        ...new Set(
+          userWithRelations?.activeWars
+            ?.filter((w) => {
+              const isDefender = w.defenderVillageId === user?.villageId;
+              const isDefenderAlly = w.warAllies?.some(
+                (a) =>
+                  a.villageId === user?.villageId &&
+                  a.supportVillageId === w.defenderVillageId,
+              );
+              return (isDefender || isDefenderAlly) && w.sector;
+            })
+            .map((w) => w.sector)
+            .filter(Boolean) ?? [],
+        ),
+      ];
+
+      const warOffenseSectors = [
+        ...new Set(
+          userWithRelations?.activeWars
+            ?.filter((w) => {
+              const isAttacker = w.attackerVillageId === user?.villageId;
+              const isAttackerAlly = w.warAllies?.some(
+                (a) =>
+                  a.villageId === user?.villageId &&
+                  a.supportVillageId === w.attackerVillageId,
+              );
+              return (isAttacker || isAttackerAlly) && w.sector;
+            })
+            .map((w) => w.sector)
+            .filter(Boolean) ?? [],
+        ),
+      ];
+
+      if (warDefenseSectors.length > 0) {
+        notifications.push({
+          href: "/travel",
+          name: `${warDefenseSectors.length > 1 ? "Sectors" : "Sector"} under attack (${warDefenseSectors.length > 1 ? "Sectors" : "Sector"} ${warDefenseSectors.join(", ")})`,
+          color: "red",
+          alwaysShow: true,
+        });
+      }
+      if (warOffenseSectors.length > 0) {
+        notifications.push({
+          href: "/travel",
+          name: `We are attacking ${warOffenseSectors.length > 1 ? "Sectors" : "Sector"} (${warOffenseSectors.length > 1 ? "Sectors" : "Sector"} ${warOffenseSectors.join(", ")})`,
+          color: "blue",
+          alwaysShow: true,
+        });
+      }
+
+      // Raid notifications
+      const openRaids =
+        userWithRelations?.activeRaids?.filter((r) => r.raidType === "open") ?? [];
+      const exclusiveRaids =
+        userWithRelations?.activeRaids?.filter((r) => r.raidType === "exclusive") ?? [];
+
+      // Group by sector to avoid duplicate sector mentions
+      const openRaidSectors = [...new Set(openRaids.map((r) => r.sector))];
+      const exclusiveRaidSectors = [...new Set(exclusiveRaids.map((r) => r.sector))];
+
+      if (openRaidSectors.length > 0) {
+        notifications.push({
+          href: "/travel",
+          name: `Open ${openRaidSectors.length > 1 ? "Raids" : "Raid"} available (${openRaidSectors.length > 1 ? "Sectors" : "Sector"} ${openRaidSectors.join(", ")})`,
+          color: "red",
+          alwaysShow: true,
+        });
+      }
+
+      if (exclusiveRaidSectors.length > 0) {
+        notifications.push({
+          href: "/travel",
+          name: `Village ${exclusiveRaidSectors.length > 1 ? "Raids" : "Raid"} active (${exclusiveRaidSectors.length > 1 ? "Sectors" : "Sector"} ${exclusiveRaidSectors.join(", ")})`,
+          color: "red",
+          alwaysShow: true,
+        });
+      }
+
+      // Add notification for unvoted polls
+      if (
+        user &&
+        hasUnvotedPolls &&
+        hasUnvotedPolls.length > 0 &&
+        canInteractWithPolls(user.rank)
+      ) {
+        notifications.push({
+          href: "/manual/polls",
+          name: "Unvoted Polls",
+          color: "blue",
+        });
+      }
+      // Add a voting link
+      let hasVoted = true;
+      ACTIVE_VOTING_SITES.forEach((site) => {
+        if (!user?.votes || user.votes[site] !== true) {
+          hasVoted = false;
+        }
+      });
+      if (!hasVoted) {
+        notifications.push({
+          href: "/profile/recruit",
+          name: `Vote for Us`,
+          color: "hidden",
+          notificationCount: 1,
+        });
+      }
+      // Settings
+      const trainingBoost = getGameSettingBoost("trainingGainMultiplier", settings);
+      if (trainingBoost) {
+        notifications.push({
+          href: "/traininggrounds",
+          name: `Global: ${trainingBoost.value}X gains | ${trainingBoost.daysLeft} days`,
+          color: "green",
+          group: "Active boosts",
+        });
+      }
+      const regenBoost = getGameSettingBoost("regenGainMultiplier", settings);
+      if (regenBoost) {
+        notifications.push({
+          href: "/profile",
+          name: `Global: ${regenBoost.value}X regen | ${regenBoost.daysLeft} days`,
+          color: "green",
+          group: "Active boosts",
+        });
+      }
+      const battleExpBoost = getGameSettingBoost("battleExpMultiplier", settings);
+      if (battleExpBoost) {
+        notifications.push({
+          href: "/battlearena",
+          name: `Global: ${battleExpBoost.value}X battle exp | ${battleExpBoost.daysLeft} days`,
+          color: "green",
+          group: "Active boosts",
+        });
+      }
+      const missionExpBoost = getGameSettingBoost("missionExpMultiplier", settings);
+      if (missionExpBoost) {
+        notifications.push({
+          href: "/missionhall",
+          name: `Global: ${missionExpBoost.value}X mission exp | ${missionExpBoost.daysLeft} days`,
+          color: "green",
+          group: "Active boosts",
+        });
+      }
+      const jutsuExpBoost = getGameSettingBoost("jutsuExpMultiplier", settings);
+      if (jutsuExpBoost) {
+        notifications.push({
+          href: "/jutsus",
+          name: `Global: ${jutsuExpBoost.value}X jutsu exp | ${jutsuExpBoost.daysLeft} days`,
+          color: "green",
+          group: "Active boosts",
+        });
+      }
+      // User specific
+      if (user) {
+        // War-time regen boost
+        const warRegenName = `war-${user.village?.id}-regen`;
+        const warRegenSetting = settings.find((s) => s.name === warRegenName);
+        const warRegenBoost = getGameSettingBoost(warRegenName, settings);
+        if (warRegenBoost) {
+          notifications.push({
+            href: "/profile",
+            name: `War: +${warRegenBoost.value}% regen | ${warRegenBoost.daysLeft} days`,
+            color: "green",
+            group: "Active boosts",
+          });
+        }
+        if (!warRegenSetting) {
+          await ctx.drizzle.insert(gameSetting).values({
+            id: nanoid(),
+            name: warRegenName,
+            value: 0,
+            time: new Date(),
+          });
+        }
+
+        // War-time training boost
+        const warTrainingName = `war-${user.village?.id}-train`;
+        const warTrainingSetting = settings.find((s) => s.name === warTrainingName);
+        const warTrainingBoost = getGameSettingBoost(warTrainingName, settings);
+        if (warTrainingBoost) {
+          notifications.push({
+            href: "/profile",
+            name: `War: +${warTrainingBoost.value}% gains | ${warTrainingBoost.daysLeft} days`,
+            color: "green",
+            group: "Active boosts",
+          });
+        }
+        if (!warTrainingSetting) {
+          await ctx.drizzle.insert(gameSetting).values({
+            id: nanoid(),
+            name: warTrainingName,
+            value: 0,
+            time: new Date(),
+          });
+        }
+
+        // Shrine boosts
+        const shrineBoosts = user.village?.shrineSettings?.activeBoosts;
+        if (shrineBoosts) {
+          const sectors = user.village?.sectors?.length ?? 0;
+          SHRINE_BOOST_TYPES.forEach((boostType) => {
+            const boost = getShrineBoost(sectors, boostType, user.village) * 100;
+            if (boost > 0) {
+              notifications.push({
+                href: "/shrine",
+                name: `Shrine: +${boost}% ${boostType} gains`,
+                color: "green",
+                group: "Active boosts",
+              });
+            }
+          });
+        }
+
+        // Get number of un-resolved user reports and staff application counts in parallel
+        if (canModerateRoles.includes(user.role)) {
+          const [reportCounts, ticketCounts, applicationCounts] = await Promise.all([
+            canModerateRoles.includes(user.role)
+              ? ctx.drizzle
+                  .select({ count: sql`count(*)`.mapWith(Number) })
+                  .from(userReport)
+                  .innerJoin(userData, eq(userData.userId, userReport.reportedUserId))
+                  .where(inArray(userReport.status, ["UNVIEWED", "BAN_ESCALATED"]))
+              : null,
+            canModerateRoles.includes(user.role)
+              ? ctx.drizzle
+                  .select({ count: sql`count(*)`.mapWith(Number) })
+                  .from(supportTicket)
+                  .where(
+                    inArray(supportTicket.status, [
+                      "OPEN",
+                      "IN_PROGRESS",
+                      "WAITING_FOR_STAFF",
+                    ]),
+                  )
+              : null,
+            isStaffApprovalGroup(user.role)
+              ? ctx.drizzle
+                  .select({ count: sql`count(*)`.mapWith(Number) })
+                  .from(staffApplication)
+                  .leftJoin(
+                    staffApplicationApproval,
+                    and(
+                      eq(staffApplication.id, staffApplicationApproval.applicationId),
+                      eq(staffApplicationApproval.group, user.role),
+                      eq(staffApplicationApproval.approverUserId, user.userId),
+                    ),
+                  )
+                  .where(
+                    and(
+                      eq(staffApplication.state, "PENDING"),
+                      isNull(staffApplicationApproval.applicationId),
+                    ),
+                  )
+              : null,
+          ]);
+
+          const userReports = reportCounts?.[0]?.count ?? 0;
+          if (userReports > 0) {
+            notifications.push({
+              href: "/reports",
+              name: `${userReports} waiting!`,
+              color: "hidden",
+              notificationCount: userReports,
+            });
+          }
+          const userTickets = ticketCounts?.[0]?.count ?? 0;
+          if (userTickets > 0) {
+            notifications.push({
+              href: "/support",
+              name: `${userTickets} waiting!`,
+              color: "hidden",
+              notificationCount: userTickets,
+            });
+          }
+
+          const adminAppCount = applicationCounts?.[0]?.count ?? 0;
+          if (adminAppCount > 0) {
+            notifications.push({
+              href: "/manual/staff/applications",
+              name: `Applications (${adminAppCount})`,
+              color: "blue",
+              notificationCount: adminAppCount,
+            });
+          }
+        }
+        // Check if user is banned
+        if (user.isBanned) {
+          notifications.push({
+            href: "/reports",
+            name: "Banned!",
+            color: "red",
+          });
+        }
+        // Check if user is trade banned
+        if (user.isTradeBanned) {
+          notifications.push({
+            href: "/reports",
+            name: "Trade Banned!",
+            color: "red",
+          });
+        }
+        // Unused experience points - only show if not all stats are capped
+        if (user.earnedExperience > 0) {
+          const { stats_cap, gens_cap } = getUserCaps(user.rank);
+          const allStatsCapped =
+            user.ninjutsuOffence >= stats_cap &&
+            user.ninjutsuDefence >= stats_cap &&
+            user.genjutsuOffence >= stats_cap &&
+            user.genjutsuDefence >= stats_cap &&
+            user.taijutsuOffence >= stats_cap &&
+            user.taijutsuDefence >= stats_cap &&
+            user.bukijutsuOffence >= stats_cap &&
+            user.bukijutsuDefence >= stats_cap &&
+            user.strength >= gens_cap &&
+            user.speed >= gens_cap &&
+            user.intelligence >= gens_cap &&
+            user.willpower >= gens_cap;
+
+          if (!allStatsCapped) {
+            notifications.push({
+              id: "tutorial-unassigned-stats",
+              href: "/profile/experience",
+              name: "Assign XP",
+              color: "blue",
+            });
+          }
+        }
+        // Check if reduced gains
+        const reducedDays = getReducedGainsDays(user);
+        if (reducedDays > 0) {
+          notifications.push({
+            href: "/village",
+            name: `Slowed ${Math.ceil(reducedDays)} days`,
+            color: "red",
+          });
+        }
+        // Add deletion timer to notifications
+        if (user?.deletionAt) {
+          notifications?.push({
+            href: "/profile",
+            name: "Being deleted",
+            color: "red",
+          });
+        }
+        // Is in combat
+        if (user.status === "BATTLE") {
+          notifications?.push({
+            href: "/combat",
+            name: "In combat",
+            color: "red",
+          });
+        }
+        // Is in hospital
+        if (user.status === "HOSPITALIZED") {
+          notifications?.push({
+            href: "/hospital",
+            name: "In hospital",
+            color: "red",
+          });
+        }
+        // Stuff in inbox
+        if (user.inboxNews > 0) {
+          notifications?.push({
+            href: "/inbox",
+            name: `${user.inboxNews} messages`,
+            color: "hidden",
+            notificationCount: user.inboxNews,
+          });
+        }
+        // Stuff in news
+        if (user.unreadNews > 0) {
+          notifications?.push({
+            href: "/news",
+            name: `${user.unreadNews} news`,
+            color: "hidden",
+            notificationCount: user.unreadNews,
+          });
+        }
+        if (user.unreadNotifications > 0) {
+          const [unread] = await Promise.all([
+            ctx.drizzle.query.notification.findMany({
+              limit: user.unreadNotifications,
+              orderBy: desc(notification.createdAt),
+            }),
+            ctx.drizzle
+              .update(userData)
+              .set({ unreadNotifications: 0 })
+              .where(eq(userData.userId, ctx.userId)),
+          ]);
+          unread?.forEach((n) => {
+            notifications?.push({
+              href: "/news",
+              name: n.content,
+              color: "toast",
+            });
+          });
+        }
+      }
+      return {
+        userData: user,
+        notifications: notifications,
+        serverTime: Date.now(),
+        userAgent: ctx.userAgent,
+      };
+    }),
   // Get an AI
   getAi: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get AI character details by ID" } })
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
       const user = await ctx.drizzle.query.userData.findFirst({
@@ -896,31 +930,45 @@ export const profileRouter = createTRPCRouter({
       return user ?? null;
     }),
   // Create new AI
-  create: protectedProcedure.output(baseServerResponse).mutation(async ({ ctx }) => {
-    const user = await fetchUser(ctx.drizzle, ctx.userId);
-    if (user.isBanned)
-      return errorResponse("You are banned and cannot perform this action");
-    if (canChangeContent(user.role)) {
-      const id = nanoid();
-      await ctx.drizzle.insert(userData).values({
-        userId: id,
-        username: `New AI - ${id}`,
-        gender: "Unknown",
-        avatar: IMG_AVATAR_DEFAULT,
-        avatarLight: IMG_AVATAR_DEFAULT,
-        villageId: null,
-        approvedTos: true,
-        sector: 0,
-        level: 100,
-        isAi: true,
-      });
-      return { success: true, message: id };
-    } else {
-      return { success: false, message: `Not allowed to create AI` };
-    }
-  }),
+  create: protectedProcedure
+    .meta({
+      mcp: {
+        enabled: true,
+        description: "Create a new AI character (content editors)",
+      },
+    })
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      if (user.isBanned)
+        return errorResponse("You are banned and cannot perform this action");
+      if (canChangeContent(user.role)) {
+        const id = nanoid();
+        await ctx.drizzle.insert(userData).values({
+          userId: id,
+          username: `New AI - ${id}`,
+          gender: "Unknown",
+          avatar: IMG_AVATAR_DEFAULT,
+          avatarLight: IMG_AVATAR_DEFAULT,
+          villageId: null,
+          approvedTos: true,
+          sector: 0,
+          level: 100,
+          isAi: true,
+        });
+        return { success: true, message: id };
+      } else {
+        return { success: false, message: `Not allowed to create AI` };
+      }
+    }),
   // Clone an existing AI
   cloneAi: protectedProcedure
+    .meta({
+      mcp: {
+        enabled: true,
+        description: "Clone an existing AI character (content editors)",
+      },
+    })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -982,6 +1030,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Delete a AI
   delete: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Delete an AI character (content editors)" },
+    })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -998,6 +1049,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Update user
   updateUser: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Update user profile data (content editors)" },
+    })
     .input(z.object({ id: z.string(), data: updateUserSchema }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1193,6 +1247,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Update a AI
   updateAi: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Update AI character data (content editors)" },
+    })
     .input(z.object({ id: z.string(), data: insertAiSchema }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1276,11 +1333,14 @@ export const profileRouter = createTRPCRouter({
       return { success: true, message: `Data updated: ${diff.join(". ")}` };
     }),
   // Get user attributes
-  getUserAttributes: protectedProcedure.query(async ({ ctx }) => {
-    return fetchAttributes(ctx.drizzle, ctx.userId);
-  }),
+  getUserAttributes: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's character attributes" } })
+    .query(async ({ ctx }) => {
+      return fetchAttributes(ctx.drizzle, ctx.userId);
+    }),
   // Check if username exists in database already
   getUsername: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Check if a username is taken" } })
     .input(
       z.object({
         username: z.string().trim(),
@@ -1295,6 +1355,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Update username
   updateUsername: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Change user's username for reputation cost" },
+    })
     .input(z.object({ username: usernameSchema }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1340,7 +1403,8 @@ export const profileRouter = createTRPCRouter({
     }),
   // Use earned experience points for stats
   useUnusedExperiencePoints: protectedProcedure
-    .input(createStatSchema(0, 0))
+    .meta({ mcp: { enabled: true, description: "Assign earned experience to stats" } })
+    .input(createStatSchema(0, 0).schema)
     .output(
       baseServerResponse.extend({
         data: z
@@ -1425,6 +1489,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Get nindo text of user
   getNindo: publicProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get user's nindo (way of ninja) text" },
+    })
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
       const nindo = await ctx.drizzle.query.userNindo.findFirst({
@@ -1434,6 +1501,7 @@ export const profileRouter = createTRPCRouter({
     }),
   // Update nindo
   updateNindo: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Update user's nindo text" } })
     .input(mutateContentSchema.extend({ userId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1450,6 +1518,7 @@ export const profileRouter = createTRPCRouter({
     }),
   // Insert attribute
   insertAttribute: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Add a character attribute to user" } })
     .input(
       z.object({
         attribute: z.enum([...attributes, "Hair", "Skin", "Eyes"]),
@@ -1489,6 +1558,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Delete attribute
   deleteAttribute: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Remove a character attribute from user" },
+    })
     .input(z.object({ attribute: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1508,6 +1580,7 @@ export const profileRouter = createTRPCRouter({
     }),
   // Return list of 5 most similar users in database
   searchUsers: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Search users by username" } })
     .input(
       z.object({
         username: z.string().trim(),
@@ -1540,6 +1613,7 @@ export const profileRouter = createTRPCRouter({
     }),
   // Get public information on a user
   getPublicUser: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get public profile info for a user" } })
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
       // Query
@@ -1675,31 +1749,38 @@ export const profileRouter = createTRPCRouter({
       // Return
       return user;
     }),
-  countOnlineUsers: publicProcedure.query(async ({ ctx }) => {
-    // Fetch
-    const [current, daily, maxOnline] = await Promise.all([
-      ctx.drizzle
-        .select({ count: count() })
-        .from(userData)
-        .where(gte(userData.updatedAt, secondsFromNow(-1800))), // 30 minutes = 1800 seconds
-      ctx.drizzle
-        .select({ count: count() })
-        .from(userData)
-        .where(gte(userData.updatedAt, secondsFromNow(-3600 * 24))),
-      getGameSetting(ctx.drizzle, "onlineUsers"),
-    ]);
-    // Derived
-    const onlineNow = current?.[0]?.count ?? 0;
-    const onlineDay = daily?.[0]?.count ?? 0;
-    const newMax = maxOnline.value < onlineNow;
-    if (newMax) {
-      await updateGameSetting(ctx.drizzle, "onlineUsers", onlineNow, new Date());
-    }
-    // Return
-    return { onlineNow, onlineDay, maxOnline: newMax ? onlineNow : maxOnline.value };
-  }),
+  countOnlineUsers: publicProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get count of currently online users" },
+    })
+    .query(async ({ ctx }) => {
+      // Fetch
+      const [current, daily, maxOnline] = await Promise.all([
+        ctx.drizzle
+          .select({ count: count() })
+          .from(userData)
+          .where(gte(userData.updatedAt, secondsFromNow(-1800))), // 30 minutes = 1800 seconds
+        ctx.drizzle
+          .select({ count: count() })
+          .from(userData)
+          .where(gte(userData.updatedAt, secondsFromNow(-3600 * 24))),
+        getGameSetting(ctx.drizzle, "onlineUsers"),
+      ]);
+      // Derived
+      const onlineNow = current?.[0]?.count ?? 0;
+      const onlineDay = daily?.[0]?.count ?? 0;
+      const newMax = maxOnline.value < onlineNow;
+      if (newMax) {
+        await updateGameSetting(ctx.drizzle, "onlineUsers", onlineNow, new Date());
+      }
+      // Return
+      return { onlineNow, onlineDay, maxOnline: newMax ? onlineNow : maxOnline.value };
+    }),
   // Get public users
   getPublicUsers: publicProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get paginated list of users with filters" },
+    })
     .input(getPublicUsersSchema)
     .query(async ({ ctx, input }) => {
       return fetchPublicUsers({ client: ctx.drizzle, input, userId: ctx.userId });
@@ -1707,6 +1788,9 @@ export const profileRouter = createTRPCRouter({
 
   // Get recruitment rewards for current user
   getRecruitmentRewards: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get user's recruitment bonus history" },
+    })
     .input(
       z.object({
         cursor: z.number().nullish(),
@@ -1758,6 +1842,9 @@ export const profileRouter = createTRPCRouter({
     }),
   // Delete user
   confirmDeletion: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Confirm and execute account deletion" },
+    })
     .input(z.object({ userId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1787,6 +1874,7 @@ export const profileRouter = createTRPCRouter({
       return { success: true, message: "User deleted" };
     }),
   claimVotes: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Claim reputation points for voting" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Get user's vote record

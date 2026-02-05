@@ -117,8 +117,8 @@ export default function Tavern() {
           <SelectValue placeholder={activeTab} />
         </SelectTrigger>
         <SelectContent>
-          {availTaverns?.map((village) => (
-            <SelectItem key={village} value={village}>
+          {availTaverns?.map((village, i) => (
+            <SelectItem key={`${village}-${i}`} value={village}>
               {village}
             </SelectItem>
           ))}

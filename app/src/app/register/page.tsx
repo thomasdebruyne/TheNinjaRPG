@@ -317,8 +317,8 @@ const RegisterForm: React.FC = () => {
   // Options used for select fields
   const option_colors = React.useMemo(
     () =>
-      colors.map((color) => (
-        <SelectItem key={color} value={color}>
+      colors.map((color, i) => (
+        <SelectItem key={`${color}-${i}`} value={color}>
           {color}
         </SelectItem>
       )),
@@ -326,8 +326,8 @@ const RegisterForm: React.FC = () => {
   );
   const option_skins = React.useMemo(
     () =>
-      skin_colors.map((color) => (
-        <SelectItem key={color} value={color}>
+      skin_colors.map((color, i) => (
+        <SelectItem key={`${color}-${i}`} value={color}>
           {color}
         </SelectItem>
       )),
@@ -398,8 +398,8 @@ const RegisterForm: React.FC = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {genders.map((gender) => (
-                                    <SelectItem key={gender} value={gender}>
+                                  {genders.map((gender, i) => (
+                                    <SelectItem key={`${gender}-${i}`} value={gender}>
                                       {gender}
                                     </SelectItem>
                                   ))}
@@ -529,8 +529,11 @@ const RegisterForm: React.FC = () => {
                               <SelectContent>
                                 {attributes
                                   .filter((e) => ![watchAttr2, watchAttr3].includes(e))
-                                  .map((attribute) => (
-                                    <SelectItem key={attribute} value={attribute}>
+                                  .map((attribute, i) => (
+                                    <SelectItem
+                                      key={`${attribute}-${i}`}
+                                      value={attribute}
+                                    >
                                       {attribute}
                                     </SelectItem>
                                   ))}
@@ -563,8 +566,11 @@ const RegisterForm: React.FC = () => {
                               <SelectContent>
                                 {attributes
                                   .filter((e) => ![watchAttr1, watchAttr3].includes(e))
-                                  .map((attribute) => (
-                                    <SelectItem key={attribute} value={attribute}>
+                                  .map((attribute, i) => (
+                                    <SelectItem
+                                      key={`${attribute}-${i}`}
+                                      value={attribute}
+                                    >
                                       {attribute}
                                     </SelectItem>
                                   ))}
@@ -597,8 +603,11 @@ const RegisterForm: React.FC = () => {
                               <SelectContent>
                                 {attributes
                                   .filter((e) => ![watchAttr1, watchAttr2].includes(e))
-                                  .map((attribute) => (
-                                    <SelectItem key={attribute} value={attribute}>
+                                  .map((attribute, i) => (
+                                    <SelectItem
+                                      key={`${attribute}-${i}`}
+                                      value={attribute}
+                                    >
                                       {attribute}
                                     </SelectItem>
                                   ))}

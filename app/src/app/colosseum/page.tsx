@@ -119,8 +119,8 @@ export default function ColosseumPage() {
                 "SPARRING",
                 "RANKED_SPARRING",
               ].includes(type),
-            ).map((type) => (
-              <SelectItem key={type} value={type}>
+            ).map((type, i) => (
+              <SelectItem key={`${type}-${i}`} value={type}>
                 {battleTypeLabels[type]}
               </SelectItem>
             ))}

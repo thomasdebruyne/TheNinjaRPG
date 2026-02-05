@@ -254,8 +254,8 @@ export default function HomePage() {
                     ) : (
                       <div className="h-64 overflow-y-auto pr-1">
                         <div className="space-y-2 p-1">
-                          {upgrades.map((upgrade) => (
-                            <Card key={upgrade.type} className="mb-2">
+                          {upgrades.map((upgrade, i) => (
+                            <Card key={`${upgrade.type}-${i}`} className="mb-2">
                               <CardHeader className="pb-2">
                                 <CardTitle>
                                   <div className="flex justify-between">

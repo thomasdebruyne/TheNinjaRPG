@@ -12,18 +12,22 @@ import {
 } from "../trpc";
 
 export const simulatorRouter = createTRPCRouter({
-  getDamageSimulations: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.damageSimulation.findMany({
-      where: eq(damageSimulation.userId, ctx.userId),
-      orderBy: [desc(damageSimulation.createdAt)],
-    });
-  }),
+  getDamageSimulations: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's damage simulations" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.damageSimulation.findMany({
+        where: eq(damageSimulation.userId, ctx.userId),
+        orderBy: [desc(damageSimulation.createdAt)],
+      });
+    }),
   getDamageSimulation: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get a specific damage simulation" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       return await fetchEntry(ctx.drizzle, input.id);
     }),
   createDamageSimulation: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create a new damage simulation" } })
     .input(
       z.object({
         attacker: statSchema,
@@ -59,6 +63,9 @@ export const simulatorRouter = createTRPCRouter({
       }
     }),
   updateDamageSimulation: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Update damage simulation active state" },
+    })
     .input(z.object({ id: z.string().optional(), active: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       if (input.id) {
@@ -79,6 +86,7 @@ export const simulatorRouter = createTRPCRouter({
       }
     }),
   deleteDamageSimulation: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Delete a damage simulation" } })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const entry = await fetchEntry(ctx.drizzle, input.id, ctx.userId);

@@ -3,7 +3,7 @@ import { CovertTrainingTypes } from "@/drizzle/constants";
 
 // Input schemas
 export const useSensoryInputSchema = z.object({
-  sector: z.number().int(),
+  sector: z.int(),
 });
 
 export const trainInputSchema = z.object({

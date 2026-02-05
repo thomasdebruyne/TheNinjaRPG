@@ -1,7 +1,6 @@
 import { Loader2, Sparkles, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +28,7 @@ import {
   isQuestObjectiveAvailable,
 } from "@/libs/objectives";
 import { useInfinitePagination } from "@/libs/pagination";
+import { cn } from "@/libs/shadui";
 import { showMutationToast, showRewardToast } from "@/libs/toast";
 import { parseHtml } from "@/utils/parse";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
@@ -461,8 +461,8 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
               width={512}
               height={341}
             />
-            {characters.map((character) => (
-              <div key={character} className="absolute bottom-0 w-2/5">
+            {characters.map((character, i) => (
+              <div key={`${character}-${i}`} className="absolute bottom-0 w-2/5">
                 <Image
                   src={character}
                   alt="Character"

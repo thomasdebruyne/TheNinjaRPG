@@ -384,14 +384,14 @@ const BoostsTab = ({ user, isActive }: TabProps) => {
         <CardContent>
           {activeBoosts.length > 0 ? (
             <div className="space-y-2">
-              {activeBoosts.map(({ boostType, secondsLeft }) => {
+              {activeBoosts.map(({ boostType, secondsLeft }, i) => {
                 const timeLeft = getTimeLeftStr(
                   ...getDaysHoursMinutesSeconds(secondsLeft),
                 );
 
                 return (
                   <div
-                    key={boostType}
+                    key={`${boostType}-${i}`}
                     className="flex items-center justify-between rounded bg-muted p-2"
                   >
                     <div>
@@ -433,7 +433,7 @@ const BoostsTab = ({ user, isActive }: TabProps) => {
                   (not server time).
                 </p>
 
-                {SHRINE_BOOST_TYPES.map((boostType) => {
+                {SHRINE_BOOST_TYPES.map((boostType, i) => {
                   const currentlyActive = activeBoosts.some(
                     ({ boostType: activeType }) => activeType === boostType,
                   );
@@ -444,7 +444,7 @@ const BoostsTab = ({ user, isActive }: TabProps) => {
                     scheduledBoosts?.filter((s) => s.boostType === boostType) ?? [];
 
                   return (
-                    <div key={boostType} className="space-y-2">
+                    <div key={`${boostType}-${i}`} className="space-y-2">
                       <div className="flex gap-2">
                         <Button
                           className="flex-1 justify-between"

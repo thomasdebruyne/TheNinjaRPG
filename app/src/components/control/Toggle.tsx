@@ -1,11 +1,11 @@
 import { Check, Minus, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect } from "react";
-import { cn } from "src/libs/shadui";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from "@/hooks/localstorage";
+import { cn } from "@/libs/shadui";
 
 interface ToggleProps {
   id?: string;

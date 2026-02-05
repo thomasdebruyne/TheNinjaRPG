@@ -75,7 +75,7 @@ const GraphUsersGeneric: React.FC<GraphUsersGenericProps> = (props) => {
   const userSearchSchema = getSearchValidator({ max: 10 });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
     resolver: zodResolver(userSearchSchema),
-    defaultValues: { users: [] },
+    defaultValues: { username: "", users: [] },
   });
   const highlights = useWatch({
     control: userSearchMethods.control,
@@ -142,57 +142,59 @@ const GraphUsersGeneric: React.FC<GraphUsersGenericProps> = (props) => {
             minTemp: 1.0,
           }}
           style={{ width: "100%", height: "100%" }}
-          stylesheet={[
-            {
-              selector: "node[name]",
-              style: {
-                content: "data(name)",
-                color: color,
-              },
-            },
-            {
-              selector: "edge",
-              style: {
-                "curve-style": "bezier",
-                "target-arrow-shape": "triangle",
-                color: color,
-              },
-            },
-            {
-              selector: "edge[label]",
-              style: {
-                label: "data(label)",
-                width: 3,
-                "edge-text-rotation": "autorotate",
-                "font-size": 8,
-                color: color,
-              },
-            },
-            {
-              selector: "node[label]",
-              style: {
-                label: "data(label)",
-                "font-size": 8,
-                color: color,
-              } as any,
-            },
-            ...props.nodes.map((node) => {
-              const highlighted = highlights.includes(node.id);
-              return {
-                selector: `#${node.id}`,
+          stylesheet={
+            [
+              {
+                selector: "node[name]",
                 style: {
-                  backgroundImage: node.img || IMG_AVATAR_DEFAULT,
-                  backgroundWidth: "100%",
-                  backgroundHeight: "100%",
-                  shape: "ellipse",
-                  width: highlighted ? 60 : 30,
-                  height: highlighted ? 60 : 30,
-                  borderWidth: highlighted ? 5 : 1,
-                  borderColor: highlighted ? "red" : color,
+                  content: "data(name)",
+                  color: color,
                 },
-              };
-            }),
-          ]}
+              },
+              {
+                selector: "edge",
+                style: {
+                  "curve-style": "bezier",
+                  "target-arrow-shape": "triangle",
+                  color: color,
+                },
+              },
+              {
+                selector: "edge[label]",
+                style: {
+                  label: "data(label)",
+                  width: 3,
+                  "edge-text-rotation": "autorotate",
+                  "font-size": 8,
+                  color: color,
+                },
+              },
+              {
+                selector: "node[label]",
+                style: {
+                  label: "data(label)",
+                  "font-size": 8,
+                  color: color,
+                },
+              },
+              ...props.nodes.map((node) => {
+                const highlighted = highlights.includes(node.id);
+                return {
+                  selector: `#${node.id}`,
+                  style: {
+                    backgroundImage: node.img || IMG_AVATAR_DEFAULT,
+                    backgroundWidth: "100%",
+                    backgroundHeight: "100%",
+                    shape: "ellipse",
+                    width: highlighted ? 60 : 30,
+                    height: highlighted ? 60 : 30,
+                    borderWidth: highlighted ? 5 : 1,
+                    borderColor: highlighted ? "red" : color,
+                  },
+                };
+              }),
+            ] as Cytoscape.StylesheetStyle[]
+          }
         />
       </div>
     );

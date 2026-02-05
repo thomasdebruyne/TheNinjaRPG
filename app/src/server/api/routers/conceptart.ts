@@ -399,7 +399,7 @@ export const conceptartRouter = createTRPCRouter({
           cursor: z.number().nullish(),
           limit: z.number().min(1).max(500),
         })
-        .merge(conceptArtFilterSchema),
+        .extend(conceptArtFilterSchema.shape),
     )
     .query(async ({ ctx, input }) => {
       const currentCursor = input.cursor ? input.cursor : 0;

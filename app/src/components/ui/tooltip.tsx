@@ -1,7 +1,7 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import type * as React from "react";
 
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 const TooltipProvider = TooltipPrimitive.Provider;
 

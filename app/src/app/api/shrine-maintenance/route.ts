@@ -49,7 +49,7 @@ export async function GET() {
     if (dailyCheck) {
       await updateGameSetting(drizzleDB, ENDPOINT_NAME_DAILY, 0, dailyCheck.prevTime);
     }
-    return handleEndpointError(cause);
+    return await handleEndpointError(cause);
   }
 }
 

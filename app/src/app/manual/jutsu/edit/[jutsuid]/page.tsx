@@ -3,6 +3,7 @@
 import { FileMinus, FilePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import type { Jutsu } from "@/drizzle/schema";
 import { useJutsuEditForm } from "@/hooks/jutsu";
@@ -14,8 +15,13 @@ import Loader from "@/layout/Loader";
 import { canChangeContent } from "@/utils/permissions";
 import { setNullsToEmptyStrings } from "@/utils/typeutils";
 import { useRequiredUserData } from "@/utils/UserContext";
-import type { ZodJutsuType } from "@/validators/combat";
-import { DamageTag, getTagSchema, JutsuValidator, tagTypes } from "@/validators/combat";
+import type { ZodAllTags, ZodJutsuType } from "@/validators/combat";
+import {
+  DamageTag,
+  getTagSchema,
+  JutsuValidatorRawSchema,
+  tagTypes,
+} from "@/validators/combat";
 
 export default function JutsuEdit(props: { params: Promise<{ jutsuid: string }> }) {
   const params = use(props.params);
@@ -59,13 +65,17 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
   const { loading, jutsu, effects, form, formData, setEffects, handleJutsuSubmit } =
     useJutsuEditForm(props.jutsu, props.refetch);
 
+  // Filter out any undefined effects from useWatch
+  const validEffects = (effects?.filter((e): e is ZodAllTags => e !== undefined) ??
+    []) as ZodAllTags[];
+
   // Icon for adding tag
   const AddTagIcon = (
     <FilePlus
       className="h-6 w-6 cursor-pointer hover:text-orange-500"
       onClick={() => {
         setEffects([
-          ...effects,
+          ...validEffects,
           DamageTag.parse({
             description: "placeholder",
             rounds: 0,
@@ -124,15 +134,15 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
                 }}
               />
             ) : undefined}
-            <JutsuHelper jutsu={form.getValues()} />
+            <JutsuHelper jutsu={form.getValues() as unknown as ZodJutsuType} />
           </div>
         }
       >
         {!jutsu && <p>Could not find this jutsu</p>}
         {!loading && jutsu && (
           <EditContent
-            schema={JutsuValidator._def.schema._def.schema}
-            form={form}
+            schema={JutsuValidatorRawSchema}
+            form={form as unknown as UseFormReturn<ZodJutsuType, any>}
             formData={formData}
             showSubmit={true}
             buttonTxt="Save to Database"
@@ -144,7 +154,7 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
         )}
       </ContentBox>
 
-      {effects.length === 0 && (
+      {validEffects.length === 0 && (
         <ContentBox
           title={`Jutsu Tags`}
           initialBreak={true}
@@ -153,7 +163,7 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
           Please add effects to this jutsu
         </ContentBox>
       )}
-      {effects.map((tag, i) => {
+      {validEffects.map((tag, i) => {
         return (
           <ContentBox
             key={`${tag.type}-${i}`}
@@ -166,7 +176,7 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
                 <FileMinus
                   className="h-6 w-6 cursor-pointer hover:text-orange-500"
                   onClick={() => {
-                    const newEffects = [...effects];
+                    const newEffects = [...validEffects];
                     newEffects.splice(i, 1);
                     setEffects(newEffects);
                   }}
@@ -179,7 +189,7 @@ const SingleEditJutsu: React.FC<SingleEditJutsuProps> = (props) => {
               type="jutsu"
               tag={tag}
               availableTags={tagTypes}
-              effects={effects}
+              effects={validEffects}
               setEffects={setEffects}
             />
           </ContentBox>

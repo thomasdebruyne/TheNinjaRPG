@@ -79,8 +79,8 @@ export default function OccupationGathering() {
                 </div>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   {Object.entries(GATHERING_ITEM_DROP_CHANCES[gatheringRank]).map(
-                    ([rarity, chance]) => (
-                      <div key={rarity} className="text-center">
+                    ([rarity, chance], i) => (
+                      <div key={`${rarity}-${i}`} className="text-center">
                         <Badge variant="outline" className="mb-2 capitalize">
                           {rarity.toLowerCase()}
                         </Badge>
@@ -106,8 +106,8 @@ export default function OccupationGathering() {
                 <div>
                   <h4 className="mb-2 font-medium">Gathering Ranks & Requirements</h4>
                   <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                    {GATHERING_RANKS.map((rank) => (
-                      <div key={rank}>
+                    {GATHERING_RANKS.map((rank, i) => (
+                      <div key={`${rank}-${i}`}>
                         <Badge variant="outline" className="mb-2">
                           {rank} ({GATHERING_REQUIRED_EXP[rank].toLocaleString()}+ exp)
                         </Badge>
@@ -115,8 +115,11 @@ export default function OccupationGathering() {
                           <div>Drop Chances:</div>
                           <ul className="space-y-1">
                             {Object.entries(GATHERING_ITEM_DROP_CHANCES[rank]).map(
-                              ([rarity, chance]) => (
-                                <li key={rarity} className="flex justify-between">
+                              ([rarity, chance], i) => (
+                                <li
+                                  key={`${rarity}-${i}`}
+                                  className="flex justify-between"
+                                >
                                   <span>
                                     • {capitalizeFirstLetter(rarity.toLowerCase())}:
                                   </span>

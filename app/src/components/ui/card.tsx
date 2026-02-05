@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   ref?: React.Ref<HTMLDivElement>;

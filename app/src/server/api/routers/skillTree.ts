@@ -39,14 +39,17 @@ import {
 
 export const skillTreeRouter = createTRPCRouter({
   // Get all skill names for selectors
-  getAllNames: publicProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.skillTree.findMany({
-      columns: { id: true, name: true, skillType: true },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    });
-  }),
+  getAllNames: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all skill names for selectors" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.skillTree.findMany({
+        columns: { id: true, name: true, skillType: true },
+        orderBy: (table, { asc }) => [asc(table.name)],
+      });
+    }),
   // Get single skill by ID
   get: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get a skill by ID" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const skill = await ctx.drizzle.query.skillTree.findFirst({
@@ -57,13 +60,14 @@ export const skillTreeRouter = createTRPCRouter({
 
   // Get all skills for tree view
   getAll: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all skills with filtering" } })
     .input(
       z
         .object({
           cursor: z.number().nullish(),
           limit: z.number().min(1).max(500),
         })
-        .merge(skillTreeFilteringSchema)
+        .extend(skillTreeFilteringSchema.shape)
         .optional(),
     )
     .query(async ({ ctx, input }) => {
@@ -90,12 +94,15 @@ export const skillTreeRouter = createTRPCRouter({
     }),
 
   // Get user's purchased skills
-  getUserSkills: protectedProcedure.query(async ({ ctx }) => {
-    return await fetchUserSkills(ctx.drizzle, ctx.userId);
-  }),
+  getUserSkills: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's purchased skills" } })
+    .query(async ({ ctx }) => {
+      return await fetchUserSkills(ctx.drizzle, ctx.userId);
+    }),
 
   // Purchase a skill or activate an unlocked skill
   purchaseSkill: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Purchase or activate a skill" } })
     .input(z.object({ skillId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -312,6 +319,7 @@ export const skillTreeRouter = createTRPCRouter({
 
   // Reset user's skill points (clear all skills and refund points)
   resetSkillPoints: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Reset user's skill tree" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Fetch user data
@@ -361,32 +369,28 @@ export const skillTreeRouter = createTRPCRouter({
       // Perform the reset (parallel operations)
       await Promise.all([
         // Delete all user skills (skill points remain, just reset used skills)
-        ctx.drizzle
-          .delete(userSkill)
-          .where(eq(userSkill.userId, ctx.userId)),
+        ctx.drizzle.delete(userSkill).where(eq(userSkill.userId, ctx.userId)),
         // Log the reset for monthly tracking
-        ctx.drizzle
-          .insert(actionLog)
-          .values({
-            id: nanoid(),
-            userId: ctx.userId,
-            tableName: "skillReset",
-            changes: [
-              isFreeReset
-                ? canChangeContent(user.role)
-                  ? "Skill tree reset (free for staff)"
-                  : "Skill tree reset (free GOLD monthly)"
-                : `Skill tree reset (-${COST_SKILL_RESET} reps)`,
-            ],
-            relatedId: null,
-            relatedMsg: isFreeReset
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "skillReset",
+          changes: [
+            isFreeReset
               ? canChangeContent(user.role)
-                ? "Free reset for staff member"
-                : "Free monthly reset for GOLD supporter"
-              : `Charged ${COST_SKILL_RESET} reputation points`,
-            relatedImage: user.avatarLight,
-            relatedValue: isFreeReset ? 0 : COST_SKILL_RESET,
-          }),
+                ? "Skill tree reset (free for staff)"
+                : "Skill tree reset (free GOLD monthly)"
+              : `Skill tree reset (-${COST_SKILL_RESET} reps)`,
+          ],
+          relatedId: null,
+          relatedMsg: isFreeReset
+            ? canChangeContent(user.role)
+              ? "Free reset for staff member"
+              : "Free monthly reset for GOLD supporter"
+            : `Charged ${COST_SKILL_RESET} reputation points`,
+          relatedImage: user.avatarLight,
+          relatedValue: isFreeReset ? 0 : COST_SKILL_RESET,
+        }),
       ]);
 
       return {
@@ -396,25 +400,29 @@ export const skillTreeRouter = createTRPCRouter({
     }),
 
   // Info: whether current user has a free reset available this month
-  getResetInfo: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const [{ user }, monthlyResets] = await Promise.all([
-      fetchUpdatedUser({
-        client: ctx.drizzle,
-        userId: ctx.userId,
-      }),
-      fetchMonthlyResets(ctx.drizzle, ctx.userId),
-    ]);
-    // Guard
-    if (!user) return { isFree: false, freeResetsUsed: 0, freeResetsRemaining: 0 };
-    // Derived
-    const freeResets = getFreeResetAmount(user);
-    const freeResetsUsed = monthlyResets.length;
-    const freeResetsRemaining = freeResets - freeResetsUsed;
-    const isFree = freeResetsRemaining > 0 || canChangeContent(user.role);
-    // Return
-    return { isFree, freeResetsUsed, freeResetsRemaining };
-  }),
+  getResetInfo: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get skill reset info and free resets" },
+    })
+    .query(async ({ ctx }) => {
+      // Query
+      const [{ user }, monthlyResets] = await Promise.all([
+        fetchUpdatedUser({
+          client: ctx.drizzle,
+          userId: ctx.userId,
+        }),
+        fetchMonthlyResets(ctx.drizzle, ctx.userId),
+      ]);
+      // Guard
+      if (!user) return { isFree: false, freeResetsUsed: 0, freeResetsRemaining: 0 };
+      // Derived
+      const freeResets = getFreeResetAmount(user);
+      const freeResetsUsed = monthlyResets.length;
+      const freeResetsRemaining = freeResets - freeResetsUsed;
+      const isFree = freeResetsRemaining > 0 || canChangeContent(user.role);
+      // Return
+      return { isFree, freeResetsUsed, freeResetsRemaining };
+    }),
 
   // Reset all users' skill points (staff only)
   resetAllUsersSkillPoints: protectedProcedure
@@ -472,6 +480,7 @@ export const skillTreeRouter = createTRPCRouter({
 
   // Get all folders (with optional hidden filter for admins)
   getAllFolders: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all skill tree folders" } })
     .input(z.object({ includeHidden: z.boolean().optional() }).optional())
     .query(async ({ ctx, input }) => {
       // Run queries in parallel for efficiency
@@ -495,53 +504,55 @@ export const skillTreeRouter = createTRPCRouter({
     }),
 
   // Get folder stats (owned/total skill counts per folder for current user)
-  getFolderStats: protectedProcedure.query(async ({ ctx }) => {
-    // Fetch all data in parallel for efficiency
-    const [folders, allSkills, userSkillsData] = await Promise.all([
-      ctx.drizzle.query.skillTreeFolder.findMany({
-        where: eq(skillTreeFolder.hidden, false),
-        orderBy: [asc(skillTreeFolder.order), asc(skillTreeFolder.name)],
-      }),
-      ctx.drizzle.query.skillTree.findMany({
-        where: eq(skillTree.hidden, false),
-        columns: { id: true, folderId: true },
-      }),
-      fetchUserSkills(ctx.drizzle, ctx.userId),
-    ]);
+  getFolderStats: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get skill folder progress stats" } })
+    .query(async ({ ctx }) => {
+      // Fetch all data in parallel for efficiency
+      const [folders, allSkills, userSkillsData] = await Promise.all([
+        ctx.drizzle.query.skillTreeFolder.findMany({
+          where: eq(skillTreeFolder.hidden, false),
+          orderBy: [asc(skillTreeFolder.order), asc(skillTreeFolder.name)],
+        }),
+        ctx.drizzle.query.skillTree.findMany({
+          where: eq(skillTree.hidden, false),
+          columns: { id: true, folderId: true },
+        }),
+        fetchUserSkills(ctx.drizzle, ctx.userId),
+      ]);
 
-    // Get activated skill IDs (only activated skills count toward progression)
-    const ownedSkillIds = new Set(
-      userSkillsData.filter((us) => us.activated).map((us) => us.skillId),
-    );
+      // Get activated skill IDs (only activated skills count toward progression)
+      const ownedSkillIds = new Set(
+        userSkillsData.filter((us) => us.activated).map((us) => us.skillId),
+      );
 
-    // Calculate stats per folder
-    const folderStats = folders.map((folder) => {
-      const folderSkills = allSkills.filter((s) => s.folderId === folder.id);
-      const totalSkills = folderSkills.length;
-      const ownedSkills = folderSkills.filter((s) => ownedSkillIds.has(s.id)).length;
-      return {
-        folderId: folder.id,
-        folderName: folder.name,
-        folderImage: folder.image,
-        totalSkills,
-        ownedSkills,
-      };
-    });
-
-    // Also add stats for skills without a folder (if any)
-    const unassignedSkills = allSkills.filter((s) => !s.folderId);
-    if (unassignedSkills.length > 0) {
-      folderStats.push({
-        folderId: "",
-        folderName: "Uncategorized",
-        folderImage: "",
-        totalSkills: unassignedSkills.length,
-        ownedSkills: unassignedSkills.filter((s) => ownedSkillIds.has(s.id)).length,
+      // Calculate stats per folder
+      const folderStats = folders.map((folder) => {
+        const folderSkills = allSkills.filter((s) => s.folderId === folder.id);
+        const totalSkills = folderSkills.length;
+        const ownedSkills = folderSkills.filter((s) => ownedSkillIds.has(s.id)).length;
+        return {
+          folderId: folder.id,
+          folderName: folder.name,
+          folderImage: folder.image,
+          totalSkills,
+          ownedSkills,
+        };
       });
-    }
 
-    return folderStats;
-  }),
+      // Also add stats for skills without a folder (if any)
+      const unassignedSkills = allSkills.filter((s) => !s.folderId);
+      if (unassignedSkills.length > 0) {
+        folderStats.push({
+          folderId: "",
+          folderName: "Uncategorized",
+          folderImage: "",
+          totalSkills: unassignedSkills.length,
+          ownedSkills: unassignedSkills.filter((s) => ownedSkillIds.has(s.id)).length,
+        });
+      }
+
+      return folderStats;
+    }),
 
   // Admin: Create new folder
   createFolder: protectedProcedure

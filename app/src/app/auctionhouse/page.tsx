@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Hammer, Plus, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { cn } from "src/libs/shadui";
 import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import {
@@ -58,6 +57,7 @@ import type { ColumnDefinitionType } from "@/layout/Table";
 import Table from "@/layout/Table";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import { useInfinitePagination } from "@/libs/pagination";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import type { ArrayElement } from "@/utils/typeutils";
@@ -91,8 +91,8 @@ export default function AuctionHousePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {AUCTION_LISTING_STATES.map((status) => (
-                  <SelectItem key={status} value={status}>
+                {AUCTION_LISTING_STATES.map((status, i) => (
+                  <SelectItem key={`${status}-${i}`} value={status}>
                     {capitalizeFirstLetter(status)}
                   </SelectItem>
                 ))}
@@ -701,7 +701,11 @@ export const NewAuctionListingDialog: React.FC = () => {
   const utils = api.useUtils();
 
   // Create listing form
-  const createForm = useForm<CreateAuctionListingSchema>({
+  const createForm = useForm<
+    z.input<typeof createAuctionListingSchema>,
+    unknown,
+    CreateAuctionListingSchema
+  >({
     resolver: zodResolver(createAuctionListingSchema),
     defaultValues: {
       listingType: "AUCTION",
@@ -875,8 +879,8 @@ export const NewAuctionListingDialog: React.FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {AUCTION_LISTING_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
+                      {AUCTION_LISTING_TYPES.map((type, i) => (
+                        <SelectItem key={`${type}-${i}`} value={type}>
                           {type === "AUCTION" ? "Auction" : "Direct to User"}
                         </SelectItem>
                       ))}
@@ -900,8 +904,8 @@ export const NewAuctionListingDialog: React.FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {TRADEABLE_CURRENCY_TYPES.map((currency) => (
-                        <SelectItem key={currency} value={currency}>
+                      {TRADEABLE_CURRENCY_TYPES.map((currency, i) => (
+                        <SelectItem key={`${currency}-${i}`} value={currency}>
                           {currency === "MONEY" ? "Money (Ryo)" : "Reputation Points"}
                         </SelectItem>
                       ))}

@@ -1,6 +1,6 @@
 import { CheckCircle, XOctagon } from "lucide-react";
 import type { FieldErrors } from "react-hook-form";
-import type { ToastActionElement } from "src/components/ui/toast";
+import type { ToastActionElement } from "@/components/ui/toast";
 import { ToastAction } from "@/components/ui/toast";
 import { toast } from "@/components/ui/use-toast";
 import type { Quest } from "@/drizzle/schema";

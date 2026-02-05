@@ -49,36 +49,39 @@ const pusher = getServerPusher();
 
 export const shrineRouter = createTRPCRouter({
   // Get all AI names
-  getShrineAis: publicProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.userData.findMany({
-      where: and(eq(userData.isAi, true), eq(userData.inShrines, true)),
-      with: {
-        jutsus: {
-          columns: {
-            level: true,
-          },
-          with: {
-            jutsu: {
-              columns: {
-                name: true,
+  getShrineAis: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all shrine AI defenders" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.userData.findMany({
+        where: and(eq(userData.isAi, true), eq(userData.inShrines, true)),
+        with: {
+          jutsus: {
+            columns: {
+              level: true,
+            },
+            with: {
+              jutsu: {
+                columns: {
+                  name: true,
+                },
               },
             },
           },
         },
-      },
-      columns: {
-        userId: true,
-        username: true,
-        level: true,
-        rank: true,
-        avatar: true,
-      },
-      orderBy: asc(userData.level),
-    });
-  }),
+        columns: {
+          userId: true,
+          username: true,
+          level: true,
+          rank: true,
+          avatar: true,
+        },
+        orderBy: asc(userData.level),
+      });
+    }),
 
   // Get the captured sectors for a village
   getCapturedSectors: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get captured sectors for a village" } })
     .input(z.object({ villageId: z.string() }))
     .query(async ({ ctx, input }) => {
       const sectors = await ctx.drizzle.query.sector.findMany({
@@ -89,6 +92,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Get scheduled boosts for a village (future only)
   getScheduledBoosts: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get scheduled boosts for a village" } })
     .input(z.object({ villageId: z.string() }))
     .query(async ({ ctx, input }) => {
       const now = new Date();
@@ -121,6 +125,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Upgrade a shrine level
   upgradeShrine: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Upgrade a shrine level (Kage only)" } })
     .input(z.object({ sectorNumber: z.number() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -196,6 +201,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Activate village-wide boost (requires level 3 shrine)
   activateBoost: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Activate village-wide shrine boost" } })
     .input(z.object({ boostType: z.enum(SHRINE_BOOST_TYPES), villageId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -267,11 +273,12 @@ export const shrineRouter = createTRPCRouter({
 
   // Schedule village-wide boost for future activation (requires level 3 shrine)
   scheduleBoost: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Schedule a future shrine boost" } })
     .input(
       z.object({
         boostType: z.enum(SHRINE_BOOST_TYPES),
         villageId: z.string(),
-        startAt: z.string().datetime().optional(),
+        startAt: z.iso.datetime().optional(),
       }),
     )
     .output(baseServerResponse)
@@ -417,6 +424,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Cancel a scheduled boost
   cancelScheduledBoost: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Cancel a scheduled shrine boost" } })
     .input(z.object({ scheduleId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -493,6 +501,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Unlock AI defender type for village (Kage only)
   unlockAiDefender: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Unlock an AI defender for village" } })
     .input(z.object({ aiId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -552,6 +561,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Toggle village-wide AI defender
   toggleVillageAiDefender: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Toggle AI defender active status" } })
     .input(z.object({ aiId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -610,6 +620,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Weekly maintenance payment per sector
   payWeeklyMaintenance: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Pay weekly shrine maintenance" } })
     .input(z.object({ sectorId: z.number() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -704,6 +715,9 @@ export const shrineRouter = createTRPCRouter({
 
   // Get active shrine battles for a sector
   getShrineBattles: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get active shrine battles for sector" },
+    })
     .input(z.object({ sectorNumber: z.number() }))
     .query(async ({ ctx, input }) => {
       // Fetch all battles with FIFO ordering (oldest first)
@@ -760,44 +774,47 @@ export const shrineRouter = createTRPCRouter({
 
   // Get user's currently queued shrine battle (to check which sector they're queued for)
   // Filter to active battles (battleId IS NULL) and order explicitly
-  getUserQueuedShrineBattle: protectedProcedure.query(async ({ ctx }) => {
-    // Query all queue entries for this user with their battle info
-    const queueEntries = await ctx.drizzle.query.mpvpBattleUser.findMany({
-      where: eq(mpvpBattleUser.userId, ctx.userId),
-      with: {
-        clanBattle: {
-          columns: {
-            id: true,
-            battleType: true,
-            sector: true,
-            battleId: true,
-            createdAt: true,
+  getUserQueuedShrineBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's queued shrine battle" } })
+    .query(async ({ ctx }) => {
+      // Query all queue entries for this user with their battle info
+      const queueEntries = await ctx.drizzle.query.mpvpBattleUser.findMany({
+        where: eq(mpvpBattleUser.userId, ctx.userId),
+        with: {
+          clanBattle: {
+            columns: {
+              id: true,
+              battleType: true,
+              sector: true,
+              battleId: true,
+              createdAt: true,
+            },
           },
         },
-      },
-      orderBy: desc(mpvpBattleUser.createdAt),
-    });
+        orderBy: desc(mpvpBattleUser.createdAt),
+      });
 
-    // Find the first active shrine battle (battleId IS NULL means not started)
-    const activeEntry = queueEntries.find(
-      (entry) =>
-        entry.clanBattle?.battleType === "SHRINE_BATTLE" &&
-        entry.clanBattle?.battleId === null,
-    );
+      // Find the first active shrine battle (battleId IS NULL means not started)
+      const activeEntry = queueEntries.find(
+        (entry) =>
+          entry.clanBattle?.battleType === "SHRINE_BATTLE" &&
+          entry.clanBattle?.battleId === null,
+      );
 
-    // Return null if not in any active shrine battle queue
-    if (!activeEntry || !activeEntry.clanBattle) {
-      return null;
-    }
+      // Return null if not in any active shrine battle queue
+      if (!activeEntry || !activeEntry.clanBattle) {
+        return null;
+      }
 
-    return {
-      battleId: activeEntry.clanBattle.id,
-      sector: activeEntry.clanBattle.sector,
-    };
-  }),
+      return {
+        battleId: activeEntry.clanBattle.id,
+        sector: activeEntry.clanBattle.sector,
+      };
+    }),
 
   // Challenge a shrine (create a new shrine battle queue)
   challengeShrine: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Challenge a shrine to battle" } })
     .input(z.object({ sectorNumber: z.number() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -976,6 +993,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Join a shrine battle queue
   joinShrineBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Join a shrine battle queue" } })
     .input(
       z.object({
         shrineBattleId: z.string(),
@@ -1120,6 +1138,7 @@ export const shrineRouter = createTRPCRouter({
 
   // Leave a shrine battle queue (DB-guarded writes to prevent races)
   leaveShrineBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Leave a shrine battle queue" } })
     .input(z.object({ shrineBattleId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1198,6 +1217,7 @@ export const shrineRouter = createTRPCRouter({
   // Initiate shrine battle (start the battle after lobby time)
   // Fixed double-start race with atomic claim BEFORE initiateBattle()
   initiateShrineBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Start a shrine battle" } })
     .input(z.object({ shrineBattleId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {

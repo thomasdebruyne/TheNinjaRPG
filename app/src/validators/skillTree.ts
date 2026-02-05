@@ -16,7 +16,7 @@ export const skillTreeFolderSchema = z.object({
   image: z.string().max(512).optional(),
   description: z.string().optional(),
   hidden: z.boolean().optional(),
-  order: z.number().int().optional(),
+  order: z.int().optional(),
 });
 
 export type SkillTreeFolderSchema = z.infer<typeof skillTreeFolderSchema>;

@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import type * as React from "react";
 import { renderToString } from "react-dom/server";
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 import { parseHtml } from "@/utils/parse";
 
 interface QuoteProps extends React.HTMLAttributes<HTMLQuoteElement> {

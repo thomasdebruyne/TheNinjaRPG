@@ -5,7 +5,6 @@ import type React from "react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FieldValues, Path, PathValue, UseFormReturn } from "react-hook-form";
 import { useForm, useWatch } from "react-hook-form";
-import { cn } from "src/libs/shadui";
 import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
@@ -41,6 +40,7 @@ import Modal2 from "@/layout/Modal2";
 import RichInput from "@/layout/RichInput";
 import type { ColumnDefinitionType } from "@/layout/Table";
 import Table from "@/layout/Table";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { calculateContentDiff } from "@/utils/diff";
 import { canAwardReputation } from "@/utils/permissions";
@@ -59,7 +59,9 @@ import type { AllObjectivesType } from "@/validators/objectives";
 import {
   getObjectiveSchema,
   InstantTasks,
+  type RaidTask,
   RaidTasks,
+  type SimpleTask,
   SimpleTasks,
 } from "@/validators/objectives";
 import type { ObjectiveRewardType } from "@/validators/rewards";
@@ -130,7 +132,7 @@ interface EditContentProps<T, K, S extends FieldValues> {
  * @returns React.ReactNode
  */
 export const EditContent = <
-  T extends z.AnyZodObject,
+  T extends z.ZodObject<any>,
   K extends Path<S>,
   S extends z.infer<T>,
 >(
@@ -572,6 +574,13 @@ export const EditContent = <
                                 isDirty={fieldState.isDirty}
                                 readOnly={formEntry.readonly}
                                 {...field}
+                                value={
+                                  field.value as
+                                    | string
+                                    | number
+                                    | readonly string[]
+                                    | undefined
+                                }
                               />
                             </FormControl>
                             <FormMessage />
@@ -592,7 +601,7 @@ export const EditContent = <
                             </FormLabel>
                             <FormControl>
                               <Switch
-                                checked={field.value}
+                                checked={field.value as boolean | undefined}
                                 isDirty={fieldState.isDirty}
                                 onCheckedChange={field.onChange}
                               />
@@ -688,7 +697,7 @@ export const EditContent = <
                                   );
                                 } else {
                                   // If multi-select, add to current selection
-                                  const currentValues = field.value ? field.value : [];
+                                  const currentValues = (field.value ?? []) as string[];
                                   field.onChange([
                                     ...currentValues,
                                     newItemInput.trim(),
@@ -707,7 +716,7 @@ export const EditContent = <
 
                                 {"multiple" in formEntry && formEntry.multiple ? (
                                   <MultiSelect
-                                    selected={field.value ? field.value : []}
+                                    selected={(field.value ?? []) as string[]}
                                     isDirty={fieldState.isDirty}
                                     options={dynamicOptions}
                                     onChange={field.onChange}
@@ -1508,7 +1517,8 @@ export const EffectFormWrapper: React.FC<EffectFormWrapperProps> = (props) => {
   });
 
   // Form for handling the specific tag
-  const form = useForm<typeof tag>({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({
     defaultValues: shownTag,
     values: shownTag,
     resolver: zodResolver(tagSchema),
@@ -1589,13 +1599,13 @@ export const EffectFormWrapper: React.FC<EffectFormWrapperProps> = (props) => {
   const attributes = Object.keys(tagSchema.shape) as Attribute[];
 
   /** Unwrap zod types to get inner-most type */
-  const getInner = (type: z.ZodTypeAny): z.ZodTypeAny => {
+  const getInner = (type: z.ZodType): z.ZodType => {
     if (
       type instanceof z.ZodDefault ||
       type instanceof z.ZodOptional ||
       type instanceof z.ZodNullable
     ) {
-      return getInner(type._def.innerType as z.ZodTypeAny);
+      return getInner(type.unwrap() as z.ZodType);
     }
     return type;
   };
@@ -1813,23 +1823,19 @@ export const EffectFormWrapper: React.FC<EffectFormWrapperProps> = (props) => {
           readonly: isReputationField && !hasReputationPermission,
         };
       } else if (innerType instanceof z.ZodEnum) {
+        const enumValues = innerType.options as string[];
         return {
           id: value,
           type: "str_array",
-          values: innerType._def.values as string[],
-        };
-      } else if (innerType instanceof z.ZodNativeEnum) {
-        return {
-          id: value,
-          type: "str_array",
-          values: Object.keys(innerType._def.values as Record<string, string>),
+          values: enumValues,
         };
       } else if (
         innerType instanceof z.ZodArray &&
-        innerType._def.type instanceof z.ZodEnum
+        innerType.element instanceof z.ZodEnum
       ) {
-        const values = innerType._def.type._def.values as string[];
-        return { id: value, type: "str_array", values: values, multiple: true };
+        const enumValues = (innerType.element as unknown as { options: string[] })
+          .options;
+        return { id: value, type: "str_array", values: enumValues, multiple: true };
       } else if (innerType instanceof z.ZodBoolean) {
         return { id: value, label: value, type: "boolean" };
       } else {
@@ -1931,7 +1937,8 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
   });
 
   // Form for handling the specific tag
-  const form = useForm<AllObjectivesType>({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({
     defaultValues: shownTag,
     values: shownTag,
     resolver: zodResolver(objectiveSchema),
@@ -1992,13 +1999,13 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
   const attributes = Object.keys(objectiveSchema.shape) as Attribute[];
 
   /** Unwrap zod types to get inner-most type */
-  const getInner = (type: z.ZodTypeAny): z.ZodTypeAny => {
+  const getInner = (type: z.ZodType): z.ZodType => {
     if (
       type instanceof z.ZodDefault ||
       type instanceof z.ZodOptional ||
       type instanceof z.ZodNullable
     ) {
-      return getInner(type._def.innerType as z.ZodTypeAny);
+      return getInner(type.unwrap() as z.ZodType);
     }
     return type;
   };
@@ -2014,7 +2021,7 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
     )
     .filter((value) => {
       return (
-        !(SimpleTasks as unknown as string[]).includes(watchTask) ||
+        !SimpleTasks.includes(watchTask as SimpleTask) ||
         !["latitude", "longitude", "sector"].includes(value)
       );
     })
@@ -2068,7 +2075,7 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
     .filter((value) => {
       // Hide longitude/latitude for raid tasks - these are set via shrine placement
       return (
-        !(RaidTasks as unknown as string[]).includes(watchTask) ||
+        !RaidTasks.includes(watchTask as RaidTask) ||
         !["longitude", "latitude"].includes(value)
       );
     })
@@ -2228,21 +2235,14 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
         return {
           id: value,
           type: "str_array",
-          values: innerType._def.values as string[],
+          values: innerType.options as string[],
           label: FORM_LABEL_MAP[value] ?? value,
-        };
-      } else if (innerType instanceof z.ZodNativeEnum) {
-        return {
-          id: value,
-          type: "str_array",
-          label: FORM_LABEL_MAP[value] ?? value,
-          values: Object.keys(innerType._def.values as Record<string, string>),
         };
       } else if (
         innerType instanceof z.ZodArray &&
-        innerType._def.type instanceof z.ZodEnum
+        innerType.element instanceof z.ZodEnum
       ) {
-        const values = innerType._def.type._def.values as string[];
+        const values = (innerType.element as unknown as { options: string[] }).options;
         return {
           id: value,
           type: "str_array",
@@ -2252,7 +2252,7 @@ export const ObjectiveFormWrapper: React.FC<ObjectiveFormWrapperProps> = (props)
         };
       } else if (
         innerType instanceof z.ZodArray &&
-        innerType._def.type instanceof z.ZodString
+        innerType.element instanceof z.ZodString
       ) {
         return {
           id: value,
@@ -2327,7 +2327,8 @@ export const RewardFormWrapper: React.FC<RewardFormWrapperProps> = (props) => {
   const { data: bloodlineData } = api.bloodline.getAllNames.useQuery();
 
   // Form for handling the reward
-  const form = useForm<ObjectiveRewardType>({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({
     defaultValues: shownReward,
     values: shownReward,
     resolver: zodResolver(ObjectiveReward),
@@ -2356,13 +2357,13 @@ export const RewardFormWrapper: React.FC<RewardFormWrapperProps> = (props) => {
   const attributes = Object.keys(ObjectiveReward.shape) as Attribute[];
 
   /** Unwrap zod types to get inner-most type */
-  const getInner = (type: z.ZodTypeAny): z.ZodTypeAny => {
+  const getInner = (type: z.ZodType): z.ZodType => {
     if (
       type instanceof z.ZodDefault ||
       type instanceof z.ZodOptional ||
       type instanceof z.ZodNullable
     ) {
-      return getInner(type._def.innerType as z.ZodTypeAny);
+      return getInner(type.unwrap() as z.ZodType);
     }
     return type;
   };
@@ -2435,7 +2436,7 @@ export const RewardFormWrapper: React.FC<RewardFormWrapperProps> = (props) => {
         return {
           id: value,
           type: "str_array" as const,
-          values: innerType._def.values as string[],
+          values: innerType.options as string[],
           label: FORM_LABEL_MAP[value] ?? value,
         };
       } else {
@@ -2519,18 +2520,18 @@ export const EffectFieldInputGeneric = <E extends ZodAllTags>(opts: {
 }) => {
   const { effect, field, onChange } = opts;
   const schema = getTagSchema(effect.type);
-  const fieldSchema = (schema.shape as Record<string, z.ZodTypeAny>)[field] as
-    | z.ZodTypeAny
+  const fieldSchema = (schema.shape as Record<string, z.ZodType>)[field] as
+    | z.ZodType
     | undefined;
   if (!fieldSchema) return <div className="text-muted-foreground">N/A</div>;
-  const inner = ((): z.ZodTypeAny => {
-    let t: z.ZodTypeAny = fieldSchema;
+  const inner = ((): z.ZodType => {
+    let t: z.ZodType = fieldSchema;
     while (
       t instanceof z.ZodDefault ||
       t instanceof z.ZodOptional ||
       t instanceof z.ZodNullable
     ) {
-      t = (t as { _def: { innerType: z.ZodTypeAny } })._def.innerType;
+      t = t.unwrap() as z.ZodType;
     }
     return t;
   })();
@@ -2635,15 +2636,7 @@ export const EffectFieldInputGeneric = <E extends ZodAllTags>(opts: {
     return <Switch checked={boolVal} onCheckedChange={(v) => onChange(v)} />;
   }
   if (inner instanceof z.ZodEnum) {
-    const values = inner._def.values as string[];
-    const options = values.map((v) => ({ label: v, value: v }));
-    const raw = eff[field];
-    const cur = typeof raw === "string" ? raw : "";
-    const handle = (v: string) => onChange(v);
-    return <SingleSelectSimple value={cur} onChange={handle} options={options} />;
-  }
-  if (inner instanceof z.ZodNativeEnum) {
-    const values = Object.keys(inner._def.values as Record<string, string>);
+    const values = inner.options as string[];
     const options = values.map((v) => ({ label: v, value: v }));
     const raw = eff[field];
     const cur = typeof raw === "string" ? raw : "";
@@ -2651,18 +2644,18 @@ export const EffectFieldInputGeneric = <E extends ZodAllTags>(opts: {
     return <SingleSelectSimple value={cur} onChange={handle} options={options} />;
   }
   if (inner instanceof z.ZodArray) {
-    const innerArray: z.ZodTypeAny = (inner as z.ZodArray<z.ZodTypeAny>)._def.type;
-    let t: z.ZodTypeAny = innerArray;
+    const innerArray: z.ZodType = (inner as z.ZodArray<z.ZodType>).element;
+    let t: z.ZodType = innerArray;
     while (
       t instanceof z.ZodDefault ||
       t instanceof z.ZodOptional ||
       t instanceof z.ZodNullable
     ) {
-      t = (t as { _def: { innerType: z.ZodTypeAny } })._def.innerType;
+      t = t.unwrap() as z.ZodType;
     }
     if (t instanceof z.ZodEnum) {
-      const values = (t._def.values as string[]) || [];
-      const options = values.map((v) => ({ label: v, value: v }));
+      const values = (t as unknown as { options: string[] }).options || [];
+      const options = values.map((v) => ({ label: String(v), value: String(v) }));
       const selected = Array.isArray(eff[field])
         ? (eff[field] as unknown[]).filter((x): x is string => typeof x === "string")
         : [];

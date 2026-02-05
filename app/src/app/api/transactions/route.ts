@@ -92,6 +92,6 @@ export async function GET() {
     // Return information
     return Response.json(`OK. ${msgs.join(", ")}`);
   } catch (cause) {
-    return handleEndpointError(cause);
+    return await handleEndpointError(cause);
   }
 }

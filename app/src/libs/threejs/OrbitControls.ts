@@ -1,6 +1,7 @@
 import {
   type Camera,
   EventDispatcher,
+  type Matrix4,
   MOUSE,
   Quaternion,
   Spherical,
@@ -467,7 +468,7 @@ export class OrbitControls extends EventDispatcher<OrbitControlsEventMap> {
 
   private panLeft = (() => {
     const v = new Vector3();
-    return (distance: number, objectMatrix: THREE.Matrix4): void => {
+    return (distance: number, objectMatrix: Matrix4): void => {
       v.setFromMatrixColumn(objectMatrix, 0); // X column
       v.multiplyScalar(-distance);
       this.panOffset.add(v);
@@ -476,7 +477,7 @@ export class OrbitControls extends EventDispatcher<OrbitControlsEventMap> {
 
   private panUp = (() => {
     const v = new Vector3();
-    return (distance: number, objectMatrix: THREE.Matrix4): void => {
+    return (distance: number, objectMatrix: Matrix4): void => {
       if (this.screenSpacePanning) {
         v.setFromMatrixColumn(objectMatrix, 1); // Y column
       } else {

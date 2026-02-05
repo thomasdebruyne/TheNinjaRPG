@@ -44,56 +44,65 @@ import { rankedLoadoutSchema, rankedSeasonSchema } from "@/validators/pvpRank";
 
 export const pvpRankRouter = createTRPCRouter({
   // Get the user's season rewards
-  getUnclaimedUserSeasonRewards: protectedProcedure.query(async ({ ctx }) => {
-    return await getUnclaimedUserSeasonRewards(ctx.drizzle, ctx.userId);
-  }),
+  getUnclaimedUserSeasonRewards: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get unclaimed ranked season rewards" },
+    })
+    .query(async ({ ctx }) => {
+      return await getUnclaimedUserSeasonRewards(ctx.drizzle, ctx.userId);
+    }),
 
   // Claim the user's season rewards
-  claimSeasonRewards: protectedProcedure.mutation(async ({ ctx }) => {
-    // Fetch unclaimed rewards for the user
-    const [rewards, user] = await Promise.all([
-      getUnclaimedUserSeasonRewards(ctx.drizzle, ctx.userId),
-      fetchUser(ctx.drizzle, ctx.userId),
-    ]);
-    // Guard
-    if (rewards.length === 0) {
-      return errorResponse("No unclaimed season rewards");
-    }
-    // Collect rewards from each entry
-    const collapsedRewards = collapseRewards(
-      rewards
-        .map((r) => r.seasonRewards)
-        .filter((r): r is NonNullable<typeof r> => r !== undefined && r !== null),
-    );
-    const processedRewards = postProcessRewards(collapsedRewards);
-    await Promise.all([
-      updateRewards({
-        client: ctx.drizzle,
-        user,
-        rewards: processedRewards,
-        reason: "RANKED_REWARDS",
-      }),
-      ctx.drizzle
-        .update(rankedUserRewards)
-        .set({ claimed: true })
-        .where(eq(rankedUserRewards.userId, ctx.userId)),
-    ]);
+  claimSeasonRewards: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Claim ranked season rewards" } })
+    .mutation(async ({ ctx }) => {
+      // Fetch unclaimed rewards for the user
+      const [rewards, user] = await Promise.all([
+        getUnclaimedUserSeasonRewards(ctx.drizzle, ctx.userId),
+        fetchUser(ctx.drizzle, ctx.userId),
+      ]);
+      // Guard
+      if (rewards.length === 0) {
+        return errorResponse("No unclaimed season rewards");
+      }
+      // Collect rewards from each entry
+      const collapsedRewards = collapseRewards(
+        rewards
+          .map((r) => r.seasonRewards)
+          .filter((r): r is NonNullable<typeof r> => r !== undefined && r !== null),
+      );
+      const processedRewards = postProcessRewards(collapsedRewards);
+      await Promise.all([
+        updateRewards({
+          client: ctx.drizzle,
+          user,
+          rewards: processedRewards,
+          reason: "RANKED_REWARDS",
+        }),
+        ctx.drizzle
+          .update(rankedUserRewards)
+          .set({ claimed: true })
+          .where(eq(rankedUserRewards.userId, ctx.userId)),
+      ]);
 
-    return {
-      success: true,
-      message: "Season rewards claimed successfully",
-      rewards: processedRewards,
-    };
-  }),
+      return {
+        success: true,
+        message: "Season rewards claimed successfully",
+        rewards: processedRewards,
+      };
+    }),
 
   // Get all ranked seasons
-  getSeasons: protectedProcedure.query(async ({ ctx }) => {
-    const seasons = await fetchAllSeasons(ctx.drizzle);
-    return seasons;
-  }),
+  getSeasons: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get all ranked PvP seasons" } })
+    .query(async ({ ctx }) => {
+      const seasons = await fetchAllSeasons(ctx.drizzle);
+      return seasons;
+    }),
 
   // Get a specific season
   getSeason: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get a specific ranked season" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const season = await ctx.drizzle.query.rankedSeason.findFirst({
@@ -106,23 +115,29 @@ export const pvpRankRouter = createTRPCRouter({
     }),
 
   // Get the current season
-  getCurrentSeason: protectedProcedure.query(async ({ ctx }) => {
-    return await fetchCurrentSeason(ctx.drizzle);
-  }),
+  getCurrentSeason: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get the current active ranked season" },
+    })
+    .query(async ({ ctx }) => {
+      return await fetchCurrentSeason(ctx.drizzle);
+    }),
 
   // Get the current season
-  getCurrentTopPlayers: protectedProcedure.query(async ({ ctx }) => {
-    const topPlayers = await ctx.drizzle.query.userData.findMany({
-      columns: {
-        userId: true,
-        rankedLp: true,
-      },
-      where: gt(userData.rankedLp, 0),
-      orderBy: [desc(userData.rankedLp)],
-      limit: RANKED_SANNIN_TOP_PLAYERS,
-    });
-    return topPlayers;
-  }),
+  getCurrentTopPlayers: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get top ranked players" } })
+    .query(async ({ ctx }) => {
+      const topPlayers = await ctx.drizzle.query.userData.findMany({
+        columns: {
+          userId: true,
+          rankedLp: true,
+        },
+        where: gt(userData.rankedLp, 0),
+        orderBy: [desc(userData.rankedLp)],
+        limit: RANKED_SANNIN_TOP_PLAYERS,
+      });
+      return topPlayers;
+    }),
 
   // Create a new season
   createSeason: protectedProcedure
@@ -164,7 +179,7 @@ export const pvpRankRouter = createTRPCRouter({
 
   // Update an existing season
   updateSeason: protectedProcedure
-    .input(z.object({ id: z.string() }).merge(rankedSeasonSchema))
+    .input(z.object({ id: z.string() }).extend(rankedSeasonSchema.shape))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Query
@@ -268,63 +283,68 @@ export const pvpRankRouter = createTRPCRouter({
     }),
 
   // Get the ranked loadout
-  getRankedLoadout: protectedProcedure.query(async ({ ctx }) => {
-    let loadout = await ctx.drizzle.query.rankedLoadout.findFirst({
-      where: eq(rankedLoadout.userId, ctx.userId),
-    });
-    if (!loadout) {
-      loadout = {
-        id: nanoid(),
-        userId: ctx.userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        loadout: {
-          jutsuIds: [],
-          weaponIds: [],
-          consumableIds: [],
-          favoriteJutsuIds: [],
-          favoriteWeaponIds: [],
-          favoriteConsumableIds: [],
-        },
-      };
-      await ctx.drizzle.insert(rankedLoadout).values(loadout);
-    }
-    return loadout;
-  }),
+  getRankedLoadout: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's ranked PvP loadout" } })
+    .query(async ({ ctx }) => {
+      let loadout = await ctx.drizzle.query.rankedLoadout.findFirst({
+        where: eq(rankedLoadout.userId, ctx.userId),
+      });
+      if (!loadout) {
+        loadout = {
+          id: nanoid(),
+          userId: ctx.userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          loadout: {
+            jutsuIds: [],
+            weaponIds: [],
+            consumableIds: [],
+            favoriteJutsuIds: [],
+            favoriteWeaponIds: [],
+            favoriteConsumableIds: [],
+          },
+        };
+        await ctx.drizzle.insert(rankedLoadout).values(loadout);
+      }
+      return loadout;
+    }),
 
   // Get the ranked PvP queue
-  getRankedPvpQueue: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const [user, queueEntry] = await Promise.all([
-      fetchUser(ctx.drizzle, ctx.userId),
-      fetchUserRankedQueue(ctx.drizzle, ctx.userId),
-    ]);
-    // Cleanups ub case of bad queuing state
-    if (user.status !== "QUEUED" && queueEntry) {
-      await ctx.drizzle
-        .delete(rankedPvpQueue)
-        .where(eq(rankedPvpQueue.userId, ctx.userId));
-    } else if (user.status === "QUEUED" && !queueEntry) {
-      await ctx.drizzle
-        .update(userData)
-        .set({ status: "ASLEEP" })
-        .where(eq(userData.userId, ctx.userId));
-    }
-    // Get the queue count
-    const queueCount = await ctx.drizzle
-      .select({ count: sql<number>`count(*)` })
-      .from(rankedPvpQueue)
-      .then((result) => result[0]?.count ?? 0);
+  getRankedPvpQueue: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's ranked PvP queue status" } })
+    .query(async ({ ctx }) => {
+      // Query
+      const [user, queueEntry] = await Promise.all([
+        fetchUser(ctx.drizzle, ctx.userId),
+        fetchUserRankedQueue(ctx.drizzle, ctx.userId),
+      ]);
+      // Cleanups ub case of bad queuing state
+      if (user.status !== "QUEUED" && queueEntry) {
+        await ctx.drizzle
+          .delete(rankedPvpQueue)
+          .where(eq(rankedPvpQueue.userId, ctx.userId));
+      } else if (user.status === "QUEUED" && !queueEntry) {
+        await ctx.drizzle
+          .update(userData)
+          .set({ status: "ASLEEP" })
+          .where(eq(userData.userId, ctx.userId));
+      }
+      // Get the queue count
+      const queueCount = await ctx.drizzle
+        .select({ count: sql<number>`count(*)` })
+        .from(rankedPvpQueue)
+        .then((result) => result[0]?.count ?? 0);
 
-    return {
-      inQueue: !!queueEntry,
-      createdAt: queueEntry?.queueStartTime,
-      queueCount,
-    };
-  }),
+      return {
+        inQueue: !!queueEntry,
+        createdAt: queueEntry?.queueStartTime,
+        queueCount,
+      };
+    }),
 
   // Update the ranked loadout
   updateRankedLoadout: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Update user's ranked PvP loadout" } })
     .input(rankedLoadoutSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -372,6 +392,7 @@ export const pvpRankRouter = createTRPCRouter({
 
   // Enter the ranked season
   enterRankedSeason: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Enter the current ranked season" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Query
@@ -403,6 +424,9 @@ export const pvpRankRouter = createTRPCRouter({
 
   // Queue for ranked PVP battle
   queueForRankedPvp: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Join the ranked PvP matchmaking queue" },
+    })
     .output(
       baseServerResponse.extend({
         battleId: z.string().optional(),
@@ -489,6 +513,9 @@ export const pvpRankRouter = createTRPCRouter({
 
   // Leave the ranked PvP queue
   leaveRankedPvpQueue: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Leave the ranked PvP matchmaking queue" },
+    })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Query
@@ -510,6 +537,9 @@ export const pvpRankRouter = createTRPCRouter({
 
   // Check for ranked PvP matches
   checkRankedPvpMatches: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Check for available ranked PvP matches" },
+    })
     .output(baseServerResponse.extend({ battleId: z.string().optional() }))
     .mutation(async ({ ctx }) => {
       // Get all queued players

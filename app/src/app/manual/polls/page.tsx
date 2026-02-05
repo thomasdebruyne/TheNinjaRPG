@@ -78,14 +78,9 @@ interface PollWithRelations extends Poll {
   totalVotes: number;
 }
 
-// Form type for the poll creation form
-type PollFormValues = {
-  title: string;
-  description: string;
-  options: PollOptionSchema[];
-  allowCustomOptions: boolean;
-  endDate?: Date;
-};
+// Form types for the poll creation form - using z.input/z.output for proper Zod v4 handling
+type CreatePollInput = z.input<typeof createPollSchema>;
+type CreatePollOutput = z.output<typeof createPollSchema>;
 
 export default function PollsPage() {
   const { data: userData } = useUserData();
@@ -714,7 +709,7 @@ function CreatePollForm({ onSuccess }: { onSuccess: () => void }) {
     { type: "text", text: "" },
   ]);
 
-  const form = useForm<PollFormValues>({
+  const form = useForm<CreatePollInput, unknown, CreatePollOutput>({
     resolver: zodResolver(createPollSchema),
     defaultValues: {
       title: "",
@@ -809,7 +804,7 @@ function CreatePollForm({ onSuccess }: { onSuccess: () => void }) {
     form.setValue("options", options);
   }, [options, form]);
 
-  const onSubmit = (data: PollFormValues) => {
+  const onSubmit = (data: CreatePollOutput) => {
     // Filter out empty options and ensure all options have the required fields
     const filteredOptions = options
       .filter((option) => {

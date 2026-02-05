@@ -2,7 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import type * as React from "react";
 
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 const Dialog = DialogPrimitive.Root;
 

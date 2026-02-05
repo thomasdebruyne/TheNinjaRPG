@@ -322,16 +322,20 @@ const TowerDefenseUpgrades: React.FC<TowerDefenseUpgradesProps> = ({
             className="w-full"
           >
             <TabsList className="mb-3">
-              {categories.map((category) => (
-                <TabsTrigger key={category} value={category} className="gap-2">
+              {categories.map((category, i) => (
+                <TabsTrigger
+                  key={`${category}-${i}`}
+                  value={category}
+                  className="gap-2"
+                >
                   {getCategoryIcon(category)}
                   <span className="hidden sm:inline">{getCategoryLabel(category)}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
 
-            {categories.map((category) => (
-              <TabsContent key={category} value={category}>
+            {categories.map((category, i) => (
+              <TabsContent key={`${category}-${i}`} value={category}>
                 {renderCategoryContent(category)}
               </TabsContent>
             ))}
@@ -364,8 +368,12 @@ const TowerDefenseUpgrades: React.FC<TowerDefenseUpgradesProps> = ({
           className="w-full"
         >
           <TabsList className="mb-2 w-full">
-            {categories.map((category) => (
-              <TabsTrigger key={category} value={category} className="flex-1 gap-1.5">
+            {categories.map((category, i) => (
+              <TabsTrigger
+                key={`${category}-${i}`}
+                value={category}
+                className="flex-1 gap-1.5"
+              >
                 {getCategoryIcon(category, "h-3.5 w-3.5")}
                 <span className="hidden text-xs sm:inline">
                   {getCategoryLabel(category)}
@@ -374,8 +382,8 @@ const TowerDefenseUpgrades: React.FC<TowerDefenseUpgradesProps> = ({
             ))}
           </TabsList>
 
-          {categories.map((category) => (
-            <TabsContent key={category} value={category} className="mt-0">
+          {categories.map((category, i) => (
+            <TabsContent key={`${category}-${i}`} value={category} className="mt-0">
               {renderCategoryContent(category)}
             </TabsContent>
           ))}

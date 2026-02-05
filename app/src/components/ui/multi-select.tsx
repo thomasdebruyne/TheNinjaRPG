@@ -1,6 +1,5 @@
 import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import * as React from "react";
-import { cn } from "src/libs/shadui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/libs/shadui";
 
 export type OptionType = {
   label: string;
@@ -80,12 +80,12 @@ function MultiSelect({
         >
           <div className="flex flex-wrap gap-1">
             {sortedSelected.length > 0 ? (
-              sortedSelected.map((item) => {
+              sortedSelected.map((item, i) => {
                 const option = options.find((o) => o.value === item);
                 return (
                   <Badge
                     variant="secondary"
-                    key={item}
+                    key={`${item}-${i}`}
                     className="mr-1 mb-1"
                     onClick={() => handleUnselect(item)}
                   >

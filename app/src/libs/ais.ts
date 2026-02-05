@@ -2,7 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import { ElementNames, GeneralTypes, StatTypes, UserRanks } from "@/drizzle/constants";
-import type { InsertAiSchema, UserData, UserItem, UserJutsu } from "@/drizzle/schema";
+import type {
+  InsertAiSchema,
+  InsertAiSchemaInput,
+  UserData,
+  UserItem,
+  UserJutsu,
+} from "@/drizzle/schema";
 import { insertAiSchema } from "@/drizzle/schema";
 import type { FormEntry } from "@/layout/EditContent";
 import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
@@ -29,7 +35,7 @@ export const useAiEditForm = (
   };
 
   // Form handling
-  const form = useForm<InsertAiSchema>({
+  const form = useForm<InsertAiSchemaInput, unknown, InsertAiSchema>({
     mode: "all",
     criteriaMode: "all",
     values: processedUser,

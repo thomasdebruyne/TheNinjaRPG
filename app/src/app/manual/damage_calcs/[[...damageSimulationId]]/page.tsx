@@ -35,9 +35,12 @@ import { useUserData } from "@/utils/UserContext";
 import { actSchema, confSchema, statSchema } from "@/validators/combat";
 
 // Default user
-type StatSchema = z.infer<typeof statSchema>;
-type ActSchema = z.infer<typeof actSchema>;
-type ConfigSchema = z.infer<typeof confSchema>;
+type StatSchemaInput = z.input<typeof statSchema>;
+type StatSchemaOutput = z.infer<typeof statSchema>;
+type ActSchemaInput = z.input<typeof actSchema>;
+type ActSchemaOutput = z.infer<typeof actSchema>;
+type ConfigSchemaInput = z.input<typeof confSchema>;
+type ConfigSchemaOutput = z.infer<typeof confSchema>;
 const defaultsStats = statSchema.parse({});
 const statNames = Object.keys(defaultsStats) as (keyof typeof defaultsStats)[];
 
@@ -84,32 +87,32 @@ export default function Simulator(props: {
 
   // Forms setup
   const conf1 = { defaultValues: defaultsStats, mode: "all" as const };
-  const attForm = useForm<StatSchema>({
+  const attForm = useForm<StatSchemaInput, unknown, StatSchemaOutput>({
     ...conf1,
     resolver: zodResolver(statSchema),
   });
-  const defForm = useForm<StatSchema>({
+  const defForm = useForm<StatSchemaInput, unknown, StatSchemaOutput>({
     ...conf1,
     resolver: zodResolver(statSchema),
   });
   const conf2 = { defaultValues: actSchema.parse({}), mode: "all" as const };
-  const actForm = useForm<ActSchema>({
+  const actForm = useForm<ActSchemaInput, unknown, ActSchemaOutput>({
     ...conf2,
     resolver: zodResolver(actSchema),
   });
-  const configForm = useForm<ConfigSchema>({
+  const configForm = useForm<ConfigSchemaInput, unknown, ConfigSchemaOutput>({
     defaultValues: confSchema.parse(dmgConfig),
     mode: "all" as const,
     resolver: zodResolver(confSchema),
   });
 
   // Watch all the forms simultaneously
-  const attValues = useWatch({ control: attForm.control }) as StatSchema;
-  const defValues = useWatch({ control: defForm.control }) as StatSchema;
-  const actValues = useWatch({ control: actForm.control }) as ActSchema;
+  const attValues = useWatch({ control: attForm.control }) as StatSchemaOutput;
+  const defValues = useWatch({ control: defForm.control }) as StatSchemaOutput;
+  const actValues = useWatch({ control: actForm.control }) as ActSchemaOutput;
   const configValues = useWatch({
     control: configForm.control,
-  }) as ConfigSchema;
+  }) as ConfigSchemaOutput;
 
   // Query for fetching previous entries
   const { data, refetch } = api.simulator.getDamageSimulations.useQuery(undefined, {
@@ -141,7 +144,7 @@ export default function Simulator(props: {
   const isPending = isSaving || isUpdating || isDeleting;
 
   // Calculate experience from stats
-  const calcExperience = (values: StatSchema) => {
+  const calcExperience = (values: StatSchemaOutput) => {
     return (
       statNames
         .map((k) => values[k])
@@ -160,9 +163,9 @@ export default function Simulator(props: {
 
   // Monkey-wrap the damage function
   const getDamage = (
-    attValues: StatSchema,
-    defValues: StatSchema,
-    actValues: ActSchema,
+    attValues: StatSchemaOutput,
+    defValues: StatSchemaOutput,
+    actValues: ActSchemaOutput,
   ) => {
     const attacker = {
       ...attValues,
@@ -224,9 +227,9 @@ export default function Simulator(props: {
             .filter((e) => e.active === 1)
             .map((entry, i) => {
               const { attacker, defender, action } = entry.state as {
-                attacker: StatSchema;
-                defender: StatSchema;
-                action: ActSchema;
+                attacker: StatSchemaOutput;
+                defender: StatSchemaOutput;
+                action: ActSchemaOutput;
               };
               const stateDmg = getDamage(attacker, defender, action);
               return {
@@ -267,9 +270,9 @@ export default function Simulator(props: {
   // Handle inserting historical entry into form
   const activateEntry = (entry: DamageSimulation) => {
     const { attacker, defender, action } = entry.state as {
-      attacker: StatSchema;
-      defender: StatSchema;
-      action: ActSchema;
+      attacker: StatSchemaOutput;
+      defender: StatSchemaOutput;
+      action: ActSchemaOutput;
     };
     let statKey: keyof typeof attacker;
     let actKey: keyof typeof action;
@@ -285,7 +288,9 @@ export default function Simulator(props: {
   };
 
   // Handle setting user data into form
-  const setUserData = (form: UseFormReturn<StatSchema>) => {
+  const setUserData = (
+    form: UseFormReturn<StatSchemaInput, unknown, StatSchemaOutput>,
+  ) => {
     statNames.forEach((stat) => {
       form.setValue(stat, userData?.[stat] ?? 0);
     });
@@ -370,7 +375,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>Set power</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -424,7 +429,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>atk_scaling</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -437,7 +442,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>def_scaling</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -450,7 +455,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>exp_scaling</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -463,7 +468,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>dmg_scaling</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -476,7 +481,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>gen_scaling</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -489,7 +494,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>stats_scaling</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -502,7 +507,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>power_scaling</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -515,7 +520,7 @@ export default function Simulator(props: {
                   <FormItem>
                     <FormLabel>dmg_base</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} value={field.value as number} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -648,7 +653,7 @@ export default function Simulator(props: {
 interface UserInputProps {
   id: string;
   ignoreContains: string;
-  selectForm: UseFormReturn<StatSchema>;
+  selectForm: UseFormReturn<StatSchemaInput, unknown, StatSchemaOutput>;
 }
 
 const UserInput: React.FC<UserInputProps> = (props) => {
@@ -669,7 +674,7 @@ const UserInput: React.FC<UserInputProps> = (props) => {
                 <FormItem>
                   <FormLabel>{stat}</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" {...field} value={field.value as number} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

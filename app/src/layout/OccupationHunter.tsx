@@ -77,8 +77,8 @@ export default function OccupationHunter() {
                 </div>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   {Object.entries(HUNTING_ITEM_DROP_CHANCES[huntingRank]).map(
-                    ([rarity, chance]) => (
-                      <div key={rarity} className="text-center">
+                    ([rarity, chance], i) => (
+                      <div key={`${rarity}-${i}`} className="text-center">
                         <Badge variant="outline" className="mb-2 capitalize">
                           {rarity.toLowerCase()}
                         </Badge>
@@ -104,8 +104,8 @@ export default function OccupationHunter() {
                 <div>
                   <h4 className="mb-2 font-medium">Hunting Ranks & Requirements</h4>
                   <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                    {HUNTING_RANKS.map((rank) => (
-                      <div key={rank}>
+                    {HUNTING_RANKS.map((rank, i) => (
+                      <div key={`${rank}-${i}`}>
                         <Badge variant="outline" className="mb-2">
                           {rank} ({HUNTING_REQUIRED_EXP[rank].toLocaleString()}+ exp)
                         </Badge>
@@ -113,8 +113,11 @@ export default function OccupationHunter() {
                           <div>Drop Chances:</div>
                           <ul className="space-y-1">
                             {Object.entries(HUNTING_ITEM_DROP_CHANCES[rank]).map(
-                              ([rarity, chance]) => (
-                                <li key={rarity} className="flex justify-between">
+                              ([rarity, chance], i) => (
+                                <li
+                                  key={`${rarity}-${i}`}
+                                  className="flex justify-between"
+                                >
                                   <span>
                                     • {capitalizeFirstLetter(rarity.toLowerCase())}:
                                   </span>

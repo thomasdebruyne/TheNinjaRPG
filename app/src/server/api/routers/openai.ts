@@ -16,7 +16,7 @@ export const generativeAiRouter = createTRPCRouter({
   create3dModel: protectedProcedure
     .input(
       z.object({
-        imgUrl: z.string().url("imgUrl must be a valid http/https URL"),
+        imgUrl: z.url("imgUrl must be a valid http/https URL"),
         field: z.string(),
       }),
     )
@@ -40,7 +40,7 @@ export const generativeAiRouter = createTRPCRouter({
         maxDim: z.number(),
       }),
     )
-    .output(baseServerResponse.extend({ url: z.string().url().optional().nullable() }))
+    .output(baseServerResponse.extend({ url: z.url().optional().nullable() }))
     .mutation(async ({ ctx, input }) => {
       // Query
       const [user, historicalToday] = await Promise.all([

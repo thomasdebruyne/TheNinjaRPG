@@ -31,10 +31,11 @@
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "warn",
-        "useExhaustiveDependencies": "off"
+        "useExhaustiveDependencies": "off"        
       },
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "off"
       },
       "nursery": {
         "useSortedClasses": {

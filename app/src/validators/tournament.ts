@@ -12,3 +12,4 @@ export const tournamentCreateSchema = z.object({
 });
 
 export type TournamentCreateSchema = z.infer<typeof tournamentCreateSchema>;
+export type TournamentCreateSchemaInput = z.input<typeof tournamentCreateSchema>;

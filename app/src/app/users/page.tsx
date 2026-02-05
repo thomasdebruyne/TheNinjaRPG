@@ -172,8 +172,8 @@ export default function Users() {
               <SelectValue placeholder={activeTab} />
             </SelectTrigger>
             <SelectContent>
-              {tabNames.map((tab) => (
-                <SelectItem key={tab} value={tab}>
+              {tabNames.map((tab, i) => (
+                <SelectItem key={`${tab}-${i}`} value={tab}>
                   {tab}
                 </SelectItem>
               ))}

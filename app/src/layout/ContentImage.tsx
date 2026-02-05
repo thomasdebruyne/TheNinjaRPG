@@ -1,6 +1,5 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
-import { cn } from "src/libs/shadui";
 import {
   IMG_RARITY_COMMON,
   IMG_RARITY_EPIC,
@@ -11,6 +10,7 @@ import {
 import type { ItemRarity } from "@/drizzle/schema";
 import NextImage from "@/layout/Image";
 import Loader from "@/layout/Loader";
+import { cn } from "@/libs/shadui";
 
 interface ContentImageProps {
   image?: string | null;

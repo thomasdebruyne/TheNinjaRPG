@@ -14,7 +14,7 @@ import type { CraftingRequirement, Item } from "@/drizzle/schema";
 import type { FormEntry } from "@/layout/EditContent";
 import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
 import { calculateContentDiff } from "@/utils/diff";
-import type { ZodAllTags, ZodItemType } from "@/validators/combat";
+import type { ZodAllTags, ZodItemInput, ZodItemType } from "@/validators/combat";
 import { ItemValidator } from "@/validators/combat";
 
 /**
@@ -41,11 +41,11 @@ export const useItemEditForm = (
   };
 
   // Form handling
-  const form = useForm<ZodItemType>({
+  const form = useForm<ZodItemInput, unknown, ZodItemType>({
     mode: "all",
     criteriaMode: "all",
-    values: item,
-    defaultValues: item,
+    values: item as ZodItemInput,
+    defaultValues: item as ZodItemInput,
     resolver: zodResolver(ItemValidator),
   });
 
@@ -103,7 +103,7 @@ export const useItemEditForm = (
 
   // Query for items if this item is canBeCrafted
   const { data: itemsData } = api.item.getAllNames.useQuery(undefined, {
-    enabled: canBeCrafted,
+    enabled: canBeCrafted as boolean | undefined,
   });
 
   // Query for bloodlines for bloodline requirement dropdown

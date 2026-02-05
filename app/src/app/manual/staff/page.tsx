@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FileUser, Info, List } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,6 +21,7 @@ import { StaffApplicationTargetRoles } from "@/drizzle/constants";
 import AvatarImage from "@/layout/Avatar";
 import Confirm2 from "@/layout/Confirm2";
 import ContentBox from "@/layout/ContentBox";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { useUserData } from "@/utils/UserContext";
 import type { CreateApplicationSchema } from "@/validators/applications";
@@ -107,8 +107,8 @@ export default function Staff() {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        {StaffApplicationTargetRoles.map((r) => (
-                          <SelectItem key={r} value={r}>
+                        {StaffApplicationTargetRoles.map((r, i) => (
+                          <SelectItem key={`${r}-${i}`} value={r}>
                             {r.replace("_", " ")}
                           </SelectItem>
                         ))}
@@ -129,6 +129,20 @@ export default function Staff() {
                       }
                       rows={6}
                     />
+                    <div className="mt-1 flex justify-between text-sm">
+                      <span className="text-destructive">
+                        {form.formState.errors.motivation?.message}
+                      </span>
+                      <span
+                        className={
+                          form.watch("motivation").length < 10
+                            ? "text-muted-foreground"
+                            : "text-green-600"
+                        }
+                      >
+                        {form.watch("motivation").length}/10 min
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Confirm2>

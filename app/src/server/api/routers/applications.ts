@@ -26,6 +26,7 @@ import {
 
 export const applicationsRouter = createTRPCRouter({
   create: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create a new staff application" } })
     .input(createApplicationSchema)
     .output(baseServerResponse.extend({ id: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
@@ -72,6 +73,7 @@ export const applicationsRouter = createTRPCRouter({
     }),
 
   get: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get a staff application by ID" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       // Query
@@ -90,6 +92,9 @@ export const applicationsRouter = createTRPCRouter({
 
   // Infinite list with filters
   list: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "List staff applications with filters" },
+    })
     .input(listApplicationsInfiniteSchema)
     .query(async ({ ctx, input }) => {
       const currentCursor = input.cursor ?? 0;

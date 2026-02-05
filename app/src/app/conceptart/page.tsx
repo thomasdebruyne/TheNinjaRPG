@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,16 +53,13 @@ import { useInfinitePagination } from "@/libs/pagination";
 import { showMutationToast } from "@/libs/toast";
 import { useUserData } from "@/utils/UserContext";
 import { UploadDropzone } from "@/utils/uploadthing";
-import type {
-  ConceptFilterType,
-  ConceptPromptType,
-  ConceptVideoPromptType,
-} from "@/validators/art";
 import {
   conceptArtFilterSchema,
   conceptArtPromptSchema,
   conceptVideoPromptSchema,
+  type SortOption,
   sortOptions,
+  type TimeFrame,
   timeFrame,
 } from "@/validators/art";
 
@@ -78,19 +76,31 @@ export default function ConceptArt() {
   const utils = api.useUtils();
 
   // Form handling - filter
-  const filterForm = useForm<ConceptFilterType>({
+  const filterForm = useForm<
+    z.input<typeof conceptArtFilterSchema>,
+    unknown,
+    z.infer<typeof conceptArtFilterSchema>
+  >({
     defaultValues: conceptArtFilterSchema.parse({}),
     resolver: zodResolver(conceptArtFilterSchema),
   });
 
   // Form handling - image prompt
-  const promptForm = useForm<ConceptPromptType>({
+  const promptForm = useForm<
+    z.input<typeof conceptArtPromptSchema>,
+    unknown,
+    z.infer<typeof conceptArtPromptSchema>
+  >({
     defaultValues: conceptArtPromptSchema.parse({}),
     resolver: zodResolver(conceptArtPromptSchema),
   });
 
   // Form handling - video prompt
-  const videoPromptForm = useForm<ConceptVideoPromptType>({
+  const videoPromptForm = useForm<
+    z.input<typeof conceptVideoPromptSchema>,
+    unknown,
+    z.infer<typeof conceptVideoPromptSchema>
+  >({
     defaultValues: {
       prompt: "",
       negative_prompt: "",
@@ -232,9 +242,7 @@ export default function ConceptArt() {
             />
           </div>
           <Select
-            onValueChange={(e) =>
-              filterForm.setValue("sort", e as (typeof sortOptions)[number])
-            }
+            onValueChange={(e) => filterForm.setValue("sort", e as SortOption)}
             defaultValue={sort}
             value={sort}
           >
@@ -242,17 +250,15 @@ export default function ConceptArt() {
               <SelectValue placeholder={`None`} />
             </SelectTrigger>
             <SelectContent>
-              {sortOptions.map((value) => (
-                <SelectItem key={value} value={value}>
+              {sortOptions.map((value, i) => (
+                <SelectItem key={`${value}-${i}`} value={value}>
                   {value}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select
-            onValueChange={(e) =>
-              filterForm.setValue("time_frame", e as (typeof timeFrame)[number])
-            }
+            onValueChange={(e) => filterForm.setValue("time_frame", e as TimeFrame)}
             defaultValue={time_frame}
             value={time_frame}
           >
@@ -260,8 +266,8 @@ export default function ConceptArt() {
               <SelectValue placeholder={`None`} />
             </SelectTrigger>
             <SelectContent>
-              {timeFrame.map((value) => (
-                <SelectItem key={value} value={value}>
+              {timeFrame.map((value, i) => (
+                <SelectItem key={`${value}-${i}`} value={value}>
                   {value}
                 </SelectItem>
               ))}
@@ -344,7 +350,13 @@ export default function ConceptArt() {
 
 /** Form component for creating images */
 const ImageCreationForm: React.FC<{
-  form: ReturnType<typeof useForm<ConceptPromptType>>;
+  form: ReturnType<
+    typeof useForm<
+      z.input<typeof conceptArtPromptSchema>,
+      unknown,
+      z.infer<typeof conceptArtPromptSchema>
+    >
+  >;
 }> = ({ form }) => (
   <Form {...form}>
     <div className="space-y-4">
@@ -355,7 +367,11 @@ const ImageCreationForm: React.FC<{
           <FormItem>
             <FormLabel>Prompt</FormLabel>
             <FormControl>
-              <Input placeholder="Describe your image..." {...field} />
+              <Input
+                placeholder="Describe your image..."
+                {...field}
+                value={field.value as string}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -371,7 +387,7 @@ const ImageCreationForm: React.FC<{
               <Input
                 placeholder="Seed value"
                 type="number"
-                value={field.value ?? ""}
+                value={(field.value as number) ?? ""}
                 onChange={(e) => {
                   const value = e.target.value;
                   field.onChange(value === "" ? undefined : Number(value));
@@ -392,7 +408,13 @@ const ImageCreationForm: React.FC<{
 
 /** Form component for creating videos */
 const VideoCreationForm: React.FC<{
-  form: ReturnType<typeof useForm<ConceptVideoPromptType>>;
+  form: ReturnType<
+    typeof useForm<
+      z.input<typeof conceptVideoPromptSchema>,
+      unknown,
+      z.infer<typeof conceptVideoPromptSchema>
+    >
+  >;
 }> = ({ form }) => (
   <Form {...form}>
     <div className="space-y-4">
@@ -407,6 +429,7 @@ const VideoCreationForm: React.FC<{
                 placeholder="Describe your video scene..."
                 className="min-h-[80px]"
                 {...field}
+                value={field.value as string}
               />
             </FormControl>
             <FormMessage />
@@ -420,7 +443,11 @@ const VideoCreationForm: React.FC<{
           <FormItem>
             <FormLabel>Negative Prompt (optional)</FormLabel>
             <FormControl>
-              <Input placeholder="What to avoid in the video..." {...field} />
+              <Input
+                placeholder="What to avoid in the video..."
+                {...field}
+                value={field.value as string}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -436,7 +463,7 @@ const VideoCreationForm: React.FC<{
               <Input
                 placeholder="Seed value"
                 type="number"
-                value={field.value ?? ""}
+                value={(field.value as number) ?? ""}
                 onChange={(e) => {
                   const value = e.target.value;
                   field.onChange(value === "" ? undefined : Number(value));
@@ -460,7 +487,7 @@ const VideoCreationForm: React.FC<{
               <FormLabel>Start Image (optional)</FormLabel>
               <FormControl>
                 <ConceptArtImageSelector
-                  value={field.value}
+                  value={field.value as string | undefined}
                   onChange={field.onChange}
                   label="First frame"
                 />
@@ -478,7 +505,7 @@ const VideoCreationForm: React.FC<{
               <FormLabel>Last Image (optional)</FormLabel>
               <FormControl>
                 <ConceptArtImageSelector
-                  value={field.value}
+                  value={field.value as string | undefined}
                   onChange={field.onChange}
                   label="Final frame"
                 />

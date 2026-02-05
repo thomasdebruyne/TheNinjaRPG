@@ -10,9 +10,12 @@ const isPublicRoute = createRouteMatcher([
   "/api/daily",
   "/api/healthcheck",
   "/api/ipn",
+  "/api/mcp/(.*)",
   "/api/subscriptions",
   "/api/trpc/(.*)",
   "/api/uploadthing",
+  "/.well-known/oauth-authorization-server(.*)",
+  "/.well-known/oauth-protected-resource(.*)",
   "/conceptart(.*)",
   "/forum(.*)",
   "/github",
@@ -35,12 +38,24 @@ const isPublicRoute = createRouteMatcher([
 //   return NextResponse.next();
 // }
 
+const isMcpRoute = createRouteMatcher([
+  "/api/mcp/(.*)",
+  "/.well-known/oauth-authorization-server(.*)",
+  "/.well-known/oauth-protected-resource(.*)",
+]);
+
 export default clerkMiddleware(
   async (auth, request) => {
     // Protect all routes except for the public ones
     if (!isPublicRoute(request)) {
       await auth.protect();
     }
+
+    // Skip auth() call for MCP routes - they handle OAuth tokens separately
+    if (isMcpRoute(request)) {
+      return NextResponse.next();
+    }
+
     // Ensure valid user agent
     // return uaMiddleware(request);
     const { pathname } = request.nextUrl;
@@ -69,5 +84,6 @@ export const config = {
      */
     "/(.*?trpc.*?|.*?api.*?|(?!static|.*\\..*|_next|favicon.ico).*)",
     "/",
+    "/.well-known/:path*",
   ],
 };

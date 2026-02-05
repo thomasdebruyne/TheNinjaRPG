@@ -3,6 +3,7 @@
 import { FileMinus, FilePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import type { SkillTree } from "@/drizzle/schema";
 import { useSkillTreeEditForm } from "@/hooks/skillTree";
@@ -13,7 +14,13 @@ import Loader from "@/layout/Loader";
 import { canChangeContent } from "@/utils/permissions";
 import { setNullsToEmptyStrings } from "@/utils/typeutils";
 import { useRequiredUserData } from "@/utils/UserContext";
-import { DamageTag, SkillTreeValidator, tagTypes } from "@/validators/combat";
+import {
+  DamageTag,
+  SkillTreeValidator,
+  tagTypes,
+  type ZodAllTags,
+  type ZodSkillTreeType,
+} from "@/validators/combat";
 
 export default function SkillTreeEdit(props: { params: Promise<{ skillid: string }> }) {
   const params = use(props.params);
@@ -62,13 +69,17 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
     handleSkillTreeSubmit,
   } = useSkillTreeEditForm(props.skillTree, props.refetch);
 
+  // Filter out any undefined effects from useWatch
+  const validEffects = (effects?.filter((e): e is ZodAllTags => e !== undefined) ??
+    []) as ZodAllTags[];
+
   // Icon for adding tag
   const AddTagIcon = (
     <FilePlus
       className="h-6 w-6 cursor-pointer hover:text-orange-500"
       onClick={() => {
         setEffects([
-          ...effects,
+          ...validEffects,
           DamageTag.parse({
             description: "placeholder",
             rounds: 0,
@@ -89,7 +100,9 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
         noRightAlign={true}
         topRightContent={
           <div className="flex justify-end">
-            <SkillTreeHelper skillTree={form.getValues()} />
+            <SkillTreeHelper
+              skillTree={form.getValues() as unknown as ZodSkillTreeType}
+            />
           </div>
         }
       >
@@ -97,7 +110,7 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
         {!loading && skillTree && (
           <EditContent
             schema={SkillTreeValidator}
-            form={form}
+            form={form as unknown as UseFormReturn<ZodSkillTreeType, any>}
             formData={formData}
             showSubmit={true}
             buttonTxt="Save to Database"
@@ -109,7 +122,7 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
         )}
       </ContentBox>
 
-      {effects.length === 0 && (
+      {validEffects.length === 0 && (
         <ContentBox
           title={`Skill Tags`}
           initialBreak={true}
@@ -118,7 +131,7 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
           Please add effects to this skill
         </ContentBox>
       )}
-      {effects.map((tag, i) => {
+      {validEffects.map((tag, i) => {
         return (
           <ContentBox
             key={`${tag.type}-${i}`}
@@ -131,7 +144,7 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
                 <FileMinus
                   className="h-6 w-6 cursor-pointer hover:text-orange-500"
                   onClick={() => {
-                    const newEffects = [...effects];
+                    const newEffects = [...validEffects];
                     newEffects.splice(i, 1);
                     setEffects(newEffects);
                   }}
@@ -144,7 +157,7 @@ const SingleEditSkillTree: React.FC<SingleEditSkillTreeProps> = (props) => {
               type="skillTree"
               tag={tag}
               availableTags={tagTypes}
-              effects={effects}
+              effects={validEffects}
               setEffects={setEffects}
             />
           </ContentBox>

@@ -14,12 +14,14 @@ export const clanCreateSchema = z.object({
     .min(3)
     .max(88)
     .regex(/^[a-zA-Z0-9_]+$/, {
-      message: "Alphanumeric, no spaces",
+      error: "Alphanumeric, no spaces",
     })
     .refine(
       (name) =>
         !bannedNames.some((banned) => banned.toLowerCase() === name.toLowerCase()),
-      { message: "This clan name is not allowed." },
+      {
+        error: "This clan name is not allowed.",
+      },
     ),
 });
 
@@ -35,7 +37,9 @@ export const factionEditSchema = z.object({
     .refine(
       (name) =>
         !bannedNames.some((banned) => banned.toLowerCase() === name.toLowerCase()),
-      { message: "This clan name is not allowed." },
+      {
+        error: "This clan name is not allowed.",
+      },
     ),
   image: z.string(),
 });
@@ -45,7 +49,7 @@ export type FactionEditSchema = z.infer<typeof factionEditSchema>;
 export const factionColorEditSchema = z.object({
   clanId: z.string(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, {
-    message: "Must be a valid hex color code",
+    error: "Must be a valid hex color code",
   }),
 });
 
@@ -83,3 +87,20 @@ export const checkAssassin = (userId: string, clanData?: Clan | null) => {
     clanData?.assassin10,
   ].includes(userId);
 };
+
+// Clan search schema (used in Clan.tsx for searching clans)
+export const getClanSearchSchema = (maxClans: number) =>
+  z.object({
+    name: z.string(),
+    clans: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          image: z.string().url().optional().nullish(),
+        }),
+      )
+      .min(1)
+      .max(maxClans),
+  });
+export type ClanSearchSchema = z.infer<ReturnType<typeof getClanSearchSchema>>;

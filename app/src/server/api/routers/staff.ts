@@ -635,7 +635,7 @@ export const staffRouter = createTRPCRouter({
       return historicalIps;
     }),
   releaseSector: protectedProcedure
-    .input(z.object({ sector: z.number().int() }))
+    .input(z.object({ sector: z.int() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
       // Fetches

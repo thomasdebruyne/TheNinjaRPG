@@ -202,8 +202,8 @@ export const SkillTreeFolderModal: React.FC<SkillTreeFolderModalProps> = ({
           )}
 
           {/* Skills grouped by tier */}
-          {tiers.map((tier) => (
-            <div key={tier}>
+          {tiers.map((tier, i) => (
+            <div key={`${tier}-${i}`}>
               <h4 className="mb-2 font-semibold text-muted-foreground text-sm">
                 Tier {tier}
               </h4>
@@ -384,7 +384,7 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
         <div>
           <h5 className="mb-2 font-semibold text-sm">Prerequisites:</h5>
           <ul className="space-y-1">
-            {skill.requiredSkillIds.map((reqId) => {
+            {skill.requiredSkillIds.map((reqId, i) => {
               const prereq = allSkills.find((s) => s.id === reqId);
               const isPrereqActivated = activatedSkillIds.includes(reqId);
               const isInDifferentFolder = prereq && prereq.folderId !== folder.id;
@@ -394,7 +394,7 @@ const SkillDetails: React.FC<SkillDetailsProps> = ({
 
               return (
                 <li
-                  key={reqId}
+                  key={`${reqId}-${i}`}
                   className={`flex items-center gap-2 text-sm ${isPrereqActivated ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
                 >
                   {isPrereqActivated ? (

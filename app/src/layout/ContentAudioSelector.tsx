@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { cn } from "src/libs/shadui";
+import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +25,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Loader from "@/layout/Loader";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
-import { type GenerateAudioInput, generateAudioSchema } from "@/validators/audio";
+import { generateAudioSchema } from "@/validators/audio";
 
 interface ContentAudioSelectorProps {
   relationId: string;
@@ -38,7 +39,11 @@ const ContentAudioSelector: React.FC<ContentAudioSelectorProps> = (props) => {
   const { relationId, value, onChange } = props;
   const utils = api.useUtils();
   const [isOpen, setIsOpen] = useState(false);
-  const form = useForm<GenerateAudioInput>({
+  const form = useForm<
+    z.input<typeof generateAudioSchema>,
+    unknown,
+    z.output<typeof generateAudioSchema>
+  >({
     resolver: zodResolver(generateAudioSchema),
     defaultValues: {
       relationId,
@@ -145,7 +150,7 @@ const ContentAudioSelector: React.FC<ContentAudioSelectorProps> = (props) => {
                               max={5}
                               step={1}
                               className="w-28"
-                              value={field.value}
+                              value={field.value as number}
                               onChange={(e) =>
                                 field.onChange(
                                   Number.isFinite(e.currentTarget.valueAsNumber)

@@ -3,6 +3,7 @@
 import { FileMinus, FilePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import type { CraftingRequirement, Item } from "@/drizzle/schema";
 import { useItemEditForm } from "@/hooks/item";
@@ -14,8 +15,13 @@ import Loader from "@/layout/Loader";
 import { canChangeContent } from "@/utils/permissions";
 import { setNullsToEmptyStrings } from "@/utils/typeutils";
 import { useRequiredUserData } from "@/utils/UserContext";
-import type { ZodItemType } from "@/validators/combat";
-import { DamageTag, getTagSchema, ItemValidator, tagTypes } from "@/validators/combat";
+import type { ZodAllTags, ZodItemType } from "@/validators/combat";
+import {
+  DamageTag,
+  getTagSchema,
+  ItemValidatorRawSchema,
+  tagTypes,
+} from "@/validators/combat";
 
 export default function ItemEdit(props: { params: Promise<{ itemid: string }> }) {
   const params = use(props.params);
@@ -58,13 +64,17 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
   const { item, effects, form, formData, setEffects, handleItemSubmit } =
     useItemEditForm(props.item, props.refetch);
 
+  // Filter out any undefined effects from useWatch
+  const validEffects = (effects?.filter((e): e is ZodAllTags => e !== undefined) ??
+    []) as ZodAllTags[];
+
   // Icon for adding tag
   const AddTagIcon = (
     <FilePlus
       className="h-6 w-6 cursor-pointer hover:text-orange-500"
       onClick={() => {
         setEffects([
-          ...effects,
+          ...validEffects,
           DamageTag.parse({
             description: "placeholder",
             rounds: 0,
@@ -122,7 +132,7 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
                   void form.trigger();
                 }}
               />
-              <ItemHelper item={form.getValues()} />
+              <ItemHelper item={form.getValues() as unknown as ZodItemType} />
             </div>
           ) : undefined
         }
@@ -130,8 +140,8 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
         {!item && <p>Could not find this item</p>}
         {item && (
           <EditContent
-            schema={ItemValidator._def.schema._def.schema}
-            form={form}
+            schema={ItemValidatorRawSchema}
+            form={form as unknown as UseFormReturn<ZodItemType, any>}
             formData={formData}
             showSubmit={true}
             buttonTxt="Save to Database"
@@ -143,7 +153,7 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
         )}
       </ContentBox>
 
-      {effects.length === 0 && (
+      {validEffects.length === 0 && (
         <ContentBox
           title={`Item Tags`}
           initialBreak={true}
@@ -152,7 +162,7 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
           Please add effects to this item
         </ContentBox>
       )}
-      {effects.map((tag, i) => {
+      {validEffects.map((tag, i) => {
         return (
           <ContentBox
             key={`${tag.type}-${i}`}
@@ -165,7 +175,7 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
                 <FileMinus
                   className="h-6 w-6 cursor-pointer hover:text-orange-500"
                   onClick={() => {
-                    const newEffects = [...effects];
+                    const newEffects = [...validEffects];
                     newEffects.splice(i, 1);
                     setEffects(newEffects);
                   }}
@@ -178,7 +188,7 @@ const SingleEditItem: React.FC<SingleEditItemProps> = (props) => {
               type="item"
               tag={tag}
               availableTags={tagTypes}
-              effects={effects}
+              effects={validEffects}
               setEffects={setEffects}
             />
           </ContentBox>

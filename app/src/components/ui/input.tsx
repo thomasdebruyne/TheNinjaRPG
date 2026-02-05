@@ -1,6 +1,6 @@
 import type * as React from "react";
 
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   isDirty?: boolean;

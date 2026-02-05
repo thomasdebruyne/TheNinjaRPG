@@ -16,7 +16,6 @@ import Link from "next/link";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +69,11 @@ import { canTakeKage } from "@/utils/permissions";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import { secondsFromDate, secondsPassed } from "@/utils/time";
 import { useRequiredUserData } from "@/utils/UserContext";
+import {
+  createPrestigeTransferSchema,
+  type PrestigeTransferSchema,
+  type PrestigeTransferSchemaInput,
+} from "@/validators/misc";
 
 export default function TownHall() {
   const { data: userData } = useRequiredUserData();
@@ -288,17 +292,14 @@ const KageHall: React.FC<{
   const isElder = user.rank === "ELDER";
 
   // Schema for prestige sending
-  const prestigeSchema = z.object({
-    amount: z.coerce
-      .number()
-      .int()
-      .positive()
-      .max(user.villagePrestige ?? 0)
-      .optional(),
-  });
+  const prestigeSchema = createPrestigeTransferSchema(user.villagePrestige ?? 0);
 
   // Form for prestige sending
-  const prestigeForm = useForm<z.infer<typeof prestigeSchema>>({
+  const prestigeForm = useForm<
+    PrestigeTransferSchemaInput,
+    unknown,
+    PrestigeTransferSchema
+  >({
     resolver: zodResolver(prestigeSchema),
   });
 
@@ -360,6 +361,7 @@ const KageHall: React.FC<{
                         id="amount"
                         placeholder={`Send prestige (max ${user.villagePrestige})`}
                         {...field}
+                        value={field.value as number | undefined}
                       />
                     </FormControl>
                     <FormMessage />

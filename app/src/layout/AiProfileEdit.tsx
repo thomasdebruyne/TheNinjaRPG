@@ -22,12 +22,7 @@ import NavTabs from "@/layout/NavTabs";
 import { showMutationToast } from "@/libs/toast";
 import { canChangeContent } from "@/utils/permissions";
 import { useRequiredUserData } from "@/utils/UserContext";
-import type {
-  AiActionType,
-  AiConditionType,
-  AiRuleType,
-  ZodAllAiCondition,
-} from "@/validators/ai";
+import type { AiRuleType, ZodAllAiAction, ZodAllAiCondition } from "@/validators/ai";
 import {
   ActionMoveTowardsOpponent,
   AiActionTypes,
@@ -250,7 +245,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                   value={""}
                   onValueChange={(e) =>
                     setRules((prevRules) => {
-                      const schema = getConditionSchema(e as AiConditionType);
+                      const conditionType = e as ZodAllAiCondition["type"];
+                      const schema = getConditionSchema(conditionType);
                       const newRules = [...prevRules];
                       newRules?.[ruleIndex]?.conditions.push(schema.parse({}));
                       return newRules;
@@ -262,8 +258,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                     <SelectValue placeholder={`None`} />
                   </SelectTrigger>
                   <SelectContent id="available_conditions">
-                    {AiConditionTypes.map((condition) => (
-                      <SelectItem key={condition} value={condition}>
+                    {AiConditionTypes.map((condition, i) => (
+                      <SelectItem key={`${condition}-${i}`} value={condition}>
                         {condition}
                       </SelectItem>
                     ))}
@@ -363,8 +359,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                           <SelectValue placeholder="Select target" />
                         </SelectTrigger>
                         <SelectContent>
-                          {AvailableTargets.map((target) => (
-                            <SelectItem key={target} value={target}>
+                          {AvailableTargets.map((target, i) => (
+                            <SelectItem key={`${target}-${i}`} value={target}>
                               {target}
                             </SelectItem>
                           ))}
@@ -385,17 +381,18 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                   defaultValue={currentActionType}
                   value={currentActionType}
                   onValueChange={(e) =>
-                    setRules((prevRules) =>
-                      prevRules.map((rule, k) => {
+                    setRules((prevRules) => {
+                      const actionType = e as ZodAllAiAction["type"];
+                      return prevRules.map((rule, k) => {
                         if (k === ruleIndex) {
                           return {
                             ...rule,
-                            action: getActionSchema(e as AiActionType).parse({}),
+                            action: getActionSchema(actionType).parse({}),
                           };
                         }
                         return rule;
-                      }),
-                    )
+                      });
+                    })
                   }
                 >
                   <Label htmlFor="available_action">Selected Action</Label>
@@ -403,8 +400,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                     <SelectValue placeholder={`None`} />
                   </SelectTrigger>
                   <SelectContent id="available_action">
-                    {AiActionTypes.map((action) => (
-                      <SelectItem key={action} value={action}>
+                    {AiActionTypes.map((action, i) => (
+                      <SelectItem key={`${action}-${i}`} value={action}>
                         {action}
                       </SelectItem>
                     ))}
@@ -538,8 +535,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         <SelectValue placeholder={`None`} />
                       </SelectTrigger>
                       <SelectContent id="available_action">
-                        {AvailableTargets?.map((target) => (
-                          <SelectItem key={target} value={target}>
+                        {AvailableTargets?.map((target, i) => (
+                          <SelectItem key={`${target}-${i}`} value={target}>
                             {target}
                           </SelectItem>
                         ))}
@@ -571,8 +568,8 @@ const AiProfileEdit: React.FC<AiProfileEditProps> = (props) => {
                         <SelectValue placeholder={`None`} />
                       </SelectTrigger>
                       <SelectContent id="available_action">
-                        {tagTypes?.map((effect) => (
-                          <SelectItem key={effect} value={effect}>
+                        {tagTypes?.map((effect, i) => (
+                          <SelectItem key={`${effect}-${i}`} value={effect}>
                             {effect}
                           </SelectItem>
                         ))}

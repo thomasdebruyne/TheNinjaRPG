@@ -10,6 +10,7 @@ import {
   type CharacterAssetConfig,
   characterAnimationStates,
   type InsertTowerDefenseCharacter,
+  type InsertTowerDefenseCharacterInput,
   insertTowerDefenseCharacterSchema,
 } from "@/validators/towerDefense";
 
@@ -21,11 +22,15 @@ export const useTowerDefenseCharacterEditForm = (
   refetch: () => void,
 ) => {
   // Form handling
-  const form = useForm<InsertTowerDefenseCharacter>({
+  const form = useForm<
+    InsertTowerDefenseCharacterInput,
+    unknown,
+    InsertTowerDefenseCharacter
+  >({
     mode: "all",
     criteriaMode: "all",
-    values: character,
-    defaultValues: character,
+    values: character as InsertTowerDefenseCharacterInput,
+    defaultValues: character as InsertTowerDefenseCharacterInput,
     resolver: zodResolver(insertTowerDefenseCharacterSchema),
   });
 
@@ -78,12 +83,13 @@ export const useTowerDefenseCharacterEditForm = (
     newState: CharacterAnimationState,
   ) => {
     if (!assetConfig) return;
+    const config = assetConfig as CharacterAssetConfig;
 
-    const updatedAnimations = [...assetConfig.animations];
+    const updatedAnimations = [...config.animations];
     const anim = updatedAnimations[animIndex];
     if (anim) {
       updatedAnimations[animIndex] = { ...anim, state: newState };
-      setAssetConfig({ ...assetConfig, animations: updatedAnimations });
+      setAssetConfig({ ...config, animations: updatedAnimations });
     }
   };
 
@@ -93,12 +99,13 @@ export const useTowerDefenseCharacterEditForm = (
     settings: { frameDurationMs?: number; loop?: boolean },
   ) => {
     if (!assetConfig) return;
+    const config = assetConfig as CharacterAssetConfig;
 
-    const updatedAnimations = [...assetConfig.animations];
+    const updatedAnimations = [...config.animations];
     const anim = updatedAnimations[animIndex];
     if (anim) {
       updatedAnimations[animIndex] = { ...anim, ...settings };
-      setAssetConfig({ ...assetConfig, animations: updatedAnimations });
+      setAssetConfig({ ...config, animations: updatedAnimations });
     }
   };
 

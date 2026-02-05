@@ -11,7 +11,6 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import Image from "next/image";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import {
   AlertDialog,
@@ -31,6 +30,7 @@ import { COST_STREAK_CATCHUP_DAY } from "@/drizzle/constants";
 import Confirm2 from "@/layout/Confirm2";
 import Loader from "@/layout/Loader";
 import { getRewardPreview } from "@/libs/objectives";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 
 export function ActivityStreakPanel() {
@@ -150,7 +150,7 @@ export function ActivityStreakPanel() {
               {Array.from(
                 { length: userStreaks.activeRecurringConfig.totalDays },
                 (_, i) => i + 1,
-              ).map((day) => {
+              ).map((day, i) => {
                 const isNext = day === 1;
                 const isFuture = day > 1;
                 const reward = userStreaks.activeRecurringConfig?.rewards.find(
@@ -160,7 +160,7 @@ export function ActivityStreakPanel() {
 
                 return (
                   <DayCell
-                    key={day}
+                    key={`${day}-${i}`}
                     day={day}
                     isClaimed={false}
                     isNext={isNext}
@@ -330,35 +330,37 @@ export function ActivityStreakPanel() {
 
             {/* Progress grid */}
             <div className="grid grid-cols-7 gap-2">
-              {Array.from({ length: streak.totalDays }, (_, i) => i + 1).map((day) => {
-                const isClaimed = day <= streak.currentDay;
-                const isNext =
-                  day === streak.nextDayNumber &&
-                  (streak.canClaimToday || streak.needsCatchUp);
-                // A day is "to catch up" if it's between currentDay and theoreticalMaxDay
-                const isMissed =
-                  streak.needsCatchUp &&
-                  streak.theoreticalMaxDay !== undefined &&
-                  day > streak.currentDay &&
-                  day <= streak.theoreticalMaxDay;
-                const isFuture =
-                  day > (streak.theoreticalMaxDay ?? streak.nextDayNumber);
-                const reward = streak.allRewards.find((r) => r.dayNumber === day);
-                const rewardPreview = getRewardPreview(reward?.rewards ?? null);
+              {Array.from({ length: streak.totalDays }, (_, i) => i + 1).map(
+                (day, i) => {
+                  const isClaimed = day <= streak.currentDay;
+                  const isNext =
+                    day === streak.nextDayNumber &&
+                    (streak.canClaimToday || streak.needsCatchUp);
+                  // A day is "to catch up" if it's between currentDay and theoreticalMaxDay
+                  const isMissed =
+                    streak.needsCatchUp &&
+                    streak.theoreticalMaxDay !== undefined &&
+                    day > streak.currentDay &&
+                    day <= streak.theoreticalMaxDay;
+                  const isFuture =
+                    day > (streak.theoreticalMaxDay ?? streak.nextDayNumber);
+                  const reward = streak.allRewards.find((r) => r.dayNumber === day);
+                  const rewardPreview = getRewardPreview(reward?.rewards ?? null);
 
-                return (
-                  <DayCell
-                    key={day}
-                    day={day}
-                    isClaimed={isClaimed}
-                    isNext={isNext}
-                    isMissed={isMissed && !isNext}
-                    isFuture={isFuture && !isMissed}
-                    rewardImage={reward?.image}
-                    rewardPreview={rewardPreview}
-                  />
-                );
-              })}
+                  return (
+                    <DayCell
+                      key={`${day}-${i}`}
+                      day={day}
+                      isClaimed={isClaimed}
+                      isNext={isNext}
+                      isMissed={isMissed && !isNext}
+                      isFuture={isFuture && !isMissed}
+                      rewardImage={reward?.image}
+                      rewardPreview={rewardPreview}
+                    />
+                  );
+                },
+              )}
             </div>
 
             {/* Legend */}

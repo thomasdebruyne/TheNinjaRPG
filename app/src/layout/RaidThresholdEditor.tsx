@@ -5,7 +5,6 @@ import { Clock, Gift, Pencil, Plus, Shield, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,22 +32,20 @@ import { canAwardReputation } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
 import type { ZodAllTags } from "@/validators/combat";
 import { getTagSchema, tagTypes } from "@/validators/combat";
-import type { ObjectiveRewardType } from "@/validators/rewards";
-import { ObjectiveReward } from "@/validators/rewards";
+import {
+  type ThresholdFormData,
+  type ThresholdFormDataInput,
+  thresholdFormSchema,
+} from "@/validators/raids";
+import {
+  ObjectiveReward,
+  type ObjectiveRewardInputType,
+  type ObjectiveRewardType,
+} from "@/validators/rewards";
 
 interface RaidThresholdEditorProps {
   questId: string;
 }
-
-// Schema for threshold form
-const ThresholdFormSchema = z.object({
-  damageRequired: z.coerce.number().min(1, "Damage must be at least 1"),
-  sortOrder: z.coerce.number().min(0).max(255).default(0),
-  effectDurationMinutes: z.coerce.number().min(1).max(10080).default(60),
-  rewards: ObjectiveReward,
-});
-
-type ThresholdFormData = z.infer<typeof ThresholdFormSchema>;
 
 export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
   questId,
@@ -109,8 +106,8 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
     });
 
   // Form
-  const form = useForm<ThresholdFormData>({
-    resolver: zodResolver(ThresholdFormSchema),
+  const form = useForm<ThresholdFormDataInput, unknown, ThresholdFormData>({
+    resolver: zodResolver(thresholdFormSchema),
     defaultValues: {
       damageRequired: 1000,
       sortOrder: 0,
@@ -359,7 +356,12 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
                   <FormItem>
                     <FormLabel>Damage Required</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} {...field} />
+                      <Input
+                        type="number"
+                        min={1}
+                        {...field}
+                        value={field.value as number}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -372,7 +374,13 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
                   <FormItem>
                     <FormLabel>Sort Order</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} max={255} {...field} />
+                      <Input
+                        type="number"
+                        min={0}
+                        max={255}
+                        {...field}
+                        value={field.value as number}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -386,7 +394,7 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
 
               <div className="flex items-center justify-between rounded-md border p-3">
                 <span className="text-muted-foreground text-sm">
-                  {formatRewards(watchedRewards)}
+                  {formatRewards(watchedRewards as ObjectiveRewardType)}
                 </span>
                 <Button
                   type="button"
@@ -435,6 +443,7 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
                           max={10080}
                           placeholder="60"
                           {...field}
+                          value={field.value as number}
                         />
                       </FormControl>
                       <p className="text-muted-foreground text-xs">
@@ -490,7 +499,7 @@ export const RaidThresholdEditor: React.FC<RaidThresholdEditorProps> = ({
 interface RewardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  parentForm: UseFormReturn<ThresholdFormData>;
+  parentForm: UseFormReturn<ThresholdFormDataInput, unknown, ThresholdFormData>;
   buildRewardFormData: () => FormEntry<keyof ObjectiveRewardType>[];
 }
 
@@ -501,7 +510,7 @@ const RewardDialog: React.FC<RewardDialogProps> = ({
   buildRewardFormData,
 }) => {
   const parentReward = useWatch({ control: parentForm.control, name: "rewards" });
-  const rewardForm = useForm<ObjectiveRewardType>({
+  const rewardForm = useForm<ObjectiveRewardInputType, unknown, ObjectiveRewardType>({
     resolver: zodResolver(ObjectiveReward),
     values: parentReward ?? ObjectiveReward.parse({}),
     defaultValues: parentReward ?? ObjectiveReward.parse({}),
@@ -521,7 +530,7 @@ const RewardDialog: React.FC<RewardDialogProps> = ({
         </DialogHeader>
         <EditContent
           schema={ObjectiveReward}
-          form={rewardForm}
+          form={rewardForm as UseFormReturn<ObjectiveRewardType, unknown>}
           formData={buildRewardFormData()}
           showSubmit={true}
           buttonTxt="Save Rewards"

@@ -3,7 +3,6 @@ import { Edit, Sparkles } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { HistoricalAiAvatar } from "@/app/profile/edit/page";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import Loader from "@/layout/Loader";
 import RichInput from "@/layout/RichInput";
 import { showMutationToast } from "@/libs/toast";
 import { UploadButton } from "@/utils/uploadthing";
+import { type PromptFormSchema, promptFormSchema } from "@/validators/ai";
 
 interface ContentImageSelectorProps {
   label: string;
@@ -36,14 +36,6 @@ interface ContentImageSelectorProps {
   maxDim: number;
 }
 
-const promptFormSchema = z.object({
-  systemPrompt: z.string(),
-  userPrompt: z.string(),
-  editPrompt: z.string(),
-});
-
-type PromptFormData = z.infer<typeof promptFormSchema>;
-
 const ContentImageSelector: React.FC<ContentImageSelectorProps> = (props) => {
   // Destructure props
   const utils = api.useUtils();
@@ -55,7 +47,7 @@ const ContentImageSelector: React.FC<ContentImageSelectorProps> = (props) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form for the prompt inputs
-  const promptForm = useForm<PromptFormData>({
+  const promptForm = useForm<PromptFormSchema>({
     resolver: zodResolver(promptFormSchema),
     defaultValues: {
       systemPrompt: getPrePrompts(),
@@ -77,7 +69,7 @@ const ContentImageSelector: React.FC<ContentImageSelectorProps> = (props) => {
     },
   );
 
-  const handleGenerateImage = (data: PromptFormData) => {
+  const handleGenerateImage = (data: PromptFormSchema) => {
     if (!data.userPrompt) {
       showMutationToast({ success: false, message: "No user prompt" });
       return;
@@ -94,7 +86,7 @@ const ContentImageSelector: React.FC<ContentImageSelectorProps> = (props) => {
     }
   };
 
-  const handleEditImage = (data: PromptFormData) => {
+  const handleEditImage = (data: PromptFormSchema) => {
     if (!imageUrl) {
       showMutationToast({ success: false, message: "No image to edit" });
       return;

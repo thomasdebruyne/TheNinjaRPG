@@ -14,13 +14,16 @@ import { BadgeValidator } from "@/validators/badge";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 export const badgeRouter = createTRPCRouter({
-  getAllNames: publicProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.badge.findMany({
-      columns: { id: true, name: true, image: true },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    });
-  }),
+  getAllNames: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all badge names and images" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.badge.findMany({
+        columns: { id: true, name: true, image: true },
+        orderBy: (table, { asc }) => [asc(table.name)],
+      });
+    }),
   getAll: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all badges with pagination" } })
     .input(
       z
         .object({
@@ -45,6 +48,7 @@ export const badgeRouter = createTRPCRouter({
       };
     }),
   get: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get badge by ID" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const result = await fetchBadge(ctx.drizzle, input.id);

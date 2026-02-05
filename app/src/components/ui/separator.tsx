@@ -2,7 +2,7 @@
 
 import * as SeparatorPrimitive from "@radix-ui/react-separator";
 import type * as React from "react";
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 const Separator = ({
   ref,

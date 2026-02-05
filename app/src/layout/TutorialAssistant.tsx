@@ -4,7 +4,6 @@ import * as Sentry from "@sentry/nextjs";
 import { ArrowRight, Loader2, Settings2, Sparkles, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +40,7 @@ import {
   isQuestComplete,
   isQuestObjectiveAvailable,
 } from "@/libs/objectives";
+import { cn } from "@/libs/shadui";
 import { getMobileOperatingSystem } from "@/utils/hardware";
 import { parseHtml } from "@/utils/parse";
 import { capitalizeFirstLetter } from "@/utils/sanitize";

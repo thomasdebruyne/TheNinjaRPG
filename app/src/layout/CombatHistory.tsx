@@ -1,11 +1,11 @@
 import { ChevronsDown } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { BATTLE_LOG_DEFAULT_LIMIT, BATTLE_LOG_FULL_LIMIT } from "@/drizzle/constants";
 import ElementImage from "@/layout/ElementImage";
 import type { ActionEffect, CombatResult } from "@/libs/combat/types";
+import { cn } from "@/libs/shadui";
 import { groupBy } from "@/utils/grouping";
 import { parseHtml } from "@/utils/parse";
 import { getUserFederalStatus } from "@/utils/paypal";
@@ -230,8 +230,12 @@ const CombatHistory: React.FC<CombatHistoryProps> = (props) => {
                         <div key={effectKey} className={cn(color)}>
                           - {text}{" "}
                           <div className="flex flex-row items-center gap-1 pl-2">
-                            {effect.types?.map((t) => (
-                              <ElementImage key={t} element={t} className="h-5 w-5" />
+                            {effect.types?.map((t, i) => (
+                              <ElementImage
+                                key={`${t}-${i}`}
+                                element={t}
+                                className="h-5 w-5"
+                              />
                             ))}
                           </div>
                         </div>

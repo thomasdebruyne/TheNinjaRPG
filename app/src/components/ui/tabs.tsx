@@ -1,7 +1,7 @@
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import type * as React from "react";
 
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 const Tabs = TabsPrimitive.Root;
 

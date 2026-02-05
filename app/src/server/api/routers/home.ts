@@ -27,6 +27,9 @@ import {
 
 export const homeRouter = createTRPCRouter({
   toggleSleep: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Toggle between awake and asleep status" },
+    })
     .output(
       baseServerResponse.extend({
         newStatus: z.enum(["AWAKE", "ASLEEP"]).optional(),
@@ -115,53 +118,58 @@ export const homeRouter = createTRPCRouter({
       };
     }),
 
-  getUserHome: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const { user } = await fetchUpdatedUser({
-      client: ctx.drizzle,
-      userId: ctx.userId,
-    });
-    // Guard
-    if (!user) return null;
-    // Return
-    return {
-      homeType: user.homeType,
-      regen: HomeTypeDetails[user.homeType].regen,
-      storage: HomeTypeDetails[user.homeType].storage,
-    };
-  }),
-
-  getAvailableUpgrades: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const { user } = await fetchUpdatedUser({
-      client: ctx.drizzle,
-      userId: ctx.userId,
-    });
-    // Guard
-    if (!user) return [];
-    // Derived
-    const currentHomeIndex = HomeTypes.indexOf(user.homeType);
-    const currentHomeCost = HomeTypeDetails[user.homeType].cost;
-    // Return all other home types; upgradeCost is what the user pays (target cost minus current home value)
-    const upgrades = HomeTypes.map((homeType, i) => {
-      const details = HomeTypeDetails[homeType];
-      const isUpgrade = i > currentHomeIndex;
-      const upgradeCost = isUpgrade ? Math.max(0, details.cost - currentHomeCost) : 0;
-      const downgradeRefund = !isUpgrade
-        ? Math.floor((currentHomeCost - details.cost) * 0.75)
-        : 0;
+  getUserHome: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get current user home info" } })
+    .query(async ({ ctx }) => {
+      // Query
+      const { user } = await fetchUpdatedUser({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+      });
+      // Guard
+      if (!user) return null;
+      // Return
       return {
-        type: homeType,
-        ...details,
-        isUpgrade,
-        upgradeCost,
-        downgradeRefund,
+        homeType: user.homeType,
+        regen: HomeTypeDetails[user.homeType].regen,
+        storage: HomeTypeDetails[user.homeType].storage,
       };
-    }).filter((upgrade) => upgrade.type !== user.homeType);
-    return upgrades;
-  }),
+    }),
+
+  getAvailableUpgrades: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get available home upgrades" } })
+    .query(async ({ ctx }) => {
+      // Query
+      const { user } = await fetchUpdatedUser({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+      });
+      // Guard
+      if (!user) return [];
+      // Derived
+      const currentHomeIndex = HomeTypes.indexOf(user.homeType);
+      const currentHomeCost = HomeTypeDetails[user.homeType].cost;
+      // Return all other home types; upgradeCost is what the user pays (target cost minus current home value)
+      const upgrades = HomeTypes.map((homeType, i) => {
+        const details = HomeTypeDetails[homeType];
+        const isUpgrade = i > currentHomeIndex;
+        const upgradeCost = isUpgrade ? Math.max(0, details.cost - currentHomeCost) : 0;
+        const downgradeRefund = !isUpgrade
+          ? Math.floor((currentHomeCost - details.cost) * 0.75)
+          : 0;
+        return {
+          type: homeType,
+          ...details,
+          isUpgrade,
+          upgradeCost,
+          downgradeRefund,
+        };
+      }).filter((upgrade) => upgrade.type !== user.homeType);
+      return upgrades;
+    }),
 
   upgradeHome: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Upgrade or downgrade home" } })
     .input(z.object({ homeType: z.enum(HomeTypes) }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -236,6 +244,7 @@ export const homeRouter = createTRPCRouter({
     }),
 
   toggleStoreItem: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Store or retrieve item from home" } })
     .input(z.object({ userItemId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {

@@ -520,8 +520,8 @@ export default function ManualRecruitment() {
                     <SelectValue placeholder="Metric" />
                   </SelectTrigger>
                   <SelectContent>
-                    {RecruitmentMetrics.map((m) => (
-                      <SelectItem key={m} value={m}>
+                    {RecruitmentMetrics.map((m, i) => (
+                      <SelectItem key={`${m}-${i}`} value={m}>
                         {m === "level"
                           ? "Level"
                           : m === "completedQuests"

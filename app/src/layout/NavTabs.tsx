@@ -1,7 +1,7 @@
 import type React from "react";
 import { useEffect } from "react";
-import { cn } from "src/libs/shadui";
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from "@/hooks/localstorage";
+import { cn } from "@/libs/shadui";
 
 interface NavTabsProps {
   id?: string;
@@ -38,8 +38,8 @@ const NavTabs: React.FC<NavTabsProps> = (props) => {
       className={`text-center ${fontSize} flex flex-row justify-center font-medium text-foreground`}
     >
       <ul className="-mb-px flex flex-row">
-        {options.map((option) => (
-          <li className="mr-2" key={option} id={`tutorial-${option}`}>
+        {options.map((option, i) => (
+          <li className="mr-2" key={`${option}-${i}`} id={`tutorial-${option}`}>
             <button
               type="button"
               className={cn(

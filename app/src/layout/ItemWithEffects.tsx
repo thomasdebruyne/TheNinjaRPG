@@ -2,7 +2,6 @@ import { BarChartBig, Box, Copy, SquarePen, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import type {
   Bloodline,
@@ -19,6 +18,7 @@ import ElementImage from "@/layout/ElementImage";
 import Model3d from "@/layout/Model3d";
 import { getPreventTypeName } from "@/libs/combat/util";
 import { getRewardArray } from "@/libs/objectives";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { parseHtml } from "@/utils/parse";
 import { canChangeContent } from "@/utils/permissions";
@@ -866,9 +866,9 @@ const ItemWithEffects: React.FC<ItemWithEffectsProps> = (props) => {
                             <span className="row-span-2">
                               <b>Elements: </b>
                               <div className="flex flex-row items-center">
-                                {parsedEffect.elements.map((element) => (
+                                {parsedEffect.elements.map((element, i) => (
                                   <ElementImage
-                                    key={element}
+                                    key={`${element}-${i}`}
                                     element={element}
                                     className="w-8"
                                   />

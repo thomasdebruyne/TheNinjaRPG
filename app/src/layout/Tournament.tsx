@@ -31,8 +31,11 @@ import { secondsFromDate } from "@/utils/time";
 import { useUserData } from "@/utils/UserContext";
 import { UploadButton } from "@/utils/uploadthing";
 import type { ObjectiveRewardType } from "@/validators/rewards";
-import type { TournamentCreateSchema } from "@/validators/tournament";
-import { tournamentCreateSchema } from "@/validators/tournament";
+import {
+  type TournamentCreateSchema,
+  type TournamentCreateSchemaInput,
+  tournamentCreateSchema,
+} from "@/validators/tournament";
 
 interface TournamentProps {
   userData: NonNullable<UserWithRelations>;
@@ -89,7 +92,11 @@ const Tournament: React.FC<TournamentProps> = (props) => {
     });
 
   // Form
-  const createForm = useForm<TournamentCreateSchema>({
+  const createForm = useForm<
+    TournamentCreateSchemaInput,
+    unknown,
+    TournamentCreateSchema
+  >({
     resolver: zodResolver(tournamentCreateSchema),
     defaultValues: {
       id: tournamentId,

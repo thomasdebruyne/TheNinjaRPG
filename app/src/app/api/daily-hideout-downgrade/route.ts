@@ -90,6 +90,6 @@ export async function GET() {
   } catch (cause) {
     // Rollback
     await updateGameSetting(drizzleDB, ENDPOINT_NAME, 0, timerCheck.prevTime);
-    return handleEndpointError(cause);
+    return await handleEndpointError(cause);
   }
 }

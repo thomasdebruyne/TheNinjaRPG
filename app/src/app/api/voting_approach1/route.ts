@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     await handleVote(secret, siteId);
     return Response.json(`OK: ${secret} ${siteId}`);
   } catch (cause) {
-    return handleEndpointError(cause);
+    return await handleEndpointError(cause);
   }
 }
 
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     await handleVote(secret, siteId);
     return Response.json(`OK: ${secret} ${siteId}`);
   } catch (cause) {
-    return handleEndpointError(cause);
+    return await handleEndpointError(cause);
   }
 }
 

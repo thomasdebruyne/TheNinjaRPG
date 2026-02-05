@@ -19,7 +19,6 @@ import {
   Zap,
 } from "lucide-react";
 import type React from "react";
-import { cn } from "src/libs/shadui";
 import type {
   AdjustableBasicAction,
   ElementName,
@@ -56,6 +55,7 @@ import {
   StatTypes,
 } from "@/drizzle/constants";
 import Image from "@/layout/Image";
+import { cn } from "@/libs/shadui";
 import { isInArray } from "@/utils/array";
 import type { ZodAllTags } from "@/validators/combat";
 

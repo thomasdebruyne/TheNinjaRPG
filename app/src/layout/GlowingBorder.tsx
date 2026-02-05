@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 interface GlowingBorderProps {
   children: React.ReactNode;

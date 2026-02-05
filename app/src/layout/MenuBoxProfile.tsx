@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
@@ -53,6 +52,7 @@ import type { GroundEffect, UserEffect } from "@/libs/combat/types";
 import { getPreventTypeName, isEffectActive } from "@/libs/combat/util";
 import { useGameMenu } from "@/libs/menus";
 import { calcLevelRequirements } from "@/libs/profile";
+import { cn } from "@/libs/shadui";
 import { trainingSpeedSeconds } from "@/libs/train";
 import { getDaysHoursMinutesSeconds, getGameTime, secondsFromDate } from "@/utils/time";
 import { userBattleAtom, useUserData } from "@/utils/UserContext";

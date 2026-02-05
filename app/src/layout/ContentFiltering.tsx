@@ -514,8 +514,8 @@ const ExcludedItemsList: React.FC<{
   return (
     <p className="mt-2 text-sm">
       <strong>{title}:</strong>{" "}
-      {items.map((item) => (
-        <span key={item} className="mr-2 inline-flex items-center">
+      {items.map((item, i) => (
+        <span key={`${item}-${i}`} className="mr-2 inline-flex items-center">
           {item}
           <Button
             variant="destructive"

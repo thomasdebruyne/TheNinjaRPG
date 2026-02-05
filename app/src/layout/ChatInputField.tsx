@@ -2,9 +2,9 @@
 
 import { SiOpenai } from "@icons-pack/react-simple-icons";
 import { useState } from "react";
-import { cn } from "src/libs/shadui";
 import { Button } from "@/components/ui/button";
 import ChatBox from "@/layout/ChatBox";
+import { cn } from "@/libs/shadui";
 
 interface ToolCall<NAME extends string, ARGS> {
   toolCallId: string;

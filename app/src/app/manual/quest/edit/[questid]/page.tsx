@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { Quest } from "@/drizzle/schema";
@@ -20,7 +21,11 @@ import { buildObjectiveEdges, getObjectiveImage } from "@/libs/objectives";
 import { verifyQuestObjectiveFlow } from "@/libs/quest";
 import { canChangeContent } from "@/utils/permissions";
 import { useRequiredUserData } from "@/utils/UserContext";
-import type { AllObjectivesType, ZodQuestType } from "@/validators/objectives";
+import type {
+  AllObjectivesType,
+  ZodQuestFormType,
+  ZodQuestType,
+} from "@/validators/objectives";
 import {
   allObjectiveTasks,
   getObjectiveSchema,
@@ -245,7 +250,7 @@ const SingleEditQuest: React.FC<SingleEditQuestProps> = (props) => {
         {props.quest && (
           <EditContent
             schema={QuestFormRawSchema}
-            form={form}
+            form={form as UseFormReturn<ZodQuestFormType>}
             formData={formData}
             showSubmit={true}
             buttonTxt="Save to Database"

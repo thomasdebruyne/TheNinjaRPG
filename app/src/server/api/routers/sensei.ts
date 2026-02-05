@@ -22,14 +22,20 @@ const pusher = getServerPusher();
 
 export const senseiRouter = createTRPCRouter({
   getStudents: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get students of a sensei" } })
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
       return await fetchStudents(ctx.drizzle, input.userId);
     }),
-  getRequests: protectedProcedure.query(async ({ ctx }) => {
-    return fetchRequests(ctx.drizzle, ["SENSEI"], 3600 * 24, ctx.userId);
-  }),
+  getRequests: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get pending sensei requests" } })
+    .query(async ({ ctx }) => {
+      return fetchRequests(ctx.drizzle, ["SENSEI"], 3600 * 24, ctx.userId);
+    }),
   createRequest: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Request to become sensei or student" },
+    })
     .input(z.object({ targetId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -63,6 +69,7 @@ export const senseiRouter = createTRPCRouter({
       return { success: true, message: "Request created" };
     }),
   rejectRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Reject a sensei request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -82,6 +89,7 @@ export const senseiRouter = createTRPCRouter({
       return await updateRequestState(ctx.drizzle, input.id, "REJECTED", "SENSEI");
     }),
   cancelRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Cancel your sensei request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -95,6 +103,7 @@ export const senseiRouter = createTRPCRouter({
       return await updateRequestState(ctx.drizzle, input.id, "CANCELLED", "SENSEI");
     }),
   acceptRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Accept a sensei request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -139,6 +148,9 @@ export const senseiRouter = createTRPCRouter({
       return errorResponse("Student already has a sensei");
     }),
   removeStudent: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Remove a student from your training" },
+    })
     .input(z.object({ studentId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -162,6 +174,7 @@ export const senseiRouter = createTRPCRouter({
       return { success: true, message: "Student removed" };
     }),
   leaveSensei: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Leave your current sensei" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Query

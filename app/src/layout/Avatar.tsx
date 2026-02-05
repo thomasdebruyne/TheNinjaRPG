@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-import { cn } from "src/libs/shadui";
 import Image from "@/layout/Image";
+import { cn } from "@/libs/shadui";
 
 interface AvatarImageProps {
   href?: string | null;

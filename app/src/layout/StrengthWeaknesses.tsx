@@ -198,8 +198,8 @@ export const StatsTab: React.FC<StatsTabProps> = ({ userData }) => {
           <div>
             <b>Elemental Proficiency</b>
             <div className="grid grid-cols-2 gap-1">
-              {userElements.map((element) => (
-                <div key={element} className="flex flex-row pt-1">
+              {userElements.map((element, i) => (
+                <div key={`${element}-${i}`} className="flex flex-row pt-1">
                   <ElementImage element={element} className="w-6" />
                   <p className="pl-2">{element}</p>
                 </div>
@@ -363,8 +363,8 @@ export const GraphsTab: React.FC<GraphsTabProps> = ({ userData }) => {
         </div>
         <p className="pt-2 font-bold">Elemental Proficiency</p>
         <div className="flex w-full flex-row justify-center gap-2 pt-2">
-          {userElements.map((element) => (
-            <ElementImage key={element} element={element} className="w-14" />
+          {userElements.map((element, i) => (
+            <ElementImage key={`${element}-${i}`} element={element} className="w-14" />
           ))}
         </div>
         {userElements.length === 0 && (

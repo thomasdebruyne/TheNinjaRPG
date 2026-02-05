@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { use, useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { api } from "@/app/_trpc/client";
 import type { TowerDefenseUpgrade } from "@/drizzle/schema";
 import {
+  type UpdateTowerDefenseUpgrade,
   updateTowerDefenseUpgradeSchema,
   useTowerDefenseUpgradeEditForm,
 } from "@/hooks/towerDefenseUpgrade";
@@ -80,7 +82,7 @@ const SingleEditUpgrade: React.FC<SingleEditUpgradeProps> = ({ upgrade, refetch 
 
       <EditContent
         schema={updateTowerDefenseUpgradeSchema}
-        form={form}
+        form={form as unknown as UseFormReturn<UpdateTowerDefenseUpgrade, unknown>}
         formData={formData}
         showSubmit={true}
         buttonTxt="Save to Database"

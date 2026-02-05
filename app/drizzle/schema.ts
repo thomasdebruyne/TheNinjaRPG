@@ -43,7 +43,7 @@ import type {
 import type { AiRuleType } from "@/validators/ai";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { AdditionalContext } from "@/validators/reports";
-import type { CoreMessage } from "ai";
+import type { ModelMessage } from "ai";
 import type {
   TowerDefenseState,
   CharacterAssetConfig,
@@ -2202,40 +2202,41 @@ export const insertAiSchema = createInsertSchema(userData)
     covertTrainingStartedAt: true,
     covertTrainingMinutes: true,
   })
-  .merge(
+  .extend(
     z.object({
-      jutsus: z.array(z.string()).optional(),
-      items: z
-        .array(
-          z.object({
-            ids: z.array(z.string()).default([]),
-            number: z.coerce.number(),
-          }),
-        )
-        .optional(),
-      primaryElement: z.enum([...consts.ElementNames, ""]).nullish(),
-      secondaryElement: z.enum([...consts.ElementNames, ""]).nullish(),
-      level: z.coerce.number().min(1).max(200),
-      regeneration: z.coerce.number().min(1).max(100),
-      ninjutsuOffence: z.coerce.number().min(10),
-      ninjutsuDefence: z.coerce.number().min(10),
-      genjutsuOffence: z.coerce.number().min(10),
-      genjutsuDefence: z.coerce.number().min(10),
-      taijutsuOffence: z.coerce.number().min(10),
-      taijutsuDefence: z.coerce.number().min(10),
-      bukijutsuOffence: z.coerce.number().min(10),
-      bukijutsuDefence: z.coerce.number().min(10),
-      statsMultiplier: z.coerce.number().min(1).max(50),
-      poolsMultiplier: z.coerce.number().min(1).max(50),
-      strength: z.coerce.number().min(10),
-      intelligence: z.coerce.number().min(10),
-      willpower: z.coerce.number().min(10),
-      speed: z.coerce.number().min(10),
-      isSummon: z.coerce.boolean(),
-      effects: z.array(AllTags).superRefine(SuperRefineEffects),
-    }),
+          jutsus: z.array(z.string()).optional(),
+          items: z
+            .array(
+              z.object({
+                ids: z.array(z.string()).prefault([]),
+                number: z.coerce.number(),
+              }),
+            )
+            .optional(),
+          primaryElement: z.enum([...consts.ElementNames, ""]).nullish(),
+          secondaryElement: z.enum([...consts.ElementNames, ""]).nullish(),
+          level: z.coerce.number().min(1).max(200),
+          regeneration: z.coerce.number().min(1).max(100),
+          ninjutsuOffence: z.coerce.number().min(10),
+          ninjutsuDefence: z.coerce.number().min(10),
+          genjutsuOffence: z.coerce.number().min(10),
+          genjutsuDefence: z.coerce.number().min(10),
+          taijutsuOffence: z.coerce.number().min(10),
+          taijutsuDefence: z.coerce.number().min(10),
+          bukijutsuOffence: z.coerce.number().min(10),
+          bukijutsuDefence: z.coerce.number().min(10),
+          statsMultiplier: z.coerce.number().min(1).max(50),
+          poolsMultiplier: z.coerce.number().min(1).max(50),
+          strength: z.coerce.number().min(10),
+          intelligence: z.coerce.number().min(10),
+          willpower: z.coerce.number().min(10),
+          speed: z.coerce.number().min(10),
+          isSummon: z.coerce.boolean(),
+          effects: z.array(AllTags).superRefine(SuperRefineEffects),
+        }).shape
   );
 export type InsertAiSchema = z.infer<typeof insertAiSchema>;
+export type InsertAiSchemaInput = z.input<typeof insertAiSchema>;
 export type UserData = InferSelectModel<typeof userData>;
 export type UserRank = UserData["rank"];
 export type UserStatus = UserData["status"];
@@ -2786,7 +2787,7 @@ export const sectorRelations = relations(sector, ({ one, many }) => ({
 export const supportReview = mysqlTable("SupportReview", {
   id: varchar("id", { length: 191 }).primaryKey().notNull(),
   apiRoute: varchar("apiRoute", { length: 191 }).notNull(),
-  chatHistory: json("chatHistory").$type<CoreMessage[]>().notNull(),
+  chatHistory: json("chatHistory").$type<ModelMessage[]>().notNull(),
   userId: varchar("userId", { length: 191 }).notNull(),
   sentiment: mysqlEnum("sentiment", consts.Sentiment).notNull(),
   createdAt: datetime("createdAt", { mode: "date", fsp: 3 })

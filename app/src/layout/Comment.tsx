@@ -3,7 +3,6 @@ import { BarChart2, Flag, Quote, SmilePlus, SquarePen, Trash2 } from "lucide-rea
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import {
   Tooltip,
@@ -20,6 +19,7 @@ import Confirm2 from "@/layout/Confirm2";
 import EmojiPicker from "@/layout/EmojiPicker";
 import { ModerationSummary } from "@/layout/ModerationSummary";
 import ReportUser from "@/layout/Report";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { canDeleteComment, canSeeSecretData } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
@@ -202,8 +202,8 @@ const BaseComment: React.FC<BaseCommentProps> = (props) => {
               {reaction}
             </div>
             <div className="max-h-40 overflow-y-auto">
-              {users.map((username) => (
-                <div key={username} className="px-2 py-0.5 text-sm">
+              {users.map((username, i) => (
+                <div key={`${username}-${i}`} className="px-2 py-0.5 text-sm">
                   {username}
                 </div>
               ))}

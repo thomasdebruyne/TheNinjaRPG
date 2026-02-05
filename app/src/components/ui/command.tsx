@@ -4,9 +4,8 @@ import type { DialogProps } from "@radix-ui/react-dialog";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 import type * as React from "react";
-
-import { cn } from "src/libs/shadui";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { cn } from "@/libs/shadui";
 
 const Command = ({
   ref,

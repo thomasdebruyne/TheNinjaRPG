@@ -49,7 +49,13 @@ export const raidsRouter = createTRPCRouter({
    * Get completed raids (ended or boss defeated) for viewing history and claiming rewards
    */
   getCompletedRaids: protectedProcedure
-    .input(z.object({ limit: z.number().min(1).max(50).default(20) }).optional())
+    .meta({
+      mcp: {
+        enabled: true,
+        description: "Get completed raids for history and rewards",
+      },
+    })
+    .input(z.object({ limit: z.number().min(1).max(50).prefault(20) }).optional())
     .query(async ({ ctx, input }) => {
       // Derived
       const now = new Date();
@@ -102,6 +108,9 @@ export const raidsRouter = createTRPCRouter({
    * Get available raids for the user
    */
   getAvailableRaids: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get available raids for current user" },
+    })
     .input(z.object({ sector: z.number().optional() }).optional())
     .query(async ({ ctx, input }) => {
       // Query
@@ -255,6 +264,7 @@ export const raidsRouter = createTRPCRouter({
    * Get detailed info about a specific raid
    */
   getRaidDetails: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get details for a specific raid" } })
     .input(z.object({ questId: z.string() }))
     .query(async ({ ctx, input }) => {
       // Query - parallel fetch
@@ -303,10 +313,11 @@ export const raidsRouter = createTRPCRouter({
    * Get the raid leaderboard
    */
   getRaidLeaderboard: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get raid damage leaderboard" } })
     .input(
       z.object({
         questId: z.string(),
-        limit: z.number().min(1).max(100).default(50),
+        limit: z.number().min(1).max(100).prefault(50),
         cursor: z.number().nullish(),
       }),
     )
@@ -351,80 +362,91 @@ export const raidsRouter = createTRPCRouter({
   /**
    * Get user's current raid queue status
    */
-  getUserRaidQueue: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const queue = await ctx.drizzle.query.mpvpBattleUser.findFirst({
-      where: eq(mpvpBattleUser.userId, ctx.userId),
-      with: {
-        clanBattle: {
-          with: {
-            queue: {
-              with: {
-                user: {
-                  columns: {
-                    username: true,
-                    avatar: true,
+  getUserRaidQueue: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get user's current raid queue status" },
+    })
+    .query(async ({ ctx }) => {
+      // Query
+      const queue = await ctx.drizzle.query.mpvpBattleUser.findFirst({
+        where: eq(mpvpBattleUser.userId, ctx.userId),
+        with: {
+          clanBattle: {
+            with: {
+              queue: {
+                with: {
+                  user: {
+                    columns: {
+                      username: true,
+                      avatar: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    // Guard
-    if (!queue || queue.clanBattle?.battleType !== "RAID_BATTLE") {
-      return { inQueue: false, queue: null, isClaiming: false };
-    }
-    // Allow teams in "claiming-" state to be visible (they're stuck during battle initialization)
-    const isClaimingState = queue.clanBattle.battleId?.startsWith("claiming-") ?? false;
-    if (queue.clanBattle.battleId !== null && !isClaimingState) {
-      return { inQueue: false, queue: null, isClaiming: false };
-    }
+      // Guard
+      if (!queue || queue.clanBattle?.battleType !== "RAID_BATTLE") {
+        return { inQueue: false, queue: null, isClaiming: false };
+      }
+      // Allow teams in "claiming-" state to be visible (they're stuck during battle initialization)
+      const isClaimingState =
+        queue.clanBattle.battleId?.startsWith("claiming-") ?? false;
+      if (queue.clanBattle.battleId !== null && !isClaimingState) {
+        return { inQueue: false, queue: null, isClaiming: false };
+      }
 
-    return {
-      inQueue: true,
-      isClaiming: isClaimingState,
-      queue: {
-        id: queue.clanBattle.id,
-        questId: queue.clanBattle.attackerEntityId,
-        createdAt: queue.clanBattle.createdAt,
-        members: queue.clanBattle.queue.map((m) => ({
-          ...m,
-          user: m.user,
-        })),
-      },
-    };
-  }),
+      return {
+        inQueue: true,
+        isClaiming: isClaimingState,
+        queue: {
+          id: queue.clanBattle.id,
+          questId: queue.clanBattle.attackerEntityId,
+          createdAt: queue.clanBattle.createdAt,
+          members: queue.clanBattle.queue.map((m) => ({
+            ...m,
+            user: m.user,
+          })),
+        },
+      };
+    }),
 
   /**
    * Get user's active raid buffs
    */
-  getUserRaidBuffs: protectedProcedure.query(async ({ ctx }) => {
-    // Derived
-    const now = new Date();
+  getUserRaidBuffs: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's active raid buffs" } })
+    .query(async ({ ctx }) => {
+      // Derived
+      const now = new Date();
 
-    // Query
-    const buffs = await ctx.drizzle.query.userRaidBuff.findMany({
-      where: and(eq(userRaidBuff.userId, ctx.userId), gte(userRaidBuff.expiresAt, now)),
-      with: {
-        quest: {
-          columns: {
-            name: true,
-            image: true,
+      // Query
+      const buffs = await ctx.drizzle.query.userRaidBuff.findMany({
+        where: and(
+          eq(userRaidBuff.userId, ctx.userId),
+          gte(userRaidBuff.expiresAt, now),
+        ),
+        with: {
+          quest: {
+            columns: {
+              name: true,
+              image: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return { buffs };
-  }),
+      return { buffs };
+    }),
 
   /**
    * Get damage thresholds for a quest (admin use)
    */
   getQuestThresholds: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get damage thresholds for a raid" } })
     .input(z.object({ questId: z.string() }))
     .query(async ({ ctx, input }) => {
       const thresholds = await ctx.drizzle.query.raidDamageThreshold.findMany({
@@ -443,10 +465,10 @@ export const raidsRouter = createTRPCRouter({
       z.object({
         questId: z.string(),
         damageRequired: z.number().min(1),
-        sortOrder: z.number().min(0).max(255).default(0),
+        sortOrder: z.number().min(0).max(255).prefault(0),
         rewards: ObjectiveReward,
-        effects: z.array(AllTags).default([]),
-        effectDurationMinutes: z.number().min(1).max(10080).default(60),
+        effects: z.array(AllTags).prefault([]),
+        effectDurationMinutes: z.number().min(1).max(10080).prefault(60),
       }),
     )
     .output(baseServerResponse)
@@ -495,8 +517,8 @@ export const raidsRouter = createTRPCRouter({
         damageRequired: z.number().min(1),
         sortOrder: z.number().min(0).max(255),
         rewards: ObjectiveReward,
-        effects: z.array(AllTags).default([]),
-        effectDurationMinutes: z.number().min(1).max(10080).default(60),
+        effects: z.array(AllTags).prefault([]),
+        effectDurationMinutes: z.number().min(1).max(10080).prefault(60),
       }),
     )
     .output(baseServerResponse)
@@ -563,6 +585,7 @@ export const raidsRouter = createTRPCRouter({
    * Get active raid teams for a specific raid
    */
   getActiveRaidTeams: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get active teams for a raid" } })
     .input(z.object({ questId: z.string() }))
     .query(async ({ ctx, input }) => {
       // Query - include teams in "claiming-" state (stuck during battle initialization)
@@ -614,6 +637,7 @@ export const raidsRouter = createTRPCRouter({
    * Join or create a raid team queue
    */
   joinRaidQueue: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Join or create a raid team queue" } })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
     .input(
@@ -871,6 +895,7 @@ export const raidsRouter = createTRPCRouter({
    * Leave raid queue
    */
   leaveRaidQueue: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Leave the raid queue" } })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
     .output(baseServerResponse)
@@ -953,6 +978,7 @@ export const raidsRouter = createTRPCRouter({
    * Start a raid battle
    */
   startRaidBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Start a raid battle with the team" } })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
     .input(z.object({ teamId: z.string() }))
@@ -1179,6 +1205,9 @@ export const raidsRouter = createTRPCRouter({
    * Claim damage threshold rewards
    */
   claimDamageReward: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Claim raid damage threshold rewards" },
+    })
     .use(ratelimitMiddleware)
     .use(hasUserMiddleware)
     .input(

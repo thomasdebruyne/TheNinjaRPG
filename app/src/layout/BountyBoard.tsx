@@ -66,7 +66,11 @@ export default function BountyBoard({ userData }: BountyBoardProps) {
   const [lastElement, setLastElement] = useState<HTMLDivElement | null>(null);
   const isStaff = canSeeHiddenBountyInfo(userData.role);
 
-  const form = useForm<CreateBountyFormData>({
+  const form = useForm<
+    z.input<typeof createBountySchema>,
+    unknown,
+    z.output<typeof createBountySchema>
+  >({
     resolver: zodResolver(createBountySchema),
     defaultValues: {
       targetUserId: "",
@@ -277,6 +281,7 @@ export default function BountyBoard({ userData }: BountyBoardProps) {
                         type="number"
                         placeholder="Enter ryo amount"
                         {...field}
+                        value={field.value as number}
                         onChange={(e) =>
                           field.onChange(parseInt(e.target.value, 10) || 0)
                         }

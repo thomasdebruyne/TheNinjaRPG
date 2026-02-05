@@ -209,9 +209,9 @@ export default function SupportPage() {
                           {ticket.tags && ticket.tags.length > 0 && (
                             <div className="flex flex-wrap items-center gap-1">
                               <Tag className="h-3 w-3 text-foreground" />
-                              {ticket.tags.map((tag) => (
+                              {ticket.tags.map((tag, i) => (
                                 <Badge
-                                  key={tag}
+                                  key={`${tag}-${i}`}
                                   variant="secondary"
                                   className="text-xs"
                                 >

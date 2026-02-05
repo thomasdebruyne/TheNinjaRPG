@@ -25,11 +25,12 @@ import {
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { useForm, useWatch } from "react-hook-form";
-import { TransactionHistory } from "src/app/points/page";
-import { z } from "zod";
+import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { NewConversationPrompt } from "@/app/inbox/page";
+import { TransactionHistory } from "@/app/points/page";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -125,6 +126,7 @@ import {
   canViewOtherUsersBattleLogs,
 } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
+import { type ExperienceAwardSchema, experienceAwardSchema } from "@/validators/misc";
 import { getSearchValidator } from "@/validators/register";
 import { awardSchema } from "@/validators/reputation";
 import type { UpdateUserSchema } from "@/validators/user";
@@ -199,7 +201,11 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
     api.profile.getPublicUser.useQuery({ userId: userId }, { enabled: !!userId });
 
   // Forms
-  const form = useForm<z.infer<typeof awardSchema>>({
+  const form = useForm<
+    z.input<typeof awardSchema>,
+    unknown,
+    z.output<typeof awardSchema>
+  >({
     resolver: zodResolver(awardSchema),
     defaultValues: {
       reputationAmount: 0,
@@ -212,7 +218,7 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
   const userSearchSchema = getSearchValidator({ max: 10 });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
     resolver: zodResolver(userSearchSchema),
-    defaultValues: { users: [] },
+    defaultValues: { username: "", users: [] },
   });
   const watchedUsers = useWatch({
     control: userSearchMethods.control,
@@ -221,8 +227,8 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
   });
 
   // Experience award form
-  const experienceForm = useForm<{ amount: number }>({
-    resolver: zodResolver(z.object({ amount: z.number().min(1).max(100000) })),
+  const experienceForm = useForm<ExperienceAwardSchema>({
+    resolver: zodResolver(experienceAwardSchema),
     defaultValues: { amount: 100 },
   });
 
@@ -507,6 +513,7 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                               step="any"
                               placeholder="Enter reputation amount"
                               {...field}
+                              value={field.value as number}
                             />
                           </FormControl>
                           <FormMessage />
@@ -526,6 +533,7 @@ const PublicUserComponent: React.FC<PublicUserComponentProps> = (props) => {
                               step="1"
                               placeholder="Enter money amount"
                               {...field}
+                              value={field.value as number}
                             />
                           </FormControl>
                           <FormMessage />
@@ -1240,7 +1248,7 @@ const EditUserComponent: React.FC<EditUserComponentProps> = ({ userId, profile }
       <TabsContent value="userData">
         <EditContent
           schema={updateUserSchema}
-          form={form}
+          form={form as unknown as UseFormReturn<UpdateUserSchema>}
           formData={formData}
           showSubmit={true}
           buttonTxt="Save to Database"
@@ -1361,8 +1369,8 @@ const EditUserComponent: React.FC<EditUserComponentProps> = ({ userId, profile }
                   onChange={(e) => setSelectedQuestType(e.target.value)}
                 >
                   <option value="all">All Quest Types</option>
-                  {questTypes.map((type) => (
-                    <option key={type} value={type}>
+                  {questTypes.map((type, i) => (
+                    <option key={`${type}-${i}`} value={type}>
                       {type}
                     </option>
                   ))}
@@ -2156,8 +2164,8 @@ const CombatHistoryTab: React.FC<TabComponentProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            {BattleTypes.map((type) => (
-              <SelectItem key={type} value={type}>
+            {BattleTypes.map((type, i) => (
+              <SelectItem key={`${type}-${i}`} value={type}>
                 {type.replace(/_/g, " ")}
               </SelectItem>
             ))}

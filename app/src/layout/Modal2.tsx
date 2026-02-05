@@ -1,6 +1,5 @@
 /**
  * This is a modal that is used to display a modal.
- * This is a replacement for the Modal component, which will be deprecated.
  */
 import type React from "react";
 import { useEffect } from "react";

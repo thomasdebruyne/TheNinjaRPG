@@ -2,7 +2,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { ArrowDownUp, Check, ChevronDown, ChevronUp } from "lucide-react";
 import type * as React from "react";
 
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 const Select = SelectPrimitive.Root;
 

@@ -48,6 +48,7 @@ const pusher = getServerPusher();
 
 export const anbuRouter = createTRPCRouter({
   get: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get ANBU squad details" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       // Query
@@ -73,6 +74,7 @@ export const anbuRouter = createTRPCRouter({
       return null;
     }),
   getAll: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get all ANBU squads for village" } })
     .input(z.object({ villageId: z.string() }))
     .query(async ({ ctx, input }) => {
       // Fetch
@@ -86,15 +88,20 @@ export const anbuRouter = createTRPCRouter({
       }
       return null;
     }),
-  getAllNames: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.anbuSquad.findMany({
-      columns: { id: true, name: true, image: true },
-    });
-  }),
-  getRequests: protectedProcedure.query(async ({ ctx }) => {
-    return await fetchRequests(ctx.drizzle, ["ANBU"], 3600 * 12, ctx.userId);
-  }),
+  getAllNames: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get all ANBU squad names" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.anbuSquad.findMany({
+        columns: { id: true, name: true, image: true },
+      });
+    }),
+  getRequests: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get ANBU join requests" } })
+    .query(async ({ ctx }) => {
+      return await fetchRequests(ctx.drizzle, ["ANBU"], 3600 * 12, ctx.userId);
+    }),
   createRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Request to join an ANBU squad" } })
     .input(z.object({ squadId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -126,6 +133,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "User assigned to squad" };
     }),
   rejectRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Reject ANBU join request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -140,6 +148,7 @@ export const anbuRouter = createTRPCRouter({
       return await updateRequestState(ctx.drizzle, input.id, "REJECTED", "ANBU");
     }),
   cancelRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Cancel ANBU join request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -154,6 +163,7 @@ export const anbuRouter = createTRPCRouter({
       return await updateRequestState(ctx.drizzle, input.id, "CANCELLED", "ANBU");
     }),
   acceptRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Accept ANBU join request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -193,6 +203,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Request accepted" };
     }),
   createSquad: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create new ANBU squad" } })
     .input(anbuCreateSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -249,6 +260,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Squad created" };
     }),
   disbandSquad: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Disband ANBU squad" } })
     .input(z.object({ squadId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -296,6 +308,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Squad disbanded" };
     }),
   editSquad: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Edit ANBU squad name and image" } })
     .input(z.object({ squadId: z.string(), name: z.string(), image: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -331,6 +344,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Squad name changed" };
     }),
   promoteMember: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Promote ANBU member to leader" } })
     .input(z.object({ squadId: z.string(), memberId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -365,6 +379,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Member promoted to leader" };
     }),
   kickMember: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Kick member from ANBU squad" } })
     .input(z.object({ squadId: z.string(), memberId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -399,6 +414,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Member kicked" };
     }),
   leaveSquad: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Leave ANBU squad" } })
     .input(z.object({ squadId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -419,6 +435,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "User left squad" };
     }),
   upsertNotice: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Update ANBU squad notice" } })
     .input(
       z.object({
         content: z.string(),
@@ -455,6 +472,7 @@ export const anbuRouter = createTRPCRouter({
       return updateNindo(ctx.drizzle, orderId, input.content, "anbuOrder");
     }),
   purchaseEspionageUpgrade: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Upgrade squad espionage level" } })
     .input(z.object({ squadId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -499,6 +517,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Espionage level upgraded" };
     }),
   purchaseStealthUpgrade: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Upgrade squad stealth level" } })
     .input(z.object({ squadId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -543,6 +562,7 @@ export const anbuRouter = createTRPCRouter({
       return { success: true, message: "Stealth level upgraded" };
     }),
   performEspionage: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Perform espionage on enemy village" } })
     .input(z.object({ villageId: z.string(), anbuId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {

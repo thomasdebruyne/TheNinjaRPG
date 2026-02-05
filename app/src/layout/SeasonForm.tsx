@@ -5,7 +5,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,9 +38,17 @@ import { getRewardArray } from "@/libs/objectives";
 import { showMutationToast } from "@/libs/toast";
 import { canAwardReputation } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
-import { rankedSeasonSchema, rewardSchema } from "@/validators/pvpRank";
+import {
+  type RankedSeason,
+  type RankedSeasonInput,
+  type RankedSeasonReward,
+  type RankedSeasonRewardInput,
+  rankedSeasonSchema,
+  rewardSchema,
+} from "@/validators/pvpRank";
 
-type FormValues = z.infer<typeof rankedSeasonSchema>;
+type FormValues = RankedSeason;
+type FormValuesInput = RankedSeasonInput;
 
 interface SeasonFormProps {
   initialData?: FormValues;
@@ -69,7 +76,7 @@ export default function SeasonForm({
   const { data: bloodlines } = api.bloodline.getAllNames.useQuery(undefined);
   const { data: badges } = api.badge.getAll.useQuery(undefined);
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormValuesInput, unknown, FormValues>({
     resolver: zodResolver(rankedSeasonSchema),
     defaultValues: initialData || {
       name: "",
@@ -135,7 +142,7 @@ export default function SeasonForm({
 
   // Build formData for reward edit dialog
   const buildRewardFormData = () => {
-    const data: FormEntry<keyof z.infer<typeof rewardSchema>>[] = [
+    const data: FormEntry<keyof RankedSeasonReward>[] = [
       { id: "reward_money", type: "number" },
       { id: "reward_seichi_silver", type: "number" },
       { id: "reward_clanpoints", type: "number" },
@@ -354,7 +361,7 @@ export default function SeasonForm({
                 {/* Rewards summary and edit button */}
                 <div className="flex items-center justify-between rounded-md border p-3">
                   <span className="text-muted-foreground text-sm">
-                    {getRewardArray(division.rewards).join(" • ")}
+                    {getRewardArray(division.rewards as RankedSeasonReward).join(" • ")}
                   </span>
                   <Button
                     type="button"
@@ -393,8 +400,8 @@ interface RewardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   divisionIndex: number;
-  parentForm: UseFormReturn<FormValues>;
-  buildRewardFormData: () => FormEntry<keyof z.infer<typeof rewardSchema>>[];
+  parentForm: UseFormReturn<FormValuesInput, unknown, FormValues>;
+  buildRewardFormData: () => FormEntry<keyof RankedSeasonReward>[];
 }
 
 const RewardDialog: React.FC<RewardDialogProps> = ({
@@ -405,7 +412,7 @@ const RewardDialog: React.FC<RewardDialogProps> = ({
   buildRewardFormData,
 }) => {
   const parentReward = parentForm.watch(`rewards.${divisionIndex}.rewards`);
-  const rewardForm = useForm<z.infer<typeof rewardSchema>>({
+  const rewardForm = useForm<RankedSeasonRewardInput, unknown, RankedSeasonReward>({
     resolver: zodResolver(rewardSchema),
     values: parentReward ?? rewardSchema.parse({}),
     defaultValues: parentReward ?? rewardSchema.parse({}),
@@ -434,7 +441,7 @@ const RewardDialog: React.FC<RewardDialogProps> = ({
         </DialogHeader>
         <EditContent
           schema={rewardSchema}
-          form={rewardForm}
+          form={rewardForm as UseFormReturn<RankedSeasonReward, unknown>}
           formData={buildRewardFormData()}
           showSubmit={true}
           buttonTxt="Save Rewards"

@@ -89,7 +89,7 @@ export const reportsRouter = createTRPCRouter({
       await ctx.drizzle
         .select({
           userId: userData.userId,
-          count: sql<number>`COUNT(${userReport.id})`.mapWith(Number),
+          count: sql`COUNT(${userReport.id})`.mapWith(Number),
         })
         .from(userReport)
         .innerJoin(userData, eq(userData.userId, userReport.reportedUserId))
@@ -97,7 +97,7 @@ export const reportsRouter = createTRPCRouter({
       await ctx.drizzle
         .select({
           userId: userData.userId,
-          count: sql<number>`COUNT(${userReport.id})`.mapWith(Number),
+          count: sql`COUNT(${userReport.id})`.mapWith(Number),
         })
         .from(userReport)
         .innerJoin(userData, eq(userData.userId, userReport.reporterUserId))
@@ -105,7 +105,7 @@ export const reportsRouter = createTRPCRouter({
       await ctx.drizzle
         .select({
           userId: userReportComment.userId,
-          count: sql<number>`COUNT(${userReportComment.id})`.mapWith(Number),
+          count: sql`COUNT(${userReportComment.id})`.mapWith(Number),
           decision: userReportComment.decision,
         })
         .from(userReportComment)
@@ -125,12 +125,12 @@ export const reportsRouter = createTRPCRouter({
           ? {
               year: sql<number>`YEAR(CAST(${userReport.createdAt} AS DATE))`,
               time: sql<number>`DAYOFYEAR(CAST(${userReport.createdAt} AS DATE))`,
-              count: sql<number>`COUNT(${userReport.id})`.mapWith(Number),
+              count: sql`COUNT(${userReport.id})`.mapWith(Number),
             }
           : {
               year: sql<number>`YEAR(CAST(${userReport.createdAt} AS DATE))`,
               time: sql<number>`WEEK(CAST(${userReport.createdAt} AS DATE))`,
-              count: sql<number>`COUNT(${userReport.id})`.mapWith(Number),
+              count: sql`COUNT(${userReport.id})`.mapWith(Number),
             };
       // Where clause
       const whereClause =
@@ -873,7 +873,7 @@ export const reportsRouter = createTRPCRouter({
         fetchUser(ctx.drizzle, ctx.userId),
         ctx.drizzle
           .select({
-            totalEntries: sql<number>`COUNT(*)`.mapWith(Number),
+            totalEntries: sql`COUNT(*)`.mapWith(Number),
             sexual:
               sql<number>`SUM(CASE WHEN ${automatedModeration.sexual} = true THEN 1 ELSE 0 END)`.mapWith(
                 Number,

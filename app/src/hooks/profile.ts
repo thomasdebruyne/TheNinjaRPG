@@ -6,7 +6,7 @@ import { UserRanks } from "@/drizzle/constants";
 import type { FormEntry } from "@/layout/EditContent";
 import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
 import { calculateContentDiff } from "@/utils/diff";
-import type { UpdateUserSchema } from "@/validators/user";
+import type { UpdateUserInput, UpdateUserSchema } from "@/validators/user";
 import { updateUserSchema } from "@/validators/user";
 
 export interface EditUserPermissions {
@@ -28,11 +28,11 @@ export const useUserEditForm = (
   permissions: EditUserPermissions,
 ) => {
   // Form handling
-  const form = useForm<UpdateUserSchema>({
+  const form = useForm<UpdateUserInput, unknown, UpdateUserSchema>({
     mode: "all",
     criteriaMode: "all",
-    values: user,
-    defaultValues: user,
+    values: user as UpdateUserInput,
+    defaultValues: user as UpdateUserInput,
     resolver: zodResolver(updateUserSchema),
   });
 

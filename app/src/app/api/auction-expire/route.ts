@@ -113,6 +113,6 @@ export async function GET() {
       results: results,
     });
   } catch (error) {
-    return handleEndpointError(error);
+    return await handleEndpointError(error);
   }
 }

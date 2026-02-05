@@ -1,6 +1,5 @@
 /**
  * This is a confirmation modal that is used to display a modal.
- * This is a replacement for the Confirm component, which will be deprecated.
  */
 import type React from "react";
 import { useState } from "react";
@@ -29,19 +28,28 @@ const Confirm2: React.FC<Confirm2Props> = (props) => {
 
   return (
     <>
-      <button
-        type="button"
+      {/* biome-ignore lint/a11y/useSemanticElements: wrapper for button children - using button would create invalid nested buttons */}
+      <div
+        role="button"
+        tabIndex={props.disabled ? -1 : 0}
         onClick={(e) => {
           if (props.disabled) return;
           e.preventDefault();
           e.stopPropagation();
           setShowModal(true);
         }}
-        className={props.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
-        disabled={props.disabled}
+        onKeyDown={(e) => {
+          if (props.disabled) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowModal(true);
+          }
+        }}
+        className={`inline-block ${props.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
       >
         {props.button}
-      </button>
+      </div>
 
       <Modal2
         id={props.id}

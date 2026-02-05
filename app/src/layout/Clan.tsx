@@ -23,8 +23,6 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { cn } from "src/libs/shadui";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -94,6 +92,7 @@ import Tournament from "@/layout/Tournament";
 import UserRequestSystem from "@/layout/UserRequestSystem";
 import { WarRoom } from "@/layout/WarSystem";
 import { showUserRank } from "@/libs/profile";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { hasRequiredRank } from "@/libs/train";
 import type { ClanRouter } from "@/routers/clan";
@@ -105,12 +104,19 @@ import { secondsFromDate } from "@/utils/time";
 import type { ArrayElement } from "@/utils/typeutils";
 import { useRequireInVillage } from "@/utils/UserContext";
 import { UploadButton } from "@/utils/uploadthing";
+import {
+  createMoneyTransferSchema,
+  type MoneyTransferSchema,
+  type MoneyTransferSchemaInput,
+} from "@/validators/bank";
 import type { FactionColorEditSchema, FactionEditSchema } from "@/validators/clan";
 import {
+  type ClanSearchSchema,
   checkAssassin,
   checkCoLeader,
   factionColorEditSchema,
   factionEditSchema,
+  getClanSearchSchema,
 } from "@/validators/clan";
 import type { MutateContentSchema } from "@/validators/comments";
 import { mutateContentSchema } from "@/validators/comments";
@@ -467,20 +473,8 @@ export const ClanBattles: React.FC<ClanBattlesProps> = (props) => {
 
   // Clan search
   const maxClans = 1;
-  const clanSearchSchema = z.object({
-    name: z.string(),
-    clans: z
-      .array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          image: z.string().url().optional().nullish(),
-        }),
-      )
-      .min(1)
-      .max(maxClans),
-  });
-  const clanSearchMethods = useForm<z.infer<typeof clanSearchSchema>>({
+  const clanSearchSchema = getClanSearchSchema(maxClans);
+  const clanSearchMethods = useForm<ClanSearchSchema>({
     resolver: zodResolver(clanSearchSchema),
     defaultValues: { name: "", clans: [] },
   });
@@ -760,10 +754,8 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
 
   // Deposit to bank
   const money = userData?.money ?? 0;
-  const fromPocketSchema = z.object({
-    amount: z.coerce.number().int().positive().max(money),
-  });
-  const toBankForm = useForm<z.infer<typeof fromPocketSchema>>({
+  const fromPocketSchema = createMoneyTransferSchema(money);
+  const toBankForm = useForm<MoneyTransferSchemaInput, unknown, MoneyTransferSchema>({
     defaultValues: { amount: 0 },
     resolver: zodResolver(fromPocketSchema),
   });
@@ -1140,6 +1132,7 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
                                 className="mt-2"
                                 placeholder="Transfer to bank"
                                 {...field}
+                                value={field.value as number}
                               />
                             </FormControl>
                             <FormMessage />

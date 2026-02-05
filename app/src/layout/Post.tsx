@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type React from "react";
-import { cn } from "src/libs/shadui";
 import type { FederalStatus, UserRank, UserRole } from "@/drizzle/constants";
 import AvatarImage from "@/layout/Avatar";
 import { showUserRank } from "@/libs/profile";
+import { cn } from "@/libs/shadui";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 
 export interface PostProps {

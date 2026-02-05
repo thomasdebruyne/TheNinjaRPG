@@ -1,6 +1,6 @@
 import { ChevronsDown } from "lucide-react";
 import type React from "react";
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 interface AccordionProps {
   title: string;

@@ -26,18 +26,23 @@ import type { DrizzleClient } from "../../db";
 
 export const forumRouter = createTRPCRouter({
   // Get all boards in the system
-  getAll: publicProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.forumBoard.findMany({
-      orderBy: asc(forumBoard.createdAt),
-    });
-  }),
+  getAll: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all forum boards" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.forumBoard.findMany({
+        orderBy: asc(forumBoard.createdAt),
+      });
+    }),
   // The user read the news
-  readNews: protectedProcedure.mutation(async ({ ctx }) => {
-    await readNews(ctx.drizzle, ctx.userId);
-    return true;
-  }),
+  readNews: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Mark news as read for current user" } })
+    .mutation(async ({ ctx }) => {
+      await readNews(ctx.drizzle, ctx.userId);
+      return true;
+    }),
   // Get board in the system
   getThreads: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get threads for a forum board" } })
     .input(
       z.object({
         board_id: z.string().optional(),
@@ -57,6 +62,7 @@ export const forumRouter = createTRPCRouter({
       });
     }),
   createThread: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create a new forum thread" } })
     .input(forumBoardSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {

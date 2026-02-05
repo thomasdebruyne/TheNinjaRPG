@@ -34,57 +34,64 @@ import { getStrucBoost } from "@/utils/village";
 const pusher = getServerPusher();
 
 export const hospitalRouter = createTRPCRouter({
-  getHospitalizedUsers: protectedProcedure.query(async ({ ctx }) => {
-    // Query
-    const [user, alliances] = await Promise.all([
-      fetchUser(ctx.drizzle, ctx.userId),
-      ctx.drizzle.query.villageAlliance.findMany(),
-    ]);
-    // Derived
-    const allies = alliances
-      .filter((a) => a.villageIdA === user.villageId || a.villageIdB === user.villageId)
-      .filter((a) => a.status === "ALLY")
-      .flatMap((a) => [a.villageIdA, a.villageIdB]);
-    const uniqueVillageIds = user.villageId
-      ? [...new Set([user.villageId, ...allies])]
-      : [];
-    // Return filtered data
-    return await ctx.drizzle.query.userData.findMany({
-      columns: {
-        userId: true,
-        avatar: true,
-        username: true,
-        curHealth: true,
-        maxHealth: true,
-        regeneration: true,
-        regenAt: true,
-        level: true,
-        status: true,
-        sector: true,
-        longitude: true,
-        latitude: true,
-        rank: true,
-        isOutlaw: true,
-      },
-      where: and(
-        eq(userData.sector, user.sector),
-        user.villageId
-          ? inArray(userData.villageId, uniqueVillageIds)
-          : isNull(userData.villageId),
-        lte(userData.curHealth, userData.maxHealth),
-        or(...MEDNIN_HEALABLE_STATES.map((s) => eq(userData.status, s))),
-        sql`(${userData.maxHealth} - ${userData.curHealth}) > 0`,
-      ),
-      limit: 10,
-      orderBy: sql`RAND()`,
-    });
-  }),
+  getHospitalizedUsers: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get hospitalized users in current sector" },
+    })
+    .query(async ({ ctx }) => {
+      // Query
+      const [user, alliances] = await Promise.all([
+        fetchUser(ctx.drizzle, ctx.userId),
+        ctx.drizzle.query.villageAlliance.findMany(),
+      ]);
+      // Derived
+      const allies = alliances
+        .filter(
+          (a) => a.villageIdA === user.villageId || a.villageIdB === user.villageId,
+        )
+        .filter((a) => a.status === "ALLY")
+        .flatMap((a) => [a.villageIdA, a.villageIdB]);
+      const uniqueVillageIds = user.villageId
+        ? [...new Set([user.villageId, ...allies])]
+        : [];
+      // Return filtered data
+      return await ctx.drizzle.query.userData.findMany({
+        columns: {
+          userId: true,
+          avatar: true,
+          username: true,
+          curHealth: true,
+          maxHealth: true,
+          regeneration: true,
+          regenAt: true,
+          level: true,
+          status: true,
+          sector: true,
+          longitude: true,
+          latitude: true,
+          rank: true,
+          isOutlaw: true,
+        },
+        where: and(
+          eq(userData.sector, user.sector),
+          user.villageId
+            ? inArray(userData.villageId, uniqueVillageIds)
+            : isNull(userData.villageId),
+          lte(userData.curHealth, userData.maxHealth),
+          or(...MEDNIN_HEALABLE_STATES.map((s) => eq(userData.status, s))),
+          sql`(${userData.maxHealth} - ${userData.curHealth}) > 0`,
+        ),
+        limit: 10,
+        orderBy: sql`RAND()`,
+      });
+    }),
   // Let users heal other users if they are GENIN or above
   userHeal: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Heal another user using chakra" } })
     .input(
       z.object({
         userId: z.string(),
-        healPercentage: z.number().int().min(1).max(100),
+        healPercentage: z.int().min(1).max(100),
       }),
     )
     .output(
@@ -222,6 +229,7 @@ export const hospitalRouter = createTRPCRouter({
     }),
   // Pay to heal & get out of hospital
   npcHeal: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Pay NPC to heal and leave hospital" } })
     .input(z.object({ villageId: z.string().nullish() }))
     .output(
       baseServerResponse.extend({

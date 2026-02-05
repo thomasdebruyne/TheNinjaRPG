@@ -15,7 +15,6 @@ import dynamic from "next/dynamic";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +72,16 @@ import { canAdministrateWars } from "@/utils/permissions";
 import { capitalizeFirstLetter } from "@/utils/sanitize";
 import type { ArrayElement } from "@/utils/typeutils";
 import { useRequiredUserData } from "@/utils/UserContext";
+import {
+  type FindSectorSchema,
+  type FindSectorSchemaInput,
+  findSectorSchema,
+} from "@/validators/travel";
+import {
+  type AllianceOfferSchema,
+  type AllianceOfferSchemaInput,
+  createAllianceOfferSchema,
+} from "@/validators/war";
 
 const GlobalMap = dynamic(() => import("@/layout/Map"), { ssr: false });
 
@@ -287,10 +296,7 @@ export const WarMap: React.FC<{
   const [focusSector, setFocusSector] = useState<number | null>(null);
 
   // Find sector form
-  const findSectorSchema = z.object({
-    sector: z.coerce.number().int().min(0).max(492),
-  });
-  const findSectorForm = useForm<z.infer<typeof findSectorSchema>>({
+  const findSectorForm = useForm<FindSectorSchemaInput, unknown, FindSectorSchema>({
     mode: "all",
     resolver: zodResolver(findSectorSchema),
   });
@@ -533,6 +539,7 @@ export const WarMap: React.FC<{
                           placeholder="Sector ID (0-492)"
                           type="number"
                           {...field}
+                          value={field.value as number | undefined}
                         />
                       </FormControl>
                       <FormMessage />
@@ -546,7 +553,7 @@ export const WarMap: React.FC<{
                     className="flex-1"
                     disabled={findSectorValue === undefined}
                   >
-                    Find Sector {findSectorValue ?? "..."}
+                    Find Sector {(findSectorValue as number | undefined) ?? "..."}
                   </Button>
                   {focusSector !== null && (
                     <Button
@@ -1170,16 +1177,9 @@ export const VillageWar: React.FC<{
   const utils = api.useUtils();
 
   // Form for token offer
-  const offerSchema = z.object({
-    amount: z.coerce
-      .number()
-      .int()
-      .positive()
-      .min(WAR_ALLY_OFFER_MIN)
-      .max(userVillage?.tokens ?? 0),
-  });
+  const offerSchema = createAllianceOfferSchema(userVillage?.tokens ?? 0);
 
-  const offerForm = useForm<z.infer<typeof offerSchema>>({
+  const offerForm = useForm<AllianceOfferSchemaInput, unknown, AllianceOfferSchema>({
     resolver: zodResolver(offerSchema),
     defaultValues: { amount: 1000 },
     mode: "onChange",
@@ -1627,6 +1627,7 @@ export const VillageWar: React.FC<{
                                     type="number"
                                     placeholder={`Token offer (min ${WAR_ALLY_OFFER_MIN}, max ${userVillage?.tokens?.toLocaleString()})`}
                                     {...field}
+                                    value={field.value as number}
                                     onChange={(e) => {
                                       const value = parseInt(e.target.value, 10);
                                       field.onChange(value);

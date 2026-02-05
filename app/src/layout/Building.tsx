@@ -2,7 +2,6 @@
 
 import { CircleArrowUp, Info, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import {
   Tooltip,
@@ -15,6 +14,7 @@ import type { Village, VillageStructure } from "@/drizzle/schema";
 import Confirm2 from "@/layout/Confirm2";
 import Image from "@/layout/Image";
 import StatusBar from "@/layout/StatusBar";
+import { cn } from "@/libs/shadui";
 import { showMutationToast } from "@/libs/toast";
 import { canAdministrateWars } from "@/utils/permissions";
 import { useRequiredUserData } from "@/utils/UserContext";

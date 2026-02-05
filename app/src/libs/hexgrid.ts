@@ -16,6 +16,7 @@ import {
   ring,
   spiral,
 } from "honeycomb-grid";
+import type * as THREE from "three";
 import type { HEXTILE_TYPE } from "@/drizzle/constants";
 import type { CombatAction } from "./combat/types";
 
@@ -34,9 +35,9 @@ export class TerrainHex extends Hex {
 /**
  * Hexagonal face mesh for Three.js
  */
-export interface HexagonalFaceMesh extends THREE.Mesh {
+export interface HexagonalFaceMesh
+  extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> {
   currentHex: number;
-  material: THREE.MeshBasicMaterial;
   userData: {
     id: number;
     hex: number;

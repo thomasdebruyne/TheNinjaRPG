@@ -266,8 +266,8 @@ const DisplayUserReport: React.FC<UserReportProps> = (props) => {
                     <SelectValue placeholder={`None`} />
                   </SelectTrigger>
                   <SelectContent>
-                    {TimeUnits.map((value) => (
-                      <SelectItem key={value} value={value}>
+                    {TimeUnits.map((value, i) => (
+                      <SelectItem key={`${value}-${i}`} value={value}>
                         {value}
                       </SelectItem>
                     ))}

@@ -88,6 +88,7 @@ const pusher = getServerPusher();
 
 export const clanRouter = createTRPCRouter({
   purchaseHideout: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Purchase faction hideout" } })
     .input(z.object({ clanId: z.string(), sector: z.number() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -181,6 +182,7 @@ export const clanRouter = createTRPCRouter({
       return errorResponse("Hideout creation is currently disabled");
     }),
   upgradeHideoutToTown: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Upgrade hideout to town" } })
     .input(z.object({ clanId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -254,6 +256,9 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: "Hideout upgraded to town successfully" };
     }),
   clanDonate: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Donate reputation to faction treasury" },
+    })
     .input(
       z.object({
         reputationPoints: z.number().min(0),
@@ -330,6 +335,7 @@ export const clanRouter = createTRPCRouter({
       }
     }),
   get: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get clan/faction details" } })
     .input(z.object({ clanId: z.string() }))
     .query(async ({ ctx, input }) => {
       // Query
@@ -348,6 +354,7 @@ export const clanRouter = createTRPCRouter({
       return null;
     }),
   getAll: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get all clans/factions in village" } })
     .input(z.object({ villageId: z.string(), isOutlaw: z.boolean() }))
     .query(async ({ ctx, input }) => {
       // Fetch
@@ -359,15 +366,20 @@ export const clanRouter = createTRPCRouter({
       if (user.villageId === input.villageId) return fetchedClans;
       return null;
     }),
-  getAllNames: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.drizzle.query.clan.findMany({
-      columns: { id: true, name: true, image: true },
-    });
-  }),
-  getRequests: protectedProcedure.query(async ({ ctx }) => {
-    return await fetchRequests(ctx.drizzle, ["CLAN"], 3600 * 12, ctx.userId);
-  }),
+  getAllNames: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get all clan/faction names" } })
+    .query(async ({ ctx }) => {
+      return await ctx.drizzle.query.clan.findMany({
+        columns: { id: true, name: true, image: true },
+      });
+    }),
+  getRequests: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get pending clan join requests" } })
+    .query(async ({ ctx }) => {
+      return await fetchRequests(ctx.drizzle, ["CLAN"], 3600 * 12, ctx.userId);
+    }),
   searchClans: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Search clans/factions by name" } })
     .input(z.object({ name: z.string().trim() }))
     .query(async ({ ctx, input }) => {
       return ctx.drizzle.query.clan.findMany({
@@ -382,6 +394,7 @@ export const clanRouter = createTRPCRouter({
       });
     }),
   createRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Request to join clan/faction" } })
     .input(z.object({ clanId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -423,6 +436,7 @@ export const clanRouter = createTRPCRouter({
       };
     }),
   rejectRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Reject clan join request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -437,6 +451,7 @@ export const clanRouter = createTRPCRouter({
       return await updateRequestState(ctx.drizzle, input.id, "REJECTED", "CLAN");
     }),
   cancelRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Cancel your clan join request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -450,6 +465,7 @@ export const clanRouter = createTRPCRouter({
       return await updateRequestState(ctx.drizzle, input.id, "CANCELLED", "CLAN");
     }),
   acceptRequest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Accept clan join request" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -509,6 +525,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: "Request accepted" };
     }),
   createClan: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create new clan/faction" } })
     .input(clanCreateSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -579,6 +596,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `${groupLabel} created` };
     }),
   editClan: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Edit clan/faction name and image" } })
     .input(z.object({ clanId: z.string(), name: z.string(), image: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -615,6 +633,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `${groupLabel} updated` };
     }),
   editClanColor: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Change faction color" } })
     .input(z.object({ clanId: z.string(), color: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -683,6 +702,7 @@ export const clanRouter = createTRPCRouter({
       };
     }),
   promoteMember: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Promote clan member to leadership" } })
     .input(z.object({ clanId: z.string(), memberId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -785,6 +805,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: "Member promoted" };
     }),
   demoteMember: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Demote clan member from leadership" } })
     .input(z.object({ clanId: z.string(), memberId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -831,6 +852,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: "Member demoted" };
     }),
   kickMember: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Kick member from clan" } })
     .input(z.object({ clanId: z.string(), memberId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -875,6 +897,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: "Member kicked" };
     }),
   leaveClan: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Leave current clan/faction" } })
     .input(z.object({ clanId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -902,6 +925,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `User left ${groupLabel}` };
     }),
   upsertNotice: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Update clan notice/order" } })
     .input(z.object({ content: z.string(), clanId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -930,6 +954,9 @@ export const clanRouter = createTRPCRouter({
       );
     }),
   fightLeader: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Challenge clan leader for leadership" },
+    })
     .input(z.object({ clanId: z.string(), villageId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -966,6 +993,7 @@ export const clanRouter = createTRPCRouter({
       );
     }),
   toBank: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Deposit ryo to clan bank" } })
     .input(z.object({ amount: z.number().min(0), clanId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -991,6 +1019,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `Successfully deposited ${input.amount} ryo` };
     }),
   purchaseBoost: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Purchase clan stat boost" } })
     .input(z.object({ clanId: z.string(), boostType: clanBoostTypeSchema }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1041,6 +1070,9 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `${config.label} purchased` };
     }),
   nominateElder: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Nominate clan member for village elder" },
+    })
     .input(z.object({ clanId: z.string(), nomineeId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1113,11 +1145,13 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `${nominee.username} nominated as elder` };
     }),
   getClanBattles: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get clan battle history" } })
     .input(z.object({ clanId: z.string() }))
     .query(async ({ ctx, input }) => {
       return await fetchClanBattles(ctx.drizzle, input.clanId);
     }),
   challengeClan: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Challenge another clan to battle" } })
     .input(z.object({ challengerClanId: z.string(), targetClanId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1182,6 +1216,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `${groupLabel} challenge initiated` };
     }),
   joinClanBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Join ongoing clan battle queue" } })
     .input(z.object({ clanBattleId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1249,6 +1284,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `Joined ${groupLabel} battle` };
     }),
   leaveClanBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Leave clan battle queue" } })
     .input(z.object({ clanBattleId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1276,6 +1312,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `Left ${groupLabel} battle` };
     }),
   kickFromClanBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Kick member from clan battle queue" } })
     .input(
       z.object({ clanBattleId: z.string(), targetId: z.string(), clanId: z.string() }),
     )
@@ -1319,6 +1356,7 @@ export const clanRouter = createTRPCRouter({
       return { success: true, message: `Kicked from ${groupLabel} battle` };
     }),
   initiateClanBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Start clan battle combat" } })
     .input(z.object({ clanBattleId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {

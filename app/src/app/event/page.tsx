@@ -118,6 +118,7 @@ const RegenGainSystem: React.FC = () => {
   // Form control
   const regenForm = useForm<ChangeSettingSchema>({
     resolver: zodResolver(changeSettingSchema),
+    defaultValues: { setting: "regenGainMultiplier", multiplier: "2", days: 0 },
   });
   const watchedDays = useWatch({
     control: regenForm.control,
@@ -206,6 +207,7 @@ const TrainingGainSystem: React.FC = () => {
   // Form control
   const trainingForm = useForm<ChangeSettingSchema>({
     resolver: zodResolver(changeSettingSchema),
+    defaultValues: { setting: "trainingGainMultiplier", multiplier: "2", days: 0 },
   });
   const watchedDays = useWatch({
     control: trainingForm.control,
@@ -298,6 +300,7 @@ const BattleArenaExpSystem: React.FC = () => {
   // Form control
   const battleArenaForm = useForm<ChangeSettingSchema>({
     resolver: zodResolver(changeSettingSchema),
+    defaultValues: { setting: "battleExpMultiplier", multiplier: "2", days: 0 },
   });
   const watchedDays = useWatch({
     control: battleArenaForm.control,
@@ -390,6 +393,7 @@ const MissionExpSystem: React.FC = () => {
   // Form control
   const missionForm = useForm<ChangeSettingSchema>({
     resolver: zodResolver(changeSettingSchema),
+    defaultValues: { setting: "missionExpMultiplier", multiplier: "2", days: 0 },
   });
   const watchedDays = useWatch({
     control: missionForm.control,
@@ -482,6 +486,7 @@ const JutsuExpSystem: React.FC = () => {
   // Form control
   const jutsuForm = useForm<ChangeSettingSchema>({
     resolver: zodResolver(changeSettingSchema),
+    defaultValues: { setting: "jutsuExpMultiplier", multiplier: "2", days: 0 },
   });
   const watchedDays = useWatch({
     control: jutsuForm.control,
@@ -598,6 +603,7 @@ const NotificationSystem: React.FC = () => {
     formState: { errors },
   } = useForm<MutateContentSchema>({
     resolver: zodResolver(mutateContentSchema),
+    defaultValues: { content: "" },
   });
 
   // User search

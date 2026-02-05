@@ -15,7 +15,7 @@ import Link from "next/link";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,15 +92,25 @@ import {
   AiRule,
   ConditionDistanceHigherThan,
 } from "@/validators/ai";
-import type { Gender } from "@/validators/register";
 import {
+  type Attribute,
   attributes,
+  type Color,
   colors,
+  type Gender,
   genders,
   getSearchValidator,
+  type SkinColor,
   skin_colors,
 } from "@/validators/register";
-import { getUserElements, updateUserPreferencesSchema } from "@/validators/user";
+import {
+  type GenderChangeSchema,
+  genderChangeSchema,
+  getUserElements,
+  type TitleChangeSchema,
+  titleChangeSchema,
+  updateUserPreferencesSchema,
+} from "@/validators/user";
 
 export default function EditProfile() {
   // State
@@ -1307,15 +1317,13 @@ const AvatarChange: React.FC = () => {
  */
 const AttributeChange: React.FC = () => {
   // State
-  const [hairColor, setHairColor] = useState<(typeof colors)[number]>("Black");
-  const [eyeColor, setEyeColor] = useState<(typeof colors)[number]>("Black");
-  const [skinColor, setSkinColor] = useState<(typeof skin_colors)[number]>("Light");
+  const [hairColor, setHairColor] = useState<Color>("Black");
+  const [eyeColor, setEyeColor] = useState<Color>("Black");
+  const [skinColor, setSkinColor] = useState<SkinColor>("Light");
 
   // Queries
   const { data, refetch } = api.profile.getUserAttributes.useQuery(undefined);
-  const selectedAttributes = data
-    ? data.map((a) => a.attribute as (typeof attributes)[number])
-    : [];
+  const selectedAttributes = data ? data.map((a) => a.attribute as Attribute) : [];
 
   // Mutations
   const { mutate: insertAttr } = api.profile.insertAttribute.useMutation({
@@ -1376,7 +1384,7 @@ const AttributeChange: React.FC = () => {
           ))}
         <div className="relative mt-3">
           <Select
-            onValueChange={(e) => setEyeColor(e as (typeof colors)[number])}
+            onValueChange={(e) => setEyeColor(e as Color)}
             defaultValue={eyeColor}
             value={eyeColor}
           >
@@ -1385,8 +1393,8 @@ const AttributeChange: React.FC = () => {
               <SelectValue placeholder={`None`} />
             </SelectTrigger>
             <SelectContent id="eye_color">
-              {colors.map((color) => (
-                <SelectItem key={color} value={color}>
+              {colors.map((color, i) => (
+                <SelectItem key={`${color}-${i}`} value={color}>
                   {color}
                 </SelectItem>
               ))}
@@ -1401,7 +1409,7 @@ const AttributeChange: React.FC = () => {
         </div>
         <div className="relative mt-3">
           <Select
-            onValueChange={(e) => setSkinColor(e as (typeof skin_colors)[number])}
+            onValueChange={(e) => setSkinColor(e as SkinColor)}
             defaultValue={skinColor}
             value={skinColor}
           >
@@ -1410,8 +1418,8 @@ const AttributeChange: React.FC = () => {
               <SelectValue placeholder={`None`} />
             </SelectTrigger>
             <SelectContent id="skin_color">
-              {skin_colors.map((color) => (
-                <SelectItem key={color} value={color}>
+              {skin_colors.map((color, i) => (
+                <SelectItem key={`${color}-${i}`} value={color}>
                   {color}
                 </SelectItem>
               ))}
@@ -1426,7 +1434,7 @@ const AttributeChange: React.FC = () => {
         </div>
         <div className="relative mt-3">
           <Select
-            onValueChange={(e) => setHairColor(e as (typeof colors)[number])}
+            onValueChange={(e) => setHairColor(e as Color)}
             defaultValue={hairColor}
             value={hairColor}
           >
@@ -1435,8 +1443,8 @@ const AttributeChange: React.FC = () => {
               <SelectValue placeholder={`None`} />
             </SelectTrigger>
             <SelectContent id="hair_color">
-              {colors.map((color) => (
-                <SelectItem key={color} value={color}>
+              {colors.map((color, i) => (
+                <SelectItem key={`${color}-${i}`} value={color}>
                   {color}
                 </SelectItem>
               ))}
@@ -1670,10 +1678,8 @@ const CustomTitle: React.FC = () => {
   });
 
   // Title form
-  const FormSchema = z.object({ title: z.string().min(1).max(15) });
-  type FormSchemaType = z.infer<typeof FormSchema>;
-  const form = useForm<FormSchemaType>({
-    resolver: zodResolver(FormSchema),
+  const form = useForm<TitleChangeSchema>({
+    resolver: zodResolver(titleChangeSchema),
     defaultValues: { title: "" },
   });
   const curTitle = useWatch({ control: form.control, name: "title" });
@@ -1748,11 +1754,10 @@ const ChangeGender: React.FC = () => {
     },
   });
 
-  // Title form
-  const FormSchema = z.object({ gender: z.enum(genders) });
-  type FormSchemaType = z.infer<typeof FormSchema>;
-  const form = useForm<FormSchemaType>({
-    resolver: zodResolver(FormSchema),
+  // Gender form
+  const form = useForm<GenderChangeSchema>({
+    resolver: zodResolver(genderChangeSchema),
+    defaultValues: { gender: userData?.gender as Gender | undefined },
   });
   const watchGender = useWatch({ control: form.control, name: "gender" });
 
@@ -1796,8 +1801,8 @@ const ChangeGender: React.FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {genders.map((gender) => (
-                        <SelectItem key={gender} value={gender}>
+                      {genders.map((gender, i) => (
+                        <SelectItem key={`${gender}-${i}`} value={gender}>
                           {gender}
                         </SelectItem>
                       ))}

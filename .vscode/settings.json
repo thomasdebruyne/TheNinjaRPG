@@ -19,5 +19,6 @@
 		"editor.defaultFormatter": "biomejs.biome"
 	},
 	"typescript.tsserver.maxTsServerMemory": 4048,
+	"typescript.experimental.useTsgo": true,
 	"chatgpt.openOnStartup": true
 }

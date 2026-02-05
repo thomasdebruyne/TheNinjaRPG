@@ -264,6 +264,11 @@ export const StaffApprovalGroups = [
 ] as const satisfies readonly UserRole[];
 export type StaffApprovalGroup = (typeof StaffApprovalGroups)[number];
 
+/** Type guard to check if a UserRole is a StaffApprovalGroup */
+export const isStaffApprovalGroup = (role: UserRole): role is StaffApprovalGroup => {
+  return (StaffApprovalGroups as readonly string[]).includes(role);
+};
+
 // Per-group approval decision states
 export const StaffApplicationApprovalStates = ["APPROVED", "REJECTED"] as const;
 export type StaffApplicationApprovalState =

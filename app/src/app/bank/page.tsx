@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +44,11 @@ import { showMutationToast } from "@/libs/toast";
 import type { ArrayElement } from "@/utils/typeutils";
 import { useRequireInVillage } from "@/utils/UserContext";
 import { calcBankInterest, getStrucBoost } from "@/utils/village";
+import {
+  createMoneyTransferSchema,
+  type MoneyTransferSchema,
+  type MoneyTransferSchemaInput,
+} from "@/validators/bank";
 import { getSearchValidator } from "@/validators/register";
 
 export default function Bank() {
@@ -66,23 +71,19 @@ export default function Bank() {
     });
 
   // Schemas
-  const fromPocketSchema = z.object({
-    amount: z.coerce.number().int().positive().max(money),
-  });
-  const fromBankSchema = z.object({
-    amount: z.coerce.number().int().positive().max(bank),
-  });
+  const fromPocketSchema = createMoneyTransferSchema(money);
+  const fromBankSchema = createMoneyTransferSchema(bank);
 
   // Forms
-  const toBankForm = useForm<z.infer<typeof fromPocketSchema>>({
+  const toBankForm = useForm<MoneyTransferSchemaInput, unknown, MoneyTransferSchema>({
     defaultValues: { amount: 0 },
     resolver: zodResolver(fromPocketSchema),
   });
-  const toPocketForm = useForm<z.infer<typeof fromBankSchema>>({
+  const toPocketForm = useForm<MoneyTransferSchemaInput, unknown, MoneyTransferSchema>({
     defaultValues: { amount: 0 },
     resolver: zodResolver(fromBankSchema),
   });
-  const toUserForm = useForm<z.infer<typeof fromBankSchema>>({
+  const toUserForm = useForm<MoneyTransferSchemaInput, unknown, MoneyTransferSchema>({
     defaultValues: { amount: 0 },
     resolver: zodResolver(fromBankSchema),
   });
@@ -268,6 +269,7 @@ export default function Bank() {
                             id="amount"
                             placeholder="Transfer to bank"
                             {...field}
+                            value={field.value as number}
                           />
                         </FormControl>
                         <FormMessage />
@@ -298,6 +300,7 @@ export default function Bank() {
                             id="amount"
                             placeholder="Transfer to pocket"
                             {...field}
+                            value={field.value as number}
                           />
                         </FormControl>
                         <FormMessage />
@@ -363,7 +366,12 @@ export default function Bank() {
                 render={({ field }) => (
                   <FormItem className="flex w-full flex-col">
                     <FormControl>
-                      <Input id="amount" placeholder="Amount to transfer" {...field} />
+                      <Input
+                        id="amount"
+                        placeholder="Amount to transfer"
+                        {...field}
+                        value={field.value as number}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -42,6 +42,7 @@ import { fetchUser } from "./profile";
 
 export const blackMarketRouter = createTRPCRouter({
   getRyoOffers: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get ryo trade offers" } })
     .input(
       z.object({
         cursor: z.number().nullish(),
@@ -94,28 +95,31 @@ export const blackMarketRouter = createTRPCRouter({
       const nextCursor = results.length < limit ? null : currentCursor + 1;
       return { data: results, nextCursor };
     }),
-  getGraph: protectedProcedure.query(async ({ ctx }) => {
-    const sender = alias(userData, "sender");
-    const receiver = alias(userData, "receiver");
-    const transfers = await ctx.drizzle
-      .select({
-        senderId: sender.userId,
-        receiverId: receiver.userId,
-        senderUsername: sender.username,
-        receiverUsername: receiver.username,
-        senderAvatar: sender.avatar,
-        receiverAvatar: receiver.avatar,
-        totalReps: sql<number>`SUM(${ryoTrade.repsForSale})`,
-        totalRyo: sql<number>`SUM(${ryoTrade.requestedRyo})`,
-      })
-      .from(ryoTrade)
-      .innerJoin(sender, eq(ryoTrade.creatorUserId, sender.userId))
-      .innerJoin(receiver, eq(ryoTrade.purchaserUserId, receiver.userId))
-      .where(isNotNull(ryoTrade.purchaserUserId))
-      .groupBy(ryoTrade.creatorUserId, ryoTrade.purchaserUserId);
-    return transfers;
-  }),
+  getGraph: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get ryo trade graph data" } })
+    .query(async ({ ctx }) => {
+      const sender = alias(userData, "sender");
+      const receiver = alias(userData, "receiver");
+      const transfers = await ctx.drizzle
+        .select({
+          senderId: sender.userId,
+          receiverId: receiver.userId,
+          senderUsername: sender.username,
+          receiverUsername: receiver.username,
+          senderAvatar: sender.avatar,
+          receiverAvatar: receiver.avatar,
+          totalReps: sql<number>`SUM(${ryoTrade.repsForSale})`,
+          totalRyo: sql<number>`SUM(${ryoTrade.requestedRyo})`,
+        })
+        .from(ryoTrade)
+        .innerJoin(sender, eq(ryoTrade.creatorUserId, sender.userId))
+        .innerJoin(receiver, eq(ryoTrade.purchaserUserId, receiver.userId))
+        .where(isNotNull(ryoTrade.purchaserUserId))
+        .groupBy(ryoTrade.creatorUserId, ryoTrade.purchaserUserId);
+      return transfers;
+    }),
   createOffer: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create a ryo trade offer" } })
     .input(
       z.object({
         reps: z.coerce.number().int().min(1),
@@ -172,6 +176,7 @@ export const blackMarketRouter = createTRPCRouter({
       return { success: true, message: "Offer created" };
     }),
   delistOffer: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Remove a ryo trade offer" } })
     .input(z.object({ offerId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Query
@@ -204,6 +209,7 @@ export const blackMarketRouter = createTRPCRouter({
       return { success: true, message: "Offer delisted" };
     }),
   takeOffer: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Purchase a ryo trade offer" } })
     .input(z.object({ offerId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Fetch the offer, user, and seller data simultaneously
@@ -308,20 +314,18 @@ export const blackMarketRouter = createTRPCRouter({
               ]
             : []),
           // Log the failure for debugging
-          ctx.drizzle
-            .insert(actionLog)
-            .values({
-              id: nanoid(),
-              userId: ctx.userId,
-              tableName: "ryoTrade",
-              changes: [
-                `Rollback of offer ${input.offerId}`,
-                `Buyer update: ${buyerFailed ? "failed" : "success"}`,
-                `Seller update: ${sellerFailed ? "failed" : "success"}`,
-              ],
-              relatedId: input.offerId,
-              relatedMsg: `Rollback: buyer=${buyerFailed ? "fail" : "ok"}, seller=${sellerFailed ? "fail" : "ok"}`,
-            }),
+          ctx.drizzle.insert(actionLog).values({
+            id: nanoid(),
+            userId: ctx.userId,
+            tableName: "ryoTrade",
+            changes: [
+              `Rollback of offer ${input.offerId}`,
+              `Buyer update: ${buyerFailed ? "failed" : "success"}`,
+              `Seller update: ${sellerFailed ? "failed" : "success"}`,
+            ],
+            relatedId: input.offerId,
+            relatedMsg: `Rollback: buyer=${buyerFailed ? "fail" : "ok"}, seller=${sellerFailed ? "fail" : "ok"}`,
+          }),
         ]);
 
         return errorResponse(
@@ -351,6 +355,7 @@ export const blackMarketRouter = createTRPCRouter({
     }),
   // Update custom title
   updateCustomTitle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Update user's custom title" } })
     .input(z.object({ title: z.string().min(1).max(15) }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -388,6 +393,7 @@ export const blackMarketRouter = createTRPCRouter({
       }
     }),
   changeUserGender: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Change user's gender" } })
     .input(z.object({ gender: z.enum(genders) }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -413,6 +419,7 @@ export const blackMarketRouter = createTRPCRouter({
       }
     }),
   buyItemSlot: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Purchase an extra item slot" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Fetch
@@ -445,6 +452,7 @@ export const blackMarketRouter = createTRPCRouter({
       }
     }),
   buyJutsuSlot: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Purchase an extra jutsu slot" } })
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Fetch
@@ -480,6 +488,9 @@ export const blackMarketRouter = createTRPCRouter({
       }
     }),
   rerollElement: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Reroll primary or secondary element" },
+    })
     .input(z.object({ elementType: z.enum(["primary", "secondary"]) }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -580,6 +591,7 @@ export const blackMarketRouter = createTRPCRouter({
     }),
   // Update stats
   updateStats: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Redistribute user stats" } })
     .input(statSchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {

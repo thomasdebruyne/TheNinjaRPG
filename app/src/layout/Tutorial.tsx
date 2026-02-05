@@ -4,7 +4,6 @@ import { ArrowRight, Info } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/libs/shadui";
 import { getMobileOperatingSystem } from "@/utils/hardware";
 import { useUserData } from "@/utils/UserContext";
 

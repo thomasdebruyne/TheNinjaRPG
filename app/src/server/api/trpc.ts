@@ -20,6 +20,8 @@ import type { NextRequest } from "next/server";
 import superjson from "superjson";
 import { ZodError, z } from "zod";
 import { userData } from "@/drizzle/schema";
+import type { McpMeta } from "@/libs/mcp";
+
 /**
  * 1. CONTEXT
  *
@@ -67,32 +69,35 @@ export const createAppTRPCContext = async (opts: {
  * This is where the tRPC API is initialized, connecting the context and transformer.
  */
 
-const t = initTRPC.context<typeof createAppTRPCContext>().create({
-  transformer: superjson,
-  errorFormatter({ shape, error }) {
-    // If a database error, extract & format error message better
-    if (error?.cause?.cause) {
-      const cause = error.cause.cause as { name?: string; body: unknown };
-      if (cause?.name === "DatabaseError" && cause?.body) {
-        const message = JSON.stringify(cause.body);
-        // Remove everything after (including) "sqlstate" from the error message
-        const cleanMessage =
-          typeof message === "string"
-            ? message.replace(/\s*\(sqlstate.*$/i, "")
-            : message;
-        shape.message = cleanMessage;
+const t = initTRPC
+  .context<typeof createAppTRPCContext>()
+  .meta<McpMeta>()
+  .create({
+    transformer: superjson,
+    errorFormatter({ shape, error }) {
+      // If a database error, extract & format error message better
+      if (error?.cause?.cause) {
+        const cause = error.cause.cause as { name?: string; body: unknown };
+        if (cause?.name === "DatabaseError" && cause?.body) {
+          const message = JSON.stringify(cause.body);
+          // Remove everything after (including) "sqlstate" from the error message
+          const cleanMessage =
+            typeof message === "string"
+              ? message.replace(/\s*\(sqlstate.*$/i, "")
+              : message;
+          shape.message = cleanMessage;
+        }
       }
-    }
 
-    return {
-      ...shape,
-      data: {
-        ...shape.data,
-        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
-      },
-    };
-  },
-});
+      return {
+        ...shape,
+        data: {
+          ...shape.data,
+          zodError: error.cause instanceof ZodError ? error.cause.issues : null,
+        },
+      };
+    },
+  });
 
 /**
  * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 import { eq } from "drizzle-orm";
@@ -241,16 +242,34 @@ export const getGameSettingBoost = (settingName: string, settings: GameSetting[]
 
 /**
  * Handles errors that occur during endpoint processing.
- * Logs the error to the console and returns an appropriate HTTP response.
+ * Logs the error to the console, captures it to Sentry, and returns an appropriate HTTP response.
  *
  * @param cause - The error that occurred. This can be of any type.
+ * @param context - Optional context for the error (e.g., endpoint name).
  * @returns A JSON response with the error details and the appropriate HTTP status code.
  *          If the error is an instance of TRPCError, the response will contain the error details
  *          and the corresponding HTTP status code. Otherwise, it returns a generic "Internal server error"
  *          message with a 500 status code.
  */
-export const handleEndpointError = (cause: unknown) => {
+export const handleEndpointError = async (
+  cause: unknown,
+  context?: { endpoint?: string },
+) => {
   console.error(cause);
+
+  // Capture to Sentry
+  Sentry.captureException(cause, {
+    extra: { endpoint: context?.endpoint },
+    tags: { type: "api_route_error" },
+  });
+
+  // Flush for serverless - critical for Vercel Lambda environments
+  try {
+    await Sentry.flush(5000);
+  } catch (e) {
+    console.error("[handleEndpointError] Sentry flush failed:", e);
+  }
+
   if (cause instanceof TRPCError) {
     // An error from tRPC occured
     const httpCode = getHTTPStatusCodeFromError(cause);

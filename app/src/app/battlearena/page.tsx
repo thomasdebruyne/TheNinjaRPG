@@ -133,8 +133,8 @@ export default function Arena() {
                 <SelectValue placeholder="Select arena type" />
               </SelectTrigger>
               <SelectContent>
-                {availableTabs.map((option) => (
-                  <SelectItem key={option} value={option}>
+                {availableTabs.map((option, i) => (
+                  <SelectItem key={`${option}-${i}`} value={option}>
                     {option}
                   </SelectItem>
                 ))}
@@ -393,6 +393,7 @@ const ChallengeUser: React.FC = () => {
   const userSearchSchema = getSearchValidator({ max: maxUsers });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
     resolver: zodResolver(userSearchSchema),
+    defaultValues: { username: "", users: [] },
   });
   const targetUser = useWatch({
     control: userSearchMethods.control,
@@ -597,13 +598,13 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
     });
 
   // Stats Schema
-  const statSchema = createStatSchema(10, 10, undefined);
+  const { schema: statSchema, maxValues } = createStatSchema(10, 10, undefined);
   const defaultValues = statSchema.parse(statDistribution ?? {});
   const statNames = Object.keys(defaultValues) as (keyof typeof defaultValues)[];
 
   // Form setup
-  const form = useForm<StatSchemaType>({
-    defaultValues,
+  const form = useForm<z.input<typeof statSchema>, unknown, StatSchemaType>({
+    defaultValues: defaultValues as z.input<typeof statSchema>,
     mode: "all",
     resolver: zodResolver(statSchema),
   });
@@ -627,20 +628,24 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
         <form className="grid grid-cols-2 gap-2" onSubmit={onSubmit}>
           {statNames
             .filter((x) => !x.includes("Offence"))
-            .map((stat) => {
-              const maxValue =
-                statSchema.shape[stat]._def.innerType._def.schema.maxValue;
+            .map((stat, i) => {
+              const maxValue = maxValues[stat];
               if (maxValue && maxValue > 0) {
                 return (
                   <FormField
-                    key={stat}
+                    key={`${stat}-${i}`}
                     control={form.control}
                     name={stat}
                     render={({ field }) => (
                       <FormItem className="pt-1">
                         <FormLabel>{stat}</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder={stat} {...field} />
+                          <Input
+                            type="number"
+                            placeholder={stat}
+                            {...field}
+                            value={field.value as number}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -649,7 +654,7 @@ const AssignTrainingDummyStats: React.FC<AssignTrainingDummyStatsProps> = (props
                 );
               } else {
                 return (
-                  <FormItem className="pt-1" key={stat}>
+                  <FormItem className="pt-1" key={`${stat}-${i}`}>
                     <FormLabel>{stat}</FormLabel>
                     <FormControl>
                       <div>- Max</div>

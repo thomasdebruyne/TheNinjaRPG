@@ -3,7 +3,7 @@ import type { ElementName, LetterRank, QuestType } from "@/drizzle/constants";
 import { GeneralTypes, StatTypes, UserRanks, UserRoles } from "@/drizzle/constants";
 import type { UserWithRelations } from "@/routers/profile";
 import type { ZodAllTags } from "@/validators/combat";
-import { usernameSchema } from "@/validators/register";
+import { genders, usernameSchema } from "@/validators/register";
 
 export const updateUserSchema = z.object({
   username: usernameSchema,
@@ -20,7 +20,8 @@ export const updateUserSchema = z.object({
   rankedLp: z.coerce.number().int().min(0).optional(),
 });
 
-export type UpdateUserSchema = z.infer<typeof updateUserSchema>;
+export type UpdateUserSchema = z.output<typeof updateUserSchema>;
+export type UpdateUserInput = z.input<typeof updateUserSchema>;
 
 export const getQuestCounterFieldName = (
   type: QuestType | undefined,
@@ -109,7 +110,7 @@ export const isBloodlineEffectBeneficial = (effect: ZodAllTags) => {
 export const getPublicUsersSchema = z.object({
   cursor: z.number().nullish(),
   limit: z.number().min(1).max(100),
-  isAi: z.boolean().default(false),
+  isAi: z.boolean().prefault(false),
   orderBy: z.enum([
     "Online",
     "Strongest",
@@ -161,8 +162,15 @@ export const updateUserPreferencesSchema = z
       return true;
     },
     {
-      message: "General preferences must be different",
+      error: "General preferences must be different",
     },
   );
 
 export type UpdateUserPreferencesSchema = z.infer<typeof updateUserPreferencesSchema>;
+
+// Profile edit schemas
+export const titleChangeSchema = z.object({ title: z.string().min(1).max(15) });
+export type TitleChangeSchema = z.infer<typeof titleChangeSchema>;
+
+export const genderChangeSchema = z.object({ gender: z.enum(genders) });
+export type GenderChangeSchema = z.infer<typeof genderChangeSchema>;

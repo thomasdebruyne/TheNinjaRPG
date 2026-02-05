@@ -21,7 +21,6 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,6 +70,14 @@ import { hasRequiredRank } from "@/libs/train";
 import { calcGlobalTravelTime, findNearestEdge, isAtEdge } from "@/libs/travel";
 import { useAwake } from "@/utils/routing";
 import { useRequiredUserData } from "@/utils/UserContext";
+import {
+  type FindSectorSchema,
+  type FindSectorSchemaInput,
+  findSectorSchema,
+  type QuickTravelSchema,
+  type QuickTravelSchemaInput,
+  quickTravelSchema,
+} from "@/validators/travel";
 
 const GlobalMap = dynamic(() => import("@/layout/Map"), { ssr: false });
 const Sector = dynamic(() => import("@/layout/Sector"), { ssr: false });
@@ -166,10 +173,7 @@ export default function Travel() {
   const globalLink = `Global`;
 
   // Quick travel form
-  const quickTravelSchema = z.object({
-    sector: z.coerce.number().int().min(0).max(492),
-  });
-  const quickTravelForm = useForm<z.infer<typeof quickTravelSchema>>({
+  const quickTravelForm = useForm<QuickTravelSchemaInput, unknown, QuickTravelSchema>({
     mode: "all",
     resolver: zodResolver(quickTravelSchema),
     defaultValues: { sector: undefined },
@@ -177,20 +181,17 @@ export default function Travel() {
   const quickTravelSector = useWatch({
     control: quickTravelForm.control,
     name: "sector",
-  });
+  }) as number | undefined;
 
   // Find sector form
-  const findSectorSchema = z.object({
-    sector: z.coerce.number().int().min(0).max(492),
-  });
-  const findSectorForm = useForm<z.infer<typeof findSectorSchema>>({
+  const findSectorForm = useForm<FindSectorSchemaInput, unknown, FindSectorSchema>({
     mode: "all",
     resolver: zodResolver(findSectorSchema),
   });
   const findSectorValue = useWatch({
     control: findSectorForm.control,
     name: "sector",
-  });
+  }) as number | undefined;
 
   useEffect(() => {
     if (userData && globe) {
@@ -628,6 +629,7 @@ export default function Travel() {
                                   placeholder="Sector ID (0-492)"
                                   type="number"
                                   {...field}
+                                  value={field.value as number}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -686,6 +688,7 @@ export default function Travel() {
                                   placeholder="Sector ID (0-492)"
                                   type="number"
                                   {...field}
+                                  value={field.value as number}
                                 />
                               </FormControl>
                               <FormMessage />

@@ -3,7 +3,7 @@
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 import type * as React from "react";
 
-import { cn } from "src/libs/shadui";
+import { cn } from "@/libs/shadui";
 
 type ProgressProps = React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> & {
   indicatorClassName?: string;

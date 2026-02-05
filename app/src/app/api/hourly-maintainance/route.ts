@@ -42,7 +42,7 @@ export async function GET() {
       activeCount: activeCount,
     });
   } catch (error) {
-    return handleEndpointError(error);
+    return await handleEndpointError(error);
   }
 }
 

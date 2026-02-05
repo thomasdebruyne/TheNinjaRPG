@@ -5,6 +5,7 @@ import { noCase } from "change-case";
 import type React from "react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -161,7 +162,7 @@ const SimpleDistribution: React.FC<SimpleDistributionProps> = (props) => {
   const { userData, availableStats, onAccept, isRedistribution } = props;
 
   // Create stat schema to get caps
-  const statSchema = createStatSchema(
+  const { schema: statSchema, maxValues } = createStatSchema(
     isRedistribution ? 10 : 0,
     isRedistribution ? 10 : 0,
     isRedistribution ? undefined : userData,
@@ -207,7 +208,7 @@ const SimpleDistribution: React.FC<SimpleDistributionProps> = (props) => {
   // Check if any stat in the specialization is capped
   const isSpecializationDisabled = (option: (typeof specializationOptions)[number]) => {
     return option.stats.some((stat) => {
-      const maxValue = statSchema.shape[stat]._def.innerType._def.schema.maxValue;
+      const maxValue = maxValues[stat];
       const currentValue = defaultValues[stat] ?? 0;
       return maxValue !== undefined && maxValue !== null && currentValue >= maxValue;
     });
@@ -216,7 +217,7 @@ const SimpleDistribution: React.FC<SimpleDistributionProps> = (props) => {
   // Get which stats are capped for display purposes
   const getCappedStats = (option: (typeof specializationOptions)[number]) => {
     return option.stats.filter((stat) => {
-      const maxValue = statSchema.shape[stat]._def.innerType._def.schema.maxValue;
+      const maxValue = maxValues[stat];
       const currentValue = defaultValues[stat] ?? 0;
       return maxValue !== undefined && maxValue !== null && currentValue >= maxValue;
     });
@@ -293,7 +294,7 @@ const SimpleDistribution: React.FC<SimpleDistributionProps> = (props) => {
                   const points = pointsPerStat + (index < leftoverPoints ? 1 : 0);
                   return (
                     <li
-                      key={stat}
+                      key={`${stat}-${index}`}
                       className={`capitalize ${isCapped ? "font-semibold text-red-500" : ""}`}
                     >
                       {capitalizeFirstLetter(noCase(stat))} (+{points})
@@ -333,7 +334,7 @@ const AdvancedDistribution: React.FC<AdvancedDistributionProps> = (props) => {
   if (userData) capUserStats(userData);
 
   // Stats Schema
-  const statSchema = createStatSchema(
+  const { schema: statSchema, maxValues } = createStatSchema(
     isRedistribution ? 10 : 0,
     isRedistribution ? 10 : 0,
     isRedistribution ? undefined : userData,
@@ -342,8 +343,8 @@ const AdvancedDistribution: React.FC<AdvancedDistributionProps> = (props) => {
   const statNames = Object.keys(defaultValues) as (keyof typeof defaultValues)[];
 
   // Form setup
-  const form = useForm<StatSchemaType>({
-    defaultValues,
+  const form = useForm<z.input<typeof statSchema>, unknown, StatSchemaType>({
+    defaultValues: defaultValues as z.input<typeof statSchema>,
     mode: "all",
     resolver: zodResolver(statSchema),
   });
@@ -393,10 +394,9 @@ const AdvancedDistribution: React.FC<AdvancedDistributionProps> = (props) => {
         />
       </div>
       <form className="grid grid-cols-2 gap-2" onSubmit={onSubmit}>
-        {statNames.map((stat) => {
-          const maxValue = statSchema.shape[stat]._def.innerType._def.schema.maxValue;
-          const minValue =
-            statSchema.shape[stat]._def.innerType._def.schema.minValue ?? 0;
+        {statNames.map((stat, i) => {
+          const maxValue = maxValues[stat];
+          const minValue = 0;
           const currentValue = Number(formValues[stat] ?? 0);
 
           // Calculate remaining points and dynamic max for this slider
@@ -407,7 +407,7 @@ const AdvancedDistribution: React.FC<AdvancedDistributionProps> = (props) => {
           if (maxValue && maxValue > 0) {
             return (
               <FormField
-                key={stat}
+                key={`${stat}-${i}`}
                 control={form.control}
                 name={stat}
                 render={({ field, fieldState }) => (
@@ -427,7 +427,7 @@ const AdvancedDistribution: React.FC<AdvancedDistributionProps> = (props) => {
                           min={minValue}
                           max={dynamicMax}
                           step={0.01}
-                          value={field.value ?? 0}
+                          value={(field.value as number) ?? 0}
                           onChange={(e) => {
                             const value = parseFloat(e.target.value) || 0;
                             const clampedValue = Math.max(
@@ -464,7 +464,7 @@ const AdvancedDistribution: React.FC<AdvancedDistributionProps> = (props) => {
             );
           } else {
             return (
-              <FormItem className="pt-1" key={stat}>
+              <FormItem className="pt-1" key={`${stat}-${i}`}>
                 <FormLabel>{capitalizeFirstLetter(stat)}</FormLabel>
                 <FormControl>
                   <div className="text-muted-foreground text-sm">

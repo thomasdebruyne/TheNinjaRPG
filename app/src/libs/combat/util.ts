@@ -1754,7 +1754,7 @@ export const calcBattleResult = (
       shrineChangeHp *= battle.rewardScaling;
       warHealthChange *= battle.rewardScaling;
       Object.keys(shrineInfo).forEach((sector) => {
-        const sectorNum = sector as unknown as number;
+        const sectorNum = Number(sector);
         const val = shrineInfo[sectorNum];
         if (val !== undefined) {
           shrineInfo[sectorNum] = val * battle.rewardScaling;
@@ -1796,7 +1796,7 @@ export const calcBattleResult = (
             warHealthChange /= Math.abs(warHealthChange);
           }
           Object.keys(shrineInfo).forEach((sector) => {
-            const sectorNum = sector as unknown as number;
+            const sectorNum = Number(sector);
             const val = shrineInfo[sectorNum];
             if (val !== undefined) {
               const abs = Math.abs(val);

@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import { api, useGlobalOnMutateProtect } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
@@ -27,6 +27,7 @@ import { canPostAsAi } from "@/utils/permissions";
 import { secondsFromNow } from "@/utils/time";
 import type { ArrayElement } from "@/utils/typeutils";
 import { useUserData } from "@/utils/UserContext";
+import { type SearchFormSchema, searchFormSchema } from "@/validators/chat";
 import type { MutateCommentSchema } from "@/validators/comments";
 import { mutateCommentSchema } from "@/validators/comments";
 import { getSearchValidator } from "@/validators/register";
@@ -116,19 +117,14 @@ const Conversation: React.FC<ConversationProps> = (props) => {
   // Search functionality
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
 
-  // Create a search form schema
-  const searchFormSchema = z.object({
-    searchTerm: z.string(),
-  });
-
   // Create form for search
-  const searchForm = useForm<z.infer<typeof searchFormSchema>>({
+  const searchForm = useForm<SearchFormSchema>({
     resolver: zodResolver(searchFormSchema),
     defaultValues: { searchTerm: "" },
   });
 
   const onSearchSubmit = useCallback(
-    (values: z.infer<typeof searchFormSchema>) => {
+    (values: SearchFormSchema) => {
       setSearchQuery(values.searchTerm);
       void refetch();
     },
@@ -670,7 +666,8 @@ const Conversation: React.FC<ConversationProps> = (props) => {
                   quoteIds.length > 0 &&
                   quoteIds.map((quoteId) => {
                     const quote = allComments?.find((c) => c.id === quoteId);
-                    return quote ? (
+                    if (!quote) return null;
+                    return (
                       <Quote
                         key={quoteId}
                         author={quote.username || "Unknown"}
@@ -684,8 +681,6 @@ const Conversation: React.FC<ConversationProps> = (props) => {
                       >
                         {quote.content}
                       </Quote>
-                    ) : (
-                      ""
                     );
                   })}
                 <div className="relative">

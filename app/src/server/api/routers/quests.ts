@@ -109,14 +109,19 @@ import type { QuestCounterFieldName } from "@/validators/user";
 import { getQuestCounterFieldName } from "@/validators/user";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 export const questsRouter = createTRPCRouter({
-  getAllNames: publicProcedure.query(async ({ ctx }) => {
-    const results = await ctx.drizzle.query.quest.findMany({
-      columns: { id: true, name: true },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    });
-    return results;
-  }),
+  getAllNames: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get all quest names and IDs" } })
+    .query(async ({ ctx }) => {
+      const results = await ctx.drizzle.query.quest.findMany({
+        columns: { id: true, name: true },
+        orderBy: (table, { asc }) => [asc(table.name)],
+      });
+      return results;
+    }),
   getAll: publicProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get paginated list of quests with filters" },
+    })
     .input(
       questFilteringSchema.extend({
         cursor: z.number().nullish(),
@@ -165,6 +170,7 @@ export const questsRouter = createTRPCRouter({
       };
     }),
   get: publicProcedure
+    .meta({ mcp: { enabled: true, description: "Get a single quest by ID" } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const [result, user] = await Promise.all([
@@ -180,6 +186,12 @@ export const questsRouter = createTRPCRouter({
       return result;
     }),
   allianceBuilding: protectedProcedure
+    .meta({
+      mcp: {
+        enabled: true,
+        description: "Get available event quests from alliance building",
+      },
+    })
     .input(
       z.object({
         villageId: z.string().optional().nullish(),
@@ -233,6 +245,9 @@ export const questsRouter = createTRPCRouter({
       return events.filter((e) => isAvailableUserQuests(e, user, true).check);
     }),
   missionHall: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get available missions from mission hall" },
+    })
     .input(z.object({ villageId: z.string(), level: z.number() }))
     .query(async ({ ctx, input }) => {
       // Query
@@ -285,6 +300,9 @@ export const questsRouter = createTRPCRouter({
       return missions.filter((e) => isAvailableUserQuests(e, user, true).check);
     }),
   specificQuests: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Get quests filtered by type and level" },
+    })
     .input(z.object({ level: z.number(), questType: z.enum(QuestTypes) }))
     .query(async ({ ctx, input }) => {
       // Query
@@ -319,6 +337,7 @@ export const questsRouter = createTRPCRouter({
       return quests.filter((e) => isAvailableUserQuests(e, user, true).check);
     }),
   startRandom: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Start a random mission or errand" } })
     .input(
       z.object({
         type: z.enum(["errand", "mission", "crime", "medical", "pvp"]),
@@ -511,6 +530,7 @@ export const questsRouter = createTRPCRouter({
       return { success: true, message: `Quest started: ${result.name}${rankInfo}` };
     }),
   startQuest: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Start a specific quest by ID" } })
     .input(z.object({ questId: z.string(), userSector: z.number() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -699,6 +719,7 @@ export const questsRouter = createTRPCRouter({
       return { success: true, message: `Quest started: ${questData.name}` };
     }),
   abandon: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Abandon an active quest" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -754,6 +775,7 @@ export const questsRouter = createTRPCRouter({
       return { success: true, message: `Quest abandoned` };
     }),
   getQuestHistory: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get user's quest history" } })
     .input(
       z.object({
         cursor: z.number().nullish(),
@@ -778,6 +800,9 @@ export const questsRouter = createTRPCRouter({
       };
     }),
   update: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Update quest content (content editors)" },
+    })
     .input(z.object({ id: z.string(), data: QuestValidator }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -925,62 +950,70 @@ export const questsRouter = createTRPCRouter({
         return { success: false, message: `Not allowed to edit quest` };
       }
     }),
-  create: protectedProcedure.output(baseServerResponse).mutation(async ({ ctx }) => {
-    const user = await fetchUser(ctx.drizzle, ctx.userId);
-    if (user.isBanned)
-      return errorResponse("You are banned and cannot perform this action");
-    if (canChangeContent(user.role)) {
-      const id = nanoid();
-      await ctx.drizzle.insert(quest).values({
-        id: id,
-        name: `New Quest - ${id}`,
-        image: IMG_AVATAR_DEFAULT,
-        description: "",
-        questType: "mission",
-        medicalRank: "NONE",
-        huntingRank: "NONE",
-        gatheringRank: "NONE",
-        hidden: true,
-        prerequisiteQuestId: "",
-        content: {
-          sceneBackground: "",
-          sceneCharacters: [],
-          objectives: [],
-          reward: {
-            reward_medical_experience: 0,
-            reward_hunting_experience: 0,
-            reward_crafting_experience: 0,
-            reward_gathering_experience: 0,
-            reward_seichi_silver: 0,
-            reward_money: 0,
-            reward_clanpoints: 0,
-            reward_anbupoints: 0,
-            reward_exp: 0,
-            reward_tokens: 0,
-            reward_prestige: 0,
-            reward_reputation: 0,
-            reward_skillpoints: 0,
-            reward_jutsus: [],
-            reward_bloodlines: [],
-            reward_badges: [],
-            reward_items: [],
-            reward_rank: "NONE",
-            reward_village_membership: "NONE",
-            reward_hunter_items: false,
-            reward_gathering_items: false,
-            reward_hunter_items_ids: [],
-            reward_gathering_items_ids: [],
-            reward_war_damage: 0,
-            reward_war_healing: 0,
+  create: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Create a new quest (content editors)" },
+    })
+    .output(baseServerResponse)
+    .mutation(async ({ ctx }) => {
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      if (user.isBanned)
+        return errorResponse("You are banned and cannot perform this action");
+      if (canChangeContent(user.role)) {
+        const id = nanoid();
+        await ctx.drizzle.insert(quest).values({
+          id: id,
+          name: `New Quest - ${id}`,
+          image: IMG_AVATAR_DEFAULT,
+          description: "",
+          questType: "mission",
+          medicalRank: "NONE",
+          huntingRank: "NONE",
+          gatheringRank: "NONE",
+          hidden: true,
+          prerequisiteQuestId: "",
+          content: {
+            sceneBackground: "",
+            sceneCharacters: [],
+            objectives: [],
+            reward: {
+              reward_medical_experience: 0,
+              reward_hunting_experience: 0,
+              reward_crafting_experience: 0,
+              reward_gathering_experience: 0,
+              reward_seichi_silver: 0,
+              reward_money: 0,
+              reward_clanpoints: 0,
+              reward_anbupoints: 0,
+              reward_exp: 0,
+              reward_tokens: 0,
+              reward_prestige: 0,
+              reward_reputation: 0,
+              reward_skillpoints: 0,
+              reward_jutsus: [],
+              reward_bloodlines: [],
+              reward_badges: [],
+              reward_items: [],
+              reward_rank: "NONE",
+              reward_village_membership: "NONE",
+              reward_hunter_items: false,
+              reward_gathering_items: false,
+              reward_hunter_items_ids: [],
+              reward_gathering_items_ids: [],
+              reward_war_damage: 0,
+              reward_war_healing: 0,
+            },
           },
-        },
-      });
-      return { success: true, message: id };
-    } else {
-      return { success: false, message: `Not allowed to create quest` };
-    }
-  }),
+        });
+        return { success: true, message: id };
+      } else {
+        return { success: false, message: `Not allowed to create quest` };
+      }
+    }),
   clone: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Clone an existing quest (content editors)" },
+    })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1018,6 +1051,7 @@ export const questsRouter = createTRPCRouter({
       return { success: true, message: questData.id };
     }),
   delete: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Delete a quest (content editors)" } })
     .input(z.object({ id: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1060,6 +1094,7 @@ export const questsRouter = createTRPCRouter({
       }
     }),
   checkRewards: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Check and claim quest rewards" } })
     .input(z.object({ questId: z.string(), nextObjectiveId: z.string().optional() }))
     .output(
       z.union([
@@ -1220,6 +1255,12 @@ export const questsRouter = createTRPCRouter({
       };
     }),
   checkLocationQuest: protectedProcedure
+    .meta({
+      mcp: {
+        enabled: true,
+        description: "Update quest progress for location-based objectives",
+      },
+    })
     .output(
       z.object({
         success: z.boolean(),
@@ -1344,6 +1385,7 @@ export const questsRouter = createTRPCRouter({
       return { success: true, message: "Quest deleted successfully" };
     }),
   retryBattle: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Retry a quest battle after failure" } })
     .input(z.object({ questId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {

@@ -11,8 +11,8 @@ import {
 import { Canvas } from "@react-three/fiber";
 import type React from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { cn } from "src/libs/shadui";
 import AvatarImage from "@/layout/Avatar";
+import { cn } from "@/libs/shadui";
 
 interface Model3dProps {
   modelUrl?: string | null;

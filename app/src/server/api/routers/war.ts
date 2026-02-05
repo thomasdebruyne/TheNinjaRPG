@@ -66,6 +66,7 @@ import {
 export const warRouter = createTRPCRouter({
   // Get active wars for a village
   getActiveWars: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get active wars for a village" } })
     .input(z.object({ villageId: z.string() }))
     .query(async ({ ctx, input }) => {
       return await fetchActiveWars(ctx.drizzle, input.villageId);
@@ -73,6 +74,7 @@ export const warRouter = createTRPCRouter({
 
   // Get ended wars for a village
   getEndedWars: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get ended wars for a village" } })
     .input(z.object({ villageId: z.string() }))
     .query(async ({ ctx, input }) => {
       return fetchEndedWars(ctx.drizzle, input.villageId);
@@ -114,6 +116,7 @@ export const warRouter = createTRPCRouter({
     }),
 
   buildShrine: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Build a shrine to claim a sector" } })
     .input(z.object({ warId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -198,6 +201,9 @@ export const warRouter = createTRPCRouter({
     }),
 
   declareSectorWar: protectedProcedure
+    .meta({
+      mcp: { enabled: true, description: "Declare a sector war on a map sector" },
+    })
     .input(z.object({ sectorId: z.number(), userVillageId: z.string().nullable() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -424,6 +430,7 @@ export const warRouter = createTRPCRouter({
 
   // Declare war on another village
   declareVillageWarOrRaid: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Declare village war or raid" } })
     .input(z.object({ targetVillageId: z.string(), targetStructureRoute: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -634,10 +641,11 @@ export const warRouter = createTRPCRouter({
 
   // Create an offer for factions to join the war
   createAllyOffer: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create ally offer for war support" } })
     .input(
       z.object({
         warId: z.string(),
-        tokenOffer: z.number().int().min(1000),
+        tokenOffer: z.int().min(1000),
         targetVillageId: z.string(),
       }),
     )
@@ -761,6 +769,7 @@ export const warRouter = createTRPCRouter({
     }),
 
   rejectAllyOffer: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Reject a war ally offer" } })
     .input(
       z.object({
         id: z.string(),
@@ -793,12 +802,15 @@ export const warRouter = createTRPCRouter({
     }),
 
   // Get faction offers for a war
-  getAllyOffers: protectedProcedure.query(async ({ ctx }) => {
-    return await fetchRequests(ctx.drizzle, ["WAR_ALLY"], 3600 * 12, ctx.userId);
-  }),
+  getAllyOffers: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get pending war ally offers" } })
+    .query(async ({ ctx }) => {
+      return await fetchRequests(ctx.drizzle, ["WAR_ALLY"], 3600 * 12, ctx.userId);
+    }),
 
   // Delist a faction offer
   cancelAllyOffer: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Cancel a war ally offer" } })
     .input(z.object({ offerId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -833,6 +845,7 @@ export const warRouter = createTRPCRouter({
 
   // Accept a faction offer
   acceptAllyOffer: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Accept a war ally offer" } })
     .input(z.object({ offerId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -927,6 +940,7 @@ export const warRouter = createTRPCRouter({
 
   // Surrender war
   surrender: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Surrender a war" } })
     .input(z.object({ warId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -1001,6 +1015,7 @@ export const warRouter = createTRPCRouter({
     }),
 
   getWarKills: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get war kill records" } })
     .input(z.object({ warId: z.string() }))
     .query(async ({ ctx, input }) => {
       const results = await ctx.drizzle.query.warKill.findMany({
@@ -1018,6 +1033,7 @@ export const warRouter = createTRPCRouter({
     }),
 
   getWarKillStats: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get aggregated war kill statistics" } })
     .input(
       z.object({
         warId: z.string(),

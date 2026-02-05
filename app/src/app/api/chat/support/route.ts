@@ -1,7 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { auth } from "@clerk/nextjs/server";
-import type { CoreMessage } from "ai";
-import { streamText } from "ai";
+import type { ModelMessage } from "ai";
+import { stepCountIs, streamText } from "ai";
 import { and, eq, lte, sql } from "drizzle-orm";
 import { MAX_DAILY_AI_CALLS, OPENAI_CHAT_MODEL } from "@/drizzle/constants";
 import { userData } from "@/drizzle/schema";
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   // Call LLM
-  const { messages } = (await req.json()) as { messages: CoreMessage[] };
+  const { messages } = (await req.json()) as { messages: ModelMessage[] };
   const result = streamText({
     model: openai(OPENAI_CHAT_MODEL),
     system: `
@@ -457,11 +457,11 @@ This document outlines various screens, menus, and gameplay systems available in
     tools: {
       updateBadge: {
         description: "Update badge shown to the user",
-        parameters: BadgeValidator,
+        inputSchema: BadgeValidator,
       },
     },
-    maxSteps: 2,
+    stopWhen: stepCountIs(2),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

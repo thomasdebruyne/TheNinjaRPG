@@ -1,7 +1,6 @@
 import { HelpCircle, Info, Palette, Star, Zap } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef } from "react";
-import { cn } from "src/libs/shadui";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Tooltip,
@@ -14,6 +13,7 @@ import type { Bloodline, Item, ItemRarity, Jutsu } from "@/drizzle/schema";
 import DurabilityBar from "@/layout/DurabilityBar";
 import ElementImage from "@/layout/ElementImage";
 import ItemWithEffects from "@/layout/ItemWithEffects";
+import { cn } from "@/libs/shadui";
 import { canChangeContent } from "@/utils/permissions";
 import { useUserData } from "@/utils/UserContext";
 import type { ZodAllTags } from "@/validators/combat";
@@ -385,7 +385,7 @@ export const ActionOption: React.FC<ActionOptionProps> = (props) => {
         {/* Elements overlay - top left */}
         {elements.map((element, i) => (
           <div
-            key={element}
+            key={`${element}-${i}`}
             className={`absolute top-[-5px]`}
             style={{ left: `${i * 10}px` }}
           >

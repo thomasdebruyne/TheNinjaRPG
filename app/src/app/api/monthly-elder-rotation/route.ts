@@ -126,7 +126,7 @@ async function handleCutoff() {
     );
   } catch (cause) {
     await updateGameSetting(drizzleDB, "monthly-elder-cutoff", 0, timerCheck.prevTime);
-    return handleEndpointError(cause);
+    return await handleEndpointError(cause);
   }
 }
 
@@ -277,6 +277,6 @@ async function handleRotation() {
       0,
       timerCheck.prevTime,
     );
-    return handleEndpointError(cause);
+    return await handleEndpointError(cause);
   }
 }

@@ -16,7 +16,6 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { cn } from "src/libs/shadui";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -31,6 +30,7 @@ import type { GenericObject } from "@/layout/ItemWithEffects";
 import ItemWithEffects from "@/layout/ItemWithEffects";
 import Loader from "@/layout/Loader";
 import { getRewardArray } from "@/libs/objectives";
+import { cn } from "@/libs/shadui";
 import { showMutationToast, showRewardToast } from "@/libs/toast";
 import { calculatePercent } from "@/utils/math";
 import { secondsFromDate } from "@/utils/time";

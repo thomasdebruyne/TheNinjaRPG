@@ -35,6 +35,7 @@ import {
 export const bountyRouter = createTRPCRouter({
   // Get open bounty board
   board: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get bounty board listings" } })
     .input(bountyBoardFilterSchema)
     .query(async ({ ctx, input }) => {
       const limit = input.limit ?? 30;
@@ -165,6 +166,7 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   create: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Create bounty on target user" } })
     .input(createBountySchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -225,6 +227,7 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   signup: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Sign up to track a bounty" } })
     .input(signupBountySchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -279,6 +282,7 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   resign: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Resign from bounty tracking" } })
     .input(resignBountySchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -298,6 +302,7 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   stopTracking: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Stop tracking a bounty" } })
     .input(z.object({ bountyId: z.string() }))
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -325,6 +330,7 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   collect: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Collect bounty reward after kill" } })
     .input(collectBountySchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -358,9 +364,7 @@ export const bountyRouter = createTRPCRouter({
           .set({ collectedAt: new Date() })
           .where(eq(bounty.id, bountyId)),
         // Update hunter signup as fulfilled
-        ctx.drizzle
-          .delete(bountySignup)
-          .where(eq(bountySignup.bountyId, bountyId)),
+        ctx.drizzle.delete(bountySignup).where(eq(bountySignup.bountyId, bountyId)),
         // Award the bounty money to the hunter
         ctx.drizzle
           .update(userData)
@@ -372,6 +376,7 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   addMoney: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Add ryo to existing bounty" } })
     .input(addBountyMoneySchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -401,15 +406,13 @@ export const bountyRouter = createTRPCRouter({
           .set({ money: sql`${userData.money} - ${input.amountRyo}` })
           .where(eq(userData.userId, ctx.userId)),
         // Track the contribution
-        ctx.drizzle
-          .insert(bountyContribution)
-          .values({
-            id: nanoid(),
-            bountyId: input.bountyId,
-            contributorUserId: ctx.userId,
-            amountRyo: input.amountRyo,
-            createdAt: new Date(),
-          }),
+        ctx.drizzle.insert(bountyContribution).values({
+          id: nanoid(),
+          bountyId: input.bountyId,
+          contributorUserId: ctx.userId,
+          amountRyo: input.amountRyo,
+          createdAt: new Date(),
+        }),
       ]);
 
       return {
@@ -419,6 +422,7 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   retract: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Retract bounty and get refund" } })
     .input(retractBountySchema)
     .output(baseServerResponse)
     .mutation(async ({ ctx, input }) => {
@@ -514,16 +518,14 @@ export const bountyRouter = createTRPCRouter({
           .where(eq(bountySignup.bountyId, input.bountyId)),
 
         // Log the action
-        ctx.drizzle
-          .insert(actionLog)
-          .values({
-            id: nanoid(),
-            userId: ctx.userId,
-            tableName: "bounty",
-            changes: [`Removed ${hunters.length} hunters from bounty tracking`],
-            relatedId: input.bountyId,
-            relatedMsg: `Staff removed all trackers from bounty: ${hunters.length} hunters removed`,
-          }),
+        ctx.drizzle.insert(actionLog).values({
+          id: nanoid(),
+          userId: ctx.userId,
+          tableName: "bounty",
+          changes: [`Removed ${hunters.length} hunters from bounty tracking`],
+          relatedId: input.bountyId,
+          relatedMsg: `Staff removed all trackers from bounty: ${hunters.length} hunters removed`,
+        }),
       ]);
 
       return {
@@ -533,49 +535,51 @@ export const bountyRouter = createTRPCRouter({
     }),
 
   // Get user's tracked bounties for map display
-  getTrackedBounties: protectedProcedure.query(async ({ ctx }) => {
-    // Get bounties the user is tracking
-    const trackedBounties = await ctx.drizzle.query.bountySignup.findMany({
-      where: eq(bountySignup.hunterUserId, ctx.userId),
-      with: {
-        bounty: {
-          columns: {
-            id: true,
-            status: true,
-            amountRyo: true,
-            collectedAt: true,
-            claimedAt: true,
-          },
-          with: {
-            target: {
-              columns: {
-                userId: true,
-                username: true,
-                avatar: true,
-                avatarLight: true,
-                sector: true,
+  getTrackedBounties: protectedProcedure
+    .meta({ mcp: { enabled: true, description: "Get bounties you are tracking" } })
+    .query(async ({ ctx }) => {
+      // Get bounties the user is tracking
+      const trackedBounties = await ctx.drizzle.query.bountySignup.findMany({
+        where: eq(bountySignup.hunterUserId, ctx.userId),
+        with: {
+          bounty: {
+            columns: {
+              id: true,
+              status: true,
+              amountRyo: true,
+              collectedAt: true,
+              claimedAt: true,
+            },
+            with: {
+              target: {
+                columns: {
+                  userId: true,
+                  username: true,
+                  avatar: true,
+                  avatarLight: true,
+                  sector: true,
+                },
               },
             },
           },
         },
-      },
-    });
-
-    // Transform to map format
-    const bountyHighlights = trackedBounties
-      .filter((tb) => tb.bounty.status === "OPEN" && tb.bounty.target)
-      .map((tb) => {
-        const target = tb.bounty.target;
-        return {
-          userId: target.userId,
-          sector: target.sector,
-          avatar: target.avatar,
-          avatarLight: target.avatarLight,
-          username: target.username,
-          bountyAmount: tb.bounty.amountRyo,
-        };
       });
 
-    return bountyHighlights;
-  }),
+      // Transform to map format
+      const bountyHighlights = trackedBounties
+        .filter((tb) => tb.bounty.status === "OPEN" && tb.bounty.target)
+        .map((tb) => {
+          const target = tb.bounty.target;
+          return {
+            userId: target.userId,
+            sector: target.sector,
+            avatar: target.avatar,
+            avatarLight: target.avatarLight,
+            username: target.username,
+            bountyAmount: tb.bounty.amountRyo,
+          };
+        });
+
+      return bountyHighlights;
+    }),
 });

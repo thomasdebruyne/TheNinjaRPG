@@ -248,7 +248,10 @@ export const NewConversationPrompt: React.FC<NewConversationPromptProps> = (prop
   const create = useForm<CreateConversationSchema>({
     resolver: zodResolver(createConversationSchema),
     defaultValues: {
+      title: "",
+      comment: "",
       users: props.preSelectedUser?.userId ? [props.preSelectedUser?.userId] : [],
+      senderId: null,
     },
   });
 
@@ -256,6 +259,7 @@ export const NewConversationPrompt: React.FC<NewConversationPromptProps> = (prop
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
     resolver: zodResolver(userSearchSchema),
     defaultValues: {
+      username: "",
       users: [props.preSelectedUser],
     },
   });
@@ -301,13 +305,17 @@ export const NewConversationPrompt: React.FC<NewConversationPromptProps> = (prop
 
   const onSubmit = create.handleSubmit(
     (data) => {
-      console.log(data);
       createConversation.mutate({
         ...data,
         ...(senderUser?.userId ? { senderId: senderUser.userId } : {}),
       });
     },
-    (error) => console.error(error),
+    (errors) => {
+      const firstError = Object.values(errors)[0];
+      if (firstError?.message) {
+        showMutationToast({ success: false, message: firstError.message });
+      }
+    },
   );
 
   return (

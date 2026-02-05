@@ -45,6 +45,7 @@ import { useRequiredUserData } from "@/utils/UserContext";
 import { createSupportTicketSchema } from "@/validators/support";
 
 type CreateTicketFormData = z.infer<typeof createSupportTicketSchema>;
+type CreateTicketFormDataInput = z.input<typeof createSupportTicketSchema>;
 
 export default function CreateSupportTicket() {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function CreateSupportTicket() {
     formState: { errors },
     setValue,
     control,
-  } = useForm<CreateTicketFormData>({
+  } = useForm<CreateTicketFormDataInput, unknown, CreateTicketFormData>({
     resolver: zodResolver(createSupportTicketSchema),
     defaultValues: {
       priority: "MEDIUM",
@@ -69,7 +70,7 @@ export default function CreateSupportTicket() {
   const watchedTitle = useWatch({ control, name: "title" });
   const watchedDescription = useWatch({ control, name: "description" });
   const watchedIsPublic = useWatch({ control, name: "isPublic" });
-  const watchedTags = useWatch({ control, name: "tags" });
+  const watchedTags = useWatch({ control, name: "tags" }) ?? [];
 
   // Create ticket mutation
   const createTicket = api.support.createTicket.useMutation({
@@ -200,8 +201,8 @@ export default function CreateSupportTicket() {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {SupportTicketCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
+                  {SupportTicketCategories.map((category, i) => (
+                    <SelectItem key={`${category}-${i}`} value={category}>
                       <div className="flex items-center gap-2">
                         <Badge className={SUPPORT_TICKET_COLORS.CATEGORY[category]}>
                           {category.replace("_", " ")}
@@ -231,8 +232,8 @@ export default function CreateSupportTicket() {
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  {SupportTicketPriorities.map((priority) => (
-                    <SelectItem key={priority} value={priority}>
+                  {SupportTicketPriorities.map((priority, i) => (
+                    <SelectItem key={`${priority}-${i}`} value={priority}>
                       <div className="flex items-center gap-2">
                         <Badge className={SUPPORT_TICKET_COLORS.PRIORITY[priority]}>
                           {priority}
@@ -272,9 +273,9 @@ export default function CreateSupportTicket() {
               </div>
               {watchedTags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {watchedTags.map((tag) => (
+                  {watchedTags.map((tag, i) => (
                     <Badge
-                      key={tag}
+                      key={`${tag}-${i}`}
                       variant="secondary"
                       className="flex items-center gap-1"
                     >
