@@ -39,9 +39,11 @@ import { ID_ANIMATION_HIT, ID_SFX_HIT } from "@/drizzle/constants";
 import { useLocalStorage } from "@/hooks/localstorage";
 import { useHudStoreValues, useTowerDefense } from "@/hooks/useTowerDefense";
 import ContentBox from "@/layout/ContentBox";
+import Countdown from "@/layout/Countdown";
 import Loader from "@/layout/Loader";
 import type { TowerDefenseHandle } from "@/layout/TowerDefense";
 import TowerDefenseUpgrades from "@/layout/TowerDefenseUpgrades";
+import { getFirstOfNextMonth } from "@/utils/time";
 import { useUserData } from "@/utils/UserContext";
 
 // Dynamically import the ThreeJS component
@@ -55,8 +57,8 @@ const TowerDefenseCanvas = dynamic(() => import("@/layout/TowerDefense"), {
 });
 
 const GAME_NAME = "Tower Defense";
-const PAGE_TITLE = `${GAME_NAME} (Unstable Preview)`;
-const PAGE_SUBTITLE = "For experimentation with TNR tech, visuals & performance.";
+const PAGE_TITLE = `${GAME_NAME}`;
+const PAGE_SUBTITLE = "Survive as many waves as possible!";
 
 const TowerDefensePage: React.FC = () => {
   const { data: userData, isClerkLoaded } = useUserData();
@@ -173,6 +175,7 @@ const TowerDefensePage: React.FC = () => {
       <ContentBox
         title={PAGE_TITLE}
         subtitle={PAGE_SUBTITLE}
+        defaultBackHref="/minigames"
         topRightContent={
           <Link href="/manual/towerDefense/leaderboard">
             <Button size="sm">
@@ -332,6 +335,22 @@ const TowerDefensePage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Monthly Reset Notice */}
+        <div className="col-span-2 mt-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+          <div className="flex items-center gap-3">
+            <Trophy className="h-5 w-5 text-amber-500" />
+            <div>
+              <p className="font-semibold text-amber-600 dark:text-amber-400">
+                Leaderboard resets monthly!
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Next reset in:{" "}
+                <Countdown targetDate={getFirstOfNextMonth()} className="font-bold" />
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Upgrades Section */}

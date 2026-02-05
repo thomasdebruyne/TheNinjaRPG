@@ -2388,7 +2388,7 @@ export type TowerDefenseRunStatus = (typeof TowerDefenseRunStatuses)[number];
 
 // Game balance constants
 export const TD_INITIAL_GRID_SIZE = 7;
-export const TD_MAX_GRID_SIZE = 15;
+export const TD_MAX_GRID_SIZE = 35;
 export const TD_GRID_EXPAND_EVERY_N_WAVES = 5;
 export const TD_WAVE_ENEMY_BASE = 3;
 export const TD_WAVE_ENEMY_SCALING = 1.2;

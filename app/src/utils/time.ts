@@ -276,3 +276,22 @@ export const formatSecondsToTimeDisplay = (totalSeconds: number): string => {
   }
   return `${totalSeconds}s`;
 };
+
+/**
+ * Get the first day of the next month at midnight UTC
+ * Used for monthly reset countdowns
+ */
+export const getFirstOfNextMonth = (): Date => {
+  const now = new Date();
+  return new Date(
+    Date.UTC(
+      now.getUTCMonth() === 11 ? now.getUTCFullYear() + 1 : now.getUTCFullYear(),
+      now.getUTCMonth() === 11 ? 0 : now.getUTCMonth() + 1,
+      1,
+      0,
+      0,
+      0,
+      0,
+    ),
+  );
+};
