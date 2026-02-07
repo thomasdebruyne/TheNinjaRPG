@@ -53,9 +53,7 @@ export const utmSourceSchema = z
     error:
       "UTM source can only contain letters, numbers, dashes, underscores, and dots",
   })
-  .optional()
   .nullish()
-  .prefault("")
   .catch(() => "");
 
 export const registrationSchema = z
@@ -74,8 +72,8 @@ export const registrationSchema = z
     recruiter_userid: z.string().nullish(),
     utm_source: utmSourceSchema,
     bloodlineId: z.string().min(1, "Bloodline selection is required"),
-    musicOn: z.boolean().optional().prefault(true),
-    sfxOn: z.boolean().optional().prefault(true),
+    musicOn: z.boolean().optional(),
+    sfxOn: z.boolean().optional(),
   })
   .refine(
     (data) =>

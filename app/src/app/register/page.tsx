@@ -48,7 +48,6 @@ import Image from "@/layout/Image";
 import Loader from "@/layout/Loader";
 import { showFormErrorsToast, showMutationToast } from "@/libs/toast";
 import { useUserData } from "@/utils/UserContext";
-import type { RegistrationSchema } from "@/validators/register";
 import {
   attributes,
   colors,
@@ -160,7 +159,7 @@ const RegisterForm: React.FC = () => {
   const [initialFormValues] = useState(() => getRandomizedFormValues());
 
   // Form handling
-  const form = useForm<RegistrationSchema>({
+  const form = useForm({
     mode: "all",
     reValidateMode: "onChange",
     criteriaMode: "all",
