@@ -1,6 +1,7 @@
 import {
   Banknote,
   Bed,
+  Briefcase,
   CircleUserRound,
   Cog,
   Compass,
@@ -42,6 +43,7 @@ export const MOBILE_NAV_OPTIONS: MobileNavOption[] = [
   { id: "battlearena", name: "Arena", href: "/battlearena" },
   { id: "bank", name: "Bank", href: "/bank" },
   { id: "anbu", name: "ANBU", href: "/anbu" },
+  { id: "occupation", name: "Occupation", href: "/occupation" },
   // Current default pages (must be included)
   { id: "profile", name: "Profile", href: "/profile" },
   { id: "inbox", name: "Inbox", href: "/inbox" },
@@ -85,6 +87,7 @@ export const getMobileNavIcon = (id: string): LucideIcon => {
     battlearena: Swords,
     bank: Banknote,
     anbu: Shield,
+    occupation: Briefcase,
     profile: CircleUserRound,
     inbox: Inbox,
     travel: Compass,
