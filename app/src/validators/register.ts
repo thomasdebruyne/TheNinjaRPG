@@ -77,7 +77,6 @@ export const registrationSchema = z
     musicOn: z.boolean().optional().prefault(true),
     sfxOn: z.boolean().optional().prefault(true),
   })
-  .required()
   .refine(
     (data) =>
       data.attribute_1 !== data.attribute_2 && data.attribute_1 !== data.attribute_3,
