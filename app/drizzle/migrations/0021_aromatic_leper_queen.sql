@@ -1,1 +1,0 @@
-ALTER TABLE `BattleAction` ADD `battleRound` int DEFAULT 0 NOT NULL;

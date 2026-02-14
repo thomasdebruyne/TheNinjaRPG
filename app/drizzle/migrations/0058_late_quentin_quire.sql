@@ -1,1 +1,0 @@
-ALTER TABLE `Village` ADD `kageId` varchar(191);

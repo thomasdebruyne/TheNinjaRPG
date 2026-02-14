@@ -1,1 +1,0 @@
-ALTER TABLE `UserReportComment` MODIFY COLUMN `content` text NOT NULL;

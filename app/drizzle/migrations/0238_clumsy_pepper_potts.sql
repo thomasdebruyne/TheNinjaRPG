@@ -1,1 +1,0 @@
-ALTER TABLE `Item` ADD `seichiSilverCost` int DEFAULT 0 NOT NULL;

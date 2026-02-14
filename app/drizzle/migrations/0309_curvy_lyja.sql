@@ -1,1 +1,0 @@
-UPDATE `AbEvent` SET `event` = 'success' WHERE `event` = 'register';

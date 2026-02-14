@@ -1,1 +1,0 @@
-ALTER TABLE `UserData` MODIFY COLUMN `level` int NOT NULL DEFAULT 1;

@@ -1,1 +1,0 @@
-ALTER TABLE `UserVotes` DROP COLUMN `lastRawJson`;

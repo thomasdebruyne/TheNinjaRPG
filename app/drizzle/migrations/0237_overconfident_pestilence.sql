@@ -1,1 +1,0 @@
-ALTER TABLE `UserData` ADD `seichiSilver` int DEFAULT 0 NOT NULL;

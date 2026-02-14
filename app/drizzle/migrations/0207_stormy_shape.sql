@@ -1,1 +1,0 @@
-ALTER TABLE `UserData` ADD `avatar3d` varchar(191);

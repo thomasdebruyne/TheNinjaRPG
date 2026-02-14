@@ -1,1 +1,0 @@
-CREATE INDEX `BattleAction_battleId_idx` ON `BattleAction` (`battleId`);

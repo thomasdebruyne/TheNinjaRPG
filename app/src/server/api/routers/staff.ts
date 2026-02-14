@@ -187,19 +187,27 @@ export const staffRouter = createTRPCRouter({
       ]);
       // Derived
       const devUrl = process.env.DEV_DATABASE_URL;
+      const aiUrl = process.env.AI_DATABASE_URL;
 
       // Guard
       if (!canControlBackups(user.role)) {
         return errorResponse("Not allowed for you");
       }
       if (!backup) return errorResponse("Backup not found");
-      if (!devUrl) return errorResponse("DEV database URL not configured");
+      if (!devUrl && !aiUrl) return errorResponse("No target database URLs configured");
       if (!backup.sqlText || backup.sqlText.startsWith("/* Empty backup")) {
         return errorResponse("Backup is empty");
       }
 
-      // Setup client
-      const dev_client = new PlanetScaleClient({ url: devUrl });
+      // Setup clients
+      const clients = [
+        ...(devUrl
+          ? [{ name: "dev", client: new PlanetScaleClient({ url: devUrl }) }]
+          : []),
+        ...(aiUrl
+          ? [{ name: "ai", client: new PlanetScaleClient({ url: aiUrl }) }]
+          : []),
+      ];
 
       // Derived
       const tableMap: Record<typeof backup.type, string> = {
@@ -210,18 +218,20 @@ export const staffRouter = createTRPCRouter({
       };
       const tableName = tableMap[backup.type];
 
-      // Clear dev table content
-      if (backup.type === "ai") {
-        await dev_client.execute(`DELETE FROM \`${tableName}\` WHERE isAi = 1`);
-      } else {
-        await dev_client.execute(`DELETE FROM \`${tableName}\``);
-      }
+      // Clear table content and push backup in parallel across all target databases
+      const deleteQuery =
+        backup.type === "ai"
+          ? `DELETE FROM \`${tableName}\` WHERE isAi = 1`
+          : `DELETE FROM \`${tableName}\``;
+
+      await Promise.all(clients.map(({ client }) => client.execute(deleteQuery)));
 
       if (backup.sqlText && !backup.sqlText.startsWith("/* Empty backup")) {
-        await dev_client.execute(backup.sqlText);
+        await Promise.all(clients.map(({ client }) => client.execute(backup.sqlText!)));
       }
 
-      return { success: true, message: "Backup pushed to dev" };
+      const targets = clients.map(({ name }) => name).join(" + ");
+      return { success: true, message: `Backup pushed to ${targets}` };
     }),
   throwError: protectedProcedure
     .output(baseServerResponse)

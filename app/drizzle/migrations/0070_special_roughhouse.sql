@@ -1,1 +1,0 @@
-ALTER TABLE `VillageStructure` ADD `baseCost` int DEFAULT 5000 NOT NULL;

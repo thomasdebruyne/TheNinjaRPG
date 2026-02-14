@@ -1,1 +1,0 @@
-CREATE INDEX `DataBattleActions_count_idx` ON `DataBattleAction` (`count`);

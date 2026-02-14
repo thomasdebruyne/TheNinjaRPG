@@ -1,1 +1,0 @@
-ALTER TABLE `Village` ADD `leaderUpdatedAt` datetime(3) DEFAULT (CURRENT_TIMESTAMP(3)) NOT NULL;

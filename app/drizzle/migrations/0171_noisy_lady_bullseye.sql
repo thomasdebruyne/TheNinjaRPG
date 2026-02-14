@@ -1,1 +1,0 @@
-ALTER TABLE `AiProfile` ADD `includeDefaultRules` boolean DEFAULT true NOT NULL;

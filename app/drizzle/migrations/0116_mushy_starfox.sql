@@ -1,1 +1,0 @@
-ALTER TABLE `QuestHistory` ADD `previousAttempts` int DEFAULT 0 NOT NULL;

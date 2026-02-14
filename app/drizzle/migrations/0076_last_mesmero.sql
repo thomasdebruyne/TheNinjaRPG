@@ -1,1 +1,0 @@
-ALTER TABLE `UserJutsu` ADD `experience` int DEFAULT 0 NOT NULL;

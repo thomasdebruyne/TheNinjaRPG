@@ -1,1 +1,0 @@
-ALTER TABLE `Quest` ADD `consecutiveObjectives` boolean DEFAULT true NOT NULL;

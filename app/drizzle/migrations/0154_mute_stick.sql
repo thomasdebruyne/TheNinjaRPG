@@ -1,1 +1,0 @@
-ALTER TABLE `UserData` ADD `isEvent` boolean DEFAULT false NOT NULL;

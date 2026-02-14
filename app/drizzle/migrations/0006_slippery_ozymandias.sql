@@ -1,1 +1,0 @@
-ALTER TABLE `UserData` ADD `inboxNews` int DEFAULT 0 NOT NULL;

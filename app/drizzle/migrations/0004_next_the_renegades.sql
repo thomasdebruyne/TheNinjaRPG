@@ -1,1 +1,0 @@
-ALTER TABLE `VillageStructure` RENAME COLUMN `max_level` TO `maxLevel`;

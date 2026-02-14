@@ -1,1 +1,0 @@
-ALTER TABLE `Jutsu` ADD `statClassification` enum('Highest','Ninjutsu','Genjutsu','Taijutsu','Bukijutsu');

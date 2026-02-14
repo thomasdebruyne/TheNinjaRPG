@@ -1,1 +1,0 @@
-ALTER TABLE `DataBattleAction` MODIFY COLUMN `type` enum('jutsu','item','bloodline','basic','ai') NOT NULL;

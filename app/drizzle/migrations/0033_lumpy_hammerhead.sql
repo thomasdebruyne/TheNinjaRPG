@@ -1,1 +1,0 @@
-ALTER TABLE `DataBattleAction` MODIFY COLUMN `battleWon` tinyint NOT NULL;

@@ -1,1 +1,0 @@
-ALTER TABLE `Quest` ADD `requiredVillage` varchar(191);

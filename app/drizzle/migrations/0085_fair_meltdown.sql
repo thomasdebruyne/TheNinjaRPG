@@ -1,1 +1,0 @@
-ALTER TABLE `UserData` ADD `dailyMissions` smallint unsigned DEFAULT 0 NOT NULL;

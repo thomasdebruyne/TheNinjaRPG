@@ -1,1 +1,0 @@
-ALTER TABLE `UserData` ADD `recruiterId` varchar(191);

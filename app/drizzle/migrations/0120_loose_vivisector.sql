@@ -1,1 +1,0 @@
-CREATE INDEX `TrainingLog_trainingFinishedAt_idx` ON `TrainingLog` (`trainingFinishedAt`);

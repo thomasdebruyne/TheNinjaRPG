@@ -1,1 +1,0 @@
-ALTER TABLE `CraftingRequirement` DROP INDEX `CraftingRequirement_craft_requirement_key`;

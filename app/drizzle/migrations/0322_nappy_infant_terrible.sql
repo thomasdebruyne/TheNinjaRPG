@@ -1,1 +1,0 @@
-ALTER TABLE `War` DROP COLUMN `dailyTokenReduction`;

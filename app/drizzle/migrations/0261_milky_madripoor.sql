@@ -1,2 +1,0 @@
-ALTER TABLE `Quest` MODIFY COLUMN `questType` enum('mission','crime','event','exam','starter','errand','tier','daily','achievement','story','anbu','medical','hunting','gathering','battlepyramid') NOT NULL;
-ALTER TABLE `QuestHistory` MODIFY COLUMN `questType` enum('mission','crime','event','exam','starter','errand','tier','daily','achievement','story','anbu','medical','hunting','gathering','battlepyramid') NOT NULL;

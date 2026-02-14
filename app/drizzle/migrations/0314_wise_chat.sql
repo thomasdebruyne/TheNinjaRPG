@@ -1,1 +1,0 @@
-CREATE INDEX `VisitorLog_ip_utmSource_idx` ON `VisitorLog` (`ip`,`utmSource`);
