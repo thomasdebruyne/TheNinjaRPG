@@ -1261,7 +1261,9 @@ export const ClanInfo: React.FC<ClanInfoProps> = (props) => {
                 clanBank={clanData.bank}
                 canPurchase={leaderLike}
                 isPending={isPurchasingBoost}
-                onPurchase={() => purchaseBoost({ clanId, boostType: "hunterExpBoost" })}
+                onPurchase={() =>
+                  purchaseBoost({ clanId, boostType: "hunterExpBoost" })
+                }
               />
               <BoostRow
                 label="Gatherer exp boost"

@@ -141,7 +141,9 @@ export const getReward = (
     const missionBoost = getShrineBoost(sectors, "Mission", user.village);
     // Get clan mission reward boost (percentage as decimal)
     // Only apply for real clans, not outlaw factions/towns
-    const clanMissionBoost = user.isOutlaw ? 0 : (user.clan?.missionRewardBoost ?? 0) / 100;
+    const clanMissionBoost = user.isOutlaw
+      ? 0
+      : (user.clan?.missionRewardBoost ?? 0) / 100;
     let boostFactor = 1;
     if (userQuest?.quest.questType) {
       if (["mission", "crime", "medical"].includes(userQuest.quest.questType)) {
@@ -264,9 +266,15 @@ export const getReward = (
 
     // Apply clan experience boosts (percentages stored in clan object)
     // Only apply for real clans, not outlaw factions/towns
-    const clanHunterExpBoost = user.isOutlaw ? 0 : (user.clan?.hunterExpBoost ?? 0) / 100;
-    const clanGathererExpBoost = user.isOutlaw ? 0 : (user.clan?.gathererExpBoost ?? 0) / 100;
-    const clanCraftingExpBoost = user.isOutlaw ? 0 : (user.clan?.craftingExpBoost ?? 0) / 100;
+    const clanHunterExpBoost = user.isOutlaw
+      ? 0
+      : (user.clan?.hunterExpBoost ?? 0) / 100;
+    const clanGathererExpBoost = user.isOutlaw
+      ? 0
+      : (user.clan?.gathererExpBoost ?? 0) / 100;
+    const clanCraftingExpBoost = user.isOutlaw
+      ? 0
+      : (user.clan?.craftingExpBoost ?? 0) / 100;
     if (clanHunterExpBoost > 0 && rawRewards.reward_hunting_experience > 0) {
       rawRewards.reward_hunting_experience = Math.floor(
         rawRewards.reward_hunting_experience * (1 + clanHunterExpBoost),

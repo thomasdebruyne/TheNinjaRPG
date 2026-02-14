@@ -255,7 +255,9 @@ export const occupationRouter = createTRPCRouter({
 
       // Award crafting experience (from item config, or 0 if not set)
       // Apply clan crafting experience boost (only for real clans, not outlaw factions/towns)
-      const clanCraftingExpBoost = user.isOutlaw ? 0 : (user.clan?.craftingExpBoost ?? 0) / 100;
+      const clanCraftingExpBoost = user.isOutlaw
+        ? 0
+        : (user.clan?.craftingExpBoost ?? 0) / 100;
       const baseExpGain =
         (itemWithRequirements.craftingExperience ?? 0) * input.quantity;
       const expGain = Math.floor(baseExpGain * (1 + clanCraftingExpBoost));
@@ -393,7 +395,9 @@ export const occupationRouter = createTRPCRouter({
 
       // Award small amount of crafting experience (half of crystal's crafting experience, or 0 if not set)
       // Apply clan crafting experience boost (only for real clans, not outlaw factions/towns)
-      const clanCraftingExpBoost = user.isOutlaw ? 0 : (user.clan?.craftingExpBoost ?? 0) / 100;
+      const clanCraftingExpBoost = user.isOutlaw
+        ? 0
+        : (user.clan?.craftingExpBoost ?? 0) / 100;
       const baseExpGain = Math.floor((crystalItem.craftingExperience ?? 0) / 2);
       const expGain = Math.floor(baseExpGain * (1 + clanCraftingExpBoost));
       // Update trackers with crafting experience gained

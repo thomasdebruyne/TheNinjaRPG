@@ -1298,7 +1298,8 @@ export const calcBattleResult = (
       let deltaEarnedExperience = 0;
 
       // Money/ryo calculation - only apply clan boost for real clans
-      const moneyBoost = !user.isOutlaw && userClan?.ryoBoost ? 1 + userClan.ryoBoost / 100 : 1;
+      const moneyBoost =
+        !user.isOutlaw && userClan?.ryoBoost ? 1 + userClan.ryoBoost / 100 : 1;
       const isCombatOrWarBattle =
         battleType === "COMBAT" || battleType === "SHRINE_WAR";
       let moneyDelta = didWin
@@ -2044,7 +2045,8 @@ export const calcBattleResult = (
       ) {
         // Calculate what the user would have gotten if they won (same calculation as winner)
         // Only apply clan boost for real clans
-        const loserMoneyBoost = !user.isOutlaw && userClan?.ryoBoost ? 1 + userClan.ryoBoost / 100 : 1;
+        const loserMoneyBoost =
+          !user.isOutlaw && userClan?.ryoBoost ? 1 + userClan.ryoBoost / 100 : 1;
         let loserMoneyGain = WAR_TORN_SECTOR_BASE_MONEY * loserMoneyBoost;
         loserMoneyGain *= 1.5; // COMBAT multiplier
         loserMoneyGain *= battle.rewardScaling;
