@@ -460,7 +460,13 @@ const Conversation: React.FC<ConversationProps> = (props) => {
       },
       onSuccess: (data, _newComment, context) => {
         if (data.success) {
-          if (conversation) reset({ object_id: conversation.id, comment: "" });
+          if (conversation)
+            reset({
+              object_id: conversation.id,
+              comment: "",
+              quoteIds: null,
+              senderId: null,
+            });
           setEditorKey((prev) => prev + 1);
           if (props.onCommentPosted) {
             props.onCommentPosted();
@@ -552,7 +558,7 @@ const Conversation: React.FC<ConversationProps> = (props) => {
         pusher.unsubscribe(conversation.id);
       };
     }
-  }, [silence, conversation]);
+  }, [silence, conversation, pusher]);
 
   // Cleanup stale typing indicators every second
   useEffect(() => {
