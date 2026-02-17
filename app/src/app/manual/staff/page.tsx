@@ -162,7 +162,7 @@ export default function Staff() {
               />
               <Information hoverEffect="hover:fill-slate-500">
                 Main responsibility is to set the strategic direction and long-term
-                goals, guiding all teams to ensure the game’s success and growth.
+                goals, guiding all teams to ensure the game&apos;s success and growth.
                 Directly supervises and contributes to maintaining and developing the
                 game’s core codebase.
               </Information>
@@ -176,8 +176,8 @@ export default function Staff() {
               />
               <Information hoverEffect="hover:fill-slate-500">
                 Main responsibility is to oversee day-to-day technical development and
-                coordinate the coding team's workflow. Works closely with the Owner to
-                prioritize features, organize tasks, and ensure timely delivery of
+                coordinate the coding team&apos;s workflow. Works closely with the Owner
+                to prioritize features, organize tasks, and ensure timely delivery of
                 updates and fixes. Assists in reviewing code, maintains development
                 standards, and helps guide implementations from concept to release.
               </Information>
