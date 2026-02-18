@@ -129,8 +129,8 @@ export default withSentryConfig(withBundleAnalyzer(config), {
 // https://securityheaders.com
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.analytics.google.com *.googletagmanager.com *.doubleclick.net *.clerk.accounts.dev *.vercel.live *.paypal.com *.paypalobjects.com *.tiny.cloud *.theninja-rpg.com *.theninja-rpg.ai *.opendns.com *.cookiebot.com *.termly.io connect.facebook.net va.vercel-scripts.com *.redditstatic.com analytics.tiktok.com clerk.www.theninja-rpg.ai challenges.cloudflare.com;
-  child-src 'self' *.doubleclick.net *.paypal.com ghbtns.com *.youtube.com *.widgetbot.io *.cookiebot.com *.termly.io *.googletagmanager.com https://fastsvr.com https://www.facebook.com/;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.analytics.google.com *.googletagmanager.com *.doubleclick.net *.clerk.accounts.dev *.vercel.live *.paypal.com *.paypalobjects.com *.tiny.cloud *.theninja-rpg.com *.theninja-rpg.ai *.opendns.com *.cookiebot.com *.termly.io connect.facebook.net va.vercel-scripts.com *.redditstatic.com analytics.tiktok.com clerk.www.theninja-rpg.ai clerk.www.theninja-rpg.com challenges.cloudflare.com;
+  child-src 'self' *.doubleclick.net *.paypal.com ghbtns.com *.youtube.com *.widgetbot.io *.cookiebot.com *.termly.io *.googletagmanager.com https://fastsvr.com https://www.facebook.com challenges.cloudflare.com;
   style-src 'self' 'unsafe-inline' *.googleapis.com *.tiny.cloud;
   img-src * blob: data:;
   media-src https://uploadthing.b-cdn.net https://*.ufs.sh;
