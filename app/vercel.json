@@ -87,6 +87,10 @@
     {
       "path": "/api/monthly-tower-defense-reset",
       "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/monthly-mcp-reset",
+      "schedule": "0 0 1 * *"
     }
   ],
   "functions": {

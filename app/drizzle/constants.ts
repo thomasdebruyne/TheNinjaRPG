@@ -1644,6 +1644,9 @@ export const IMG_OCCUPATION_HUNTER =
 export const IMG_OCCUPATION_CRAFTING =
   "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJ7YhkcAXKPBOUWGyFuM4DlL1v5HNTZhkte0z6";
 
+// Marketing constants
+export const TOTAL_PLAYERS_MILESTONE = 1000000;
+
 export const IMG_FRONTPAGE_SCREENSHOT_COMBAT =
   "https://uploadthing.b-cdn.net/f/Hzww9EQvYURJliyD90rWYxAsuC7ofQn9pM45OD0ERqkdBXJU";
 export const IMG_FRONTPAGE_SCREENSHOT_JUTSUS =
