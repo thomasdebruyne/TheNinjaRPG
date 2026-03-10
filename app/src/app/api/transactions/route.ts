@@ -1,4 +1,4 @@
-import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, gt, gte, isNotNull, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { nanoid } from "nanoid";
 import { cookies } from "next/headers";
@@ -65,6 +65,7 @@ export async function GET() {
           isNotNull(mainTransaction.invoiceId),
           isNotNull(buyerUser.recruiterId),
           isNull(refTransaction.id),
+          gte(mainTransaction.createdAt, buyerUser.createdAt),
         ),
       );
     for (const transaction of unawardedTransactions) {
