@@ -29,51 +29,92 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Build prompt from event context
+      - name: Pre-fetch PR refs
+        if: github.event_name == 'pull_request_review_comment' || github.event_name == 'pull_request_review'
+        run: |
+          git fetch --no-tags origin \
+            ${{ github.event.pull_request.base.ref }} \
+            +refs/pull/${{ github.event.pull_request.number }}/head
+
+      - name: Build prompt
         id: build_prompt
         uses: actions/github-script@v7
         with:
           script: |
-            let prompt = '';
+            const fs = require('fs');
             const event = context.eventName;
 
+            const preamble = [
+              'You are a coding assistant bot responding on a GitHub issue or pull request.',
+              'Your final output will be posted as a GitHub comment directly to the user.',
+              '',
+              'IMPORTANT RULES:',
+              '- Write your response as if you are posting a GitHub comment. Use markdown formatting.',
+              '- Do NOT write files to .claude/tasks/ or follow any plan/approval workflow from CLAUDE.md — those instructions are for human developers, not for you.',
+              '- Do NOT say "suggested reply" or wrap your answer in a code block as a template. Your output IS the reply.',
+              '- Do NOT create task files, plan files, or any other files unless the user explicitly asks you to implement code changes.',
+              '- Be direct and helpful. Respond to what the user asked.',
+              '- When creating implementation plans, write them directly in your response as markdown, not as files on disk.',
+              '- You have read-only access to the codebase. Investigate files as needed to give informed answers.',
+              '',
+              '---',
+              '',
+            ].join('\n');
+
+            let eventContext = '';
+
             if (event === 'issue_comment') {
-              prompt = `GitHub issue #${context.issue.number} in ${context.repo.owner}/${context.repo.repo}.
-
-            Issue title: ${context.payload.issue.title}
-            Issue body:
-            ${context.payload.issue.body || '(empty)'}
-
-            Comment by @${context.payload.comment.user.login}:
-            ${context.payload.comment.body}
-
-            Please respond to the comment above. If asked to implement something, do so.`;
+              eventContext = [
+                `GitHub issue #${context.issue.number} in ${context.repo.owner}/${context.repo.repo}.`,
+                '',
+                `Issue title: ${context.payload.issue.title}`,
+                `Issue body:`,
+                context.payload.issue.body || '(empty)',
+                '',
+                `Comment by @${context.payload.comment.user.login}:`,
+                context.payload.comment.body,
+                '',
+                'Please respond to the comment above. If asked to create a plan, write it directly in your response.',
+              ].join('\n');
             } else if (event === 'pull_request_review_comment') {
-              prompt = `GitHub PR #${context.issue.number} review comment in ${context.repo.owner}/${context.repo.repo}.
-
-            Comment by @${context.payload.comment.user.login} on file ${context.payload.comment.path}:
-            ${context.payload.comment.body}
-
-            Please respond to the review comment above.`;
+              eventContext = [
+                `GitHub PR #${context.payload.pull_request.number} review comment in ${context.repo.owner}/${context.repo.repo}.`,
+                '',
+                `PR title: ${context.payload.pull_request.title}`,
+                '',
+                `Comment by @${context.payload.comment.user.login} on file ${context.payload.comment.path}:`,
+                context.payload.comment.body,
+                '',
+                `Review the PR diff with: git log --oneline ${context.payload.pull_request.base.sha}...HEAD`,
+                '',
+                'Please respond to the review comment above.',
+              ].join('\n');
             } else if (event === 'pull_request_review') {
-              prompt = `GitHub PR #${context.issue.number} review in ${context.repo.owner}/${context.repo.repo}.
-
-            Review by @${context.payload.review.user.login} (${context.payload.review.state}):
-            ${context.payload.review.body}
-
-            Please respond to the review above.`;
+              eventContext = [
+                `GitHub PR #${context.payload.pull_request.number} review in ${context.repo.owner}/${context.repo.repo}.`,
+                '',
+                `PR title: ${context.payload.pull_request.title}`,
+                '',
+                `Review by @${context.payload.review.user.login} (${context.payload.review.state}):`,
+                context.payload.review.body,
+                '',
+                `Review the PR diff with: git log --oneline ${context.payload.pull_request.base.sha}...HEAD`,
+                '',
+                'Please respond to the review above.',
+              ].join('\n');
             } else if (event === 'issues') {
-              prompt = `GitHub issue #${context.issue.number} in ${context.repo.owner}/${context.repo.repo}.
-
-            Issue title: ${context.payload.issue.title}
-            Issue body:
-            ${context.payload.issue.body || '(empty)'}
-
-            Please review and respond to this issue.`;
+              eventContext = [
+                `GitHub issue #${context.issue.number} in ${context.repo.owner}/${context.repo.repo}.`,
+                '',
+                `Issue title: ${context.payload.issue.title}`,
+                `Issue body:`,
+                context.payload.issue.body || '(empty)',
+                '',
+                'Please review and respond to this issue.',
+              ].join('\n');
             }
 
-            const fs = require('fs');
-            fs.writeFileSync('/tmp/codex_prompt.txt', prompt);
+            fs.writeFileSync('/tmp/codex_prompt.txt', preamble + eventContext);
 
       - name: Run Codex
         id: run_codex
@@ -82,6 +123,9 @@ jobs:
           openai-api-key: ${{ secrets.AZURE_API_KEY }}
           responses-api-endpoint: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
           model: "gpt-5.4"
+          sandbox: "workspace-write"
+          safety-strategy: "drop-sudo"
+          allow-users: "MathiasGruber"
           prompt-file: /tmp/codex_prompt.txt
 
   post_feedback:
@@ -99,7 +143,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
-            const body = `**Codex Response:**\n\n${process.env.CODEX_FINAL_MESSAGE}`;
+            const body = process.env.CODEX_FINAL_MESSAGE;
             const issueNumber = context.issue?.number || context.payload?.pull_request?.number;
 
             if (issueNumber) {
