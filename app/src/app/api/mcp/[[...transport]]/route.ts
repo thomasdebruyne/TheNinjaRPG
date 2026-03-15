@@ -187,6 +187,9 @@ const mcpHandler = trpcToMcpHandler(appRouter, createMcpContext, {
 const authenticatedHandler = withMcpAuth(mcpHandler, verifyToken, {
   required: true,
   resourceMetadataPath: "/.well-known/oauth-protected-resource",
+  // Explicitly set resourceUrl in development to avoid localhost vs 127.0.0.1 mismatch
+  resourceUrl:
+    process.env.NODE_ENV === "development" ? "http://localhost:3000" : undefined,
 });
 
 // Extract IP from request headers
