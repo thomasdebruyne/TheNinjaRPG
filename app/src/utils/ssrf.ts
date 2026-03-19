@@ -225,7 +225,6 @@ export async function validateUrlForSsrf(
 
     return true;
   } catch (error) {
-    console.error("SSRF validation error:", error);
     return false;
   }
 }

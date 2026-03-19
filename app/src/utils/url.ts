@@ -15,13 +15,11 @@ export async function isUrlAccessible(url: string): Promise<boolean> {
   // SECURITY: Block SSRF attempts (including DNS-based) before making request
   const isSafe = await validateUrlForSsrf(url);
   if (!isSafe) {
-    console.log(`URL check blocked (SSRF protection): ${url}`);
     return false;
   }
 
   try {
     const response = await fetchWithTimeout(url, { method: "HEAD" }, 5000);
-    console.log(`URL check (HEAD): ${url} - Status: ${response.status}`);
     return true;
   } catch (error: unknown) {
     if (error instanceof Error) {
