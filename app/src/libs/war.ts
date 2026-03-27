@@ -196,6 +196,11 @@ export const handleWarEnd = async (activeWar: FetchActiveWarsReturnType) => {
     endedAt,
   );
   const boostEndAt = secondsFromNow(WAR_WINNING_BOOST_DAYS * DAY_S);
+  const involvedVillageIds = [
+    activeWar.attackerVillageId,
+    activeWar.defenderVillageId,
+    ...activeWar.warAllies.map((ally) => ally.villageId),
+  ];
 
   // Check if war should end based on tokens OR war health
   // War ends when either side's tokens OR war health reaches 0
@@ -493,11 +498,7 @@ export const handleWarEnd = async (activeWar: FetchActiveWarsReturnType) => {
       WHERE qh.questType = 'war'
         AND qh.completed = 0
         AND ud.villageId IN (${sql.join(
-          [
-            activeWar.attackerVillageId,
-            activeWar.defenderVillageId,
-            ...activeWar.warAllies.map((a) => a.villageId),
-          ].map((id) => sql`${id}`),
+          involvedVillageIds.map((id) => sql`${id}`),
           sql`, `,
         )})
     `),
@@ -526,8 +527,14 @@ export const handleWarEnd = async (activeWar: FetchActiveWarsReturnType) => {
             WHERE mbq.battleType = 'SHRINE_BATTLE'
               AND mbq.battleId IS NULL
               AND (
-                mbq.attackerEntityId IN (${activeWar.attackerVillageId}, ${activeWar.defenderVillageId})
-                OR mbq.defenderEntityId IN (${activeWar.attackerVillageId}, ${activeWar.defenderVillageId})
+                mbq.attackerEntityId IN (${sql.join(
+                  involvedVillageIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})
+                OR mbq.defenderEntityId IN (${sql.join(
+                  involvedVillageIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})
               )
               AND ud.status = 'QUEUED'
           `),
@@ -565,8 +572,14 @@ export const handleWarEnd = async (activeWar: FetchActiveWarsReturnType) => {
       WHERE mbq.battleType = 'SHRINE_BATTLE'
         AND mbq.battleId IS NULL
         AND (
-          mbq.attackerEntityId IN (${activeWar.attackerVillageId}, ${activeWar.defenderVillageId})
-          OR mbq.defenderEntityId IN (${activeWar.attackerVillageId}, ${activeWar.defenderVillageId})
+          mbq.attackerEntityId IN (${sql.join(
+            involvedVillageIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})
+          OR mbq.defenderEntityId IN (${sql.join(
+            involvedVillageIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})
         )
     `);
     // Delete pending shrine battle queue records
@@ -577,14 +590,8 @@ export const handleWarEnd = async (activeWar: FetchActiveWarsReturnType) => {
           eq(mpvpBattleQueue.battleType, "SHRINE_BATTLE"),
           isNull(mpvpBattleQueue.battleId),
           or(
-            inArray(mpvpBattleQueue.attackerEntityId, [
-              activeWar.attackerVillageId,
-              activeWar.defenderVillageId,
-            ]),
-            inArray(mpvpBattleQueue.defenderEntityId, [
-              activeWar.attackerVillageId,
-              activeWar.defenderVillageId,
-            ]),
+            inArray(mpvpBattleQueue.attackerEntityId, involvedVillageIds),
+            inArray(mpvpBattleQueue.defenderEntityId, involvedVillageIds),
           ),
         ),
       );
