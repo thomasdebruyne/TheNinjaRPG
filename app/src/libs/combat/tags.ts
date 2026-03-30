@@ -991,7 +991,8 @@ export const adjustHealGiven = (
           const change =
             effect.calculation === "percentage"
               ? (power / 100) * consequence.vampRatio
-              : power / 100;
+              : // vampRatio is a 0-1 ratio, so convert flat power (%) to ratio.
+                power / 100;
           consequence.vampRatio = consequence.vampRatio + change;
         }
       }
@@ -1414,10 +1415,18 @@ export const damageUser = (
       targetId: effect.targetId,
       types: types,
       ...(instant
-        ? { damage: damage, rawDamage: rawDamage, baseDamageForModifiers: damage }
+        ? {
+            damage: damage,
+            rawDamage: rawDamage,
+            baseDamageForModifiers: damage,
+          }
         : {}),
       ...(residual
-        ? { residual: damage, rawResidual: rawDamage, baseDamageForModifiers: damage }
+        ? {
+            residual: damage,
+            rawResidual: rawDamage,
+            baseDamageForModifiers: damage,
+          }
         : {}),
     });
   }
@@ -2078,7 +2087,10 @@ export const shield = (effect: UserEffect, target: BattleUserState) => {
       info = getInfo(target, effect, `shield with ${effect.power.toFixed(2)} HP`);
     } else {
       effect.rounds = 0;
-      info = { txt: `${target.username}'s shield was not created`, color: "blue" };
+      info = {
+        txt: `${target.username}'s shield was not created`,
+        color: "blue",
+      };
     }
   }
   if (effect.power <= 0) {
@@ -2258,7 +2270,10 @@ export const rob = (
   // No stealing from AIs
   if (target.isAi) {
     effect.rounds = 0;
-    return { txt: `${target.username} is an AI and cannot be robbed`, color: "blue" };
+    return {
+      txt: `${target.username} is an AI and cannot be robbed`,
+      color: "blue",
+    };
   }
   if (battleType !== "COMBAT") {
     effect.rounds = 0;
@@ -2296,7 +2311,10 @@ export const rob = (
         };
       }
     } else {
-      return { txt: `${target.username} manages not to get robbed!`, color: "blue" };
+      return {
+        txt: `${target.username} manages not to get robbed!`,
+        color: "blue",
+      };
     }
   }
   return getInfo(target, effect, "will be robbed");
@@ -2388,7 +2406,10 @@ export const seal = (
       info = getInfo(target, effect, "bloodline is sealed");
     } else {
       effect.rounds = 0;
-      info = { txt: `${target.username} bloodline was not sealed`, color: "blue" };
+      info = {
+        txt: `${target.username} bloodline was not sealed`,
+        color: "blue",
+      };
     }
   }
   return info;
@@ -2476,12 +2497,18 @@ export const stun = (
   if (effect.isNew && effect.rounds) {
     if (!("apReduction" in effect)) {
       effect.rounds = 0;
-      info = { txt: `${target.username} hit with inactive stun effect`, color: "blue" };
+      info = {
+        txt: `${target.username} hit with inactive stun effect`,
+        color: "blue",
+      };
     } else if (primaryCheck) {
       info = getInfo(target, effect, `is stunned [-${effect.apReduction} AP]`);
     } else {
       effect.rounds = 0;
-      info = { txt: `${target.username} manages not to get stunned!`, color: "blue" };
+      info = {
+        txt: `${target.username} manages not to get stunned!`,
+        color: "blue",
+      };
     }
   }
   return info;
@@ -2999,7 +3026,10 @@ export const summon = (
     const idx = usersState.findIndex((u) => u.userId === effect.aiId);
     if (ai && idx > -1) {
       usersState.splice(idx, 1);
-      return { txt: `${ai.username} was unsummoned!`, color: "red" } as ActionEffect;
+      return {
+        txt: `${ai.username} was unsummoned!`,
+        color: "red",
+      } as ActionEffect;
     }
   }
 };
