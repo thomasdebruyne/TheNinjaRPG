@@ -1,0 +1,15 @@
+name: test_typecheck
+on: pull_request
+jobs:
+  test_typecheck:
+    name: test_typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: install dependencies
+        run: bun install
+        working-directory: ./app
+      - name: run typecheck
+        run: bun run typecheck
+        working-directory: ./app

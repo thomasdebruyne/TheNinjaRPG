@@ -1,8 +1,8 @@
-name: build-test
+name: test_build
 on: pull_request
 jobs:
-  build-test:
-    name: build-test
+  test_build:
+    name: test_build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -599,6 +599,7 @@ const MenuBoxProfile: React.FC = () => {
               href={social.url}
               key={social.url}
               className="hover:opacity-80"
+              rel="noopener"
             >
               <Image src={social.image} width={64} height={64} alt={social.alt}></Image>
             </a>

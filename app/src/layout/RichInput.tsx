@@ -2,7 +2,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PartyPopper, SendHorizontal } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import type { Control } from "react-hook-form";
 import { Controller, useController, useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +20,8 @@ interface RichInputProps {
   placeholder?: string;
   error?: string;
   disabled?: boolean;
-  control: Control<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: generic form control accepting any form shape
+  control: any;
   onSubmit?: (e: any) => void;
   isDirty?: boolean;
   enableMentions?: boolean;

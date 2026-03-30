@@ -1,6 +1,6 @@
 "use client";
 
-import { SiOpenai } from "@icons-pack/react-simple-icons";
+import { Bot } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import ChatBox from "@/layout/ChatBox";
@@ -34,10 +34,7 @@ const ChatInputField: React.FC<ChatInputFieldProps> = ({ aiProps, onToolCall }) 
           type="submit"
           onClick={() => setIsOpen((prev) => !prev)}
         >
-          <SiOpenai
-            className={cn("text-white", isOpen ? "animate-spin" : "")}
-            size={22}
-          />
+          <Bot className={cn("text-white", isOpen ? "animate-spin" : "")} size={22} />
         </Button>
       </div>
       {isOpen && (

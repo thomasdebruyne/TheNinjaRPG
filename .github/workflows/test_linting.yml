@@ -1,0 +1,15 @@
+name: test_linting
+on: pull_request
+jobs:
+  test_linting:
+    name: test_linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: install dependencies
+        run: bun install
+        working-directory: ./app
+      - name: run lint
+        run: bun run lint
+        working-directory: ./app

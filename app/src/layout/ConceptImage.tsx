@@ -309,7 +309,7 @@ const ConceptImage: React.FC<InputProps> = (props) => {
           {showDetails && (
             <>
               <a
-                rel="nofollow"
+                rel="noopener nofollow"
                 target="_blank"
                 href={`https://www.facebook.com/dialog/share?app_id=327306013991565&href=${shareLink}&display=popup`}
               >
@@ -322,7 +322,7 @@ const ConceptImage: React.FC<InputProps> = (props) => {
                 ></Image>
               </a>
               <a
-                rel="nofollow"
+                rel="noopener nofollow"
                 target="_blank"
                 href={`https://www.reddit.com/submit?url=${shareLink}&title=${shareTitle}`}
               >
@@ -335,7 +335,7 @@ const ConceptImage: React.FC<InputProps> = (props) => {
                 ></Image>
               </a>
               <a
-                rel="nofollow"
+                rel="noopener nofollow"
                 target="_blank"
                 href={`https://twitter.com/intent/tweet?url=${shareLink}&text=${shareTitle}&via=TheNinjaRPG&related=TNR&hashtags=TheNinjaRPG`}
               >
