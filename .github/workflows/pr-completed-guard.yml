@@ -1,0 +1,171 @@
+name: PR Completed Label Guard
+
+on:
+  pull_request:
+    types: [labeled]
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  check-completed-label:
+    name: Guard Completed label
+    runs-on: ubuntu-latest
+    if: >-
+      !(github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.actor == 'github-actions[bot]')
+    steps:
+      - name: Check for unresolved review threads
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const LABEL_NAME = "Completed";
+
+            const prNumber =
+              context.payload.pull_request?.number ??
+              context.payload.issue?.number;
+
+            if (!prNumber) {
+              core.info("Could not determine PR number. Skipping.");
+              return;
+            }
+
+            // For "labeled" events, only proceed if the label is "Completed"
+            if (
+              context.eventName === "pull_request" &&
+              context.payload.action === "labeled"
+            ) {
+              if (context.payload.label.name !== LABEL_NAME) {
+                core.info(
+                  `Label "${context.payload.label.name}" is not "${LABEL_NAME}". Skipping.`,
+                );
+                return;
+              }
+            }
+
+            // For review and review_comment events, check if the PR currently
+            // has the "Completed" label. If not, nothing to guard.
+            if (
+              context.eventName === "pull_request_review" ||
+              context.eventName === "pull_request_review_comment"
+            ) {
+              const { data: labels } =
+                await github.rest.issues.listLabelsOnIssue({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  per_page: 100,
+                });
+
+              const hasCompletedLabel = labels.some(
+                (l) => l.name === LABEL_NAME,
+              );
+              if (!hasCompletedLabel) {
+                core.info(
+                  `PR #${prNumber} does not have "${LABEL_NAME}" label. Skipping.`,
+                );
+                return;
+              }
+            }
+
+            // Query unresolved review threads via GraphQL
+            const query = `
+              query($owner: String!, $repo: String!, $prNumber: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $prNumber) {
+                    reviewThreads(first: 100) {
+                      nodes {
+                        isResolved
+                        isOutdated
+                        comments(first: 1) {
+                          nodes {
+                            body
+                            author {
+                              login
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const result = await github.graphql(query, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              prNumber: prNumber,
+            });
+
+            const threads =
+              result.repository.pullRequest.reviewThreads.nodes;
+            const unresolvedThreads = threads.filter(
+              (t) => !t.isResolved && !t.isOutdated,
+            );
+
+            if (unresolvedThreads.length === 0) {
+              core.info(
+                `PR #${prNumber} has no unresolved review threads. "${LABEL_NAME}" label is valid.`,
+              );
+              return;
+            }
+
+            // There are unresolved threads -- remove the label
+            core.info(
+              `PR #${prNumber} has ${unresolvedThreads.length} unresolved review thread(s). Removing "${LABEL_NAME}" label.`,
+            );
+
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: LABEL_NAME,
+              });
+            } catch (removeError) {
+              if (removeError.status !== 404) throw removeError;
+              core.info(
+                `"${LABEL_NAME}" label was already removed from PR #${prNumber}.`,
+              );
+            }
+
+            // Post a comment explaining the removal
+            const threadSummary = unresolvedThreads
+              .slice(0, 5)
+              .map((t) => {
+                const comment = t.comments.nodes[0];
+                const author = comment?.author?.login ?? "unknown";
+                const snippet =
+                  (comment?.body ?? "").substring(0, 80) +
+                  ((comment?.body ?? "").length > 80 ? "..." : "");
+                return `- **@${author}**: ${snippet}`;
+              })
+              .join("\n");
+
+            const remaining =
+              unresolvedThreads.length > 5
+                ? `\n- ...and ${unresolvedThreads.length - 5} more`
+                : "";
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: [
+                `## "${LABEL_NAME}" label removed`,
+                "",
+                `This PR has **${unresolvedThreads.length} unresolved review thread(s)**. The "${LABEL_NAME}" label has been automatically removed.`,
+                "",
+                "Please resolve all review threads before re-applying the label.",
+                "",
+                "**Unresolved threads:**",
+                threadSummary + remaining,
+              ].join("\n"),
+            });
