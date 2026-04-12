@@ -21,7 +21,7 @@ jobs:
       )
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
-      contents: read
+      contents: write
       issues: write
       pull-requests: write
     outputs:
@@ -69,6 +69,21 @@ jobs:
           script: |
             const fs = require('fs');
             const event = context.eventName;
+            const confirmCommand = '@codex confirmed: implement the fix, push a branch, and open a PR for this issue now.';
+            const commentBodyRaw = context.payload.comment?.body || '';
+            const commentBody = commentBodyRaw.toLowerCase();
+            const hasFixIntent = /\b(fix|implement|address|resolve)\b/.test(commentBody);
+            const hasPrIntent = /\bpr\b|pull request|open a pr|create a pr/.test(commentBody);
+            const isFixPrConfirm =
+              event === 'issue_comment' &&
+              commentBody.includes('confirmed:') &&
+              /\b(fix|implement)\b/.test(commentBody) &&
+              /\bpr\b|pull request|open a pr|create a pr/.test(commentBody);
+            const isFixPrRequest =
+              event === 'issue_comment' &&
+              hasFixIntent &&
+              hasPrIntent &&
+              !isFixPrConfirm;
 
             const preamble = [
               'You are a coding assistant bot responding on a GitHub issue or pull request.',
@@ -81,7 +96,7 @@ jobs:
               '- Do NOT create task files, plan files, or any other files unless the user explicitly asks you to implement code changes.',
               '- Be direct and helpful. Respond to what the user asked.',
               '- When creating implementation plans, write them directly in your response as markdown, not as files on disk.',
-              '- You have read-only access to the codebase. Investigate files as needed to give informed answers.',
+              '- You can investigate files in the repository as needed to give informed answers.',
               '',
               '---',
               '',
@@ -90,6 +105,38 @@ jobs:
             let eventContext = '';
 
             if (event === 'issue_comment') {
+              let modeContext = [
+                'Mode: defaultReview',
+                'Respond to the comment directly.',
+              ];
+
+              if (isFixPrRequest) {
+                modeContext = [
+                  'Mode: fixPrRequest (plan-only).',
+                  'The user requested that you eventually fix this issue and open a PR, but implementation is NOT yet authorized.',
+                  'Do not modify files, create commits, push branches, or open a PR in this mode.',
+                  'Provide: (1) concise implementation plan, (2) key risks/uncertainties, (3) explicit asks for missing info.',
+                  `Ask the user to confirm with this exact command when ready:`,
+                  confirmCommand,
+                ];
+              } else if (isFixPrConfirm) {
+                modeContext = [
+                  'Mode: fixPrConfirm (implementation authorized).',
+                  'You are now explicitly authorized to implement the fix end-to-end and open a pull request.',
+                  `Issue number to reference in commit/PR context: #${context.issue.number}.`,
+                  'Required execution rules:',
+                  '- Create a dedicated branch from the default branch.',
+                  '- Implement the fix with focused changes only.',
+                  '- Run relevant verification commands when feasible and include the results.',
+                  '- Create a concise commit message aligned with repo style.',
+                  '- Push the branch to origin.',
+                  '- Open a pull request that includes "Fixes #<issue_number>" in the PR body.',
+                  '- Include a short test plan in the PR body.',
+                  '- In your final response comment, include the PR URL and a short change summary.',
+                  '- If blocked by missing requirements or unsafe ambiguity, stop and ask clarifying questions instead of opening a risky PR.',
+                ];
+              }
+
               eventContext = [
                 `GitHub issue #${context.issue.number} in ${context.repo.owner}/${context.repo.repo}.`,
                 '',
@@ -99,6 +146,8 @@ jobs:
                 '',
                 `Comment by @${context.payload.comment.user.login}:`,
                 context.payload.comment.body,
+                '',
+                ...modeContext,
                 '',
                 'Please respond to the comment above. If asked to create a plan, write it directly in your response.',
               ].join('\n');
@@ -147,6 +196,9 @@ jobs:
       - name: Run Codex
         id: run_codex
         uses: openai/codex-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         with:
           openai-api-key: ${{ secrets.AZURE_API_KEY }}
           responses-api-endpoint: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
