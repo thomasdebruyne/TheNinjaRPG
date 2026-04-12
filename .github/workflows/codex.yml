@@ -204,7 +204,8 @@ jobs:
           responses-api-endpoint: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
           model: "gpt-5.4"
           sandbox: "workspace-write"
-          safety-strategy: "drop-sudo"
+          safety-strategy: "unprivileged-user"
+          codex-user: "runner"
           allow-users: "MathiasGruber"
           prompt-file: /tmp/codex_prompt.txt
 
