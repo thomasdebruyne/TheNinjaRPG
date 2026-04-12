@@ -202,10 +202,11 @@ jobs:
         with:
           openai-api-key: ${{ secrets.AZURE_API_KEY }}
           responses-api-endpoint: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-          model: "gpt-5.4"
+          # Azure Responses API expects the deployment name here.
+          model: "gpt-5.4-2026-03-05"
           sandbox: "workspace-write"
-          safety-strategy: "unprivileged-user"
-          codex-user: "runner"
+          # Blacksmith runners currently fail both drop-sudo and sudo-based user switching checks.
+          safety-strategy: "unsafe"
           allow-users: "MathiasGruber"
           prompt-file: /tmp/codex_prompt.txt
 
