@@ -204,7 +204,8 @@ jobs:
           responses-api-endpoint: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
           # Azure Responses API expects the deployment name here.
           model: "gpt-5.4-2026-03-05"
-          sandbox: "workspace-write"
+          # Needed for branch/commit/push/PR operations (.git writes).
+          sandbox: "danger-full-access"
           # Blacksmith runners currently fail both drop-sudo and sudo-based user switching checks.
           safety-strategy: "unsafe"
           allow-users: "MathiasGruber"
