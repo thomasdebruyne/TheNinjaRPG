@@ -22,10 +22,16 @@ jobs:
             @codex please review this issue and create your overall understanding of how this would fit into the codebase. Be sure to highlight main flow changes, UI components, UX flows, etc. Investigate it thoroughly with respect to the codebase. Be sure to 1. Highlight any uncertainties and request follow-up information as needed. 2. Highlight any potential concerns and request user input on them. 3. highlight any game mechanics / components which may need adaption / integration with this new feature . Do not start implementing, and do not go deep on implementation details - right now the most important thing is alignment with the user request, so as anything which may still need alignment.
             \`\`\`
 
-            **Need a code review or implementation plan for a fix?** Copy and paste this:
+            **Need Codex to implement the fix and open a PR?** Use this 2-step flow:
 
+            **Step 1 (plan-only kickoff):**
             \`\`\`
-            @codex please review this issue and create an implementation plan. Investigate it thoroughly with respect to the codebase. Highlight any uncertainties and request follow-up information as needed. Do not start implementing!
+            @codex please review this issue and prepare a detailed implementation plan for fixing it. Investigate the codebase thoroughly, highlight key risks and uncertainties, and request any follow-up information needed. I want you to open a PR after I confirm, so for now do not implement yet.
+            \`\`\`
+
+            **Step 2 (explicit confirmation to proceed):**
+            \`\`\`
+            @codex confirmed: implement the fix, push a branch, and open a PR for this issue now.
             \`\`\`
             ---
 
