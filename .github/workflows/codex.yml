@@ -131,7 +131,7 @@ jobs:
                   '- Run relevant verification commands when feasible and include the results.',
                   '- Create a concise commit message aligned with repo style.',
                   '- Push the branch to origin.',
-                  '- Open a pull request that includes "Fixes #<issue_number>" in the PR body.',
+                  '- Open a pull request that includes "Fixes #<issue_number>" in the PR body. Always add the "AutoFixFeedback" label to the PR (use --label "AutoFixFeedback" with gh pr create).',
                   '- Include a short test plan in the PR body.',
                   '- In your final response comment, include the PR URL and a short change summary.',
                   '- If blocked by missing requirements or unsafe ambiguity, stop and ask clarifying questions instead of opening a risky PR.',
