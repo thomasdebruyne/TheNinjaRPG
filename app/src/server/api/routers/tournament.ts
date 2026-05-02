@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import type { TournamentMatchState } from "@/drizzle/constants";
@@ -30,122 +30,37 @@ import { checkCoLeader } from "@/validators/clan";
 import { ObjectiveReward } from "@/validators/rewards";
 import { tournamentCreateSchema } from "@/validators/tournament";
 
-const pusher = getServerPusher();
+const TOURNAMENT_FINALIZATION_INCOMPLETE =
+  "Tournament finalization incomplete. Staff recovery required.";
 
 export const tournamentRouter = createTRPCRouter({
+  // Advances rounds and finalizes payouts via syncTournamentState before each read so clients
+  // need not call syncTournament separately (authenticated tRPC; not edge-cacheable like static GET).
   getTournament: protectedProcedure
-    .meta({ mcp: { enabled: true, description: "Get tournament details and matches" } })
+    .meta({
+      mcp: {
+        enabled: true,
+        description:
+          "Get tournament details and matches (includes automatic round sync / finalization)",
+      },
+    })
     .input(z.object({ tournamentId: z.string() }))
     .query(async ({ ctx, input }) => {
-      // Fetch data
-      let data = await fetchTournament(ctx.drizzle, input.tournamentId);
-
-      // Update status if needed
-      const now = new Date();
-      if (data?.status === "OPEN") {
-        if (now > data.startedAt) {
-          await ctx.drizzle
-            .update(tournament)
-            .set({ status: "IN_PROGRESS" })
-            .where(eq(tournament.id, input.tournamentId));
-          data.status = "IN_PROGRESS";
-        }
-      }
-
-      // Derived
-      const matches = data?.matches.filter((m) => m.round === data?.round) ?? [];
-      const allWon = matches.every((m) => m.winnerId);
-      const match = matches?.[0];
-      const nMatches = matches.length;
-
-      // If tournament is stated, check if the round is over and we should proceed to the next round
-      if (data?.status === "IN_PROGRESS") {
-        const roundEndAt = secondsFromDate(
-          TOURNAMENT_ROUND_SECONDS,
-          data.roundStartedAt,
-        );
-
-        // Progress to the next round
-        if ((now > roundEndAt || allWon) && nMatches > 1) {
-          const now = new Date();
-          const values: TournamentMatch[] = [];
-          for (let i = 0; i < nMatches; i += 2) {
-            const match1 = matches[i];
-            const match2 = matches[i + 1];
-            const winner1 = match1 && getWinner(match1);
-            const winner2 = match2 && getWinner(match2);
-            if (winner1) {
-              values.push({
-                id: nanoid(),
-                tournamentId: input.tournamentId,
-                round: data.round + 1,
-                userId1: winner1,
-                userId2: winner2 ?? null,
-                match: data.matches.length + i / 2 + 1,
-                startedAt: now,
-                createdAt: now,
-                battleId: null,
-                winnerId: null,
-                state: "WAITING",
-              });
-            }
-          }
-          await Promise.all([
-            ctx.drizzle
-              .update(tournament)
-              .set({ round: data.round + 1, roundStartedAt: now })
-              .where(eq(tournament.id, input.tournamentId)),
-            ctx.drizzle.insert(tournamentMatch).values(values),
-          ]);
-          data = await fetchTournament(ctx.drizzle, input.tournamentId);
-        }
-
-        // End tournament & send reward
-        if (data && (now > roundEndAt || allWon) && nMatches === 1 && match) {
-          const finalRewards = postProcessRewards(data.rewards);
-          const winnerId = getWinner(match);
-          const winner = await fetchUser(ctx.drizzle, winnerId);
-          await Promise.all([
-            updateRewards({
-              client: ctx.drizzle,
-              user: winner,
-              rewards: finalRewards,
-              reason: "TOURNAMENT",
-            }),
-            ctx.drizzle.delete(tournament).where(eq(tournament.id, input.tournamentId)),
-            ctx.drizzle
-              .delete(tournamentMatch)
-              .where(eq(tournamentMatch.tournamentId, input.tournamentId)),
-            ctx.drizzle.insert(tournamentRecord).values({
-              id: nanoid(),
-              name: data.name,
-              image: data.image,
-              description: data.description,
-              round: data.round,
-              type: data.type,
-              rewards: data.rewards,
-              startedAt: data.startedAt,
-              winnerId: winnerId,
-            }),
-          ]);
-          const users = [
-            ...new Set(data.matches.flatMap((m) => [m.userId1, m.userId2])),
-          ];
-          users.forEach((u) => {
-            if (u) {
-              void pusher.trigger(u, "event", {
-                type: "userMessage",
-                message: `The tournament has ended, ${winner?.username} has won!`,
-                route: "/profile",
-                routeText: "To profile",
-              });
-            }
-          });
-        }
-      }
-
-      // Return the data
-      return data ?? null;
+      await syncTournamentState(ctx.drizzle, input.tournamentId);
+      return (await fetchTournament(ctx.drizzle, input.tournamentId)) ?? null;
+    }),
+  syncTournament: protectedProcedure
+    .meta({
+      mcp: {
+        enabled: true,
+        description:
+          "Synchronize tournament progression (also runs when loading tournament details)",
+      },
+    })
+    .input(z.object({ tournamentId: z.string() }))
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      return await syncTournamentState(ctx.drizzle, input.tournamentId);
     }),
   createTournament: protectedProcedure
     .meta({ mcp: { enabled: true, description: "Create a new tournament" } })
@@ -300,6 +215,39 @@ export const fetchTournament = async (client: DrizzleClient, tournamentId: strin
   });
 };
 
+const fetchTournamentForSync = async (client: DrizzleClient, tournamentId: string) => {
+  return client.query.tournament.findFirst({
+    where: eq(tournament.id, tournamentId),
+    with: {
+      matches: {
+        with: {
+          user1: { columns: { userId: true, username: true, avatar: true } },
+          user2: { columns: { userId: true, username: true, avatar: true } },
+        },
+        orderBy: (table, { asc }) => [asc(table.match)],
+      },
+    },
+  });
+};
+
+const fetchTournamentRecord = async (client: DrizzleClient, tournamentId: string) => {
+  return client.query.tournamentRecord.findFirst({
+    where: eq(tournamentRecord.id, tournamentId),
+  });
+};
+
+const cleanupCompletedTournament = async (
+  client: DrizzleClient,
+  tournamentId: string,
+) => {
+  await client
+    .delete(tournamentMatch)
+    .where(eq(tournamentMatch.tournamentId, tournamentId));
+  await client
+    .delete(tournament)
+    .where(and(eq(tournament.id, tournamentId), eq(tournament.status, "COMPLETED")));
+};
+
 /**
  * Fetches a tournament match from the database.
  *
@@ -363,4 +311,299 @@ const getWinner = (match: TournamentMatch) => {
   if (match.winnerId) return match.winnerId;
   if (match.userId2) return Math.random() > 0.5 ? match.userId1 : match.userId2;
   return match.userId1;
+};
+
+type TournamentSyncData = NonNullable<
+  Awaited<ReturnType<typeof fetchTournamentForSync>>
+>;
+
+/** OPEN → IN_PROGRESS when start time passed; refetches on successful CAS. */
+const promoteOpenTournamentIfStarted = async (
+  client: DrizzleClient,
+  tournamentId: string,
+  data: TournamentSyncData,
+  now: Date,
+): Promise<[TournamentSyncData, BaseServerResponse | null]> => {
+  if (data.status !== "OPEN" || now <= data.startedAt) {
+    return [data, null];
+  }
+  const startResult = await client
+    .update(tournament)
+    .set({ status: "IN_PROGRESS" })
+    .where(and(eq(tournament.id, tournamentId), eq(tournament.status, "OPEN")));
+
+  if (startResult.rowsAffected > 0) {
+    const refetched = await fetchTournamentForSync(client, tournamentId);
+    if (!refetched) {
+      return [data, { success: true, message: "Tournament synchronized." }];
+    }
+    return [refetched, null];
+  }
+  return [data, null];
+};
+
+/** Returns a response when the round is still playing or multi-match bracket advanced; otherwise null. */
+const tryAdvanceTournamentRoundOrWait = async (
+  client: DrizzleClient,
+  tournamentId: string,
+  currentData: TournamentSyncData,
+  matches: TournamentMatch[],
+  now: Date,
+  roundEndAt: Date,
+  allWon: boolean,
+): Promise<BaseServerResponse | null> => {
+  if (currentData.status === "IN_PROGRESS" && !(now > roundEndAt || allWon)) {
+    return { success: true, message: "Tournament synchronized." };
+  }
+
+  if (currentData.status === "IN_PROGRESS" && matches.length > 1) {
+    const nextRoundStartedAt = new Date();
+    const nextRoundMatches: TournamentMatch[] = [];
+
+    for (let i = 0; i < matches.length; i += 2) {
+      const firstMatch = matches[i];
+      const secondMatch = matches[i + 1];
+      const winner1 = firstMatch ? getWinner(firstMatch) : null;
+      const winner2 = secondMatch ? getWinner(secondMatch) : null;
+      if (winner1) {
+        nextRoundMatches.push({
+          id: nanoid(),
+          tournamentId,
+          round: currentData.round + 1,
+          userId1: winner1,
+          userId2: winner2 ?? null,
+          match: currentData.matches.length + i / 2 + 1,
+          startedAt: nextRoundStartedAt,
+          createdAt: nextRoundStartedAt,
+          battleId: null,
+          winnerId: null,
+          state: "WAITING",
+        });
+      }
+    }
+
+    const roundAdvanceResult = await client
+      .update(tournament)
+      .set({ round: currentData.round + 1, roundStartedAt: nextRoundStartedAt })
+      .where(
+        and(
+          eq(tournament.id, tournamentId),
+          eq(tournament.status, "IN_PROGRESS"),
+          eq(tournament.round, currentData.round),
+          eq(tournament.roundStartedAt, currentData.roundStartedAt),
+        ),
+      );
+
+    if (roundAdvanceResult.rowsAffected > 0 && nextRoundMatches.length > 0) {
+      await client.insert(tournamentMatch).values(nextRoundMatches);
+    }
+
+    return { success: true, message: "Tournament synchronized." };
+  }
+
+  return null;
+};
+
+/** Existing TournamentRecord rows: cleanup or staff-recovery errors. */
+const handleTournamentRecordLedger = async (
+  client: DrizzleClient,
+  tournamentId: string,
+  currentData: TournamentSyncData,
+): Promise<BaseServerResponse | null> => {
+  const existingRecord = await fetchTournamentRecord(client, tournamentId);
+  if (!existingRecord) return null;
+  if (!existingRecord.winnerId) {
+    return errorResponse(TOURNAMENT_FINALIZATION_INCOMPLETE);
+  }
+  if (currentData.status === "COMPLETED") {
+    await cleanupCompletedTournament(client, tournamentId);
+    return { success: true, message: "Tournament synchronized." };
+  }
+  return errorResponse(TOURNAMENT_FINALIZATION_INCOMPLETE);
+};
+
+/** Final single-match finalization: ledger insert (winnerId null) → COMPLETED CAS → updateRewards → set winner on ledger → cleanup → pusher. */
+const finalizeTournamentAndPayWinner = async (
+  client: DrizzleClient,
+  tournamentId: string,
+  currentData: TournamentSyncData,
+  finalMatch: TournamentMatch,
+): Promise<BaseServerResponse> => {
+  const winnerId = getWinner(finalMatch);
+  if (!winnerId) {
+    return { success: true, message: "Tournament synchronized." };
+  }
+
+  if (currentData.status !== "IN_PROGRESS") {
+    return errorResponse(TOURNAMENT_FINALIZATION_INCOMPLETE);
+  }
+
+  const winner = await fetchUser(client, winnerId);
+  if (!winner) {
+    return errorResponse("Tournament winner not found.");
+  }
+
+  try {
+    await client.insert(tournamentRecord).values({
+      id: tournamentId,
+      name: currentData.name,
+      image: currentData.image,
+      description: currentData.description,
+      round: currentData.round,
+      type: currentData.type,
+      rewards: currentData.rewards,
+      startedAt: currentData.startedAt,
+      winnerId: null,
+    });
+  } catch (error) {
+    const recordAfterInsertError = await fetchTournamentRecord(client, tournamentId);
+    if (recordAfterInsertError?.winnerId) {
+      const latestTournament = await fetchTournamentForSync(client, tournamentId);
+      if (latestTournament?.status === "COMPLETED") {
+        await cleanupCompletedTournament(client, tournamentId);
+        return { success: true, message: "Tournament synchronized." };
+      }
+      return { success: true, message: "Tournament synchronized." };
+    }
+    if (recordAfterInsertError) {
+      return errorResponse(TOURNAMENT_FINALIZATION_INCOMPLETE);
+    }
+    throw error;
+  }
+
+  const finalizeResult = await client
+    .update(tournament)
+    .set({ status: "COMPLETED" })
+    .where(
+      and(
+        eq(tournament.id, tournamentId),
+        eq(tournament.status, "IN_PROGRESS"),
+        eq(tournament.round, currentData.round),
+        eq(tournament.roundStartedAt, currentData.roundStartedAt),
+      ),
+    );
+  if (finalizeResult.rowsAffected === 0) {
+    const refetched = await fetchTournamentForSync(client, tournamentId);
+    if (!refetched || refetched.status !== "COMPLETED") {
+      await client
+        .delete(tournamentRecord)
+        .where(
+          and(eq(tournamentRecord.id, tournamentId), isNull(tournamentRecord.winnerId)),
+        );
+      return { success: true, message: "Tournament synchronized." };
+    }
+    return errorResponse(TOURNAMENT_FINALIZATION_INCOMPLETE);
+  }
+
+  const finalRewards = postProcessRewards(currentData.rewards);
+  try {
+    await updateRewards({
+      client,
+      user: winner,
+      rewards: finalRewards,
+      reason: "TOURNAMENT",
+    });
+  } catch {
+    return errorResponse(TOURNAMENT_FINALIZATION_INCOMPLETE);
+  }
+
+  const recordCompletionResult = await client
+    .update(tournamentRecord)
+    .set({ winnerId })
+    .where(
+      and(eq(tournamentRecord.id, tournamentId), isNull(tournamentRecord.winnerId)),
+    );
+  if (recordCompletionResult.rowsAffected === 0) {
+    return errorResponse(TOURNAMENT_FINALIZATION_INCOMPLETE);
+  }
+
+  await cleanupCompletedTournament(client, tournamentId);
+
+  const users = [
+    ...new Set(currentData.matches.flatMap((match) => [match.userId1, match.userId2])),
+  ];
+  users.forEach((uid) => {
+    if (uid) {
+      void getServerPusher().trigger(uid, "event", {
+        type: "userMessage",
+        message: `The tournament has ended, ${winner.username} has won!`,
+        route: "/profile",
+        routeText: "To profile",
+      });
+    }
+  });
+
+  return { success: true, message: "Tournament synchronized." };
+};
+
+/**
+ * Single-winner finalization ordering (do not reorder):
+ * 1) Insert TournamentRecord with winnerId null (ledger starts).
+ * 2) CAS tournament → COMPLETED (only one sync wins).
+ * 3) updateRewards for the winner.
+ * 4) CAS TournamentRecord winnerId from null → winner (exactly one payout path).
+ * 5) Cleanup matches + tournament row; notify participants.
+ */
+export const syncTournamentState = async (
+  client: DrizzleClient,
+  tournamentId: string,
+): Promise<BaseServerResponse> => {
+  let data = await fetchTournamentForSync(client, tournamentId);
+  if (!data) {
+    return errorResponse("Tournament not found.");
+  }
+
+  const now = new Date();
+  const [afterOpen, earlyAfterOpen] = await promoteOpenTournamentIfStarted(
+    client,
+    tournamentId,
+    data,
+    now,
+  );
+  if (earlyAfterOpen) return earlyAfterOpen;
+  data = afterOpen;
+
+  if (data.status !== "IN_PROGRESS" && data.status !== "COMPLETED") {
+    return { success: true, message: "Tournament synchronized." };
+  }
+
+  const currentData = data;
+  const matches = currentData.matches.filter(
+    (match) => match.round === currentData.round,
+  );
+  const allWon = matches.every((match) => match.winnerId);
+  const finalMatch = matches[0];
+  const roundEndAt = secondsFromDate(
+    TOURNAMENT_ROUND_SECONDS,
+    currentData.roundStartedAt,
+  );
+
+  const roundPhase = await tryAdvanceTournamentRoundOrWait(
+    client,
+    tournamentId,
+    currentData,
+    matches,
+    now,
+    roundEndAt,
+    allWon,
+  );
+  if (roundPhase) return roundPhase;
+
+  const ledgerResult = await handleTournamentRecordLedger(
+    client,
+    tournamentId,
+    currentData,
+  );
+  if (ledgerResult) return ledgerResult;
+
+  if (!finalMatch) {
+    return { success: true, message: "Tournament synchronized." };
+  }
+
+  return await finalizeTournamentAndPayWinner(
+    client,
+    tournamentId,
+    currentData,
+    finalMatch,
+  );
 };

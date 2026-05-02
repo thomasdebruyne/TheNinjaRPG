@@ -52,11 +52,9 @@ const Tournament: React.FC<TournamentProps> = (props) => {
   // Destructure
   const { userData, tournamentId, rewards } = props;
 
-  // Get synced time
   const { timeDiff } = useUserData();
   const syncedTime = Date.now() - timeDiff;
 
-  // utils
   const utils = api.useUtils();
 
   // Get router

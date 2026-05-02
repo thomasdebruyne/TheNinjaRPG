@@ -30,6 +30,7 @@ import {
 import { getServerPusher } from "@/libs/pusher";
 import { initiateBattle } from "@/routers/combat";
 import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
+import { isMysqlDuplicateKeyError } from "@/server/utils/mysqlErrors";
 import { findRelationship } from "@/utils/alliance";
 import { canSeeSecretData } from "@/utils/permissions";
 import { formatDateTimeShort, secondsFromDate, secondsFromNow } from "@/utils/time";
@@ -1092,12 +1093,7 @@ export const shrineRouter = createTRPCRouter({
         });
       } catch (error) {
         // On any insert failure, verify user status and revert if needed
-        // Check if it's a duplicate key/constraint violation (slot taken)
-        const isDuplicateError =
-          error instanceof Error &&
-          (error.message.includes("Duplicate entry") ||
-            error.message.includes("ER_DUP_ENTRY") ||
-            error.message.includes("UNIQUE constraint"));
+        const isDuplicateError = isMysqlDuplicateKeyError(error);
 
         // Verify user is still QUEUED and not in any queue before reverting
         const [currentUser, existingEntry] = await Promise.all([

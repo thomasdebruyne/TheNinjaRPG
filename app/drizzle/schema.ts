@@ -602,11 +602,20 @@ export const bloodlineRolls = mysqlTable(
     pityRolls: tinyint("pityRolls").default(0).notNull(),
     type: mysqlEnum("type", consts.BLOODLINE_ROLL_TYPES).default("NATURAL").notNull(),
     goal: mysqlEnum("rank", consts.LetterRanks),
+    // Stored generated column: userId when type is NATURAL, NULL otherwise.
+    // MySQL allows multiple NULLs in UNIQUE indexes, so ITEM/PITY rows are unaffected.
+    naturalRollDedupeKey: varchar("naturalRollDedupeKey", { length: 191 }).generatedAlwaysAs(
+      sql`CASE WHEN \`type\` = 'NATURAL' THEN \`userId\` ELSE NULL END`,
+      { mode: "stored" },
+    ),
   },
   (table) => {
     return {
       userIdKey: index("BloodlineRolls_userId_idx").on(table.userId),
       bloodlineIdIdx: index("BloodlineRolls_bloodlineId_idx").on(table.bloodlineId),
+      naturalRollPerUserKey: uniqueIndex(
+        "BloodlineRolls_natural_roll_per_user_key",
+      ).on(table.naturalRollDedupeKey),
     };
   },
 );

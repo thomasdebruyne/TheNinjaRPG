@@ -8,6 +8,7 @@ import {
   isNotNull,
   isNull,
   like,
+  ne,
   or,
   sql,
 } from "drizzle-orm";
@@ -51,6 +52,8 @@ import { validateUserUpdateReason } from "@/libs/moderator";
 import { callDiscordContent } from "@/libs/socials";
 import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import type { DrizzleClient } from "@/server/db";
+import { claimUserSnapshot } from "@/server/utils/concurrency";
+import { isMysqlDuplicateKeyError } from "@/server/utils/mysqlErrors";
 import { getRandomElement } from "@/utils/array";
 import { calculateContentDiff } from "@/utils/diff";
 import { getUnique } from "@/utils/grouping";
@@ -643,7 +646,7 @@ export const bloodlineRouter = createTRPCRouter({
         none: noBloodlineCount[0]?.count || 0,
       };
     }),
-  // Roll a bloodline
+  // Natural bloodline roll: CAS on userData.updatedAt before RNG; unique index allows one NATURAL row per user.
   roll: protectedProcedure
     .meta({ mcp: { enabled: true, description: "Roll for a natural bloodline" } })
     .output(baseServerResponse)
@@ -655,6 +658,7 @@ export const bloodlineRouter = createTRPCRouter({
         fetchBloodlines(ctx.drizzle), // Fetch all bloodlines
       ]);
       // Guard
+      if (!user) return errorResponse("User not found");
       if (prevRoll) return errorResponse("You have already rolled a bloodline");
       if (user.status !== "AWAKE") {
         return errorResponse(
@@ -666,6 +670,21 @@ export const bloodlineRouter = createTRPCRouter({
           "Academy students cannot roll for bloodlines. You must graduate first.",
         );
       }
+
+      const claimResult = await claimUserSnapshot({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+        updatedAt: user.updatedAt,
+        where: [
+          eq(userData.status, "AWAKE"),
+          ne(userData.rank, "STUDENT"),
+          isNull(userData.bloodlineId),
+        ],
+      });
+      if (!claimResult.success) {
+        return errorResponse("You have already rolled a bloodline");
+      }
+
       /**
        * Roll a bloodline. Defined like this to make testing of many rolls easier
        * @returns {Promise<{success: boolean, message: string}>}
@@ -692,18 +711,29 @@ export const bloodlineRouter = createTRPCRouter({
           });
           const randomBloodline = getRandomElement(bloodlinePool);
           if (randomBloodline) {
-            await Promise.all([
-              ctx.drizzle
-                .update(userData)
-                .set({ bloodlineId: randomBloodline.id })
-                .where(eq(userData.userId, ctx.userId)),
-              ctx.drizzle.insert(bloodlineRolls).values({
+            const bloodlineUpdateResult = await ctx.drizzle
+              .update(userData)
+              .set({ bloodlineId: randomBloodline.id })
+              .where(
+                and(eq(userData.userId, ctx.userId), isNull(userData.bloodlineId)),
+              );
+            if (bloodlineUpdateResult.rowsAffected === 0) {
+              return errorResponse("You have already rolled a bloodline");
+            }
+            try {
+              await ctx.drizzle.insert(bloodlineRolls).values({
                 id: nanoid(),
                 userId: ctx.userId,
                 used: 0,
+                type: "NATURAL",
                 bloodlineId: randomBloodline.id,
-              }),
-            ]);
+              });
+            } catch (error) {
+              if (isMysqlDuplicateKeyError(error)) {
+                return errorResponse("You have already rolled a bloodline");
+              }
+              throw error;
+            }
             return {
               success: true,
               message: `After thorough examination, a bloodline was detected: ${randomBloodline.name}`,
@@ -711,11 +741,19 @@ export const bloodlineRouter = createTRPCRouter({
           }
         }
         // If no bloodline was found, proceed with the normal "no bloodline" case
-        await ctx.drizzle.insert(bloodlineRolls).values({
-          id: nanoid(),
-          used: 0,
-          userId: ctx.userId,
-        });
+        try {
+          await ctx.drizzle.insert(bloodlineRolls).values({
+            id: nanoid(),
+            used: 0,
+            userId: ctx.userId,
+            type: "NATURAL",
+          });
+        } catch (error) {
+          if (isMysqlDuplicateKeyError(error)) {
+            return errorResponse("You have already rolled a bloodline");
+          }
+          throw error;
+        }
         return {
           success: false,
           message:

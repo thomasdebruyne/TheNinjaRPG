@@ -54,6 +54,7 @@ import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import { fetchUserSkills } from "@/routers/skillTree";
 import { fetchStructures } from "@/routers/village";
 import type { DrizzleClient } from "@/server/db";
+import { consumeUserItemAtomically } from "@/server/utils/concurrency";
 import { getRandomElement } from "@/utils/array";
 import { calculateContentDiff } from "@/utils/diff";
 import { fedItemLoadouts } from "@/utils/paypal";
@@ -752,7 +753,7 @@ export const itemRouter = createTRPCRouter({
       };
     }),
 
-  // Consume item
+  // Consume item — atomic quantity decrement runs before effects (see handler below).
   consume: protectedProcedure
     .meta({ mcp: { enabled: true, description: "Consume a consumable item" } })
     .input(z.object({ userItemId: z.string() }))
@@ -783,6 +784,16 @@ export const itemRouter = createTRPCRouter({
       }
       if (!nonCombatConsume(useritem.item, user)) {
         return errorResponse("Not consumable");
+      }
+
+      const consumeResult = await consumeUserItemAtomically({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+        userItemId: input.userItemId,
+        expectedQuantity: useritem.quantity,
+      });
+      if (!consumeResult) {
+        return errorResponse("User item not found");
       }
 
       // Bookkeeping
@@ -971,17 +982,11 @@ export const itemRouter = createTRPCRouter({
           .update(userData)
           .set(updates)
           .where(eq(userData.userId, ctx.userId)),
-        useritem.quantity > 1
+        useritem.quantity === 1
           ? ctx.drizzle
-              .update(userItem)
-              .set({ quantity: sql`${userItem.quantity} - 1` })
-              .where(eq(userItem.id, input.userItemId))
-          : Promise.all([
-              ctx.drizzle.delete(userItem).where(eq(userItem.id, input.userItemId)),
-              ctx.drizzle
-                .delete(userItemImbuement)
-                .where(eq(userItemImbuement.userItemId, input.userItemId)),
-            ]),
+              .delete(userItemImbuement)
+              .where(eq(userItemImbuement.userItemId, input.userItemId))
+          : undefined,
         ...promises,
       ]);
       // Prettify rewards

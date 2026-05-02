@@ -80,6 +80,7 @@ import { deleteRequests } from "@/routers/sensei";
 import { fetchSectorVillage } from "@/routers/village";
 import { fetchActiveWars } from "@/routers/war";
 import type { DrizzleClient } from "@/server/db";
+import { claimUserSnapshot } from "@/server/utils/concurrency";
 import { getRandomElement } from "@/utils/array";
 import { calculateContentDiff } from "@/utils/diff";
 import {
@@ -1188,7 +1189,7 @@ export const questsRouter = createTRPCRouter({
       ]),
     )
     .mutation(async ({ ctx, input }) => {
-      // Query
+      // Resolved path: questHistory CAS → snapshot claim → updateRewards (SQL deltas on userdata).
       const { user, toastMessages, settings } = await fetchUpdatedUser({
         client: ctx.drizzle,
         userId: ctx.userId,
@@ -1207,36 +1208,60 @@ export const questsRouter = createTRPCRouter({
         getReward(user, input.questId, input.nextObjectiveId, settings);
       user.questData = trackers;
 
-      // Post-reward consequences
-      const postNotifications = await handleQuestConsequences(
-        ctx.drizzle,
-        user,
-        consequences,
-        notifications,
-      );
+      // Persist completion before snapshot CAS so we cannot commit questData/updatedAt and then
+      // lose the completion race; if snapshot claim fails, revert completion below.
+      let resolvedCompletionCommitted = false;
+      if (resolved) {
+        const questCompletionResult = await ctx.drizzle
+          .update(questHistory)
+          .set({
+            completed: 1,
+            previousCompletes: sql`${questHistory.previousCompletes} + 1`,
+            endAt: new Date(),
+          })
+          .where(
+            and(
+              eq(questHistory.questId, input.questId),
+              eq(questHistory.userId, ctx.userId),
+              eq(questHistory.completed, 0),
+            ),
+          );
+
+        if (questCompletionResult.rowsAffected === 0) {
+          return errorResponse("Quest rewards already claimed");
+        }
+        resolvedCompletionCommitted = true;
+      }
+
+      const { notifications: postNotifications, claimed } =
+        await handleQuestConsequences(ctx.drizzle, user, consequences, notifications, {
+          alwaysClaimUserState: true,
+        });
+
+      if (!claimed) {
+        if (resolvedCompletionCommitted) {
+          await revertQuestCompletionAfterFailedClaim(
+            ctx.drizzle,
+            ctx.userId,
+            input.questId,
+          );
+        }
+        return errorResponse(
+          resolved
+            ? "Quest rewards already claimed"
+            : "Quest state changed, please try again",
+        );
+      }
 
       // Handle immidiate consequences first
       const finalNotifications = [...toastMessages, ...postNotifications];
-
-      // Achievements are only inserted once completed
-      if (resolved && userQuest) {
-        if (userQuest.quest.questType === "achievement") {
-          if (!userQuest.quest.hidden || canPlayHiddenQuests(user.role)) {
-            await upsertQuestEntry(ctx.drizzle, user, userQuest.quest);
-          }
-        }
-      }
 
       // Sensei rewards
       const hasSensei = user.senseiId && user.rank === "GENIN";
       const isMission = userQuest?.quest.questType === "mission";
       const senseiId = hasSensei && isMission ? user.senseiId : null;
 
-      // New tier quest
-      const questTier = user.userQuests?.find((q) => q.quest.questType === "tier");
-      if (!questTier) {
-        await insertNextQuest(ctx.drizzle, user, "tier");
-      }
+      await runCheckRewardsPrepInParallel(ctx.drizzle, user, resolved, userQuest);
 
       // If the quest is finished, we update additional fields on the userData model
       const questCounterField =
@@ -1257,22 +1282,6 @@ export const questsRouter = createTRPCRouter({
           questCounterField,
           reason: "QUEST",
         }),
-        // Update quest history
-        resolved
-          ? ctx.drizzle
-              .update(questHistory)
-              .set({
-                completed: 1,
-                previousCompletes: sql`${questHistory.previousCompletes} + 1`,
-                endAt: new Date(),
-              })
-              .where(
-                and(
-                  eq(questHistory.questId, input.questId),
-                  eq(questHistory.userId, ctx.userId),
-                ),
-              )
-          : undefined,
         // Update sensei with 1000 ryo for missions
         ...(senseiId
           ? [
@@ -1359,7 +1368,7 @@ export const questsRouter = createTRPCRouter({
       user.questData = trackers;
 
       // Handle consequences
-      const finalNotification = await handleQuestConsequences(
+      const { notifications: finalNotification } = await handleQuestConsequences(
         ctx.drizzle,
         user,
         consequences,
@@ -1463,7 +1472,7 @@ export const questsRouter = createTRPCRouter({
         { task: "start_battle", text: "retry" },
       ]);
       // Handle consequences
-      const finalNotification = await handleQuestConsequences(
+      const { notifications: finalNotification } = await handleQuestConsequences(
         ctx.drizzle,
         user,
         consequences,
@@ -1476,6 +1485,13 @@ export const questsRouter = createTRPCRouter({
 
 /**
  * COMMON QUERIES WHICH ARE REUSED
+ */
+/**
+ * Callers must win an endpoint-specific idempotency / CAS claim before invoking
+ * this helper. `updateRewards` itself does not provide replay protection.
+ *
+ * Money/XP-style scalars use SQL increments on `userData` columns so parallel grants compose;
+ * village tokens and clan points already used this pattern.
  */
 export const updateRewards = async (info: {
   client: DrizzleClient;
@@ -1642,35 +1658,21 @@ export const updateRewards = async (info: {
   const getNewRank = rewards.reward_rank !== "NONE";
   const getNewVillage = rewards.reward_village_membership !== "NONE";
 
-  // Cap medical experience at 4 million (use ?? 0 for defensive checks against malformed DB data)
-  const cappedMedicalExp = Math.min(
-    user.medicalExperience + (rewards.reward_medical_experience ?? 0),
-    MEDNIN_EXP_CAP,
-  );
-
-  // Cap skillpoints at MAX_SKILL_POINTS
-  const cappedSkillPoints = Math.min(
-    user.skillPoints + (rewards.reward_skillpoints ?? 0),
-    MAX_SKILL_POINTS,
-  );
-
+  // Cap medical experience at 4 million (atomic increment + cap in SQL so parallel reward grants stack).
+  // Skillpoints similarly capped in SQL.
   const updatedUserData: Record<string, unknown> = {
     questData: user.questData,
-    money: user.money + (rewards.reward_money ?? 0),
-    seichiSilver: user.seichiSilver + (rewards.reward_seichi_silver ?? 0),
-    earnedExperience: user.earnedExperience + (rewards.reward_exp ?? 0),
-    villagePrestige: user.villagePrestige + (rewards.reward_prestige ?? 0),
-    reputationPoints: user.reputationPoints + (rewards.reward_reputation ?? 0),
-    reputationPointsTotal:
-      user.reputationPointsTotal + (rewards.reward_reputation ?? 0),
-    skillPoints: cappedSkillPoints,
-    medicalExperience: cappedMedicalExp,
-    huntingExperience:
-      user.huntingExperience + (rewards.reward_hunting_experience ?? 0),
-    craftingExperience:
-      user.craftingExperience + (rewards.reward_crafting_experience ?? 0),
-    gatheringExperience:
-      user.gatheringExperience + (rewards.reward_gathering_experience ?? 0),
+    money: sql`${userData.money} + ${rewards.reward_money ?? 0}`,
+    seichiSilver: sql`${userData.seichiSilver} + ${rewards.reward_seichi_silver ?? 0}`,
+    earnedExperience: sql`${userData.earnedExperience} + ${rewards.reward_exp ?? 0}`,
+    villagePrestige: sql`${userData.villagePrestige} + ${rewards.reward_prestige ?? 0}`,
+    reputationPoints: sql`${userData.reputationPoints} + ${rewards.reward_reputation ?? 0}`,
+    reputationPointsTotal: sql`${userData.reputationPointsTotal} + ${rewards.reward_reputation ?? 0}`,
+    skillPoints: sql`LEAST(${userData.skillPoints} + ${rewards.reward_skillpoints ?? 0}, ${MAX_SKILL_POINTS})`,
+    medicalExperience: sql`LEAST(${userData.medicalExperience} + ${rewards.reward_medical_experience ?? 0}, ${MEDNIN_EXP_CAP})`,
+    huntingExperience: sql`${userData.huntingExperience} + ${rewards.reward_hunting_experience ?? 0}`,
+    craftingExperience: sql`${userData.craftingExperience} + ${rewards.reward_crafting_experience ?? 0}`,
+    gatheringExperience: sql`${userData.gatheringExperience} + ${rewards.reward_gathering_experience ?? 0}`,
     rank: getNewRank ? rewards.reward_rank : user.rank,
     villageId: getNewVillage && villageData ? villageData.id : user.villageId,
   };
@@ -2107,19 +2109,162 @@ export const fetchUserQuestByQuestId = async (
   });
 };
 
+type UserQuestFromGetReward = ReturnType<typeof getReward>["userQuest"];
+
+/** Used by checkRewards when claimUserSnapshot fails after questHistory was marked completed. */
+const revertQuestCompletionAfterFailedClaim = async (
+  client: DrizzleClient,
+  userId: string,
+  questId: string,
+) => {
+  await client
+    .update(questHistory)
+    .set({
+      completed: 0,
+      previousCompletes: sql`${questHistory.previousCompletes} - 1`,
+      endAt: null,
+    })
+    .where(
+      and(
+        eq(questHistory.questId, questId),
+        eq(questHistory.userId, userId),
+        eq(questHistory.completed, 1),
+      ),
+    );
+};
+
+/** Tier quest bootstrap plus achievement log; tasks are independent and run together. */
+const runCheckRewardsPrepInParallel = async (
+  client: DrizzleClient,
+  user: NonNullable<UserWithRelations>,
+  resolved: boolean,
+  userQuest: UserQuestFromGetReward,
+) => {
+  const prepTasks: Promise<unknown>[] = [];
+  const questTier = user.userQuests?.find((q) => q.quest.questType === "tier");
+  if (!questTier) {
+    prepTasks.push(insertNextQuest(client, user, "tier"));
+  }
+  if (resolved && userQuest?.quest.questType === "achievement") {
+    if (!userQuest.quest.hidden || canPlayHiddenQuests(user.role)) {
+      prepTasks.push(upsertQuestEntry(client, user, userQuest.quest));
+    }
+  }
+  if (prepTasks.length > 0) {
+    await Promise.all(prepTasks);
+  }
+};
+
+/** DB writes after claimUserSnapshot succeeds inside handleQuestConsequences. */
+const executeClaimedQuestConsequences = async ({
+  client,
+  user,
+  claimedAt,
+  notifications,
+  startedQuestIds,
+  endedQuestIds,
+  collected,
+  removedUserItemIds,
+  opponent,
+}: {
+  client: DrizzleClient;
+  user: NonNullable<UserWithRelations>;
+  claimedAt: Date;
+  notifications: string[];
+  startedQuestIds: string[];
+  endedQuestIds: string[];
+  collected: QuestConsequence[];
+  removedUserItemIds: string[];
+  opponent: QuestConsequence | undefined;
+}) => {
+  user.updatedAt = claimedAt;
+  const collectedItems = collected.flatMap(({ ids }) => ids);
+  await Promise.all([
+    ...(startedQuestIds.length > 0
+      ? [
+          (async () => {
+            const quests = await client.query.quest.findMany({
+              where: inArray(quest.id, startedQuestIds),
+            });
+            notifications.push(
+              `Started new quest: ${quests.map((q) => q.name).join(", ")}`,
+            );
+            await Promise.all(
+              quests.map((quest) => upsertQuestEntry(client, user, quest)),
+            );
+          })(),
+        ]
+      : []),
+    ...(endedQuestIds.length > 0
+      ? [
+          client
+            .update(questHistory)
+            .set({ completed: 0, endAt: new Date() })
+            .where(
+              and(
+                inArray(questHistory.questId, endedQuestIds),
+                eq(questHistory.userId, user.userId),
+              ),
+            ),
+        ]
+      : []),
+    ...(collectedItems.length > 0
+      ? [
+          client.insert(userItem).values(
+            collectedItems.map(
+              (id) =>
+                ({
+                  id: nanoid(),
+                  userId: user.userId,
+                  itemId: id,
+                  quantity: 1,
+                  equipped: "NONE",
+                }) as const,
+            ),
+          ),
+        ]
+      : []),
+    ...(removedUserItemIds.length > 0
+      ? [client.delete(userItem).where(inArray(userItem.id, removedUserItemIds))]
+      : []),
+    ...[
+      opponent
+        ? (async () => {
+            return initiateBattle(
+              {
+                longitude: user.longitude,
+                latitude: user.latitude,
+                sector: user.sector,
+                userIds: [user.userId],
+                targetIds: opponent.ids,
+                client: client,
+                scaleTarget: !!opponent.scaleStats,
+                biome: "default",
+                forceKeepPools: opponent.forceKeepPools ?? false,
+              },
+              opponent.type === "random_encounter" ? "RANDOM_ENCOUNTER" : "QUEST",
+              opponent.scaleGains ?? 1,
+            );
+          })()
+        : Promise.resolve(),
+    ],
+  ]);
+};
+
 /**
- * Handles the consequences of a quest
- * @param client - The database client
- * @param user - The user
- * @param consequences - The consequences of the quest
- * @param notifications - The notifications to be sent to the user
- * @returns The (potentially updated) notifications
+ * Handles the consequences of a quest (items, battles, quest resets, etc.).
+ *
+ * With `alwaysClaimUserState` (used by `checkRewards`), always runs `claimUserSnapshot` so parallel
+ * submissions serialize on `userData.updatedAt` before reward payout.
  */
 export const handleQuestConsequences = async (
   client: DrizzleClient,
   user: NonNullable<UserWithRelations>,
   consequences: QuestConsequence[],
   notifications: string[],
+  options?: {
+    alwaysClaimUserState?: boolean;
+  },
 ) => {
   // Quests reset
   const resetQuests = consequences.filter(
@@ -2206,97 +2351,34 @@ export const handleQuestConsequences = async (
     });
   }
   // Database updates
-  if (notifications.length > 0 || consequences.length > 0) {
-    // First update user to see if someone already called this function
-    const now = new Date();
-    const result = await client
-      .update(userData)
-      .set({ questData: user.questData, updatedAt: now })
-      .where(
-        and(eq(userData.userId, user.userId), eq(userData.updatedAt, user.updatedAt)),
-      );
+  const shouldClaimUserState =
+    options?.alwaysClaimUserState ||
+    notifications.length > 0 ||
+    consequences.length > 0;
 
-    // If succeeded in updating user, also update other things
-    if (result.rowsAffected > 0) {
-      // Update user timestamp for any future updates
-      user.updatedAt = now;
-      const collectedItems = collected.flatMap(({ ids }) => ids);
-      await Promise.all([
-        // Update started quests if needed
-        ...(startedQuestIds.length > 0
-          ? [
-              (async () => {
-                const quests = await client.query.quest.findMany({
-                  where: inArray(quest.id, startedQuestIds),
-                });
-                notifications.push(
-                  `Started new quest: ${quests.map((q) => q.name).join(", ")}`,
-                );
-                await Promise.all(
-                  quests.map((quest) => upsertQuestEntry(client, user, quest)),
-                );
-              })(),
-            ]
-          : []),
-        // Update ended quests if needed
-        ...(endedQuestIds.length > 0
-          ? [
-              client
-                .update(questHistory)
-                .set({ completed: 0, endAt: new Date() })
-                .where(
-                  and(
-                    inArray(questHistory.questId, endedQuestIds),
-                    eq(questHistory.userId, user.userId),
-                  ),
-                ),
-            ]
-          : []),
-        // Update collected items
-        ...(collectedItems.length > 0
-          ? [
-              client.insert(userItem).values(
-                collectedItems.map(
-                  (id) =>
-                    ({
-                      id: nanoid(),
-                      userId: user.userId,
-                      itemId: id,
-                      quantity: 1,
-                      equipped: "NONE",
-                    }) as const,
-                ),
-              ),
-            ]
-          : []),
-        // Update removed items
-        ...(removedUserItemIds.length > 0
-          ? [client.delete(userItem).where(inArray(userItem.id, removedUserItemIds))]
-          : []),
-        // Initiate battle if needed
-        ...[
-          opponent
-            ? (async () => {
-                return initiateBattle(
-                  {
-                    longitude: user.longitude,
-                    latitude: user.latitude,
-                    sector: user.sector,
-                    userIds: [user.userId],
-                    targetIds: opponent.ids,
-                    client: client,
-                    scaleTarget: !!opponent.scaleStats,
-                    biome: "default",
-                    forceKeepPools: opponent.forceKeepPools ?? false,
-                  },
-                  opponent.type === "random_encounter" ? "RANDOM_ENCOUNTER" : "QUEST",
-                  opponent.scaleGains ?? 1,
-                );
-              })()
-            : Promise.resolve(),
-        ],
-      ]);
+  if (shouldClaimUserState) {
+    const claimResult = await claimUserSnapshot({
+      client,
+      userId: user.userId,
+      updatedAt: user.updatedAt,
+      set: { questData: user.questData },
+    });
+
+    if (claimResult.success) {
+      await executeClaimedQuestConsequences({
+        client,
+        user,
+        claimedAt: claimResult.claimedAt,
+        notifications,
+        startedQuestIds,
+        endedQuestIds,
+        collected,
+        removedUserItemIds,
+        opponent,
+      });
+
+      return { notifications, claimed: true };
     }
   }
-  return notifications;
+  return { notifications, claimed: !shouldClaimUserState };
 };

@@ -120,6 +120,7 @@ import { handleQuestConsequences, insertNextQuest } from "@/routers/quests";
 import { fetchVillage } from "@/routers/village";
 import { deleteUser } from "@/server/api/routers/staff";
 import type { DrizzleClient } from "@/server/db";
+import { buildDerivedUserRegenUpdate } from "@/server/utils/profileRegen";
 import { getRandomElement } from "@/utils/array";
 import { calculateContentDiff } from "@/utils/diff";
 import {
@@ -2574,50 +2575,14 @@ export const fetchUpdatedUser = async (props: {
         const available = BasicElementName.filter((e) => e !== user.primaryElement);
         user.secondaryElement = getRandomElement(available) ?? null;
       }
-      // Update database
-      await Promise.all([
-        client
-          .update(userData)
-          .set({
-            curHealth: user.curHealth,
-            curStamina: user.curStamina,
-            curChakra: user.curChakra,
-            updatedAt: user.updatedAt,
-            regenAt: user.regenAt,
-            questData: user.questData,
-            money: user.money > RYO_CAP ? RYO_CAP : user.money,
-            bank: user.bank > RYO_CAP ? RYO_CAP : user.bank,
-            primaryElement: user.primaryElement,
-            secondaryElement: user.secondaryElement,
-            reputationPoints: user.reputationPoints,
-            reputationPointsTotal: user.reputationPointsTotal,
-            villagePrestige: user.villagePrestige,
-            villageId: user.villageId,
-            isOutlaw: user.isOutlaw,
-            status: user.status,
-            travelFinishAt: user.travelFinishAt,
-            ...(userIp ? { lastIp: userIp } : {}),
-            medicalExperience: user.medicalExperience,
-            craftingExperience: user.craftingExperience,
-            huntingExperience: user.huntingExperience,
-            gatheringExperience: user.gatheringExperience,
-            extraReskinSlots: user.extraReskinSlots,
-          })
-          .where(eq(userData.userId, userId)),
-        ...(userIp && user.lastIp !== userIp
-          ? [
-              client
-                .insert(historicalIp)
-                .values({
-                  userId: userId,
-                  ip: userIp,
-                })
-                .onDuplicateKeyUpdate({
-                  set: { usedAt: new Date() },
-                }),
-            ]
-          : []),
-      ]);
+      // Update database (pools, questData, etc.; village columns only when includeVillageState)
+      await persistPassiveRegenToDb({
+        client,
+        userId,
+        user,
+        userIp,
+        forceRegen: forceRegen ?? false,
+      });
     }
   }
   if (user) {
@@ -2631,9 +2596,13 @@ export const fetchUpdatedUser = async (props: {
     user.questData = trackers;
 
     // Handle any update on quest consequences
-    toastMessages.push(
-      ...(await handleQuestConsequences(client, user, consequences, notifications)),
+    const consequenceResult = await handleQuestConsequences(
+      client,
+      user,
+      consequences,
+      notifications,
     );
+    toastMessages.push(...consequenceResult.notifications);
 
     // Hide information relating to quests
     if (hideInformation) {
@@ -2657,6 +2626,66 @@ export const fetchUpdatedUser = async (props: {
       trackerResults: null,
     };
   }
+};
+
+/** Writes passive regen fields to userData; merges fresh village prestige/id/outlaw when persisting village state (not the separate negative-prestige kick flow above). */
+const persistPassiveRegenToDb = async ({
+  client,
+  userId,
+  user,
+  userIp,
+  forceRegen,
+}: {
+  client: DrizzleClient;
+  userId: string;
+  user: NonNullable<UserWithRelations>;
+  userIp?: string;
+  forceRegen: boolean;
+}) => {
+  const includeVillageState = forceRegen || (user.villagePrestige < 0 && user.isOutlaw);
+
+  const historicalIpPromise =
+    userIp && user.lastIp !== userIp
+      ? client
+          .insert(historicalIp)
+          .values({
+            userId,
+            ip: userIp,
+          })
+          .onDuplicateKeyUpdate({
+            set: { usedAt: new Date() },
+          })
+      : Promise.resolve(null);
+
+  const [freshVillageRow] = await Promise.all([
+    includeVillageState
+      ? client.query.userData.findFirst({
+          where: eq(userData.userId, userId),
+          columns: {
+            villagePrestige: true,
+            villageId: true,
+            isOutlaw: true,
+          },
+        })
+      : Promise.resolve(null),
+    historicalIpPromise,
+  ]);
+
+  let userForRegenPersist = user;
+  if (includeVillageState && freshVillageRow) {
+    userForRegenPersist = { ...user, ...freshVillageRow };
+  }
+
+  const derivedUserUpdate = buildDerivedUserRegenUpdate({
+    user: userForRegenPersist,
+    userIp,
+    includeVillageState,
+  });
+
+  await client
+    .update(userData)
+    .set(derivedUserUpdate)
+    .where(eq(userData.userId, userId));
 };
 
 export const fetchPublicUsers = async (info: {

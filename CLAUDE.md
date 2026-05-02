@@ -118,6 +118,15 @@ The combat system has strict performance requirements. The data flow should be:
 - **No Legacy Fields**: When refactoring database schema, fully remove legacy/deprecated fields rather than keeping them for backward compatibility. Do not leave legacy fields in the schema - migrate all code to use new field names immediately.
 - **Minimize DB Roundtrips**: For queries, prefer reducing the number of database roundtrips over reducing the amount of data fetched. Running queries in parallel with `Promise.all()` is faster than running them sequentially, even if it means fetching slightly more data upfront.
 
+### CAS / idempotency (rewards and economy)
+
+PlanetScale does not support multi-statement transactions. Use **compare-and-swap** predicates and verify `rowsAffected` before granting irreversible rewards:
+
+- Examples: raid reward JSON guards (`raids.ts`), activity streak `lastClaimDate` (`activityStreak.ts`), helpers in `@/server/utils/concurrency.ts` (`claimUserSnapshot`, `consumeUserItemAtomically`).
+- Prefer **SQL increments** on counters (money, XP, prestige) via `` sql`${userData.money} + ${delta}` `` when parallel grants could otherwise apply the same stale base snapshot—mirror how village tokens and clan points already use atomic `+=` in `updateRewards`.
+
+**Tournament reads:** `tournament.getTournament` awaits `syncTournamentState` before loading data so brackets advance and finals pay out without a separate client mutation. That procedure intentionally performs conditional writes; keep it off HTTP edge caches (normal authenticated tRPC POST batching is fine).
+
 ## tRPC Patterns
 
 - All API endpoints use tRPC for type safety

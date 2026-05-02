@@ -29,6 +29,10 @@ import {
   errorResponse,
   protectedProcedure,
 } from "@/server/api/trpc";
+import {
+  claimUserSnapshot,
+  updateUserItemQuantityAtomically,
+} from "@/server/utils/concurrency";
 import { canChangeContent } from "@/utils/permissions";
 import { formatSecondsToTimeDisplay } from "@/utils/time";
 import { getShrineBoost } from "@/utils/village";
@@ -209,19 +213,38 @@ export const occupationRouter = createTRPCRouter({
         allConsumptions.push(...consumption.consumptions);
       }
 
-      // Create database operations for consuming materials
-      const materialUpdates = allConsumptions.map((consumption) => {
-        if (consumption.newQuantity <= 0) {
-          return ctx.drizzle
-            .delete(userItem)
-            .where(eq(userItem.id, consumption.userItemId));
-        } else {
-          return ctx.drizzle
-            .update(userItem)
-            .set({ quantity: consumption.newQuantity })
-            .where(eq(userItem.id, consumption.userItemId));
-        }
+      // CAS + atomic material rows prevent duplicate crafts under concurrent requests.
+      const craftClaimResult = await claimUserSnapshot({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+        updatedAt: user.updatedAt,
+        where: [
+          eq(userData.status, "AWAKE"),
+          or(isNull(userData.sector), ne(userData.sector, MAP_WAKE_ISLAND_SECTOR)),
+        ],
       });
+      if (!craftClaimResult.success) {
+        return errorResponse(
+          "Could not start crafting — state changed, please try again",
+        );
+      }
+
+      const materialUpdates = await Promise.all(
+        allConsumptions.map((consumption) =>
+          updateUserItemQuantityAtomically({
+            client: ctx.drizzle,
+            userId: ctx.userId,
+            userItemId: consumption.userItemId,
+            expectedQuantity: consumption.consumeQuantity + consumption.newQuantity,
+            nextQuantity: consumption.newQuantity,
+          }),
+        ),
+      );
+      if (!materialUpdates.every(Boolean)) {
+        return errorResponse(
+          "Could not start crafting — materials changed, please try again",
+        );
+      }
 
       // Create crafting item entry/entries
       // Respect stackSize limit when creating items
@@ -287,7 +310,7 @@ export const occupationRouter = createTRPCRouter({
         );
 
       const [, expResult] = await Promise.all([
-        Promise.all([...materialUpdates, ...craftingItemInserts]),
+        Promise.all(craftingItemInserts),
         expUpdate,
       ]);
       if (!expResult || expResult.rowsAffected !== 1) {
@@ -415,6 +438,22 @@ export const occupationRouter = createTRPCRouter({
         );
       }
 
+      // CAS + atomic crystal consume serialize parallel imbues on the same account.
+      const imbueClaimResult = await claimUserSnapshot({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+        updatedAt: user.updatedAt,
+        where: [
+          eq(userData.status, "AWAKE"),
+          or(isNull(userData.sector), ne(userData.sector, MAP_WAKE_ISLAND_SECTOR)),
+        ],
+      });
+      if (!imbueClaimResult.success) {
+        return errorResponse(
+          "Could not start imbuing — state changed, please try again",
+        );
+      }
+
       // Write-time guard: only proceed if item is still not in auction (atomic)
       const notInAuctionGuard = await ctx.drizzle
         .update(userItem)
@@ -432,14 +471,16 @@ export const occupationRouter = createTRPCRouter({
         );
       }
 
-      // Consume the crystal and create the imbuement
-      const consumeCrystal =
-        crystalUserItem.quantity > 1
-          ? ctx.drizzle
-              .update(userItem)
-              .set({ quantity: crystalUserItem.quantity - 1 })
-              .where(eq(userItem.id, crystalUserItem.id))
-          : ctx.drizzle.delete(userItem).where(eq(userItem.id, crystalUserItem.id));
+      const consumeCrystal = await updateUserItemQuantityAtomically({
+        client: ctx.drizzle,
+        userId: ctx.userId,
+        userItemId: crystalUserItem.id,
+        expectedQuantity: crystalUserItem.quantity,
+        nextQuantity: crystalUserItem.quantity - 1,
+      });
+      if (!consumeCrystal) {
+        return errorResponse("Crystal no longer available");
+      }
 
       const createImbuement = ctx.drizzle.insert(userItemImbuement).values({
         id: nanoid(),
@@ -473,11 +514,7 @@ export const occupationRouter = createTRPCRouter({
           ),
         );
 
-      const [, , expResult] = await Promise.all([
-        consumeCrystal,
-        createImbuement,
-        expUpdate,
-      ]);
+      const [, expResult] = await Promise.all([createImbuement, expUpdate]);
       if (!expResult || expResult.rowsAffected !== 1) {
         return errorResponse(
           "Could not start imbuing — you must be awake and not on Wake Island",

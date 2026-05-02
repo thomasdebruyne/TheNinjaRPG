@@ -62,8 +62,25 @@ export const pvpRankRouter = createTRPCRouter({
         fetchUser(ctx.drizzle, ctx.userId),
       ]);
       // Guard
+      if (!user) {
+        return errorResponse("User not found");
+      }
       if (rewards.length === 0) {
         return errorResponse("No unclaimed season rewards");
+      }
+      const rewardIds = rewards.map((reward) => reward.id);
+      const claimResult = await ctx.drizzle
+        .update(rankedUserRewards)
+        .set({ claimed: true, claimedAt: new Date() })
+        .where(
+          and(
+            eq(rankedUserRewards.userId, ctx.userId),
+            inArray(rankedUserRewards.id, rewardIds),
+            eq(rankedUserRewards.claimed, false),
+          ),
+        );
+      if (claimResult.rowsAffected !== rewardIds.length) {
+        return errorResponse("Season rewards already claimed");
       }
       // Collect rewards from each entry
       const collapsedRewards = collapseRewards(
@@ -72,18 +89,12 @@ export const pvpRankRouter = createTRPCRouter({
           .filter((r): r is NonNullable<typeof r> => r !== undefined && r !== null),
       );
       const processedRewards = postProcessRewards(collapsedRewards);
-      await Promise.all([
-        updateRewards({
-          client: ctx.drizzle,
-          user,
-          rewards: processedRewards,
-          reason: "RANKED_REWARDS",
-        }),
-        ctx.drizzle
-          .update(rankedUserRewards)
-          .set({ claimed: true })
-          .where(eq(rankedUserRewards.userId, ctx.userId)),
-      ]);
+      await updateRewards({
+        client: ctx.drizzle,
+        user,
+        rewards: processedRewards,
+        reason: "RANKED_REWARDS",
+      });
 
       return {
         success: true,
