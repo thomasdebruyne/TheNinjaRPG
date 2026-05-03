@@ -1,6 +1,6 @@
 import { Loader2, Sparkles, X } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/app/_trpc/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -372,6 +372,43 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
 
   // Mutations
   const { checkRewards, isCheckingRewards } = useCheckRewards();
+  const lastAchievementAutoClaimKeyRef = useRef<string | null>(null);
+
+  /** Auto-claim achievements when objectives are satisfied (same intent as the old effect).
+   * Deduplicate by quest + completion state + history counters so `userData` refetches from
+   * `checkRewards` invalidation do not call `checkRewards` again in a tight loop.
+   * (Single-shot achievements resetting to incomplete after claim was fixed server-side.) */
+  useEffect(() => {
+    if (!allDone) {
+      lastAchievementAutoClaimKeyRef.current = null;
+      return;
+    }
+
+    const eligible =
+      quest.questType === "achievement" &&
+      !userQuest.completed &&
+      allDone &&
+      userData?.status === "AWAKE" &&
+      !isCheckingRewards;
+    if (!eligible) return;
+
+    const dedupeKey = `${quest.id}:${String(allDone)}:${userQuest.completed}:${userQuest.previousCompletes}:${userQuest.previousAttempts}`;
+    if (lastAchievementAutoClaimKeyRef.current === dedupeKey) return;
+    lastAchievementAutoClaimKeyRef.current = dedupeKey;
+
+    void checkRewards({ questId: quest.id });
+  }, [
+    allDone,
+    checkRewards,
+    isCheckingRewards,
+    quest.id,
+    quest.questType,
+    userData?.status,
+    userQuest.completed,
+    userQuest.previousAttempts,
+    userQuest.previousCompletes,
+  ]);
+
   const { mutate: abandon } = api.quests.abandon.useMutation({
     onSuccess: async (data) => {
       showMutationToast(data);
@@ -381,13 +418,6 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
       ]);
     },
   });
-
-  useEffect(() => {
-    const check = quest.questType === "achievement" && !userQuest.completed;
-    if (check && allDone && userData?.status === "AWAKE") {
-      void checkRewards({ questId: quest.id });
-    }
-  }, [userData, userQuest, quest, allDone]);
 
   return (
     <Post

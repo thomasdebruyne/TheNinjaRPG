@@ -194,6 +194,7 @@ export const registerRouter = createTRPCRouter({
           bloodlineId: selectedBloodline.id,
           goal: selectedBloodline.rank,
           used: 1,
+          pityRolls: 0,
         }),
         ...(ctx.userIp && !currentIp
           ? [

@@ -725,6 +725,7 @@ export const bloodlineRouter = createTRPCRouter({
                 id: nanoid(),
                 userId: ctx.userId,
                 used: 0,
+                pityRolls: 0,
                 type: "NATURAL",
                 bloodlineId: randomBloodline.id,
               });
@@ -745,6 +746,7 @@ export const bloodlineRouter = createTRPCRouter({
           await ctx.drizzle.insert(bloodlineRolls).values({
             id: nanoid(),
             used: 0,
+            pityRolls: 0,
             userId: ctx.userId,
             type: "NATURAL",
           });
@@ -814,6 +816,7 @@ export const bloodlineRouter = createTRPCRouter({
           bloodlineId: randomBloodline.id,
           goal: input.rank,
           used: 1,
+          pityRolls: 0,
         }),
       ]);
       return {
@@ -892,6 +895,7 @@ export const bloodlineRouter = createTRPCRouter({
           bloodlineId: line.id,
           goal: line.rank,
           used: 1,
+          pityRolls: 0,
         }),
       ]);
       return { success: true, message: "Bloodline purchased" };

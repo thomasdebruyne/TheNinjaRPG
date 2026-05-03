@@ -1771,6 +1771,7 @@ export const updateRewards = async (info: {
                 bloodlineId: id,
                 goal: rank,
                 used: 1,
+                pityRolls: 0,
               }) as const,
           ),
         ),
@@ -2147,7 +2148,9 @@ const runCheckRewardsPrepInParallel = async (
   }
   if (resolved && userQuest?.quest.questType === "achievement") {
     if (!userQuest.quest.hidden || canPlayHiddenQuests(user.role)) {
-      prepTasks.push(upsertQuestEntry(client, user, userQuest.quest));
+      if (userQuest.quest.maxCompletes > 1) {
+        prepTasks.push(upsertQuestEntry(client, user, userQuest.quest));
+      }
     }
   }
   if (prepTasks.length > 0) {

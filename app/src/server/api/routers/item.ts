@@ -865,6 +865,7 @@ export const itemRouter = createTRPCRouter({
                 bloodlineId: success ? randomBloodline.id : null,
                 goal: effect.rank,
                 used: 1,
+                pityRolls: 0,
               }),
             );
           }
