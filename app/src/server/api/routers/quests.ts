@@ -1228,6 +1228,34 @@ export const questsRouter = createTRPCRouter({
           );
 
         if (questCompletionResult.rowsAffected === 0) {
+          const alreadyClaimedRow = await ctx.drizzle.query.questHistory.findFirst({
+            where: and(
+              eq(questHistory.questId, input.questId),
+              eq(questHistory.userId, ctx.userId),
+              eq(questHistory.completed, 1),
+            ),
+          });
+          if (alreadyClaimedRow) {
+            const claimedQuest = user.userQuests.find(
+              (q) => q.questId === input.questId,
+            );
+            return {
+              success: true,
+              notifications: [],
+              rewards: PostProcessedRewardSchema.parse({}),
+              userQuest: claimedQuest?.quest
+                ? {
+                    questId: input.questId,
+                    quest: {
+                      name: claimedQuest.quest.name,
+                      successDescription: claimedQuest.quest.successDescription,
+                    },
+                  }
+                : null,
+              resolved: true,
+              badges: [],
+            };
+          }
           return errorResponse("Quest rewards already claimed");
         }
         resolvedCompletionCommitted = true;

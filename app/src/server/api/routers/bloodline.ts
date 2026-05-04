@@ -652,10 +652,17 @@ export const bloodlineRouter = createTRPCRouter({
     .output(baseServerResponse)
     .mutation(async ({ ctx }) => {
       // Query
-      const [user, prevRoll, allBloodlines] = await Promise.all([
+      const [user, prevRoll, allBloodlines, registrationRoll] = await Promise.all([
         fetchUser(ctx.drizzle, ctx.userId),
         fetchNaturalBloodlineRoll(ctx.drizzle, ctx.userId),
         fetchBloodlines(ctx.drizzle), // Fetch all bloodlines
+        ctx.drizzle.query.bloodlineRolls.findFirst({
+          where: and(
+            eq(bloodlineRolls.userId, ctx.userId),
+            eq(bloodlineRolls.type, "REGISTRATION"),
+          ),
+          columns: { bloodlineId: true },
+        }),
       ]);
       // Guard
       if (!user) return errorResponse("User not found");
@@ -671,6 +678,16 @@ export const bloodlineRouter = createTRPCRouter({
         );
       }
 
+      // Starter bloodline chosen at registration still uses userData.bloodlineId, but no NATURAL
+      // roll row exists yet. Allow one natural roll to replace/confirm genetics like a new player
+      // without a free bloodline (swap only if RNG grants a bloodline; "no bloodline" keeps starter).
+      const starterBloodlineId =
+        user.bloodlineId &&
+        registrationRoll?.bloodlineId &&
+        registrationRoll.bloodlineId === user.bloodlineId
+          ? user.bloodlineId
+          : null;
+
       const claimResult = await claimUserSnapshot({
         client: ctx.drizzle,
         userId: ctx.userId,
@@ -678,7 +695,9 @@ export const bloodlineRouter = createTRPCRouter({
         where: [
           eq(userData.status, "AWAKE"),
           ne(userData.rank, "STUDENT"),
-          isNull(userData.bloodlineId),
+          starterBloodlineId
+            ? eq(userData.bloodlineId, starterBloodlineId)
+            : isNull(userData.bloodlineId),
         ],
       });
       if (!claimResult.success) {
@@ -715,7 +734,12 @@ export const bloodlineRouter = createTRPCRouter({
               .update(userData)
               .set({ bloodlineId: randomBloodline.id })
               .where(
-                and(eq(userData.userId, ctx.userId), isNull(userData.bloodlineId)),
+                and(
+                  eq(userData.userId, ctx.userId),
+                  starterBloodlineId
+                    ? eq(userData.bloodlineId, starterBloodlineId)
+                    : isNull(userData.bloodlineId),
+                ),
               );
             if (bloodlineUpdateResult.rowsAffected === 0) {
               return errorResponse("You have already rolled a bloodline");
