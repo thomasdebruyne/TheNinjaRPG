@@ -1128,6 +1128,7 @@ export const mockAchievementHistoryEntries = (
       quest: a,
       endAt: null,
       startedAt: new Date(),
+      /** `id` is the quest id here (placeholder); real `QuestHistory.id` is a nanoid ≠ `questId`. */
     }));
 };
 

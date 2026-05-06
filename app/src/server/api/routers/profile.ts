@@ -2363,7 +2363,7 @@ export const fetchUpdatedUser = async (props: {
     });
   }
 
-  // Add in achievements
+  // Add in achievements (in-memory placeholders: `id === questId` until `QuestHistory` exists).
   if (user) {
     user.userQuests.push(...mockAchievementHistoryEntries(achievements, user));
     user.userQuests = user.userQuests
@@ -2592,8 +2592,15 @@ export const fetchUpdatedUser = async (props: {
     // Destructure for local usage
     const { trackers, notifications, consequences } = trackerResults;
 
-    // Update user quest data
-    user.questData = trackers;
+    // Full trackers for API response; omit in-memory-only achievements from DB (`id === questId`;
+    // real history rows use nanoid ids). QuestHistory is created on first claim in checkRewards.
+    const inMemoryOnlyAchievementQuestIds = new Set(
+      user.userQuests
+        .filter((uq) => uq.quest.questType === "achievement" && uq.id === uq.questId)
+        .map((uq) => uq.questId),
+    );
+    const fullTrackers = trackers;
+    user.questData = trackers.filter((t) => !inMemoryOnlyAchievementQuestIds.has(t.id));
 
     // Handle any update on quest consequences
     const consequenceResult = await handleQuestConsequences(
@@ -2603,6 +2610,8 @@ export const fetchUpdatedUser = async (props: {
       notifications,
     );
     toastMessages.push(...consequenceResult.notifications);
+
+    user.questData = fullTrackers;
 
     // Hide information relating to quests
     if (hideInformation) {

@@ -579,7 +579,7 @@ export const LogbookEntry: React.FC<LogbookEntryProps> = (props) => {
           </div>
         )}
 
-        {allDone && userData?.status === "AWAKE" && (
+        {allDone && !userQuest.completed && userData?.status === "AWAKE" && (
           <div className={cn("w-full grow", showScene ? "p-3" : "")}>
             <Button
               id="return"

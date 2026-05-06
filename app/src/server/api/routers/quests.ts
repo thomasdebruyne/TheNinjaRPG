@@ -1190,10 +1190,19 @@ export const questsRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // Resolved path: questHistory CAS → snapshot claim → updateRewards (SQL deltas on userdata).
-      const { user, toastMessages, settings } = await fetchUpdatedUser({
-        client: ctx.drizzle,
-        userId: ctx.userId,
-      });
+      const [{ user, toastMessages, settings }, questHistoryPrefetch] =
+        await Promise.all([
+          fetchUpdatedUser({
+            client: ctx.drizzle,
+            userId: ctx.userId,
+          }),
+          ctx.drizzle.query.questHistory.findFirst({
+            where: and(
+              eq(questHistory.questId, input.questId),
+              eq(questHistory.userId, ctx.userId),
+            ),
+          }),
+        ]);
 
       // Guards
       if (!user) {
@@ -1212,6 +1221,30 @@ export const questsRouter = createTRPCRouter({
       // lose the completion race; if snapshot claim fails, revert completion below.
       let resolvedCompletionCommitted = false;
       if (resolved) {
+        // Achievements (and any quest shown only via mock rows) may have progress in questData
+        // without a QuestHistory row yet — create one at claim time only.
+        if (userQuest) {
+          if (!questHistoryPrefetch) {
+            // Must finish before the completion UPDATE below: that CAS requires an existing row with
+            // completed=0. Running insert and update in parallel can let the UPDATE run first and
+            // match zero rows.
+            await ctx.drizzle
+              .insert(questHistory)
+              .values({
+                id: nanoid(),
+                userId: ctx.userId,
+                questId: input.questId,
+                questType: userQuest.quest.questType,
+                startedAt: new Date(),
+                endAt: null,
+                completed: 0,
+                previousCompletes: 0,
+                previousAttempts: 0,
+              })
+              .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+          }
+        }
+
         const questCompletionResult = await ctx.drizzle
           .update(questHistory)
           .set({
@@ -1228,14 +1261,13 @@ export const questsRouter = createTRPCRouter({
           );
 
         if (questCompletionResult.rowsAffected === 0) {
-          const alreadyClaimedRow = await ctx.drizzle.query.questHistory.findFirst({
+          const historyRow = await ctx.drizzle.query.questHistory.findFirst({
             where: and(
               eq(questHistory.questId, input.questId),
               eq(questHistory.userId, ctx.userId),
-              eq(questHistory.completed, 1),
             ),
           });
-          if (alreadyClaimedRow) {
+          if (historyRow && historyRow.completed >= 1) {
             const claimedQuest = user.userQuests.find(
               (q) => q.questId === input.questId,
             );
@@ -1256,7 +1288,10 @@ export const questsRouter = createTRPCRouter({
               badges: [],
             };
           }
-          return errorResponse("Quest rewards already claimed");
+          if (!historyRow) {
+            return errorResponse("Quest not found or not active");
+          }
+          return errorResponse("Quest state changed, please try again");
         }
         resolvedCompletionCommitted = true;
       }
@@ -1274,11 +1309,7 @@ export const questsRouter = createTRPCRouter({
             input.questId,
           );
         }
-        return errorResponse(
-          resolved
-            ? "Quest rewards already claimed"
-            : "Quest state changed, please try again",
-        );
+        return errorResponse("Quest state changed, please try again");
       }
 
       // Handle immidiate consequences first

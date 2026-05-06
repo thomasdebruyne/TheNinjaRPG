@@ -1144,6 +1144,7 @@ const TutorialAssistant: React.FC<TutorialAssistantProps> = ({
                     postTutorialQuest.userQuest.quest,
                     postTutorialQuest.tracker,
                   ) &&
+                    !postTutorialQuest.userQuest.completed &&
                     userData?.status === "AWAKE" && (
                       <div className="mt-3 md:mt-4">
                         <Button
