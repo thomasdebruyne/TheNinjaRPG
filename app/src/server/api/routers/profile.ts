@@ -105,6 +105,7 @@ import {
 import { getServerPusher } from "@/libs/pusher";
 import {
   controlShownQuestLocationInformation,
+  filterQuestTrackersForDbPersist,
   getNewTrackers,
   isAvailableUserQuests,
   mockAchievementHistoryEntries,
@@ -413,7 +414,7 @@ export const profileRouter = createTRPCRouter({
           maxHealth: calcHP(newLevel),
           maxStamina: calcSP(newLevel),
           maxChakra: calcCP(newLevel),
-          questData: trackers,
+          questData: filterQuestTrackersForDbPersist(trackers, user),
           ...(skillPointsGain > 0
             ? {
                 skillPoints: sql`LEAST(${userData.skillPoints} + 1, ${MAX_SKILL_POINTS})`,
@@ -2592,15 +2593,8 @@ export const fetchUpdatedUser = async (props: {
     // Destructure for local usage
     const { trackers, notifications, consequences } = trackerResults;
 
-    // Full trackers for API response; omit in-memory-only achievements from DB (`id === questId`;
-    // real history rows use nanoid ids). QuestHistory is created on first claim in checkRewards.
-    const inMemoryOnlyAchievementQuestIds = new Set(
-      user.userQuests
-        .filter((uq) => uq.quest.questType === "achievement" && uq.id === uq.questId)
-        .map((uq) => uq.questId),
-    );
     const fullTrackers = trackers;
-    user.questData = trackers.filter((t) => !inMemoryOnlyAchievementQuestIds.has(t.id));
+    user.questData = filterQuestTrackersForDbPersist(trackers, user);
 
     // Handle any update on quest consequences
     const consequenceResult = await handleQuestConsequences(
@@ -2690,6 +2684,10 @@ const persistPassiveRegenToDb = async ({
     userIp,
     includeVillageState,
   });
+  derivedUserUpdate.questData = filterQuestTrackersForDbPersist(
+    userForRegenPersist.questData ?? [],
+    userForRegenPersist,
+  );
 
   await client
     .update(userData)

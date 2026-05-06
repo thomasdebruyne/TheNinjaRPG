@@ -62,6 +62,22 @@ export const getUserQuests = (user: NonNullable<UserWithRelations>) => {
 };
 
 /**
+ * Strip in-memory-only achievement trackers before persisting `UserData.questData`.
+ * Mock rows from `mockAchievementHistoryEntries` use `id === questId`; real `QuestHistory.id` is a nanoid.
+ */
+export const filterQuestTrackersForDbPersist = (
+  trackers: QuestTrackerType[],
+  user: NonNullable<UserWithRelations>,
+) => {
+  const inMemoryOnlyAchievementQuestIds = new Set(
+    user.userQuests
+      .filter((uq) => uq.quest.questType === "achievement" && uq.id === uq.questId)
+      .map((uq) => uq.questId),
+  );
+  return trackers.filter((t) => !inMemoryOnlyAchievementQuestIds.has(t.id));
+};
+
+/**
  * Get active objectives for a user
  */
 export const getActiveObjectives = (user: NonNullable<UserWithRelations>) => {

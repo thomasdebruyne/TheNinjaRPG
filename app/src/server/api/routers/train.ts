@@ -8,7 +8,7 @@ import {
 import { trainingLog, userData } from "@/drizzle/schema";
 import { showTrainingCapcha } from "@/libs/captcha";
 import { getGameSettingBoost } from "@/libs/gamesettings";
-import { getNewTrackers } from "@/libs/quest";
+import { filterQuestTrackersForDbPersist, getNewTrackers } from "@/libs/quest";
 import { energyPerSecond, trainEfficiency, trainingMultiplier } from "@/libs/train";
 import { calcIsInVillage } from "@/libs/travel";
 import { validateCaptcha } from "@/routers/misc";
@@ -143,7 +143,8 @@ export const trainRouter = createTRPCRouter({
         { task: "stats_trained", increment: trainingAmount },
         { task: "minutes_training", increment: minutes },
       ]);
-      user.questData = trackers;
+      const fullTrackers = trackers;
+      const questDataForDb = filterQuestTrackersForDbPersist(trackers, user);
       const [result] = await Promise.all([
         ctx.drizzle
           .update(userData)
@@ -202,7 +203,7 @@ export const trainRouter = createTRPCRouter({
                     user.currentlyTraining === "bukijutsuOffence"
                       ? sql`bukijutsuOffence + ${trainingAmount}`
                       : sql`bukijutsuOffence`,
-                  questData: user.questData,
+                  questData: questDataForDb,
                 }
               : {}),
           })
@@ -234,7 +235,7 @@ export const trainRouter = createTRPCRouter({
           data: {
             experience: trainingAmount,
             currentlyTraining: user.currentlyTraining,
-            questData: user.questData,
+            questData: fullTrackers,
           },
         };
       }

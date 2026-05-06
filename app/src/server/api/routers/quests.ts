@@ -63,6 +63,7 @@ import {
   combineTrackerResults,
   controlShownQuestLocationInformation,
   fallbackQuestsFilter,
+  filterQuestTrackersForDbPersist,
   getActiveObjectives,
   getMissionHallSettings,
   getNewTrackers,
@@ -812,7 +813,10 @@ export const questsRouter = createTRPCRouter({
         return errorResponse(`Cannot abandon ${current.questType} quest type.`);
       }
       // Derived
-      const questData = user.questData?.filter((q) => q.id !== input.id);
+      const questData = filterQuestTrackersForDbPersist(
+        user.questData?.filter((q) => q.id !== input.id) ?? [],
+        user,
+      );
       // Mutate
       await Promise.all([
         ctx.drizzle
@@ -1215,7 +1219,8 @@ export const questsRouter = createTRPCRouter({
       // Figure out if any finished quests & get rewards
       const { rewards, trackers, userQuest, resolved, notifications, consequences } =
         getReward(user, input.questId, input.nextObjectiveId, settings);
-      user.questData = trackers;
+      const fullTrackersForResponse = trackers;
+      user.questData = filterQuestTrackersForDbPersist(trackers, user);
 
       // Persist completion before snapshot CAS so we cannot commit questData/updatedAt and then
       // lose the completion race; if snapshot claim fails, revert completion below.
@@ -1311,6 +1316,8 @@ export const questsRouter = createTRPCRouter({
         }
         return errorResponse("Quest state changed, please try again");
       }
+
+      user.questData = fullTrackersForResponse;
 
       // Handle immidiate consequences first
       const finalNotifications = [...toastMessages, ...postNotifications];
@@ -1424,7 +1431,8 @@ export const questsRouter = createTRPCRouter({
       const { trackers, notifications, consequences, questIdsUpdated } =
         combineTrackerResults(updatedTrackerResults, trackerResults);
 
-      user.questData = trackers;
+      const fullTrackers = trackers;
+      user.questData = filterQuestTrackersForDbPersist(trackers, user);
 
       // Handle consequences
       const { notifications: finalNotification } = await handleQuestConsequences(
@@ -1433,6 +1441,8 @@ export const questsRouter = createTRPCRouter({
         consequences,
         notifications,
       );
+
+      user.questData = fullTrackers;
 
       // Return information
       return {
@@ -1482,8 +1492,9 @@ export const questsRouter = createTRPCRouter({
         return errorResponse("You can only delete quests from your own profile");
       }
       // Derives
-      const questData = targetUser.user.questData?.filter(
-        (q) => q.id !== input.questId,
+      const questData = filterQuestTrackersForDbPersist(
+        targetUser.user.questData?.filter((q) => q.id !== input.questId) ?? [],
+        targetUser.user,
       );
       // Mutate
       await Promise.all([
@@ -2136,7 +2147,9 @@ export const upsertQuestEntry = async (
   promises.push(
     client
       .update(userData)
-      .set({ questData: trackers })
+      .set({
+        questData: filterQuestTrackersForDbPersist(trackers, user),
+      })
       .where(eq(userData.userId, user.userId)),
   );
   // Execute promises
@@ -2423,7 +2436,9 @@ export const handleQuestConsequences = async (
       client,
       userId: user.userId,
       updatedAt: user.updatedAt,
-      set: { questData: user.questData },
+      set: {
+        questData: filterQuestTrackersForDbPersist(user.questData ?? [], user),
+      },
     });
 
     if (claimResult.success) {

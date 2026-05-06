@@ -35,7 +35,7 @@ import {
 } from "@/drizzle/schema";
 import { getFreeTransfers, getReskinnedUserJutsu } from "@/libs/jutsu";
 import { validateUserUpdateReason } from "@/libs/moderator";
-import { getNewTrackers } from "@/libs/quest";
+import { filterQuestTrackersForDbPersist, getNewTrackers } from "@/libs/quest";
 import { callDiscordContent } from "@/libs/socials";
 import {
   calcJutsuEquipLimit,
@@ -518,6 +518,7 @@ export const jutsuRouter = createTRPCRouter({
       const { trackers } = getNewTrackers(user, [
         { task: "jutsus_mastered", increment: 1 },
       ]);
+      const questDataForDb = filterQuestTrackersForDbPersist(trackers, user);
       const isRestrictedEquipType =
         evolutionJutsu.jutsuType === "EVENT" ||
         evolutionJutsu.effects.some((effect) => effect.type === "pierce") ||
@@ -578,7 +579,7 @@ export const jutsuRouter = createTRPCRouter({
       await Promise.all([
         ctx.drizzle
           .update(userData)
-          .set({ questData: trackers })
+          .set({ questData: questDataForDb })
           .where(eq(userData.userId, ctx.userId)),
         ...loadoutsToUpdate.map((loadout) =>
           ctx.drizzle
@@ -997,18 +998,22 @@ export const jutsuRouter = createTRPCRouter({
       const trainCost = calcJutsuTrainCost(info, level, user, students);
 
       // Quests
-      let questData = user.questData;
+      let questDataFull = user.questData ?? [];
       if (!userjutsuObj) {
         const { trackers } = getNewTrackers(user, [
           { task: "jutsus_mastered", increment: 1 },
         ]);
-        questData = trackers;
+        questDataFull = trackers;
       }
+      const questDataForDb = filterQuestTrackersForDbPersist(questDataFull, user);
 
       // Deduct money
       const moneyUpdate = await ctx.drizzle
         .update(userData)
-        .set({ money: sql`${userData.money} - ${trainCost}`, questData: questData })
+        .set({
+          money: sql`${userData.money} - ${trainCost}`,
+          questData: questDataForDb,
+        })
         .where(and(eq(userData.userId, ctx.userId), gte(userData.money, trainCost)));
       if (moneyUpdate.rowsAffected !== 1) {
         return errorResponse("You don't have enough money");
@@ -1060,7 +1065,7 @@ export const jutsuRouter = createTRPCRouter({
       return {
         success: true,
         message: `You started training: ${info.name}`,
-        data: { money: user.money - trainCost, questData },
+        data: { money: user.money - trainCost, questData: questDataFull },
       };
     }),
 

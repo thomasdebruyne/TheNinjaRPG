@@ -17,7 +17,7 @@ import {
   calcHowMuchToHeal,
 } from "@/libs/hospital";
 import { getServerPusher, updateUserOnMap } from "@/libs/pusher";
-import { getNewTrackers } from "@/libs/quest";
+import { filterQuestTrackersForDbPersist, getNewTrackers } from "@/libs/quest";
 import { hasRequiredRank } from "@/libs/train";
 import { fetchUpdatedUser, fetchUser } from "@/routers/profile";
 import { fetchAlliances, fetchStructures } from "@/routers/village";
@@ -161,13 +161,14 @@ export const hospitalRouter = createTRPCRouter({
       const { trackers } = getNewTrackers(u, [
         { task: "medical_experience_gained", increment: expGain },
       ]);
+      const questDataForDb = filterQuestTrackersForDbPersist(trackers, u);
       // Reduce chakra & give med exp
       const uResult = await ctx.drizzle
         .update(userData)
         .set({
           medicalExperience: sql`${userData.medicalExperience} + ${expGain}`,
           curChakra: sql`${userData.curChakra} - ${chakraCost}`,
-          questData: trackers,
+          questData: questDataForDb,
         })
         .where(and(eq(userData.userId, u.userId), gte(userData.curChakra, chakraCost)));
       // Potential student exp share

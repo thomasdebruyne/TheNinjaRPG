@@ -47,10 +47,11 @@ import {
 } from "@/libs/combat/util";
 import type { PusherClient } from "@/libs/pusher";
 import { broadcastRaidAvailability, updateUserOnMap } from "@/libs/pusher";
-import { getNewTrackers } from "@/libs/quest";
+import { filterQuestTrackersForDbPersist, getNewTrackers } from "@/libs/quest";
 import { prepareExclusiveRaidActivation } from "@/libs/raids";
 import { battleJutsuExp } from "@/libs/train";
 import { findWarsWithUser } from "@/libs/war";
+import type { UserWithRelations } from "@/routers/profile";
 import type { DrizzleClient } from "@/server/db";
 
 type DataBattleAction = {
@@ -1105,7 +1106,10 @@ export const updateUser = async (
       trackerTasks,
     );
     updatedQuestIds.push(...questIdsUpdated);
-    const updatedQuestData = trackers;
+    const updatedQuestData = filterQuestTrackersForDbPersist(
+      trackers,
+      hydratedUser as NonNullable<UserWithRelations>,
+    );
     // Add notifications to combatResult
     result.notifications.push(...notifications);
 

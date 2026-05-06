@@ -17,7 +17,7 @@ import {
   getEffectiveMaxImbuements,
   getTotalItemQuantity,
 } from "@/libs/crafting";
-import { getNewTrackers } from "@/libs/quest";
+import { filterQuestTrackersForDbPersist, getNewTrackers } from "@/libs/quest";
 import {
   fetchItemWithCraftingRequirements,
   fetchUserItems,
@@ -295,11 +295,12 @@ export const occupationRouter = createTRPCRouter({
       const { trackers } = getNewTrackers(user, [
         { task: "crafting_experience_gained", increment: expGain },
       ]);
+      const questDataForDb = filterQuestTrackersForDbPersist(trackers, user);
       const expUpdate = ctx.drizzle
         .update(userData)
         .set({
           craftingExperience: sql`${userData.craftingExperience} + ${expGain}`,
-          questData: trackers,
+          questData: questDataForDb,
         })
         .where(
           and(
@@ -500,11 +501,12 @@ export const occupationRouter = createTRPCRouter({
       const { trackers } = getNewTrackers(user, [
         { task: "crafting_experience_gained", increment: expGain },
       ]);
+      const questDataForDb = filterQuestTrackersForDbPersist(trackers, user);
       const expUpdate = ctx.drizzle
         .update(userData)
         .set({
           craftingExperience: sql`${userData.craftingExperience} + ${expGain}`,
-          questData: trackers,
+          questData: questDataForDb,
         })
         .where(
           and(
