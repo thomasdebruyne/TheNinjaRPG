@@ -2,7 +2,7 @@
 # preview deployment to smoke-test a PR from a player's perspective.
 #
 # Triggers:
-#   • `/tnr-review-now [extra instructions]` comment on any PR
+#   • `/tnr-review-now` as the entire comment on any PR (no extra text allowed)
 #   • Manual workflow_dispatch with a PR number
 #
 # Pipeline: command_gate → preview_check → run_tnr_reviewer
@@ -37,7 +37,7 @@ jobs:
     if: >-
       (github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
-      contains(github.event.comment.body, '/tnr-review-now')) ||
+      startsWith(github.event.comment.body, '/tnr-review-now')) ||
       github.event_name == 'workflow_dispatch'
     runs-on: ${{ vars.TNR_REVIEWER_RUNNER_LABEL || 'blacksmith-2vcpu-ubuntu-2404' }}
     permissions:
@@ -54,7 +54,6 @@ jobs:
       pr_title: ${{ steps.parse.outputs.pr_title }}
       pr_body: ${{ steps.parse.outputs.pr_body }}
       pr_author: ${{ steps.parse.outputs.pr_author }}
-      extra_instructions: ${{ steps.parse.outputs.extra_instructions }}
     steps:
       - name: Parse command and validate actor
         id: parse
@@ -65,22 +64,24 @@ jobs:
           script: |
             const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
 
-            // Normalise the two trigger shapes into a single actor + body + PR number
             const actor = isWorkflowDispatch
               ? context.actor
               : context.payload.comment.user.login;
             const issueNumber = isWorkflowDispatch
               ? Number(context.payload.inputs?.pr_number)
               : context.issue.number;
-            // For workflow_dispatch we synthesise a slash-command body so the
-            // same regex parsing works for both trigger types
-            const body = isWorkflowDispatch
-              ? `/tnr-review-now ${context.payload.inputs?.extra_instructions ?? ''}`
-              : (context.payload.comment.body ?? '');
 
-            // Extract the command and any trailing extra instructions
-            const match = body.match(/\/tnr-review-now\b([\s\S]*)/i);
-            if (!match || !Number.isInteger(issueNumber) || issueNumber <= 0) {
+            // For issue_comment: only fire if the entire comment is exactly
+            // "/tnr-review-now" (no surrounding text). workflow_dispatch always passes.
+            if (!isWorkflowDispatch) {
+              const body = (context.payload.comment.body ?? '').trim();
+              const match = body.match(/^\/tnr-review-now\s*$/i);
+              if (!match) {
+                core.setOutput('should_run', 'false');
+                return;
+              }
+            }
+            if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
               core.setOutput('should_run', 'false');
               return;
             }
@@ -127,7 +128,6 @@ jobs:
             core.setOutput('pr_title', pr.title ?? '');
             core.setOutput('pr_body', pr.body ?? '');
             core.setOutput('pr_author', pr.user?.login ?? '');
-            core.setOutput('extra_instructions', (match[1] ?? '').trim());
 
       # Post a "started" comment that will be updated in-place with results later.
       # continue-on-error: true because GITHUB_TOKEN may lack issues:write on
@@ -270,7 +270,7 @@ jobs:
           PR_AUTHOR: ${{ needs.command_gate.outputs.pr_author }}
           COMMAND_AUTHOR: ${{ github.actor }}
           REPOSITORY: ${{ github.repository }}
-          EXTRA_INSTRUCTIONS: ${{ needs.command_gate.outputs.extra_instructions }}
+          EXTRA_INSTRUCTIONS: ${{ github.event.inputs.extra_instructions || '' }}
           AI_TEST_USER_BROKER_TOKEN: ${{ secrets.AI_TEST_USER_BROKER_TOKEN }}
 
       # Non-blocking liveness probe — accepts any non-5xx response.
