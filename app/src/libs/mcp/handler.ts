@@ -1,5 +1,5 @@
 import type { ServerOptions } from "@modelcontextprotocol/sdk/server/index.js";
-import type { McpServer as ModelContextProtocolServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -70,7 +70,7 @@ type ModelContextProtocolHandlerOptions = {
  * @param getIsAuthenticated - Optional function to check if the user is authenticated
  */
 const setRequestHandler = (
-  modelContextProtocolServer: ModelContextProtocolServer,
+  modelContextProtocolServer: McpServer,
   tools: ReturnType<typeof extractToolsFromProcedures>,
   createTrpcCaller: () => Promise<unknown>,
   getScopes?: () => string[],
@@ -219,6 +219,6 @@ export const trpcToModelContextProtocolHandler = <
 
 export type {
   ModelContextProtocolHandlerConfig,
-  ModelContextProtocolServerOptions,
   ModelContextProtocolHandlerOptions,
+  ModelContextProtocolServerOptions,
 };

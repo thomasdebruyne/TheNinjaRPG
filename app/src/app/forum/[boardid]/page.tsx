@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Bookmark, Instagram, Lock, Trash2, Unlock } from "lucide-react";
+import { Bookmark, ImagePlus, Lock, Trash2, Unlock } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -221,7 +221,7 @@ function Board(properties: { params: Promise<{ boardid: string }> }) {
                           onUploadComplete={(url) => form.setValue("image", url)}
                         />
                         <Alert>
-                          <Instagram className="h-4 w-4" />
+                          <ImagePlus className="h-4 w-4" />
                           <AlertTitle>Instagram Integration</AlertTitle>
                           <AlertDescription>
                             Adding an image will automatically post this news to

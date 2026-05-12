@@ -1,6 +1,6 @@
 "use client";
 
-import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { SiDiscord, SiGithub } from "@icons-pack/react-simple-icons";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import {
@@ -191,8 +191,8 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
    */
   const leftSideBar = (
     <div>
-      <SignedIn>
-        {userData && (
+      {isClerkLoaded && userData && (
+        <>
           <SideBannerTitle>
             <Link
               href={`/userid/${userData.userId}`}
@@ -201,32 +201,34 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
               {userData.username} <Link2 className="inline-block h-5 w-5" />
             </Link>
           </SideBannerTitle>
-        )}
-        <MenuBoxProfile />
-      </SignedIn>
-      <SignedOut>
-        <SideBannerTitle>Participate</SideBannerTitle>
-        <div className="flex flex-row gap-4 pt-3">
-          <Link
-            href="https://github.com/studie-tech/TheNinjaRPG/issues"
-            className="flex flex-col items-center font-bold hover:opacity-50"
-          >
-            <SiGithub
-              size={60}
-              className="p-2 text-black md:text-white dark:text-white"
-            />
-          </Link>
-          <Link
-            href={DISCORD_INVITE_URL}
-            className="flex flex-col items-center font-bold hover:opacity-50"
-          >
-            <SiDiscord
-              size={60}
-              className="p-2 text-black md:text-white dark:text-white"
-            />
-          </Link>
-        </div>
-      </SignedOut>
+          <MenuBoxProfile />
+        </>
+      )}
+      {isClerkLoaded && !userData && (
+        <>
+          <SideBannerTitle>Participate</SideBannerTitle>
+          <div className="flex flex-row gap-4 pt-3">
+            <Link
+              href="https://github.com/studie-tech/TheNinjaRPG/issues"
+              className="flex flex-col items-center font-bold hover:opacity-50"
+            >
+              <SiGithub
+                size={60}
+                className="p-2 text-black md:text-white dark:text-white"
+              />
+            </Link>
+            <Link
+              href={DISCORD_INVITE_URL}
+              className="flex flex-col items-center font-bold hover:opacity-50"
+            >
+              <SiDiscord
+                size={60}
+                className="p-2 text-black md:text-white dark:text-white"
+              />
+            </Link>
+          </div>
+        </>
+      )}
       {!isClerkLoaded && (
         <div>
           <Skeleton className="mt-6 h-6 w-full bg-muted/70" />
@@ -244,7 +246,7 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
    */
   const rightSideBar = (
     <>
-      <SignedIn>
+      {isClerkLoaded && userData && (
         <RightSideBar
           notifications={shownNotifications}
           systems={systems}
@@ -252,47 +254,49 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
           location={location}
           timeDiff={timeDiff}
         />
-      </SignedIn>
-      <SignedOut>
-        <SideBannerTitle>Welcome</SideBannerTitle>
-        <p className="hidden px-1 text-orange-100 italic md:block">Socials Login</p>
-        <p className="block px-1 text-foreground italic md:hidden">Socials Login</p>
-        <div className="grid grid-cols-4">
-          <Image
-            className="my-4 w-full grayscale"
-            src={IMG_ICON_DISCORD}
-            alt="DiscordProvider"
-            width={50}
-            height={50}
-          ></Image>
-          <Image
-            className="my-4 w-full grayscale"
-            src={IMG_ICON_FACEBOOK}
-            alt="FacebookProvider"
-            width={50}
-            height={50}
-          ></Image>
-          <Image
-            className="my-4 w-full grayscale"
-            src={IMG_ICON_GOOGLE}
-            alt="GoogleProvider"
-            width={50}
-            height={50}
-          ></Image>
-          <Image
-            className="my-4 w-full grayscale"
-            src={IMG_ICON_GITHUB}
-            alt="GithubProvider"
-            width={50}
-            height={50}
-          ></Image>
-        </div>
-        <Link href="/login" className="relative">
-          <Button variant="default" size="sm" className="w-full" decoration="gold">
-            Sign in
-          </Button>
-        </Link>
-      </SignedOut>
+      )}
+      {isClerkLoaded && !userData && (
+        <>
+          <SideBannerTitle>Welcome</SideBannerTitle>
+          <p className="hidden px-1 text-orange-100 italic md:block">Socials Login</p>
+          <p className="block px-1 text-foreground italic md:hidden">Socials Login</p>
+          <div className="grid grid-cols-4">
+            <Image
+              className="my-4 w-full grayscale"
+              src={IMG_ICON_DISCORD}
+              alt="DiscordProvider"
+              width={50}
+              height={50}
+            ></Image>
+            <Image
+              className="my-4 w-full grayscale"
+              src={IMG_ICON_FACEBOOK}
+              alt="FacebookProvider"
+              width={50}
+              height={50}
+            ></Image>
+            <Image
+              className="my-4 w-full grayscale"
+              src={IMG_ICON_GOOGLE}
+              alt="GoogleProvider"
+              width={50}
+              height={50}
+            ></Image>
+            <Image
+              className="my-4 w-full grayscale"
+              src={IMG_ICON_GITHUB}
+              alt="GithubProvider"
+              width={50}
+              height={50}
+            ></Image>
+          </div>
+          <Link href="/login" className="relative">
+            <Button variant="default" size="sm" className="w-full" decoration="gold">
+              Sign in
+            </Button>
+          </Link>
+        </>
+      )}
       {!isClerkLoaded && (
         <div>
           <div className="flex flex-col gap-2 pt-5">
@@ -326,13 +330,13 @@ const LayoutCore4: React.FC<LayoutProps> = (props) => {
    */
   const signedInIcons = (
     <div className="flex flex-row items-center">
-      <SignedIn>
+      {userData && (
         <UserButton
           appearance={{
             elements: { userButtonPopoverCard: { pointerEvents: "initial" } },
           }}
         />
-      </SignedIn>
+      )}
       <Link
         href="/event"
         onClick={() => setLeftSideBarOpen(false)}

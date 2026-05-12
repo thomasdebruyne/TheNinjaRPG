@@ -188,8 +188,6 @@ function Calendar({
           defaultClassNames.caption_label,
         ),
 
-        table: "w-full border-collapse",
-
         // Day-of-week row spacing
         weekdays: cn("flex gap-2", defaultClassNames.weekdays),
         weekday: cn(
