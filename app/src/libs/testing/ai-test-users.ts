@@ -28,6 +28,8 @@ type ProvisionedAiTestUser = {
   rank: UserRank;
   villageId: string;
   villageName: string;
+  villageSector: number;
+  villageStructures: Array<{ route: string; name: string }>;
   isBanned: boolean;
   signInToken?: string;
 };
@@ -81,10 +83,16 @@ const createUsername = (base: string) => {
 
 /** Look up the village by ID or name; throws if not found. */
 const resolveVillage = async (profile: AiTestUserProfile) => {
+  const columns = { id: true, name: true, sector: true } as const;
+  const withRelations = {
+    structures: { columns: { route: true, name: true } },
+  } as const;
+
   if (profile.villageId) {
     const villageRecord = await drizzleDB.query.village.findFirst({
       where: eq(village.id, profile.villageId),
-      columns: { id: true, name: true },
+      columns,
+      with: withRelations,
     });
     if (villageRecord) return villageRecord;
     throw new Error(
@@ -95,7 +103,8 @@ const resolveVillage = async (profile: AiTestUserProfile) => {
   if (profile.villageName) {
     const villageRecord = await drizzleDB.query.village.findFirst({
       where: eq(village.name, profile.villageName),
-      columns: { id: true, name: true },
+      columns,
+      with: withRelations,
     });
     if (villageRecord) return villageRecord;
   }
@@ -186,6 +195,7 @@ const upsertUserData = async ({
   rank,
   villageId,
   isBanned,
+  sector,
 }: {
   userId: string;
   username: string;
@@ -193,6 +203,7 @@ const upsertUserData = async ({
   rank: UserRank;
   villageId: string;
   isBanned: boolean;
+  sector: number;
 }) => {
   const existing = await drizzleDB.query.userData.findFirst({
     where: eq(userData.userId, userId),
@@ -207,6 +218,7 @@ const upsertUserData = async ({
       level,
       rank,
       villageId,
+      sector,
       status: "AWAKE",
       isBanned,
     });
@@ -221,6 +233,7 @@ const upsertUserData = async ({
       level,
       rank,
       villageId,
+      sector,
       status: "AWAKE",
       inArena: false,
       inShrines: false,
@@ -256,7 +269,7 @@ const createSignInToken = async (userId: string): Promise<string | undefined> =>
   }
 };
 
-const BROKER_VERSION = "v4-email-fix";
+const BROKER_VERSION = "v5-sector-fix";
 
 /**
  * Provision one or more test users for a single reviewer run.
@@ -306,6 +319,7 @@ export const provisionAiTestUsers = async (
           rank: profile.rank,
           villageId: resolvedVillage.id,
           isBanned: profile.isBanned ?? false,
+          sector: resolvedVillage.sector,
         }),
         createSignInToken(userId),
       ]);
@@ -320,6 +334,11 @@ export const provisionAiTestUsers = async (
         rank: profile.rank,
         villageId: resolvedVillage.id,
         villageName: resolvedVillage.name,
+        villageSector: resolvedVillage.sector,
+        villageStructures: resolvedVillage.structures.map((s) => ({
+          route: s.route,
+          name: s.name,
+        })),
         isBanned: profile.isBanned ?? false,
         signInToken,
       };

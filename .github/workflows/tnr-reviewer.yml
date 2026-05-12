@@ -207,7 +207,7 @@ jobs:
     concurrency:
       group: tnr-reviewer-pr-${{ needs.command_gate.outputs.pr_number }}
       cancel-in-progress: false
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       contents: read
       issues: write

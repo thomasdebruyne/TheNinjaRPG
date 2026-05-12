@@ -79,6 +79,13 @@ export const aiTestUserResponseSchema = z.object({
       rank: z.enum(UserRanks),
       villageId: z.string(),
       villageName: z.string(),
+      villageSector: z.number().int(),
+      villageStructures: z.array(
+        z.object({
+          route: z.string(),
+          name: z.string(),
+        }),
+      ),
       isBanned: z.boolean(),
       signInToken: z.string().optional(),
     }),
