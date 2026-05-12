@@ -5,7 +5,7 @@
  * curl-based requests, so the shape is kept intentionally simple / JSON-safe.
  */
 import { z } from "zod";
-import { UserRanks } from "@/drizzle/constants";
+import { UserRanks, UserRoles } from "@/drizzle/constants";
 
 /** Describes a single test user the agent wants provisioned. */
 export const aiTestUserProfileSchema = z
@@ -26,6 +26,8 @@ export const aiTestUserProfileSchema = z
       .optional(),
     /** Set true to provision a banned user (for testing ban flows). */
     isBanned: z.boolean().optional(),
+    /** Assign an admin/staff role for scenario setup (defaults to USER). */
+    role: z.enum(UserRoles).optional(),
   })
   .refine((value) => value.villageId || value.villageName, {
     error: "Either villageId or villageName must be provided",
@@ -87,6 +89,7 @@ export const aiTestUserResponseSchema = z.object({
         }),
       ),
       isBanned: z.boolean(),
+      role: z.enum(UserRoles).optional(),
       signInToken: z.string().optional(),
     }),
   ),
@@ -94,6 +97,19 @@ export const aiTestUserResponseSchema = z.object({
   version: z.string().optional(),
 });
 
+/** Request schema for calling a tRPC endpoint as a provisioned test user. */
+export const aiTestUserCallEndpointRequestSchema = z.object({
+  /** The userId of a previously provisioned test user to act as. */
+  userId: z.string().trim().min(1),
+  /** The tRPC endpoint name (e.g., "quests.create", "raids.getAvailableRaids"). */
+  endpointName: z.string().trim().min(1).max(200),
+  /** Input data for the endpoint. */
+  input: z.record(z.string(), z.unknown()).optional(),
+});
+
 export type AiTestUserRequest = z.infer<typeof aiTestUserRequestSchema>;
 export type AiTestUserProfile = z.infer<typeof aiTestUserProfileSchema>;
 export type AiTestUserResponse = z.infer<typeof aiTestUserResponseSchema>;
+export type AiTestUserCallEndpointRequest = z.infer<
+  typeof aiTestUserCallEndpointRequestSchema
+>;

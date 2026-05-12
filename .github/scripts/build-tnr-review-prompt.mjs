@@ -64,6 +64,11 @@ const brokerUrl = normalizedPreviewUrl
   ? new URL("/api/ai-test-user", normalizedPreviewUrl).toString()
   : "";
 
+// Endpoint for calling tRPC endpoints as a provisioned test user
+const callEndpointUrl = normalizedPreviewUrl
+  ? new URL("/api/ai-test-user/call-endpoint", normalizedPreviewUrl).toString()
+  : "";
+
 // Extra instructions appended by the user after `/tnr-review-now <text>`.
 // Sanitized like prBody/prTitle since it's also user-supplied input.
 const extraInstructionsSafe = sanitize(extraInstructions, 2000);
@@ -121,6 +126,56 @@ const authBlock =
       ].join("\n")
     : "";
 
+// Scenario setup block: teaches the agent how to use admin roles + call-endpoint
+const scenarioBlock =
+  callEndpointUrl && brokerToken
+    ? [
+        "",
+        "## Setting up game scenarios (raids, wars, quests, etc.)",
+        "",
+        "If testing requires game state that doesn't exist (e.g., an active raid), you can create it.",
+        "",
+        "### Step 1: Provision an admin user",
+        "",
+        'Add `"role": "CONTENT"` (or another admin role) to a user profile:',
+        "```",
+        `curl -s -b /tmp/vercel.cookie -X POST "${appendBypassParams(brokerUrl)}" \\`,
+        `  -H "Content-Type: application/json" \\`,
+        `  -H "x-tnr-reviewer-token: $AI_TEST_USER_BROKER_TOKEN" \\`,
+        `  -d '{"users":[{"key":"admin","level":100,"rank":"JONIN","villageName":"Shine","role":"CONTENT"}]}'`,
+        "```",
+        "",
+        "Available admin roles: OWNER, CODING-ADMIN, CONTENT-ADMIN, EVENT-ADMIN, HEAD_CONTENT, CONTENT, HEAD_EVENT, EVENT, CODER.",
+        "For content creation (quests, raids), use CONTENT or CODING-ADMIN.",
+        "",
+        "### Step 2: Call tRPC endpoints as that admin user",
+        "",
+        "Use the call-endpoint broker to invoke server-side endpoints directly:",
+        "```",
+        `curl -s -b /tmp/vercel.cookie -X POST "${appendBypassParams(callEndpointUrl)}" \\`,
+        `  -H "Content-Type: application/json" \\`,
+        `  -H "x-tnr-reviewer-token: $AI_TEST_USER_BROKER_TOKEN" \\`,
+        `  -d '{"userId":"<admin-userId-from-step1>","endpointName":"quests.create","input":{}}'`,
+        "```",
+        "",
+        "The response is: `{ \"success\": true, \"result\": <endpoint-response> }` or `{ \"success\": false, \"message\": \"...\" }`",
+        "",
+        "### Example: Creating an active raid",
+        "",
+        "1. Provision a CONTENT user (step 1 above)",
+        "2. Create a quest: `endpointName: \"quests.create\"` — returns the new quest ID",
+        "3. Update it as a raid: `endpointName: \"quests.update\"` with input including `questType: \"raid\"`, `raidBossMaxHealth`, `raidEndsAt` (future ISO date), and objectives with `task: \"open_raid\"` + `opponentAIs`",
+        "4. To find valid AI profile IDs for raid bosses, read the source code or call `data` router endpoints",
+        "",
+        "### Tips",
+        "",
+        "- Read the source code (e.g., `app/src/server/api/routers/quests.ts`, `app/src/server/api/routers/raids.ts`) to understand required input shapes",
+        "- The endpoint name format is `<routerName>.<procedureName>` (e.g., `quests.create`, `raids.createDamageThreshold`)",
+        "- You can call query endpoints too (not just mutations) to inspect game state",
+        "",
+      ].join("\n")
+    : "";
+
 const prompt = [
   "You are the TNR reviewer agent for a pull request.",
   "",
@@ -148,6 +203,7 @@ const prompt = [
   "- Save a short step log under `.artifacts/tnr-review/test-steps.md`.",
   "- If blocked, document exactly what blocked testing and what evidence was collected.",
   authBlock,
+  scenarioBlock,
   "Output requirements:",
   "- Produce a final markdown report with these sections:",
   "  1. Scope covered",

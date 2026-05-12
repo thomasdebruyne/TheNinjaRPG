@@ -10,7 +10,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
-import type { UserRank } from "@/drizzle/constants";
+import type { UserRank, UserRole } from "@/drizzle/constants";
 import { userData, village } from "@/drizzle/schema";
 import { env } from "@/env/server.mjs";
 import { drizzleDB } from "@/server/db";
@@ -26,6 +26,7 @@ type ProvisionedAiTestUser = {
   password: string;
   level: number;
   rank: UserRank;
+  role: UserRole;
   villageId: string;
   villageName: string;
   villageSector: number;
@@ -193,6 +194,7 @@ const upsertUserData = async ({
   username,
   level,
   rank,
+  role,
   villageId,
   isBanned,
   sector,
@@ -201,6 +203,7 @@ const upsertUserData = async ({
   username: string;
   level: number;
   rank: UserRank;
+  role: UserRole;
   villageId: string;
   isBanned: boolean;
   sector: number;
@@ -217,6 +220,7 @@ const upsertUserData = async ({
       gender: "Other",
       level,
       rank,
+      role,
       villageId,
       sector,
       status: "AWAKE",
@@ -232,6 +236,7 @@ const upsertUserData = async ({
       username,
       level,
       rank,
+      role,
       villageId,
       sector,
       status: "AWAKE",
@@ -310,6 +315,8 @@ export const provisionAiTestUsers = async (
 
       const { userId } = await upsertClerkUser(externalId, email, username, password);
 
+      const resolvedRole = profile.role ?? "USER";
+
       // DB sync and sign-in token generation are independent — run in parallel
       const [, signInToken] = await Promise.all([
         upsertUserData({
@@ -317,6 +324,7 @@ export const provisionAiTestUsers = async (
           username,
           level: profile.level,
           rank: profile.rank,
+          role: resolvedRole,
           villageId: resolvedVillage.id,
           isBanned: profile.isBanned ?? false,
           sector: resolvedVillage.sector,
@@ -332,6 +340,7 @@ export const provisionAiTestUsers = async (
         password,
         level: profile.level,
         rank: profile.rank,
+        role: resolvedRole,
         villageId: resolvedVillage.id,
         villageName: resolvedVillage.name,
         villageSector: resolvedVillage.sector,
